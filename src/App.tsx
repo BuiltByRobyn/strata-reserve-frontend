@@ -1,8 +1,8 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Navbar } from './components/Navbar';
-import { Home } from './pages/Home';
+import { Dashboard } from './pages/Dashboard';
 import { Upload } from './pages/Upload';
-import './App.scss';
+import { Profile } from './pages/Profile';
 
 function App() {
   return (
@@ -10,8 +10,9 @@ function App() {
       <div className="app">
         <Navbar />
         <Routes>
-          <Route path="/" element={<Home />} />
+          <Route path="/" element={<Dashboard />} />
           <Route path="/upload" element={<Upload />} />
+          <Route path="/profile" element={<Profile />} />
         </Routes>
       </div>
     </Router>

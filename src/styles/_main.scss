@@ -1,0 +1,15 @@
+// Main SCSS Entry File
+
+// 1. Variables (must be imported first)
+@use 'variables';
+
+// 2. Base styles (reset, global app styles)
+@use 'base/reset';
+@use 'base/app';
+
+// 3. Components
+@use 'components/navbar';
+
+// 4. Pages
+@use 'pages/home';
+@use 'pages/upload';

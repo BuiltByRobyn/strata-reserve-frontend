@@ -1,0 +1,47 @@
+@use '../variables' as *;
+
+/* Global Styles for App Structure */
+#root {
+  max-width: $max-width-root;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.page-container {
+  padding: $spacing-page-padding;
+  max-width: $max-width-page;
+  margin: 0 auto;
+  text-align: left;
+}
+
+h1 {
+  font-size: $font-size-xl;
+  margin-bottom: $spacing-md;
+  color: $color-text;
+}
+
+.action-btn {
+  background-color: $color-btn-bg;
+  color: $color-btn-text;
+  border: none;
+  padding: $spacing-btn-padding;
+  font-size: $font-size-base;
+  font-weight: $font-weight-medium;
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color 0.25s;
+  border-radius: $border-radius-lg;
+
+  &:hover {
+    background-color: $color-btn-hover;
+  }
+}
+
+.response-area {
+  margin-top: $spacing-response-margin;
+  background: $color-primary;
+  padding: $spacing-response-padding;
+  border-radius: $border-radius-lg;
+  border: 1px solid $color-primary;
+  text-align: left;
+}
