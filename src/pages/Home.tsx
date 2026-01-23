@@ -16,8 +16,12 @@ export const Home = () => {
         } catch {
           setData(text);
         }
-      } catch (err: any) {
-        setData(`Error: ${err.message}`);
+      } catch (err: unknown) {
+        if (err instanceof Error) {
+          setData(`Error: ${err.message}`);
+        } else {
+          setData(`Unexpected error: ${String(err)}`);
+        }
       }
     };
 
