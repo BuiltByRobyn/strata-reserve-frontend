@@ -2,11 +2,11 @@ import { useState, useEffect } from "react";
 
 const API_URL = "http://localhost:3000";
 
-export const Home = () => {
+export const Dashboard = () => {
   const [data, setData] = useState<string>("Loading...");
 
   useEffect(() => {
-    const getHome = async () => {
+    const getDashboard = async () => {
       try {
         const res = await fetch(`${API_URL}/`);
         const text = await res.text();
@@ -25,12 +25,12 @@ export const Home = () => {
       }
     };
 
-    getHome();
+    getDashboard();
   }, []);
 
   return (
     <div className="page-container">
-      <h1>Home Page</h1>
+      <h1>Dashboard Page</h1>
       <p>Welcome to the Strata Reserve Planning (SRP) Web Application.</p>
 
       <div className="response-area">
