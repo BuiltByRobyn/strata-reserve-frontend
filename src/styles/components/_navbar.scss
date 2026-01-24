@@ -1,0 +1,43 @@
+@use '../variables' as *;
+
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: $spacing-nav-padding;
+  background-color: $color-primary;
+  color: $color-text-white;
+  box-shadow: $shadow-navbar;
+
+  &-brand {
+    font-size: $font-size-lg;
+    font-weight: $font-weight-bold;
+    color: $color-text-white;
+  }
+
+  &-links {
+    display: flex;
+    gap: $gap-nav-links;
+    align-items: center;
+  }
+}
+
+.nav-link {
+  text-decoration: none;
+  color: $color-text-white;
+  font-weight: $font-weight-medium;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: $spacing-nav-link-padding;
+  border-radius: $border-radius-sm;
+
+  &:hover {
+    color: $color-text-white;
+  }
+
+  &.active {
+    background-color: $color-primary-hover;
+  }
+}
