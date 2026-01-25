@@ -1,10 +1,12 @@
 import { useState } from "react";
+import { useAuthFetch } from "../hooks/useAuthFetch";
 
 const API_URL = "http://localhost:3000";
 
 export const Upload = () => {
   const [uploadStatus, setUploadStatus] = useState<string>("");
   const [isUploading, setIsUploading] = useState(false);
+  const authFetch = useAuthFetch();
 
   const uploadFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files?.[0]) return;
@@ -16,7 +18,7 @@ export const Upload = () => {
     formData.append("file", e.target.files[0]);
 
     try {
-      const res = await fetch(`${API_URL}/upload`, {
+      const res = await authFetch(`${API_URL}/upload`, {
         method: "POST",
         body: formData,
       });
