@@ -41,3 +41,16 @@
     background-color: $color-primary-hover;
   }
 }
+
+.logout-btn {
+  background: none;
+  border: $border-width-thin solid $color-text-white;
+  font-family: inherit;
+  font-size: inherit;
+  cursor: pointer;
+
+  &:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+  }
+}
+

@@ -2,6 +2,14 @@
 
 /* Global Styles for App Structure */
 #root {
+  /* Removed max-width and centered margin to allow full-screen pages */
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+/* Wrapper for protected pages with navbar */
+.app {
   max-width: $max-width-root;
   margin: 0 auto;
   text-align: center;

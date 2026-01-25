@@ -1,14 +1,16 @@
 import { useState, useEffect } from "react";
+import { useAuthFetch } from "../hooks/useAuthFetch";
 
 const API_URL = "http://localhost:3000";
 
 export const Dashboard = () => {
   const [data, setData] = useState<string>("Loading...");
+  const authFetch = useAuthFetch();
 
   useEffect(() => {
     const getDashboard = async () => {
       try {
-        const res = await fetch(`${API_URL}/`);
+        const res = await authFetch(`${API_URL}/`);
         const text = await res.text();
         try {
           const json = JSON.parse(text);
