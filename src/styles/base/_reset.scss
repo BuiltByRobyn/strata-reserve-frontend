@@ -1,0 +1,31 @@
+@use '../variables' as *;
+
+/* CSS Reset */
+html {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: $font-family-stack;
+  background-color: $color-bg;
+  color: $color-text;
+}
+
+button {
+  margin: 5px;
+  padding: $spacing-pre-padding;
+  cursor: pointer;
+}
+
+pre {
+  background: $color-bg;
+  padding: $spacing-pre-padding;
+  border-radius: $border-radius-sm;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}

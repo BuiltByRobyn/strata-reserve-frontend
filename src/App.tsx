@@ -1,21 +1,59 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { AuthProvider } from './contexts/AuthContext';
+import { ProtectedRoute } from './components/ProtectedRoute';
 import { Navbar } from './components/Navbar';
-import { Home } from './pages/Home';
+import { Dashboard } from './pages/Dashboard';
 import { Upload } from './pages/Upload';
-import './App.scss';
+import { Profile } from './pages/Profile';
+import { Login } from './pages/Login';
 
 function App() {
   return (
-    <Router>
-      <div className="app">
-        <Navbar />
+    <AuthProvider>
+      <Router>
         <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/upload" element={<Upload />} />
+          {/* Public route */}
+          <Route path="/login" element={<Login />} />
+          
+          {/* Protected routes */}
+          <Route
+            path="/"
+            element={
+              <ProtectedRoute>
+                <div className="app">
+                  <Navbar />
+                  <Dashboard />
+                </div>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/upload"
+            element={
+              <ProtectedRoute>
+                <div className="app">
+                  <Navbar />
+                  <Upload />
+                </div>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                <div className="app">
+                  <Navbar />
+                  <Profile />
+                </div>
+              </ProtectedRoute>
+            }
+          />
         </Routes>
-      </div>
-    </Router>
+      </Router>
+    </AuthProvider>
   );
 }
 
 export default App;
+
