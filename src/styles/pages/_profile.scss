@@ -1,7 +1,7 @@
 @use '../variables' as *;
 
-/* Dashboard Page Styles */
-.dashboard-container {
+/* Profile Page Styles */
+.profile-container {
   padding: $spacing-lg;
   
   // Tablet responsive
@@ -15,4 +15,4 @@
   }
 }
 
-// Add dashboard specific styles here as needed
+// Add profile specific styles here as needed

@@ -13,6 +13,11 @@
   padding: $spacing-md;
   box-sizing: border-box;
   overflow: auto;
+
+  // Mobile responsive
+  @include respond-below(sm) {
+    padding: $spacing-sm;
+  }
 }
 
 .login-card {
@@ -23,6 +28,19 @@
   max-width: 440px;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
   text-align: center;
+
+  // Tablet responsive
+  @include respond-below(md) {
+    max-width: 400px;
+    padding: $spacing-xl;
+  }
+
+  // Mobile responsive
+  @include respond-below(sm) {
+    max-width: 100%;
+    padding: $spacing-lg;
+    border-radius: $border-radius-lg;
+  }
 }
 
 .dev-warning {
@@ -51,7 +69,14 @@
       border-radius: 3px;
       font-family: monospace;
       font-size: 0.85em;
+      word-break: break-word;
     }
+  }
+
+  // Mobile responsive
+  @include respond-below(sm) {
+    padding: $spacing-sm;
+    font-size: 0.85rem;
   }
 }
 
@@ -70,6 +95,18 @@
     height: 50px;
     object-fit: contain;
   }
+
+  // Mobile responsive
+  @include respond-below(sm) {
+    width: 60px;
+    height: 60px;
+    margin-bottom: $spacing-md;
+
+    img {
+      width: 40px;
+      height: 40px;
+    }
+  }
 }
 
 .login-header {
@@ -80,12 +117,22 @@
     font-weight: $font-weight-bold;
     color: $color-text;
     margin: 0 0 $spacing-xs;
+
+    // Mobile responsive
+    @include respond-below(sm) {
+      font-size: 1.3rem;
+    }
   }
 
   .login-subtitle {
     font-size: $font-size-base;
     color: $color-text-light;
     margin: 0;
+
+    // Mobile responsive
+    @include respond-below(sm) {
+      font-size: $font-size-sm;
+    }
   }
 }
 
@@ -94,6 +141,11 @@
 
   .form-group {
     margin-bottom: $spacing-lg;
+
+    // Mobile responsive
+    @include respond-below(sm) {
+      margin-bottom: $spacing-md;
+    }
 
     label {
       display: block;
@@ -129,6 +181,12 @@
         opacity: 0.6;
         cursor: not-allowed;
       }
+
+      // Mobile responsive
+      @include respond-below(sm) {
+        padding: 10px 14px;
+        font-size: 16px; // Prevents zoom on iOS
+      }
     }
   }
 
@@ -140,6 +198,12 @@
     font-size: $font-size-sm;
     margin-bottom: $spacing-md;
     border: $border-width-thin solid #FCA5A5;
+
+    // Mobile responsive
+    @include respond-below(sm) {
+      padding: $spacing-xs $spacing-sm;
+      font-size: 0.8rem;
+    }
   }
 
   .login-btn {
@@ -163,6 +227,12 @@
       opacity: 0.7;
       cursor: not-allowed;
     }
+
+    // Mobile responsive
+    @include respond-below(sm) {
+      padding: 12px;
+      font-size: 16px; // Prevents zoom on iOS
+    }
   }
 
   .forgot-password {
@@ -185,6 +255,11 @@
   height: 1px;
   background-color: #E5E7EB;
   margin: $spacing-xl 0 $spacing-lg;
+
+  // Mobile responsive
+  @include respond-below(sm) {
+    margin: $spacing-lg 0 $spacing-md;
+  }
 }
 
 .login-footer {
@@ -199,10 +274,16 @@
     a {
       color: $color-primary;
       text-decoration: none;
+      word-break: break-word;
 
       &:hover {
         text-decoration: underline;
       }
+    }
+
+    // Mobile responsive
+    @include respond-below(sm) {
+      font-size: 0.8rem;
     }
   }
 
@@ -212,6 +293,7 @@
     justify-content: center;
     gap: $spacing-sm;
     font-size: $font-size-sm;
+    flex-wrap: wrap;
 
     a {
       color: $color-text-light;
@@ -226,6 +308,11 @@
     span {
       color: #E5E7EB;
     }
+
+    // Mobile responsive
+    @include respond-below(sm) {
+      font-size: 0.75rem;
+    }
   }
 }
 
@@ -233,6 +320,11 @@
   font-size: 0.75rem;
   color: $color-text-light;
   margin: 0;
+
+  // Mobile responsive
+  @include respond-below(sm) {
+    font-size: 0.7rem;
+  }
 }
 
 .loading-container {

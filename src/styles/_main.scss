@@ -14,3 +14,7 @@
 @use 'pages/dashboard';
 @use 'pages/upload';
 @use 'pages/login';
+@use 'pages/profile';
+
+// 5. Utilities
+@use 'utilities/responsive';

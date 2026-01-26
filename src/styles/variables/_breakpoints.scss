@@ -7,9 +7,7 @@ $breakpoint-lg: 992px;
 $breakpoint-xl: 1200px;
 $breakpoint-2xl: 1400px;
 
-
-// ??????????????
-// Media Query Mixins (for future use)
+// Media Query Mixins - Mobile First (min-width)
 @mixin respond-to($breakpoint) {
   @if $breakpoint == xs {
     @media (min-width: $breakpoint-xs) { @content; }
@@ -30,3 +28,49 @@ $breakpoint-2xl: 1400px;
     @media (min-width: $breakpoint-2xl) { @content; }
   }
 }
+
+// Media Query Mixins - Desktop First (max-width)
+@mixin respond-below($breakpoint) {
+  @if $breakpoint == xs {
+    @media (max-width: ($breakpoint-xs - 1px)) { @content; }
+  }
+  @if $breakpoint == sm {
+    @media (max-width: ($breakpoint-sm - 1px)) { @content; }
+  }
+  @if $breakpoint == md {
+    @media (max-width: ($breakpoint-md - 1px)) { @content; }
+  }
+  @if $breakpoint == lg {
+    @media (max-width: ($breakpoint-lg - 1px)) { @content; }
+  }
+  @if $breakpoint == xl {
+    @media (max-width: ($breakpoint-xl - 1px)) { @content; }
+  }
+  @if $breakpoint == 2xl {
+    @media (max-width: ($breakpoint-2xl - 1px)) { @content; }
+  }
+}
+
+// Range Media Queries
+@mixin respond-between($min-breakpoint, $max-breakpoint) {
+  $min: 0;
+  $max: 0;
+  
+  @if $min-breakpoint == xs { $min: $breakpoint-xs; }
+  @if $min-breakpoint == sm { $min: $breakpoint-sm; }
+  @if $min-breakpoint == md { $min: $breakpoint-md; }
+  @if $min-breakpoint == lg { $min: $breakpoint-lg; }
+  @if $min-breakpoint == xl { $min: $breakpoint-xl; }
+  @if $min-breakpoint == 2xl { $min: $breakpoint-2xl; }
+  
+  @if $max-breakpoint == xs { $max: ($breakpoint-xs - 1px); }
+  @if $max-breakpoint == sm { $max: ($breakpoint-sm - 1px); }
+  @if $max-breakpoint == md { $max: ($breakpoint-md - 1px); }
+  @if $max-breakpoint == lg { $max: ($breakpoint-lg - 1px); }
+  @if $max-breakpoint == xl { $max: ($breakpoint-xl - 1px); }
+  @if $max-breakpoint == 2xl { $max: ($breakpoint-2xl - 1px); }
+  
+  @media (min-width: $min) and (max-width: $max) { @content; }
+}
+
+
