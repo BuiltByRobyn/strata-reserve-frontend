@@ -1,13 +1,13 @@
 import { useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../shared/contexts/AuthContext';
+import { useClientAuth } from '../contexts/ClientAuthContext';
 
-export const Login = () => {
+export const ClientLogin = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { signIn } = useAuth();
+  const { signIn } = useClientAuth();
   const navigate = useNavigate();
 
   // Check if Supabase is configured
@@ -30,9 +30,7 @@ export const Login = () => {
       setError(error.message);
       setLoading(false);
     } else {
-      // The routing logic in App.tsx will handle redirecting to the appropriate dashboard
-      // based on the user's role
-      navigate('/dashboard');
+      navigate('/client/dashboard');
     }
   };
 
@@ -52,8 +50,9 @@ export const Login = () => {
         </div>
         
         <div className="login-header">
-          <h1>Strata Reserve Planning</h1>
-          <p className="login-subtitle">Depreciation Report Portal</p>
+          <h1>Client Portal</h1>
+          <p className="login-subtitle">Strata Reserve Planning</p>
+          <div className="client-badge">Depreciation Report Access</div>
         </div>
 
         <form onSubmit={handleSubmit} className="login-form">
@@ -85,7 +84,7 @@ export const Login = () => {
 
           {error && <div className="error-message">{error}</div>}
 
-          <button type="submit" className="login-btn" disabled={loading}>
+          <button type="submit" className="login-btn client-btn" disabled={loading}>
             {loading ? 'Signing In...' : 'Sign In'}
           </button>
 
@@ -102,6 +101,8 @@ export const Login = () => {
             </a>
           </p>
           <div className="footer-links">
+            <a href="/admin/login">Admin Login</a>
+            <span>|</span>
             <a href="#">Privacy Policy</a>
             <span>|</span>
             <a href="#">Terms of Use</a>
