@@ -1,13 +1,13 @@
 import { useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../shared/contexts/AuthContext';
+import { useAdminAuth } from '../contexts/AdminAuthContext';
 
-export const Login = () => {
+export const AdminLogin = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { signIn } = useAuth();
+  const { signIn } = useAdminAuth();
   const navigate = useNavigate();
 
   // Check if Supabase is configured
@@ -30,9 +30,7 @@ export const Login = () => {
       setError(error.message);
       setLoading(false);
     } else {
-      // The routing logic in App.tsx will handle redirecting to the appropriate dashboard
-      // based on the user's role
-      navigate('/dashboard');
+      navigate('/admin/dashboard');
     }
   };
 
@@ -52,19 +50,20 @@ export const Login = () => {
         </div>
         
         <div className="login-header">
-          <h1>Strata Reserve Planning</h1>
-          <p className="login-subtitle">Depreciation Report Portal</p>
+          <h1>Admin Portal</h1>
+          <p className="login-subtitle">Strata Reserve Planning</p>
+          <div className="admin-badge">Administrator Access</div>
         </div>
 
         <form onSubmit={handleSubmit} className="login-form">
           <div className="form-group">
-            <label htmlFor="email">Email</label>
+            <label htmlFor="email">Admin Email</label>
             <input
               id="email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="Enter your email"
+              placeholder="admin@stratareserveplanning.com"
               required
               disabled={loading}
             />
@@ -77,7 +76,7 @@ export const Login = () => {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Enter your password"
+              placeholder="Enter your admin password"
               required
               disabled={loading}
             />
@@ -85,8 +84,8 @@ export const Login = () => {
 
           {error && <div className="error-message">{error}</div>}
 
-          <button type="submit" className="login-btn" disabled={loading}>
-            {loading ? 'Signing In...' : 'Sign In'}
+          <button type="submit" className="login-btn admin-btn" disabled={loading}>
+            {loading ? 'Signing In...' : 'Sign In as Admin'}
           </button>
 
           <a href="#" className="forgot-password">Forgot Password?</a>
@@ -96,12 +95,14 @@ export const Login = () => {
 
         <div className="login-footer">
           <p className="help-text">
-            Need help? Contact our support team at{' '}
-            <a href="mailto:support@stratareserveplanning.com">
-              support@stratareserveplanning.com
+            Need help? Contact IT support at{' '}
+            <a href="mailto:it@stratareserveplanning.com">
+              it@stratareserveplanning.com
             </a>
           </p>
           <div className="footer-links">
+            <a href="/login">Client Login</a>
+            <span>|</span>
             <a href="#">Privacy Policy</a>
             <span>|</span>
             <a href="#">Terms of Use</a>
