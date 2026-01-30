@@ -23,6 +23,10 @@ function App() {
           {/* Public route */}
           <Route path="/login" element={<Login />} />
           
+          {/* Redirect old login URLs to unified login */}
+          <Route path="/admin/login" element={<Navigate to="/login" replace />} />
+          <Route path="/client/login" element={<Navigate to="/login" replace />} />
+          
           {/* Dashboard route - redirects based on role */}
           <Route path="/dashboard" element={<DashboardRouter />} />
           

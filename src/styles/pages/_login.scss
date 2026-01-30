@@ -210,6 +210,63 @@
         font-size: 16px; // Prevents zoom on iOS
       }
     }
+
+    // Password input wrapper for toggle button
+    .password-input-wrapper {
+      position: relative;
+      width: 100%;
+
+      input {
+        padding-right: 48px; // Make room for the toggle button (and possibly autofill button)
+        
+        // When browser autofill is detected, add more padding
+        &:-webkit-autofill {
+          padding-right: 80px; // Extra space for both autofill and toggle buttons
+        }
+      }
+
+      .password-toggle-btn {
+        position: absolute;
+        right: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: none;
+        border: none;
+        margin: 0;
+        padding: 4px;
+        cursor: pointer;
+        color: #6B7280;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: color 0.2s ease;
+        z-index: 10;
+
+        &:hover {
+          color: $color-primary;
+        }
+
+        &:focus {
+          outline: none;
+          color: $color-primary;
+        }
+
+        svg {
+          width: 20px;
+          height: 20px;
+        }
+
+        // Mobile responsive
+        @include respond-below(sm) {
+          right: 10px;
+
+          svg {
+            width: 18px;
+            height: 18px;
+          }
+        }
+      }
+    }
   }
 
   .error-message {
