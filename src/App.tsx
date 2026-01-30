@@ -3,6 +3,7 @@ import { AuthProvider } from './shared/contexts/AuthContext';
 import { ProtectedRoute } from './shared/components/ProtectedRoute';
 import { DashboardRouter } from './pages/DashboardRouter';
 import { Login } from './pages/Login';
+import { SetPassword } from './pages/SetPassword';
 
 // Admin Components
 import { AdminNavbar } from './admin/components/AdminNavbar';
@@ -22,6 +23,9 @@ function App() {
         <Routes>
           {/* Public route */}
           <Route path="/login" element={<Login />} />
+          
+          {/* Password setup for new user invitations */}
+          <Route path="/set-password" element={<SetPassword />} />
           
           {/* Redirect old login URLs to unified login */}
           <Route path="/admin/login" element={<Navigate to="/login" replace />} />

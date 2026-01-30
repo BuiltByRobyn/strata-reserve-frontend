@@ -130,7 +130,7 @@ export const Login = () => {
           </div>
         </div>
 
-        <p className="copyright">© 2025 Strata Reserve Planning. All rights reserved.</p>
+        <p className="copyright">© 2026 Strata Reserve Planning. All rights reserved.</p>
       </div>
     </div>
   );
