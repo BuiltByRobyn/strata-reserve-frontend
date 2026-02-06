@@ -1,0 +1,105 @@
+@use '../variables' as *;
+
+/* Responsive Utility Classes */
+
+// Hide/Show utilities
+.hide-mobile {
+  @include respond-below(md) {
+    display: none !important;
+  }
+}
+
+.hide-tablet {
+  @include respond-between(md, lg) {
+    display: none !important;
+  }
+}
+
+.hide-desktop {
+  @include respond-to(lg) {
+    display: none !important;
+  }
+}
+
+.show-mobile {
+  display: none !important;
+  
+  @include respond-below(md) {
+    display: block !important;
+  }
+}
+
+.show-tablet {
+  display: none !important;
+  
+  @include respond-between(md, lg) {
+    display: block !important;
+  }
+}
+
+.show-desktop {
+  display: none !important;
+  
+  @include respond-to(lg) {
+    display: block !important;
+  }
+}
+
+// Container utilities
+.container-fluid {
+  width: 100%;
+  padding-left: $spacing-md;
+  padding-right: $spacing-md;
+  
+  @include respond-below(sm) {
+    padding-left: $spacing-sm;
+    padding-right: $spacing-sm;
+  }
+}
+
+.container {
+  width: 100%;
+  max-width: $max-width-root;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: $spacing-md;
+  padding-right: $spacing-md;
+  
+  @include respond-below(sm) {
+    padding-left: $spacing-sm;
+    padding-right: $spacing-sm;
+  }
+}
+
+// Text alignment utilities
+.text-center-mobile {
+  @include respond-below(md) {
+    text-align: center !important;
+  }
+}
+
+.text-left-mobile {
+  @include respond-below(md) {
+    text-align: left !important;
+  }
+}
+
+// Flexbox utilities
+.flex-column-mobile {
+  @include respond-below(md) {
+    flex-direction: column !important;
+  }
+}
+
+.flex-row-mobile {
+  @include respond-below(md) {
+    flex-direction: row !important;
+  }
+}
+
+// Width utilities
+.full-width-mobile {
+  @include respond-below(md) {
+    width: 100% !important;
+  }
+}
