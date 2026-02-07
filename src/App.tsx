@@ -10,6 +10,8 @@ import { AdminNavbar } from './admin/components/AdminNavbar';
 import { Dashboard as AdminDashboard } from './admin/pages/Dashboard';
 import { Upload as AdminUpload } from './admin/pages/Upload';
 import { Profile as AdminProfile } from './admin/pages/Profile';
+import CompaniesPage from './admin/pages/Companies';
+import StrataPage from './admin/pages/Strata';
 
 // Client Components
 import { ClientNavbar } from './client/components/ClientNavbar';
@@ -69,6 +71,30 @@ function App() {
                 <div className="app">
                   <AdminNavbar />
                   <AdminProfile />
+                </div>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/admin/companies"
+            element={
+              <ProtectedRoute requireAdmin>
+                <div className="app">
+                  <AdminNavbar />
+                  <CompaniesPage />
+                </div>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/admin/strata"
+            element={
+              <ProtectedRoute requireAdmin>
+                <div className="app">
+                  <AdminNavbar />
+                  <StrataPage />
                 </div>
               </ProtectedRoute>
             }

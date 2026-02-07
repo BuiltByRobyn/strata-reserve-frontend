@@ -52,6 +52,20 @@ export const AdminNavbar = () => {
           Dashboard
         </NavLink>
         <NavLink 
+          to="/admin/companies" 
+          className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+          onClick={closeMobileMenu}
+        >
+          Companies
+        </NavLink>
+        <NavLink 
+          to="/admin/strata" 
+          className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+          onClick={closeMobileMenu}
+        >
+          Strata
+        </NavLink>
+        <NavLink 
           to="/admin/clients" 
           className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
           onClick={closeMobileMenu}

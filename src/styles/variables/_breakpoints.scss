@@ -1,6 +1,6 @@
 // Breakpoint Variables
 $breakpoint-md: 750px;   // Tablet
-$breakpoint-lg: 1000x;   // Desktop
+$breakpoint-lg: 1000px;   // Desktop
 
 @mixin respond-to($breakpoint) {
   @if $breakpoint == md {
