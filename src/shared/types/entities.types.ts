@@ -243,6 +243,103 @@ export interface UserWithStratas extends Profile {
 }
 
 // ============================================
+// Appointment Types
+// ============================================
+
+export interface ReviewStatus {
+  reviewStatusId: number;
+  statusName: string; // Approved, Rejected, Needs Revision
+}
+
+export interface AppointmentTimeSlot {
+  timeSlotId: number;
+  slotTime: string; // hh:mm:ss format
+  slotName: string; // 10AM, 2PM, 6PM
+}
+
+export interface AppointmentType {
+  appointmentTypeId: number;
+  typeName: string; // Standard Inspection, Elevator Assessment, Draft Meeting
+  durationType: string; // Half Day, Full Day
+  description: string | null;
+  isDraftMeeting: boolean;
+  serviceId: number;
+  service?: Service;
+}
+
+export interface ServiceRequest {
+  serviceRequestId: number;
+  requestDate: string;
+  status: string; // Draft, Pending Approval, Approved, Rejected, Appointment Scheduled, Completed
+  submittedForReviewDate: string | null;
+  notes: string | null;
+  archived: boolean;
+  archivedDate: string | null;
+  serviceId: number;
+  strataId: number;
+  requestedByProfileId: string;
+  service?: Service;
+  strata?: Strata;
+  requestedBy?: ProfileBasic;
+}
+
+export interface AppointmentRequest {
+  appointmentRequestId: number;
+  firstChoiceDate: string;
+  secondChoiceDate: string | null;
+  specialRequirements: string | null;
+  status: string; // Pending Review, Approved, Rejected, Cancelled
+  requestDate: string;
+  serviceRequestId: number;
+  appointmentTypeId: number;
+  firstChoiceTimeSlotId: number;
+  secondChoiceTimeSlotId: number | null;
+  requestedByProfileId: string;
+  appointmentType?: AppointmentType;
+  firstChoiceTimeSlot?: AppointmentTimeSlot;
+  secondChoiceTimeSlot?: AppointmentTimeSlot | null;
+  requestedBy?: ProfileBasic;
+}
+
+export interface AppointmentReview {
+  appointmentReviewId: number;
+  reviewDate: string;
+  approvedDateChoice: number | null; // 1 or 2
+  comments: string | null;
+  rejectionReason: string | null;
+  appointmentRequestId: number;
+  reviewedByProfileId: string;
+  reviewStatusId: number;
+  reviewStatus?: ReviewStatus;
+  reviewedBy?: ProfileBasic;
+}
+
+export interface Appointment {
+  appointmentId: number;
+  appointmentDate: string;
+  status: string; // Scheduled, Completed, Cancelled, Rescheduled
+  completionNote: string | null;
+  completedAt: string | null;
+  appointmentRequestId: number;
+  serviceRequestId: number;
+  appointmentTypeId: number;
+  timeSlotId: number;
+  inspectorProfileId: string | null;
+}
+
+export interface AppointmentWithDetails extends Appointment {
+  appointmentType: AppointmentType;
+  timeSlot: AppointmentTimeSlot;
+  serviceRequest: {
+    serviceRequestId: number;
+    strata: StrataBasic;
+    service: Service;
+  };
+  appointmentRequest?: AppointmentRequest;
+  inspector: ProfileBasic | null;
+}
+
+// ============================================
 // API Response Types
 // ============================================
 
