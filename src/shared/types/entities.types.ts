@@ -87,7 +87,7 @@ export interface Strata {
   propertyType?: { propertyTypeId: number; propertyTypeName: string } | null;
   _count?: {
     strataNotes: number;
-    strataEmployees: number;
+    strataProfiles: number;
     strataServices: number;
   };
 }
@@ -97,7 +97,7 @@ export interface StrataWithDetails extends Strata {
   legalType: LegalType | null;
   propertyType: PropertyType | null;
   strataNotes: StrataNoteWithCreator[];
-  strataEmployees: StrataEmployeeWithProfile[];
+  strataProfiles: StrataProfileWithProfile[];
   strataServices: StrataServiceWithDetails[];
 }
 
@@ -153,11 +153,11 @@ export interface StrataEmployee {
   createdAt: string;
 }
 
-export interface StrataEmployeeWithProfile extends StrataEmployee {
+export interface StrataProfileWithProfile extends StrataEmployee {
   profile: ProfileBasic;
 }
 
-export interface StrataEmployeeWithStrata extends StrataEmployee {
+export interface StrataProfileWithStrata extends StrataEmployee {
   strata: StrataBasic & {
     company?: { companyName: string } | null;
   };
@@ -202,28 +202,44 @@ export interface ProfileBasic {
 export interface Profile extends ProfileBasic {
   isAdmin: boolean | null;
   createdAt: string;
-  middleName: string | null;
   phoneNumber: string | null;
   userTypeId: number | null;
   mustChangePassword: boolean | null;
+  companyName?: string | null;
   userType?: UserType | null;
   _count?: {
-    strataEmployees: number;
+    strataProfiles: number;
   };
 }
 
 export interface ProfileWithStratas extends Profile {
-  strataEmployees: StrataEmployeeWithStrata[];
+  strataProfiles: StrataProfileWithStrata[];
 }
 
 export interface UpdateProfileInput {
   firstName?: string;
-  middleName?: string | null;
   lastName?: string;
   displayName?: string;
   phoneNumber?: string | null;
   userTypeId?: number | null;
   mustChangePassword?: boolean;
+}
+
+export interface CreateUserInput {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phoneNumber: string;
+  userTypeId: number;
+  companyName?: string;
+  strataAssociations: Array<{
+    strataId: number;
+    strataPosition?: string;
+  }>;
+}
+
+export interface UserWithStratas extends Profile {
+  strataProfiles: StrataProfileWithStrata[];
 }
 
 // ============================================

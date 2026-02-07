@@ -26,7 +26,6 @@ export const AdminNavbar = () => {
   return (
     <nav className="navbar admin-navbar">
       <div className="navbar-brand">
-        <span className="admin-badge-small">Admin</span>
         Strata Reserve Planning (SRP)
       </div>
       
@@ -52,13 +51,6 @@ export const AdminNavbar = () => {
           Dashboard
         </NavLink>
         <NavLink 
-          to="/admin/companies" 
-          className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
-          onClick={closeMobileMenu}
-        >
-          Companies
-        </NavLink>
-        <NavLink 
           to="/admin/strata" 
           className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
           onClick={closeMobileMenu}
@@ -66,25 +58,11 @@ export const AdminNavbar = () => {
           Strata
         </NavLink>
         <NavLink 
-          to="/admin/clients" 
+          to="/admin/users" 
           className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
           onClick={closeMobileMenu}
         >
-          Clients
-        </NavLink>
-        <NavLink 
-          to="/admin/reports" 
-          className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
-          onClick={closeMobileMenu}
-        >
-          Reports
-        </NavLink>
-        <NavLink 
-          to="/admin/upload" 
-          className={({ isActive }) => `nav-link upload-btn ${isActive ? 'active' : ''}`}
-          onClick={closeMobileMenu}
-        >
-          Upload Document
+          Users
         </NavLink>
         <NavLink 
           to="/admin/profile" 
