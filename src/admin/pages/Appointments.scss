@@ -1,0 +1,112 @@
+@use 'sass:color';
+@use '../../styles/variables' as *;
+
+.appointments-page {
+  padding: $spacing-lg;
+
+  .page-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: $spacing-lg;
+
+    h1 {
+      margin: 0;
+      font-size: 1.75rem;
+      font-weight: 600;
+      color: $color-text-dark;
+    }
+  }
+
+  .error-banner {
+    padding: $spacing-md;
+    margin-bottom: $spacing-md;
+    background: rgba($color-error, 0.1);
+    border: 1px solid $color-error;
+    border-radius: $border-radius-sm;
+    color: $color-error;
+  }
+
+  // Status Badges
+  .status-badge {
+    display: inline-block;
+    padding: $spacing-xs $spacing-sm;
+    border-radius: $border-radius-sm;
+    font-size: 0.75rem;
+    font-weight: 500;
+    text-transform: capitalize;
+    border: 1px solid transparent;
+
+    &.status-scheduled {
+      background: rgba($color-success, 0.1);
+      color: $color-success;
+      border-color: $color-success;
+    }
+
+    &.status-requested {
+      background: rgba($color-warning, 0.1);
+      color: $color-warning;
+      border-color: $color-warning;
+    }
+
+    &.status-rejected {
+      background: rgba($color-error, 0.1);
+      color: $color-error;
+      border-color: $color-error;
+    }
+
+    &.status-completed {
+      background: rgba($color-success, 0.15);
+      color: color.adjust($color-success, $lightness: -10%);
+      border-color: $color-success;
+    }
+
+    &.status-rescheduled {
+      background: rgba($color-primary, 0.1);
+      color: $color-primary;
+      border-color: $color-primary;
+    }
+  }
+
+  // Action Buttons
+  .action-buttons {
+    display: flex;
+    gap: $spacing-sm;
+    align-items: center;
+  }
+
+  .btn-action {
+    padding: $spacing-xs $spacing-sm;
+    border: none;
+    border-radius: $border-radius-sm;
+    font-size: 0.75rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background: transparent;
+
+    &.btn-reschedule {
+      color: $color-text-dark;
+
+      &:hover {
+        text-decoration: underline;
+      }
+    }
+
+    &.btn-cancel {
+      color: $color-error;
+
+      &:hover {
+        text-decoration: underline;
+      }
+    }
+
+    &.btn-view {
+      color: $color-text-dark;
+
+      &:hover {
+        text-decoration: underline;
+      }
+    }
+  }
+}

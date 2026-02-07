@@ -11,6 +11,7 @@ import { Dashboard as AdminDashboard } from './admin/pages/Dashboard';
 import { Profile as AdminProfile } from './admin/pages/Profile';
 import StrataPage from './admin/pages/Strata';
 import UsersPage from './admin/pages/Users';
+import AppointmentsPage from './admin/pages/Appointments';
 
 // Client Components
 import { ClientNavbar } from './client/components/ClientNavbar';
@@ -82,6 +83,18 @@ function App() {
                 <div className="app">
                   <AdminNavbar />
                   <UsersPage />
+                </div>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/admin/appointments"
+            element={
+              <ProtectedRoute requireAdmin>
+                <div className="app">
+                  <AdminNavbar />
+                  <AppointmentsPage />
                 </div>
               </ProtectedRoute>
             }
