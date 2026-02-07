@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useState, useEffect, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../shared/contexts/AuthContext";
 
@@ -8,13 +8,19 @@ export const Login = () => {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const { signIn } = useAuth();
+  const { signIn, user } = useAuth();
   const navigate = useNavigate();
 
   // Check if Supabase is configured
   const isSupabaseConfigured = !!(
     import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY
   );
+
+  useEffect(() => {
+    if (user) {
+      navigate("/dashboard");
+    }
+  }, [user, navigate]);
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -34,10 +40,6 @@ export const Login = () => {
     if (error) {
       setError(error.message);
       setLoading(false);
-    } else {
-      // The routing logic in App.tsx will handle redirecting to the appropriate dashboard
-      // based on the user's role
-      navigate("/dashboard");
     }
   };
 
