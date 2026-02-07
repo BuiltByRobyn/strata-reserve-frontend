@@ -340,6 +340,56 @@ export interface AppointmentWithDetails extends Appointment {
 }
 
 // ============================================
+// Inspector Availability Types
+// ============================================
+
+export interface InspectorAvailableDate {
+  inspectorAvailableDateId: number;
+  availableDate: string;
+  availableStartTime: string | null; // TIME format HH:mm:ss
+  availableEndTime: string | null; // TIME format HH:mm:ss
+  createdAt: string;
+  inspectorProfileId: string;
+  inspectorProfile?: ProfileBasic;
+}
+
+export interface CreateInspectorAvailableDateInput {
+  availableDate: string;
+  availableStartTime?: string;
+  availableEndTime?: string;
+  inspectorProfileId: string;
+}
+
+export interface UpdateInspectorAvailableDateInput {
+  availableDate?: string;
+  availableStartTime?: string | null;
+  availableEndTime?: string | null;
+}
+
+// ============================================
+// Company Holiday Types
+// ============================================
+
+export interface CompanyHoliday {
+  companyHolidayId: number;
+  holidayDate: string;
+  holidayName: string;
+  isRecurringAnnually: boolean;
+}
+
+export interface CreateCompanyHolidayInput {
+  holidayDate: string;
+  holidayName: string;
+  isRecurringAnnually?: boolean;
+}
+
+export interface UpdateCompanyHolidayInput {
+  holidayDate?: string;
+  holidayName?: string;
+  isRecurringAnnually?: boolean;
+}
+
+// ============================================
 // API Response Types
 // ============================================
 
