@@ -15,6 +15,20 @@
     font-weight: $font-weight-bold;
     color: $color-text-white;
     z-index: 1001;
+    display: flex;
+    align-items: center;
+    gap: $spacing-sm;
+
+    .admin-badge-small {
+      display: inline-block;
+      padding: 2px 8px;
+      background-color: rgba(220, 38, 38, 0.9);
+      border-radius: $border-radius-sm;
+      font-size: 0.7rem;
+      font-weight: $font-weight-bold;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
 
     // Responsive font size for brand
     @include respond-below(md) {
@@ -23,6 +37,11 @@
 
     @include respond-below(sm) {
       font-size: 1rem;
+      
+      .admin-badge-small {
+        font-size: 0.6rem;
+        padding: 1px 6px;
+      }
     }
   }
 
