@@ -8,10 +8,9 @@ import { SetPassword } from './pages/SetPassword';
 // Admin Components
 import { AdminNavbar } from './admin/components/AdminNavbar';
 import { Dashboard as AdminDashboard } from './admin/pages/Dashboard';
-import { Upload as AdminUpload } from './admin/pages/Upload';
 import { Profile as AdminProfile } from './admin/pages/Profile';
-import CompaniesPage from './admin/pages/Companies';
 import StrataPage from './admin/pages/Strata';
+import UsersPage from './admin/pages/Users';
 
 // Client Components
 import { ClientNavbar } from './client/components/ClientNavbar';
@@ -53,36 +52,12 @@ function App() {
           />
           
           <Route
-            path="/admin/upload"
-            element={
-              <ProtectedRoute requireAdmin>
-                <div className="app">
-                  <AdminNavbar />
-                  <AdminUpload />
-                </div>
-              </ProtectedRoute>
-            }
-          />
-          
-          <Route
             path="/admin/profile"
             element={
               <ProtectedRoute requireAdmin>
                 <div className="app">
                   <AdminNavbar />
                   <AdminProfile />
-                </div>
-              </ProtectedRoute>
-            }
-          />
-
-          <Route
-            path="/admin/companies"
-            element={
-              <ProtectedRoute requireAdmin>
-                <div className="app">
-                  <AdminNavbar />
-                  <CompaniesPage />
                 </div>
               </ProtectedRoute>
             }
@@ -101,35 +76,16 @@ function App() {
           />
 
           <Route
-            path="/admin/clients"
+            path="/admin/users"
             element={
               <ProtectedRoute requireAdmin>
                 <div className="app">
                   <AdminNavbar />
-                  <div className="page-container">
-                    <h1>Client Management</h1>
-                    <p>Manage all clients here (Coming Soon)</p>
-                  </div>
+                  <UsersPage />
                 </div>
               </ProtectedRoute>
             }
           />
-
-          <Route
-            path="/admin/reports"
-            element={
-              <ProtectedRoute requireAdmin>
-                <div className="app">
-                  <AdminNavbar />
-                  <div className="page-container">
-                    <h1>All Reports</h1>
-                    <p>View and manage all reports (Coming Soon)</p>
-                  </div>
-                </div>
-              </ProtectedRoute>
-            }
-          />
-          
           {/* Client Routes - Only accessible by client users */}
           <Route
             path="/client/dashboard"
