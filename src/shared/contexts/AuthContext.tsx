@@ -75,18 +75,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   useEffect(() => {
-    // Initialize auth - only sets loading to false once after initial check
-    const init = async () => {
-      try {
-        // Small delay to let Supabase's Navigator.locks settle after page refresh
-        await new Promise(resolve => setTimeout(resolve, 100));
-        
-        const { data: { session } } = await supabase.auth.getSession();
-        setSession(session);
-        
-        if (session?.user) {
-          console.log('🔍 User authenticated, fetching profile for:', session.user.email);
+    // Track initialization to prevent race conditions
+    let isInitialized = false;
+    let isMounted = true;
+
+    // Helper to handle session with profile fetching
+    // IMPORTANT: This function should be called OUTSIDE of onAuthStateChange 
+    // callback context to avoid Navigator.locks deadlock
+    const handleSession = async (session: Session | null): Promise<void> => {
+      if (!isMounted) return;
+      
+      setSession(session);
+      
+      if (session?.user) {
+        console.log('🔍 User authenticated, fetching profile for:', session.user.email);
+        try {
           const appUser = await fetchUserProfile(session.user);
+          
+          if (!isMounted) return;
           
           if (!appUser) {
             console.error('❌ Profile not found. Signing out.');
@@ -97,53 +103,53 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             console.log('✅ Profile loaded:', appUser);
             setUser(appUser);
           }
-        }
-      } catch (error: unknown) {
-        // AbortError from Navigator.locks is expected on page refresh - ignore it
-        if (error instanceof Error && error.name === 'AbortError') {
-          console.log('Auth lock aborted (page refresh) - retrying...');
-          // Retry after a short delay
-          await new Promise(resolve => setTimeout(resolve, 200));
-          try {
-            const { data: { session } } = await supabase.auth.getSession();
-            setSession(session);
-            if (session?.user) {
-              const appUser = await fetchUserProfile(session.user);
-              setUser(appUser);
-            }
-          } catch (retryError) {
-            console.error('Retry failed:', retryError);
+        } catch (error) {
+          console.error('Error fetching profile:', error);
+          if (isMounted) {
+            setUser(null);
           }
-        } else {
-          console.error('Error initializing auth:', error);
-        }
-      } finally {
-        // Only called once - after initial session check
-        setLoading(false);
-      }
-    };
-
-    init();
-
-    // Listen for auth changes (sign in/out) - does NOT affect loading state
-    const { data: authListener } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      console.log('🔄 Auth state changed');
-      setSession(session);
-      
-      if (session?.user) {
-        const appUser = await fetchUserProfile(session.user);
-        if (appUser) {
-          setUser(appUser);
-        } else {
-          setUser(null);
         }
       } else {
         setUser(null);
       }
-      // NO setLoading here - initial load already completed
+      
+      // Set loading to false after handling session
+      if (!isInitialized && isMounted) {
+        isInitialized = true;
+        setLoading(false);
+      }
+    };
+
+    // Set up auth state change listener
+    // CRITICAL: Do NOT await inside this callback - it causes Navigator.locks deadlock!
+    // Use setTimeout(0) to defer execution outside the auth lock context
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('🔄 Auth state change:', event, session ? 'has session' : 'no session');
+      
+      // Defer to next tick to break out of Navigator.locks context
+      // This prevents deadlock when making Supabase database queries
+      setTimeout(() => {
+        handleSession(session);
+      }, 0);
+    });
+
+    // Also manually get session on mount as a fallback
+    // (in case onAuthStateChange doesn't fire in time)
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log('📥 Initial session check:', session ? 'has session' : 'no session');
+      // Only handle if not already initialized by onAuthStateChange
+      if (!isInitialized && isMounted) {
+        // Use setTimeout here too for consistency and to avoid potential lock issues
+        setTimeout(() => {
+          if (!isInitialized && isMounted) {
+            handleSession(session);
+          }
+        }, 50);
+      }
     });
 
     return () => {
+      isMounted = false;
       authListener.subscription.unsubscribe();
     };
   }, []);
