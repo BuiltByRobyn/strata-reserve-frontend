@@ -1,0 +1,96 @@
+@use '../../../styles/variables' as *;
+
+.form-field {
+  margin-bottom: $spacing-md;
+
+  label {
+    display: block;
+    margin-bottom: $spacing-xs;
+    font-weight: 500;
+    font-size: 0.875rem;
+    color: $color-text-dark;
+
+    .required {
+      color: $color-error;
+      margin-left: 2px;
+    }
+  }
+
+  input,
+  select,
+  textarea {
+    width: 100%;
+    padding: $spacing-sm $spacing-md;
+    border: 1px solid $color-border-light;
+    border-radius: $border-radius-sm;
+    font-size: 1rem;
+    color: $color-text-primary;
+    background: $color-background;
+    transition: all 0.2s ease;
+
+    &:focus {
+      outline: none;
+      border-color: $color-primary;
+      box-shadow: 0 0 0 3px rgba($color-primary, 0.15);
+    }
+
+    &::placeholder {
+      color: $color-text-light;
+    }
+
+    &:disabled {
+      background: $color-background-off-white;
+      cursor: not-allowed;
+    }
+  }
+
+  select {
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right $spacing-sm center;
+    background-size: 1rem;
+    padding-right: $spacing-xl;
+  }
+
+  textarea {
+    resize: vertical;
+    min-height: 100px;
+  }
+
+  .help-text {
+    display: block;
+    margin-top: $spacing-xs;
+    font-size: 0.8125rem;
+    color: $color-text-light;
+  }
+
+  .error-text {
+    display: block;
+    margin-top: $spacing-xs;
+    font-size: 0.8125rem;
+    color: $color-error;
+  }
+
+  &.has-error {
+    input,
+    select,
+    textarea {
+      border-color: $color-error;
+
+      &:focus {
+        box-shadow: 0 0 0 3px rgba($color-error, 0.15);
+      }
+    }
+  }
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: $spacing-md;
+
+  @include respond-below(sm) {
+    grid-template-columns: 1fr;
+  }
+}

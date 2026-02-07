@@ -1,9 +1,9 @@
 // Simple auth fetch that doesn't rely on context
-// For now, it just returns a fetch function without auth
-// In production, you would get the token from localStorage or other storage
+// Uses useCallback to prevent infinite re-renders
+import { useCallback } from 'react';
 
 export const useAuthFetch = () => {
-  const authFetch = async (url: string, options: RequestInit = {}) => {
+  const authFetch = useCallback(async (url: string, options: RequestInit = {}): Promise<Response> => {
     // In a real app, you'd get the token from localStorage or a cookie
     // const token = localStorage.getItem('auth_token');
     
@@ -16,7 +16,7 @@ export const useAuthFetch = () => {
       ...options,
       headers,
     });
-  };
+  }, []);
 
   return authFetch;
 };

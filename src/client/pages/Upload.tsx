@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useAuthFetch } from "../hooks/useAuthFetch";
+import { useAuthFetch } from "../../shared/hooks/useAuthFetch";
 
 const API_URL = "http://localhost:3000";
 

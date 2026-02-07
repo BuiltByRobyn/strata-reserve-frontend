@@ -22,7 +22,7 @@
 }
 
 .login-card {
-  background: $color-bg;
+  background: $color-background;
   border-radius: $border-radius-xl;
   padding: $spacing-2xl;
   width: 100%;
@@ -116,7 +116,7 @@
   h1 {
     font-size: $font-size-lg;
     font-weight: $font-weight-bold;
-    color: $color-text;
+    color: $color-text-primary;
     margin: 0 0 $spacing-xs;
 
     // Mobile responsive
@@ -192,7 +192,7 @@
         outline: none;
         border-color: $color-primary;
         box-shadow: 0 0 0 3px rgba($color-primary, 0.1);
-        background-color: $color-bg;
+        background-color: $color-background;
       }
 
       &::placeholder {
@@ -291,7 +291,7 @@
     font-size: $font-size-base;
     font-weight: $font-weight-medium;
     font-family: inherit;
-    color: $color-btn-text;
+    color: $color-btn-primary-text;
     background-color: $color-primary;
     border: none;
     border-radius: $border-radius-lg;
@@ -395,7 +395,7 @@
       text-decoration: none;
 
       &:hover {
-        color: $color-text;
+        color: $color-text-primary;
         text-decoration: underline;
       }
     }

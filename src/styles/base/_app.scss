@@ -41,7 +41,7 @@
 h1 {
   font-size: $font-size-xl;
   margin-bottom: $spacing-md;
-  color: $color-text;
+  color: $color-text-primary;
 
   // Tablet responsive
   @include respond-below(md) {
@@ -57,7 +57,7 @@ h1 {
 h2 {
   font-size: $font-size-lg;
   margin-bottom: $spacing-sm;
-  color: $color-text;
+  color: $color-text-primary;
 
   // Mobile responsive
   @include respond-below(sm) {
@@ -68,7 +68,7 @@ h2 {
 h3 {
   font-size: 1.2rem;
   margin-bottom: $spacing-sm;
-  color: $color-text;
+  color: $color-text-primary;
 
   // Mobile responsive
   @include respond-below(sm) {
@@ -77,8 +77,8 @@ h3 {
 }
 
 .action-btn {
-  background-color: $color-btn-bg;
-  color: $color-btn-text;
+  background-color: $color-btn-primary;
+  color: $color-btn-primary-text;
   border: none;
   padding: $spacing-btn-padding;
   font-size: $font-size-base;
@@ -89,7 +89,7 @@ h3 {
   border-radius: $border-radius-lg;
 
   &:hover {
-    background-color: $color-btn-hover;
+    background-color: $color-btn-primary-hover;
   }
 
   // Mobile responsive

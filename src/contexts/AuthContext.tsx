@@ -18,20 +18,38 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
+    // Track if initial session has been processed
+    let initialSessionProcessed = false;
 
-    // Listen for auth changes
+    // Set up auth state change listener FIRST
+    // This ensures we catch the INITIAL_SESSION event which fires when Supabase
+    // restores the session from local storage after a page refresh
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('🔄 Auth state change:', event);
       setSession(session);
       setUser(session?.user ?? null);
-      setLoading(false);
+      
+      // Only set loading to false after initial session is processed
+      // This prevents the race condition where we check user before session is restored
+      if (!initialSessionProcessed) {
+        initialSessionProcessed = true;
+        setLoading(false);
+      }
+    });
+
+    // Also call getSession as a fallback in case onAuthStateChange doesn't fire
+    // (e.g., when there's no stored session at all)
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      // Only process if onAuthStateChange hasn't already handled it
+      if (!initialSessionProcessed) {
+        console.log('📥 Initial session from getSession:', session ? 'exists' : 'none');
+        setSession(session);
+        setUser(session?.user ?? null);
+        initialSessionProcessed = true;
+        setLoading(false);
+      }
     });
 
     return () => subscription.unsubscribe();
