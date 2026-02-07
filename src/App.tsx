@@ -1,9 +1,9 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './shared/contexts/AuthContext';
 import { ProtectedRoute } from './shared/components/ProtectedRoute';
-import { DashboardRouter } from './pages/DashboardRouter';
-import { Login } from './pages/Login';
-import { SetPassword } from './pages/SetPassword';
+import { DashboardRouter } from './shared/pages/DashboardRouter';
+import { Login } from './shared/pages/Login';
+import { SetPassword } from './shared/pages/SetPassword';
 
 // Admin Components
 import { AdminNavbar } from './admin/components/AdminNavbar';
@@ -12,11 +12,13 @@ import { Profile as AdminProfile } from './admin/pages/Profile';
 import StrataPage from './admin/pages/Strata';
 import UsersPage from './admin/pages/Users';
 import AppointmentsPage from './admin/pages/Appointments';
+import AdminDocumentsPage from './admin/pages/Documents';
 
 // Client Components
 import { ClientNavbar } from './client/components/ClientNavbar';
 import { Dashboard as ClientDashboard } from './client/pages/Dashboard';
 import { Profile as ClientProfile } from './client/pages/Profile';
+import ClientDocumentsPage from './client/pages/Documents';
 
 function App() {
   return (
@@ -99,6 +101,19 @@ function App() {
               </ProtectedRoute>
             }
           />
+
+          <Route
+            path="/admin/documents"
+            element={
+              <ProtectedRoute requireAdmin>
+                <div className="app">
+                  <AdminNavbar />
+                  <AdminDocumentsPage />
+                </div>
+              </ProtectedRoute>
+            }
+          />
+
           {/* Client Routes - Only accessible by client users */}
           <Route
             path="/client/dashboard"
@@ -119,6 +134,18 @@ function App() {
                 <div className="app">
                   <ClientNavbar />
                   <ClientProfile />
+                </div>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/client/documents"
+            element={
+              <ProtectedRoute requireClient>
+                <div className="app">
+                  <ClientNavbar />
+                  <ClientDocumentsPage />
                 </div>
               </ProtectedRoute>
             }

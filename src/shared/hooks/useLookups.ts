@@ -1,13 +1,13 @@
-// Lookups Hook - Fetch lookup/reference data
 import { useState, useEffect, useCallback } from 'react';
 import { useAuthFetch } from './useAuthFetch';
-import type { 
-  UserType, 
-  LegalType, 
-  PropertyType, 
+import type {
+  UserType,
+  LegalType,
+  PropertyType,
   Service,
-  ApiListResponse 
+  ApiListResponse
 } from '../types/entities.types';
+import type { DocumentType, ReviewStatus } from '../types/document.types';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
@@ -16,6 +16,8 @@ interface LookupState {
   legalTypes: LegalType[];
   propertyTypes: PropertyType[];
   services: Service[];
+  documentTypes: DocumentType[];
+  reviewStatuses: ReviewStatus[];
   loading: boolean;
   error: string | null;
 }
@@ -27,31 +29,39 @@ export const useLookups = () => {
     legalTypes: [],
     propertyTypes: [],
     services: [],
+    documentTypes: [],
+    reviewStatuses: [],
     loading: true,
     error: null
   });
 
   const fetchAllLookups = useCallback(async () => {
     setState(prev => ({ ...prev, loading: true, error: null }));
-    
+
     try {
-      const [userTypesRes, legalTypesRes, propertyTypesRes, servicesRes] = await Promise.all([
+      const [userTypesRes, legalTypesRes, propertyTypesRes, servicesRes, documentTypesRes, reviewStatusesRes] = await Promise.all([
         authFetch(`${API_BASE}/api/lookups/user-types`),
         authFetch(`${API_BASE}/api/lookups/legal-types`),
         authFetch(`${API_BASE}/api/lookups/property-types`),
-        authFetch(`${API_BASE}/api/lookups/services`)
+        authFetch(`${API_BASE}/api/lookups/services`),
+        authFetch(`${API_BASE}/api/lookups/document-types`),
+        authFetch(`${API_BASE}/api/lookups/review-statuses`)
       ]);
 
-      const [userTypesData, legalTypesData, propertyTypesData, servicesData]: [
+      const [userTypesData, legalTypesData, propertyTypesData, servicesData, documentTypesData, reviewStatusesData]: [
         ApiListResponse<UserType>,
         ApiListResponse<LegalType>,
         ApiListResponse<PropertyType>,
-        ApiListResponse<Service>
+        ApiListResponse<Service>,
+        ApiListResponse<DocumentType>,
+        ApiListResponse<ReviewStatus>
       ] = await Promise.all([
         userTypesRes.json(),
         legalTypesRes.json(),
         propertyTypesRes.json(),
-        servicesRes.json()
+        servicesRes.json(),
+        documentTypesRes.json(),
+        reviewStatusesRes.json()
       ]);
 
       setState({
@@ -59,6 +69,8 @@ export const useLookups = () => {
         legalTypes: legalTypesData.data || [],
         propertyTypes: propertyTypesData.data || [],
         services: servicesData.data || [],
+        documentTypes: documentTypesData.data || [],
+        reviewStatuses: reviewStatusesData.data || [],
         loading: false,
         error: null
       });

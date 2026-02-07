@@ -48,14 +48,21 @@ export const ClientNavbar = () => {
         >
           Dashboard
         </NavLink>
-        <NavLink 
-          to="/client/reports" 
+        <NavLink
+          to="/client/documents"
+          className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+          onClick={closeMobileMenu}
+        >
+          Documents
+        </NavLink>
+        <NavLink
+          to="/client/reports"
           className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
           onClick={closeMobileMenu}
         >
           My Reports
         </NavLink>
-        <NavLink 
+        <NavLink
           to="/client/profile" 
           className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
           onClick={closeMobileMenu}

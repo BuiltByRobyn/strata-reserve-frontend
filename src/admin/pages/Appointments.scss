@@ -1,5 +1,5 @@
 @use 'sass:color';
-@use '../../styles/variables' as *;
+@use '../../shared/styles/variables' as *;
 
 .appointments-page {
   padding: $spacing-lg;

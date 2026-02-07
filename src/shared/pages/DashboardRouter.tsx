@@ -1,5 +1,5 @@
 import { Navigate } from 'react-router-dom';
-import { useAuth } from '../shared/contexts/AuthContext';
+import { useAuth } from '../contexts/AuthContext';
 
 export const DashboardRouter = () => {
   const { user, loading } = useAuth();
