@@ -25,8 +25,16 @@ export const ClientNavbar = () => {
 
   return (
     <nav className="navbar client-navbar">
-      <div className="navbar-brand">Strata Reserve Planning (SRP)</div>
-      
+ <div className="navbar-brand">
+        <img src="/logo.svg" alt="Building Icon" />
+        <div className="navbar-brand-titles">
+          <span>Strata Reserve</span>
+          <div className="navbar-brand-text">Planning Portal</div>
+        <div className="navbar-user-info">
+          User: {clientUser?.firstName} {clientUser?.lastName}
+        </div>
+        </div>
+      </div>      
       {/* Hamburger Menu Button */}
       <button 
         className={`navbar-hamburger ${isMobileMenuOpen ? 'active' : ''}`}
