@@ -1,4 +1,4 @@
-@use '../../styles/variables' as *;
+@use '../../../styles/variables' as *;
 
 .form-field {
   margin-bottom: $spacing-md;
@@ -14,6 +14,14 @@
       color: $color-error;
       margin-left: 2px;
     }
+
+    @include respond-below(sm) {
+      display: flex;
+    }
+  }
+
+  input {
+    width: calc(100% - 2rem) !important;
   }
 
   input,
