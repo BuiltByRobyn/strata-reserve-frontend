@@ -1,10 +1,10 @@
-@use '../../styles/variables' as *;
+@use '../../../styles/variables' as *;
 
 .data-table-container {
   width: 100%;
   overflow-x: auto;
   border-radius: $border-radius-md;
-  border: 1px solid $color-border-light;
+  border: 2px solid $color-border-light;
   background: $color-background;
 }
 
@@ -15,7 +15,9 @@
   th, td {
     padding: $spacing-sm $spacing-md;
     text-align: left;
-    border-bottom: 1px solid $color-border-light;
+    border-bottom: 2px solid $color-border-light;
+    padding-top: $spacing-lg;
+      padding-bottom: $spacing-lg;
   }
 
   th {
@@ -25,6 +27,16 @@
     font-size: 0.875rem;
     text-transform: uppercase;
     letter-spacing: 0.05em;
+
+    &.data-table-title {
+      text-align: center;
+      padding-top: $spacing-lg;
+      padding-bottom: $spacing-lg;
+      text-transform: none;
+      font-weight: $font-weight-bold;
+      color: $color-text-muted;
+      font-size: $font-size-sm;
+    }
   }
 
   td {
@@ -66,12 +78,9 @@
       transition: all 0.2s ease;
 
       &.btn-edit {
-        background: $color-secondary;
-        color: $color-white;
-
-        &:hover {
-          background: $color-secondary-dark;
-        }
+        background: none;
+        color: $color-text-muted;
+        text-decoration: underline;
       }
 
       &.btn-delete {
@@ -119,7 +128,6 @@
 @include respond-below(md) {
   .data-table {
     th, td {
-      padding: $spacing-xs $spacing-sm;
       font-size: 0.8125rem;
     }
   }
