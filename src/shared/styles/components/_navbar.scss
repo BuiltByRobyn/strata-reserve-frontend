@@ -198,7 +198,11 @@
     background-color: $color-primary;
     color: $color-text-white;
     border-radius: $border-radius-lg;
-    max-width: 85%;
+
+    &:hover {
+        background-color: $color-primary-hover;
+        border-color: $color-primary-lightest;
+    }
   }
 
   // Tablet + desktop sidebar: full width, left-aligned
@@ -208,7 +212,7 @@
     padding-left: $spacing-lg;
     padding-top: $spacing-md;
     padding-bottom: $spacing-md;
-    max-width: none;
+    max-width: 90%;
 
     &.active {
       padding-right: 0;
@@ -217,10 +221,7 @@
     &:hover {
       background-color: $color-primary-lightest;
       border-radius: $border-radius-lg;
-      max-width: none;
       padding-right: 0;
-      max-width: 93%;
-
     }
   }
   

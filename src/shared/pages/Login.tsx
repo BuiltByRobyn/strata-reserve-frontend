@@ -57,7 +57,7 @@ export const Login = () => {
         )}
 
         <div className="login-logo">
-          <img src="/building-icon.png" alt="Building Icon" />
+          <img src="/logonobg.png" alt="Building Icon" />
         </div>
 
         <div className="login-header">
