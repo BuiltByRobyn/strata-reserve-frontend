@@ -1,21 +1,25 @@
-// Main SCSS Entry File
-
-// 1. Variables (must be imported first)
 @use 'variables';
 
-// 2. Base styles (reset, global app styles)
 @use 'base/reset';
 @use 'base/app';
 
-// 3. Components
 @use 'components/navbar';
+@use 'components/datatable';
+@use 'components/formfield';
+@use 'components/modal';
 
-// 4. Pages
 @use 'pages/dashboard';
 @use 'pages/upload';
 @use 'pages/login';
 @use 'pages/set-password';
 @use 'pages/profile';
 
-// 5. Utilities
+@use '../../admin/styles/pages/appointments';
+@use '../../admin/styles/pages/companies';
+@use '../../admin/styles/pages/documents';
+@use '../../admin/styles/pages/strata';
+@use '../../admin/styles/pages/users';
+
+@use '../../client/styles/pages/documents' as client-documents;
+
 @use 'utilities/responsive';

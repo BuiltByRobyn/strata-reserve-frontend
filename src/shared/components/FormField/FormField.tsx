@@ -1,29 +1,4 @@
-// FormField Component - Reusable form field with label and error
-import type { InputHTMLAttributes, SelectHTMLAttributes, TextareaHTMLAttributes, ReactNode } from 'react';
-import './FormField.scss';
-
-interface BaseFieldProps {
-  label: string;
-  error?: string;
-  required?: boolean;
-  helpText?: string;
-}
-
-interface InputFieldProps extends BaseFieldProps, 
-  Omit<InputHTMLAttributes<HTMLInputElement>, 'className'> {
-  type?: 'text' | 'email' | 'tel' | 'password' | 'number' | 'url';
-}
-
-interface SelectFieldProps extends BaseFieldProps,
-  Omit<SelectHTMLAttributes<HTMLSelectElement>, 'className'> {
-  options: { value: string | number; label: string }[];
-  placeholder?: string;
-}
-
-interface TextareaFieldProps extends BaseFieldProps,
-  Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, 'className'> {
-  rows?: number;
-}
+import type { InputFieldProps, SelectFieldProps, TextareaFieldProps, FormRowProps } from '../../types/component.types';
 
 export function InputField({
   label,
@@ -104,10 +79,6 @@ export function TextareaField({
       {error && <span className="error-text">{error}</span>}
     </div>
   );
-}
-
-interface FormRowProps {
-  children: ReactNode;
 }
 
 export function FormRow({ children }: FormRowProps) {

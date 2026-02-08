@@ -402,3 +402,18 @@ export interface ApiResponse<T> {
 
 export type ApiListResponse<T> = ApiResponse<T[]>;
 export type ApiSingleResponse<T> = ApiResponse<T>;
+
+export interface StrataAssociation {
+  strataId: number;
+  strataPosition?: string;
+}
+
+export interface UserFormData {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phoneNumber: string;
+  userTypeId: number | undefined;
+  companyName: string;
+  strataAssociations: StrataAssociation[];
+}

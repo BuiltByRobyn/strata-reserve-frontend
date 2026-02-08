@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useClientDocuments } from '../../shared/hooks/useClientDocuments';
+import { LoadingSpinner } from '../../shared/components/LoadingSpinner/LoadingSpinner';
 import type { RequiredDocumentChecklist } from '../../shared/types/document.types';
-import './Documents.scss';
 
 const formatTypeName = (name: string): string =>
   name.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
@@ -115,10 +115,7 @@ export default function ClientDocumentsPage() {
       />
 
       {loading ? (
-        <div className="loading-state">
-          <div className="loading-spinner"></div>
-          <p>Loading documents...</p>
-        </div>
+        <LoadingSpinner />
       ) : Object.keys(groupedDocuments).length === 0 ? (
         <div className="empty-state">
           <p>No required documents configured for this service request.</p>

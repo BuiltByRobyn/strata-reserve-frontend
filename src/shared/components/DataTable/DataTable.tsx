@@ -1,24 +1,7 @@
-// DataTable Component - Reusable table for displaying data
-import type { ReactNode } from 'react';
-import './DataTable.scss';
+import { LoadingSpinner } from '../LoadingSpinner/LoadingSpinner';
+import type { Column, DataTableProps } from '../../types/component.types';
 
-export interface Column<T> {
-  key: string;
-  header: string;
-  render?: (item: T) => ReactNode;
-  width?: string;
-}
-
-interface DataTableProps<T> {
-  title?: string;
-  columns: Column<T>[];
-  data: T[];
-  keyExtractor: (item: T) => string | number;
-  onRowClick?: (item: T) => void;
-  loading?: boolean;
-  emptyMessage?: string;
-  actions?: (item: T) => ReactNode;
-}
+export type { Column };
 
 export function DataTable<T>({
   title,
@@ -31,12 +14,7 @@ export function DataTable<T>({
   actions
 }: DataTableProps<T>) {
   if (loading) {
-    return (
-      <div className="data-table-loading">
-        <div className="loading-spinner"></div>
-        <p>Loading...</p>
-      </div>
-    );
+    return <LoadingSpinner />;
   }
 
   if (data.length === 0) {

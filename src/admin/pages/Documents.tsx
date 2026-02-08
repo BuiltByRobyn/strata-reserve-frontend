@@ -7,7 +7,6 @@ import { Modal } from '../../shared/components/Modal/Modal';
 import { InputField, SelectField, TextareaField, FormRow } from '../../shared/components/FormField/FormField';
 import type { DocumentWithDetails, DocumentUploadData } from '../../shared/types/document.types';
 import { STRATA_ID_PATTERN, formatStrataId } from '../../shared/utils/strataUtils';
-import './Documents.scss';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 

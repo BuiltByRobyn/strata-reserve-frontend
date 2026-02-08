@@ -2,18 +2,7 @@ import { createContext, useContext, useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import type { User, Session, AuthError } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabaseClient';
-import type { AppUser, AdminUser, ClientUser } from '../types/auth.types';
-
-interface AuthContextType {
-  user: AppUser | null;
-  session: Session | null;
-  loading: boolean;
-  signIn: (email: string, password: string) => Promise<{ error: AuthError | null }>;
-  signOut: () => Promise<void>;
-  updatePassword: (newPassword: string) => Promise<{ error: AuthError | null }>;
-  isAdmin: boolean;
-  isClient: boolean;
-}
+import type { AppUser, AdminUser, ClientUser, AuthContextType } from '../types/auth.types';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 

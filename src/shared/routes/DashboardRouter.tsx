@@ -1,23 +1,18 @@
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { LoadingSpinner } from '../components/LoadingSpinner/LoadingSpinner';
 
 export const DashboardRouter = () => {
   const { user, loading } = useAuth();
 
   if (loading) {
-    return (
-      <div className="loading-container">
-        <div className="loading-spinner"></div>
-        <p>Loading...</p>
-      </div>
-    );
+    return <LoadingSpinner />;
   }
 
   if (!user) {
     return <Navigate to="/login" replace />;
   }
 
-  // Redirect based on user role
   if (user.role === 'admin') {
     return <Navigate to="/admin/dashboard" replace />;
   } else {

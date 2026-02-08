@@ -18,7 +18,6 @@ import type {
   CreateStrataInput,
   UpdateStrataInput,
 } from "../../shared/types/entities.types";
-import "./Strata.scss";
 
 export default function StrataPage() {
   const { stratas, loading, error, createStrata, updateStrata, deleteStrata } =

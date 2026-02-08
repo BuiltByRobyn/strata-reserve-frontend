@@ -6,25 +6,9 @@ import { useLookups } from '../../shared/hooks/useLookups';
 import { DataTable, type Column } from '../../shared/components/DataTable/DataTable';
 import { Modal } from '../../shared/components/Modal/Modal';
 import { InputField, SelectField, FormRow } from '../../shared/components/FormField/FormField';
-import type { UserWithStratas, CreateUserInput } from '../../shared/types/entities.types';
-import './Users.scss';
+import type { UserWithStratas, CreateUserInput, UserFormData } from '../../shared/types/entities.types';
 
-interface StrataAssociation {
-  strataId: number;
-  strataPosition?: string;
-}
-
-interface FormData {
-  firstName: string;
-  lastName: string;
-  email: string;
-  phoneNumber: string;
-  userTypeId: number | undefined;
-  companyName: string;
-  strataAssociations: StrataAssociation[];
-}
-
-const initialFormData: FormData = {
+const initialFormData: UserFormData = {
   firstName: '',
   lastName: '',
   email: '',
@@ -42,7 +26,7 @@ export default function UsersPage() {
   // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<UserWithStratas | null>(null);
-  const [formData, setFormData] = useState<FormData>(initialFormData);
+  const [formData, setFormData] = useState<UserFormData>(initialFormData);
   const [formError, setFormError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [viewingUser, setViewingUser] = useState<UserWithStratas | null>(null);
@@ -213,7 +197,7 @@ export default function UsersPage() {
     }
   };
 
-  const updateField = <K extends keyof FormData>(field: K, value: FormData[K]) => {
+  const updateField = <K extends keyof UserFormData>(field: K, value: UserFormData[K]) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 

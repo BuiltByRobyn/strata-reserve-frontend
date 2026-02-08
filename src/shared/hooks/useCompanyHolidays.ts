@@ -1,21 +1,15 @@
-// Company Holidays Hook - CRUD operations for company holidays
 import { useState, useEffect, useCallback } from 'react';
 import { useAuthFetch } from './useAuthFetch';
-import type { 
-  CompanyHoliday, 
-  CreateCompanyHolidayInput, 
+import type {
+  CompanyHoliday,
+  CreateCompanyHolidayInput,
   UpdateCompanyHolidayInput,
   ApiListResponse,
-  ApiSingleResponse 
+  ApiSingleResponse
 } from '../types/entities.types';
+import type { CompanyHolidaysState } from '../types/hooks.types';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-
-interface CompanyHolidaysState {
-  holidays: CompanyHoliday[];
-  loading: boolean;
-  error: string | null;
-}
 
 export const useCompanyHolidays = () => {
   const authFetch = useAuthFetch();

@@ -8,19 +8,9 @@ import type {
   ApiListResponse
 } from '../types/entities.types';
 import type { DocumentType, ReviewStatus } from '../types/document.types';
+import type { LookupState } from '../types/hooks.types';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-
-interface LookupState {
-  userTypes: UserType[];
-  legalTypes: LegalType[];
-  propertyTypes: PropertyType[];
-  services: Service[];
-  documentTypes: DocumentType[];
-  reviewStatuses: ReviewStatus[];
-  loading: boolean;
-  error: string | null;
-}
 
 export const useLookups = () => {
   const authFetch = useAuthFetch();

@@ -1,18 +1,13 @@
 import React, { useState } from 'react';
 import { createClient } from '@supabase/supabase-js';
+import type { DocumentUploadComponentProps } from '../../shared/types/component.types';
 
 const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
   import.meta.env.VITE_SUPABASE_ANON_KEY
 );
 
-interface DocumentUploadProps {
-  serviceRequestId: number;
-  documentTypeId: number;
-  onUploadComplete?: () => void;
-}
-
-export const DocumentUpload: React.FC<DocumentUploadProps> = ({
+export const DocumentUpload: React.FC<DocumentUploadComponentProps> = ({
   serviceRequestId,
   documentTypeId,
   onUploadComplete,

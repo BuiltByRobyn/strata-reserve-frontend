@@ -2,14 +2,9 @@ import { useState, useEffect, useCallback } from 'react';
 import { useAuthFetch } from './useAuthFetch';
 import type { DocumentWithDetails } from '../types/document.types';
 import type { ApiListResponse, ApiSingleResponse } from '../types/entities.types';
+import type { DocumentsState } from '../types/hooks.types';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-
-interface DocumentsState {
-  documents: DocumentWithDetails[];
-  loading: boolean;
-  error: string | null;
-}
 
 export const useDocuments = () => {
   const authFetch = useAuthFetch();
