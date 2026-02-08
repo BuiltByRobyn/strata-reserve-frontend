@@ -46,7 +46,9 @@ function App() {
               <ProtectedRoute requireAdmin>
                 <div className="app">
                   <AdminNavbar />
-                  <AdminDashboard />
+                  <main className="app-main">
+                    <AdminDashboard />
+                  </main>
                 </div>
               </ProtectedRoute>
             }
@@ -58,7 +60,9 @@ function App() {
               <ProtectedRoute requireAdmin>
                 <div className="app">
                   <AdminNavbar />
-                  <AdminProfile />
+                  <main className="app-main">
+                    <AdminProfile />
+                  </main>
                 </div>
               </ProtectedRoute>
             }
@@ -70,7 +74,9 @@ function App() {
               <ProtectedRoute requireAdmin>
                 <div className="app">
                   <AdminNavbar />
-                  <StrataPage />
+                  <main className="app-main">
+                    <StrataPage />
+                  </main>
                 </div>
               </ProtectedRoute>
             }
@@ -82,7 +88,9 @@ function App() {
               <ProtectedRoute requireAdmin>
                 <div className="app">
                   <AdminNavbar />
-                  <UsersPage />
+                  <main className="app-main">
+                    <UsersPage />
+                  </main>
                 </div>
               </ProtectedRoute>
             }
@@ -94,7 +102,9 @@ function App() {
               <ProtectedRoute requireAdmin>
                 <div className="app">
                   <AdminNavbar />
-                  <AppointmentsPage />
+                  <main className="app-main">
+                    <AppointmentsPage />
+                  </main>
                 </div>
               </ProtectedRoute>
             }

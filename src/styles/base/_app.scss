@@ -20,6 +20,13 @@
   }
 }
 
+/* Main content area - offset when navbar is a fixed sidebar (desktop from 600px) */
+.app-main {
+  @include respond-to(desktop) {
+    margin-left: 250px;
+  }
+}
+
 .page-container {
   padding: $spacing-page-padding;
   max-width: $max-width-page;
