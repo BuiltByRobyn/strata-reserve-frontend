@@ -1,68 +1,152 @@
-// Modal Component - Reusable modal dialog
-import type { ReactNode } from 'react';
-import { useEffect, useCallback } from 'react';
-import './Modal.scss';
+@use '../../../styles/variables' as *;
 
-interface ModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  title: string;
-  children: ReactNode;
-  size?: 'small' | 'medium' | 'large';
-  footer?: ReactNode;
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1100;
+  padding: $spacing-md;
 }
 
-export function Modal({
-  isOpen,
-  onClose,
-  title,
-  children,
-  size = 'medium',
-  footer
-}: ModalProps) {
-  const handleEscape = useCallback((e: KeyboardEvent) => {
-    if (e.key === 'Escape') {
-      onClose();
-    }
-  }, [onClose]);
+.modal-content {
+  background: $color-background;
+  border-radius: $border-radius-lg;
+  box-shadow: $shadow-lg;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  animation: modalSlideIn 0.2s ease-out;
 
-  useEffect(() => {
-    if (isOpen) {
-      document.addEventListener('keydown', handleEscape);
-      document.body.style.overflow = 'hidden';
-    }
+  &.modal-small {
+    width: 100%;
+    max-width: 400px;
+  }
 
-    return () => {
-      document.removeEventListener('keydown', handleEscape);
-      document.body.style.overflow = 'unset';
-    };
-  }, [isOpen, handleEscape]);
+  &.modal-medium {
+    width: 100%;
+    max-width: 600px;
+  }
 
-  if (!isOpen) return null;
-
-  return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div 
-        className={`modal-content modal-${size}`} 
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="modal-header">
-          <h2>{title}</h2>
-          <button className="modal-close" onClick={onClose}>
-            &times;
-          </button>
-        </div>
-        <div className="modal-body">
-          {children}
-        </div>
-        {footer && (
-          <div className="modal-footer">
-            {footer}
-          </div>
-        )}
-      </div>
-    </div>
-  );
+  &.modal-large {
+    width: 100%;
+    max-width: 900px;
+  }
 }
 
-export default Modal;
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: $spacing-md $spacing-lg;
+  border-bottom: 1px solid $color-border-light;
+
+  h2 {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: $color-text-dark;
+  }
+
+  .modal-close {
+    background: none;
+    border: none;
+    font-size: 1.75rem;
+    line-height: 1;
+    color: $color-text-light;
+    cursor: pointer;
+    padding: 0;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: all 0.2s ease;
+
+    &:hover {
+      color: $color-text-dark;
+      background: $color-background-light;
+    }
+  }
+}
+
+.modal-body {
+  padding: $spacing-lg;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.modal-footer {
+  padding: $spacing-md $spacing-lg;
+  display: flex;
+  justify-content: center;
+  gap: $spacing-sm;
+
+  button {
+    padding: $spacing-sm $spacing-lg;
+    border-radius: $border-radius-sm;
+    font-size: 0.9375rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &.btn-primary {
+      background: $color-primary;
+      color: $color-white;
+      border: none;
+
+      &:hover {
+        background: $color-primary-hover;
+      }
+
+      &:disabled {
+        background: $color-gray-light;
+        cursor: not-allowed;
+      }
+    }
+
+    &.btn-secondary {
+      background: transparent;
+      color: $color-text-primary;
+      border: 1px solid $color-border-medium;
+
+      &:hover {
+        background: $color-background-light;
+      }
+    }
+  }
+}
+
+// Responsive
+@include respond-below(sm) {
+  .modal-overlay {
+    padding: $spacing-sm;
+  }
+
+  .modal-content {
+    max-height: 95vh;
+  }
+
+  .modal-header,
+  .modal-body,
+  .modal-footer {
+    padding: $spacing-md;
+  }
+}
