@@ -10,7 +10,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: 1100;
   padding: $spacing-md;
 }
 
@@ -95,9 +95,8 @@
 
 .modal-footer {
   padding: $spacing-md $spacing-lg;
-  border-top: 1px solid $color-border-light;
   display: flex;
-  justify-content: flex-end;
+  justify-content: center;
   gap: $spacing-sm;
 
   button {
