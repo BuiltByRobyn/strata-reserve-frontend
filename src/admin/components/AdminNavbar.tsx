@@ -26,7 +26,14 @@ export const AdminNavbar = () => {
   return (
     <nav className="navbar admin-navbar">
       <div className="navbar-brand">
-        Strata Reserve Planning (SRP)
+        <img src="/logo.svg" alt="Building Icon" />
+        <div className="navbar-brand-titles">
+          <span>Strata Reserve</span>
+          <div className="navbar-brand-text">Planning Portal</div>
+        <div className="navbar-user-info">
+          User: {adminUser?.fullName}
+        </div>
+        </div>
       </div>
       
       {/* Hamburger Menu Button */}
@@ -64,21 +71,14 @@ export const AdminNavbar = () => {
         >
           Users
         </NavLink>
-        <NavLink
-          to="/admin/appointments"
+        <NavLink 
+          to="/admin/appointments" 
           className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
           onClick={closeMobileMenu}
         >
           Appointments
         </NavLink>
-        <NavLink
-          to="/admin/documents"
-          className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
-          onClick={closeMobileMenu}
-        >
-          Documents
-        </NavLink>
-        <NavLink
+        <NavLink 
           to="/admin/profile" 
           className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
           onClick={closeMobileMenu}
@@ -92,7 +92,8 @@ export const AdminNavbar = () => {
           }} 
           className="nav-link logout-btn"
         >
-          <img src="/icons/logout-icon.svg" alt="" />Sign Out        </button>
+          <img src="/icons/logout-icon.svg" alt="" />Sign out
+        </button>
       </div>
     </nav>
   );
