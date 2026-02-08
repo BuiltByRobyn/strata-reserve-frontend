@@ -108,7 +108,7 @@ export const SetPassword = () => {
     <div className="set-password-page">
       <div className="set-password-card">
         <div className="set-password-logo">
-          <img src="/building-icon.png" alt="Building Icon" />
+          <img src="/logonobg.png" alt="Building Icon" />
         </div>
         
         <div className="set-password-header">
