@@ -92,8 +92,7 @@ export const AdminNavbar = () => {
           }} 
           className="nav-link logout-btn"
         >
-          Logout
-        </button>
+          <img src="/icons/logout-icon.svg" alt="" />Sign Out        </button>
       </div>
     </nav>
   );
