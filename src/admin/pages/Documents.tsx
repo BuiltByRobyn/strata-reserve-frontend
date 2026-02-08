@@ -222,7 +222,6 @@ export default function DocumentsPage() {
       );
 
       const data = await response.json();
-      console.log('Upload response:', response.status, data);
 
       if (!response.ok) {
         throw new Error(data.error || 'Upload failed');
