@@ -26,7 +26,14 @@ export const AdminNavbar = () => {
   return (
     <nav className="navbar admin-navbar">
       <div className="navbar-brand">
-        Strata Reserve Planning (SRP)
+        <img src="/logo.svg" alt="Building Icon" />
+        <div className="navbar-brand-titles">
+          <span>Strata Reserve</span>
+          <div className="navbar-brand-text">Planning Portal</div>
+        <div className="navbar-user-info">
+          User: {adminUser?.fullName}
+        </div>
+        </div>
       </div>
       
       {/* Hamburger Menu Button */}
@@ -85,7 +92,7 @@ export const AdminNavbar = () => {
           }} 
           className="nav-link logout-btn"
         >
-          Logout
+          <img src="/icons/logout-icon.svg" alt="" />Sign out
         </button>
       </div>
     </nav>

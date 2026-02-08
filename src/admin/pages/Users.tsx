@@ -45,6 +45,8 @@ export default function UsersPage() {
   const [formData, setFormData] = useState<FormData>(initialFormData);
   const [formError, setFormError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [viewingUser, setViewingUser] = useState<UserWithStratas | null>(null);
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
 
   // Filter state
   const [searchTerm, setSearchTerm] = useState('');
@@ -85,46 +87,46 @@ export default function UsersPage() {
 
   const columns: Column<UserWithStratas>[] = [
     {
-      key: 'name',
+      key: 'fullName',
       header: 'Name',
       render: (user) => `${user.firstName || ''} ${user.lastName || ''}`.trim() || '-'
-    },
-    {
-      key: 'email',
-      header: 'Email',
-      render: (user) => user.email || '-'
-    },
-    {
-      key: 'userType',
-      header: 'User Type',
-      render: (user) => user.userType?.userTypeName || '-'
-    },
-    {
-      key: 'strataId',
-      header: 'Strata ID',
-      render: (user) => {
-        const strataPlans = user.strataProfiles?.map(se => se.strata.strataPlan).filter(Boolean);
-        return strataPlans?.length ? strataPlans.join(', ') : 'N/A';
-      }
-    },
-    {
-      key: 'company',
-      header: 'Management Company',
-      render: (user) => {
-        // First try to get company from strata associations
-        const companies = user.strataProfiles
-          ?.map(se => se.strata.company?.companyName)
-          .filter(Boolean);
-        const uniqueCompanies = [...new Set(companies)];
-        if (uniqueCompanies.length) return uniqueCompanies.join(', ');
-        
-        // Fall back to profile's companyName
-        if (user.companyName) return user.companyName;
-        
-        return 'N/A';
-      }
     }
   ];
+
+  const getViewUserRows = (user: UserWithStratas): { label: string; value: string }[] => {
+    const companies = user.strataProfiles
+      ?.map(se => se.strata.company?.companyName)
+      .filter(Boolean);
+    const uniqueCompanies = companies?.length ? [...new Set(companies)] : [];
+    const associatedCompany = uniqueCompanies.length
+      ? uniqueCompanies.join(', ')
+      : (user.companyName || 'N/A');
+
+    const associatedStrata = user.strataProfiles?.length
+      ? user.strataProfiles
+          .map(se => se.strata.complexName || se.strata.strataPlan || '')
+          .filter(Boolean)
+          .join(', ') || 'N/A'
+      : 'N/A';
+
+    const strataIds = user.strataProfiles?.length
+      ? user.strataProfiles
+          .map(se => se.strata.strataPlan ?? String(se.strata.strataId))
+          .filter(Boolean)
+          .join(', ') || 'N/A'
+      : 'N/A';
+
+    return [
+      { label: 'First name', value: user.firstName ?? '-' },
+      { label: 'Last name', value: user.lastName ?? '-' },
+      { label: 'Email', value: user.email ?? '-' },
+      { label: 'Phone Number', value: user.phoneNumber ?? '-' },
+      { label: 'User Type', value: user.userType?.userTypeName ?? '-' },
+      { label: 'Associated Company', value: associatedCompany },
+      { label: 'Associated Strata', value: associatedStrata },
+      { label: 'Strata ID', value: strataIds }
+    ];
+  };
 
   const openCreateModal = () => {
     setEditingUser(null);
@@ -257,17 +259,17 @@ export default function UsersPage() {
     <div className="users-page">
       <div className="page-header">
         <h1>Users</h1>
-        <button className="btn-primary" onClick={openCreateModal}>
-          + Create New Users
-        </button>
       </div>
 
       {error && <div className="error-banner">{error}</div>}
 
       {/* Filters */}
       <div className="filters-row">
-        <div className="filter-group">
+        <div className="filter-title">
           <label>Search</label>
+        </div>
+        <div className="filter-group">
+          <label>User</label>
           <input
             type="text"
             placeholder="Search name or email..."
@@ -309,9 +311,14 @@ export default function UsersPage() {
       </div>
 
       <DataTable
+        title="Users"
         columns={columns}
         data={filteredUsers}
         keyExtractor={(u) => u.id}
+        onRowClick={(user) => {
+          setViewingUser(user);
+          setIsViewModalOpen(true);
+        }}
         loading={loading}
         emptyMessage="No users found. Click 'Create New Users' to add one."
         actions={(user) => (
@@ -320,6 +327,11 @@ export default function UsersPage() {
           </button>
         )}
       />
+      <div className="create-user-button">
+        <button className="btn-primary" onClick={openCreateModal}>
+          + Create New Users
+        </button>
+      </div>
 
       <Modal
         isOpen={isModalOpen}
@@ -413,6 +425,7 @@ export default function UsersPage() {
               value={formData.companyName}
               onChange={(e) => updateField('companyName', e.target.value)}
               placeholder="Enter company name"
+              required
             />
           </FormRow>
 
@@ -421,7 +434,7 @@ export default function UsersPage() {
             <div key={index} className="strata-association-row">
               <FormRow>
                 <SelectField
-                  label={`Strata Name${index === 0 ? '' : ` ${index + 1}`}`}
+                  label={`Associated Strata${index === 0 ? '' : ` ${index + 1}`}`}
                   required
                   value={association.strataId?.toString() || ''}
                   onChange={(e) => updateStrataAssociation(index, 'strataId', e.target.value)}
@@ -482,6 +495,40 @@ export default function UsersPage() {
             </button>
           )}
         </form>
+      </Modal>
+
+      <Modal
+        isOpen={isViewModalOpen}
+        onClose={() => {
+          setIsViewModalOpen(false);
+          setViewingUser(null);
+        }}
+        title="View User"
+        size="medium"
+        footer={
+          <button
+            className="btn-primary"
+            onClick={() => {
+              setIsViewModalOpen(false);
+              setViewingUser(null);
+            }}
+          >
+            Close
+          </button>
+        }
+      >
+        {viewingUser && (
+          <table className="view-user-table">
+            <tbody>
+              {getViewUserRows(viewingUser).map((row) => (
+                <tr key={row.label}>
+                  <th scope="row">{row.label}</th>
+                  <td>{row.value}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </Modal>
     </div>
   );
