@@ -7,7 +7,6 @@ $breakpoint-lg: 1000px;   // Desktop
   @if $breakpoint == sm {
     @media (min-width: $breakpoint-sm) { @content; }
   }
-  
   @if $breakpoint == md {
     @media (min-width: $breakpoint-md) { @content; }
   }
@@ -17,7 +16,7 @@ $breakpoint-lg: 1000px;   // Desktop
 }
 
 @mixin respond-below($breakpoint) {
-    @if $breakpoint == sm {
+  @if $breakpoint == sm {
     @media (max-width: ($breakpoint-sm - 1px)) { @content; }
   }
   @if $breakpoint == md {
@@ -32,11 +31,11 @@ $breakpoint-lg: 1000px;   // Desktop
 @mixin respond-between($min-breakpoint, $max-breakpoint) {
   $min: 0;
   $max: 0;
-
+  
   @if $min-breakpoint == sm { $min: $breakpoint-sm; }
   @if $min-breakpoint == md { $min: $breakpoint-md; }
   @if $min-breakpoint == lg { $min: $breakpoint-lg; }
-
+  
   @if $max-breakpoint == sm { $max: ($breakpoint-sm - 1px); }
   @if $max-breakpoint == md { $max: ($breakpoint-md - 1px); }
   @if $max-breakpoint == lg { $max: ($breakpoint-lg - 1px); }

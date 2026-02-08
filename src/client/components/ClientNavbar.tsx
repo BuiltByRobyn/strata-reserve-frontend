@@ -25,7 +25,7 @@ export const ClientNavbar = () => {
 
   return (
     <nav className="navbar client-navbar">
- <div className="navbar-brand">
+      <div className="navbar-brand">
         <img src="/logo.svg" alt="Building Icon" />
         <div className="navbar-brand-titles">
           <span>Strata Reserve</span>
@@ -34,7 +34,8 @@ export const ClientNavbar = () => {
           User: {clientUser?.firstName} {clientUser?.lastName}
         </div>
         </div>
-      </div>      
+      </div>
+      
       {/* Hamburger Menu Button */}
       <button 
         className={`navbar-hamburger ${isMobileMenuOpen ? 'active' : ''}`}
@@ -56,21 +57,14 @@ export const ClientNavbar = () => {
         >
           Dashboard
         </NavLink>
-        <NavLink
-          to="/client/documents"
-          className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
-          onClick={closeMobileMenu}
-        >
-          Documents
-        </NavLink>
-        <NavLink
-          to="/client/reports"
+        <NavLink 
+          to="/client/reports" 
           className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
           onClick={closeMobileMenu}
         >
           My Reports
         </NavLink>
-        <NavLink
+        <NavLink 
           to="/client/profile" 
           className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
           onClick={closeMobileMenu}
