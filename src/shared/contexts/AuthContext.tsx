@@ -2,18 +2,7 @@ import { createContext, useContext, useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import type { User, Session, AuthError } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabaseClient';
-import type { AppUser, AdminUser, ClientUser } from '../types/auth.types';
-
-interface AuthContextType {
-  user: AppUser | null;
-  session: Session | null;
-  loading: boolean;
-  signIn: (email: string, password: string) => Promise<{ error: AuthError | null }>;
-  signOut: () => Promise<void>;
-  updatePassword: (newPassword: string) => Promise<{ error: AuthError | null }>;
-  isAdmin: boolean;
-  isClient: boolean;
-}
+import type { AppUser, AdminUser, ClientUser, AuthContextType } from '../types/auth.types';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -24,7 +13,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const fetchUserProfile = async (supabaseUser: User): Promise<AppUser | null> => {
     try {
-      console.log('📥 Fetching profile from Supabase for user ID:', supabaseUser.id);
+      console.log('Fetching profile from Supabase for user ID:', supabaseUser.id);
       
       const { data: profile, error } = await supabase
         .from('profiles')
@@ -33,19 +22,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         .single();
 
       if (error) {
-        console.error('❌ Error fetching profile from Supabase:', error);
+        console.error('Error fetching profile from Supabase:', error);
         throw error;
       }
 
       if (!profile) {
-        console.error('❌ No profile found for user ID:', supabaseUser.id);
+        console.error('No profile found for user ID:', supabaseUser.id);
         throw new Error('Profile not found');
       }
 
-      console.log('📋 Profile data retrieved:', profile);
+      console.log('Profile data retrieved:', profile);
 
       if (profile.is_admin) {
-        console.log('👑 User is ADMIN');
+        console.log('User is ADMIN');
         const adminUser: AdminUser = {
           id: supabaseUser.id,
           email: supabaseUser.email!,
@@ -56,7 +45,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         };
         return adminUser;
       } else {
-        console.log('👤 User is CLIENT');
+        console.log('User is CLIENT');
         const clientUser: ClientUser = {
           id: supabaseUser.id,
           email: supabaseUser.email!,
@@ -69,7 +58,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return clientUser;
       }
     } catch (error) {
-      console.error('💥 Exception in fetchUserProfile:', error);
+      console.error('Exception in fetchUserProfile:', error);
       return null;
     }
   };
@@ -88,19 +77,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setSession(session);
       
       if (session?.user) {
-        console.log('🔍 User authenticated, fetching profile for:', session.user.email);
+        console.log('User authenticated, fetching profile for:', session.user.email);
         try {
           const appUser = await fetchUserProfile(session.user);
           
           if (!isMounted) return;
           
           if (!appUser) {
-            console.error('❌ Profile not found. Signing out.');
+            console.error('Profile not found. Signing out.');
             await supabase.auth.signOut();
             setUser(null);
             setSession(null);
           } else {
-            console.log('✅ Profile loaded:', appUser);
+            console.log('Profile loaded:', appUser);
             setUser(appUser);
           }
         } catch (error) {
@@ -124,7 +113,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // CRITICAL: Do NOT await inside this callback - it causes Navigator.locks deadlock!
     // Use setTimeout(0) to defer execution outside the auth lock context
     const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log('🔄 Auth state change:', event, session ? 'has session' : 'no session');
+      console.log('Auth state change:', event, session ? 'has session' : 'no session');
       
       // Defer to next tick to break out of Navigator.locks context
       // This prevents deadlock when making Supabase database queries
@@ -136,7 +125,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // Also manually get session on mount as a fallback
     // (in case onAuthStateChange doesn't fire in time)
     supabase.auth.getSession().then(({ data: { session } }) => {
-      console.log('📥 Initial session check:', session ? 'has session' : 'no session');
+      console.log('Initial session check:', session ? 'has session' : 'no session');
       // Only handle if not already initialized by onAuthStateChange
       if (!isInitialized && isMounted) {
         // Use setTimeout here too for consistency and to avoid potential lock issues

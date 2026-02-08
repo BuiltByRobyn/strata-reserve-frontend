@@ -1,22 +1,16 @@
-// Companies Hook - CRUD operations for companies
 import { useState, useEffect, useCallback } from 'react';
 import { useAuthFetch } from './useAuthFetch';
-import type { 
-  Company, 
+import type {
+  Company,
   CompanyWithStratas,
-  CreateCompanyInput, 
+  CreateCompanyInput,
   UpdateCompanyInput,
   ApiListResponse,
-  ApiSingleResponse 
+  ApiSingleResponse
 } from '../types/entities.types';
+import type { CompaniesState } from '../types/hooks.types';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-
-interface CompaniesState {
-  companies: Company[];
-  loading: boolean;
-  error: string | null;
-}
 
 export const useCompanies = () => {
   const authFetch = useAuthFetch();

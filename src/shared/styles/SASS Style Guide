@@ -1,0 +1,529 @@
+# SASS Style Guide - Strata Reserve Planning
+
+**Quick Reference for Component & Page Styling**
+
+---
+
+### 1. One Component = One SASS File
+```
+ProfileCard.tsx  →  ProfileCard.scss
+ReserveFund.tsx  →  ReserveFund.scss
+```
+
+### 2. Unique Component Namespace
+Every component gets a **unique root class name** to prevent conflicts:
+
+```scss
+// EXAMPLES OF GOOD - Each component has unique namespace
+// ProfileCard.scss
+.profile-card { }
+
+// ReserveFundCard.scss
+.reserve-fund-card { }
+
+// EXAMPLES OF BAD  - Shared names!
+// Both files using .card will override each other
+.card { }
+```
+
+### 3. BEM Naming Pattern
+```
+.component-name                    // Block (root)
+.component-name__element          // Element (child) - use __
+.component-name--modifier         // Modifier (variant) - use --
+.component-name__element--modifier // Combined
+```
+
+---
+
+## File Structure
+
+```
+src/
+├── components/
+│   ├── ProfileCard/
+│   │   ├── ProfileCard.tsx
+│   │   └── ProfileCard.scss
+│   ├── ReserveFundCard/
+│   │   ├── ReserveFundCard.tsx
+│   │   └── ReserveFundCard.scss
+│   ├── InvoiceList/
+│   │   ├── InvoiceList.tsx
+│   │   └── InvoiceList.scss
+│   └── ... (other reusable components)
+├── pages/
+│   ├── client/
+│   │   ├── Dashboard/
+│   │   │   ├── Dashboard.tsx
+│   │   │   └── Dashboard.scss
+│   │   ├── ReserveFund/
+│   │   │   ├── ReserveFund.tsx
+│   │   │   └── ReserveFund.scss
+│   │   ├── Documents/
+│   │   │   ├── Documents.tsx
+│   │   │   └── Documents.scss
+│   │   └── Profile/
+│   │       ├── Profile.tsx
+│   │       └── Profile.scss
+│   └── admin/
+│       ├── Dashboard/
+│       │   ├── Dashboard.tsx
+│       │   └── Dashboard.scss
+│       ├── StrataManagement/
+│       │   ├── StrataManagement.tsx
+│       │   └── StrataManagement.scss
+│       ├── Reports/
+│       │   ├── Reports.tsx
+│       │   └── Reports.scss
+│       └── UserManagement/
+│           ├── UserManagement.tsx
+│           └── UserManagement.scss
+└── styles/
+    ├── _variables.scss
+    ├── _mixins.scss
+    └── global.scss
+```
+
+---
+
+## SASS File Template
+
+```scss
+// 1. IMPORTS (always first)
+@use '../variables' as *;
+@use '../mixins' as *;
+
+// 2. UNIQUE ROOT CLASS (matches component name)
+.unique-component-name {
+  // Base styles (mobile-first)
+  padding: $spacing-md;
+  background-color: $color-background;
+  border: 1px solid $color-border-light;
+  border-radius: $border-radius-md;
+  
+  // 3. MODIFIERS (variants, sizes, states)
+  &--primary {
+    background-color: $color-primary;
+    color: $color-text-white;
+  }
+  
+  &--large {
+    padding: $spacing-lg;
+    font-size: $font-size-lg;
+  }
+  
+  &--disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  
+  // 4. INTERACTIVE STATES
+  &--clickable {
+    cursor: pointer;
+    transition: $transition-base;
+    
+    &:hover:not(&--disabled) {
+      transform: translateY(-2px);
+      box-shadow: $shadow-md;
+    }
+  }
+  
+  // 5. CHILD ELEMENTS (using __ syntax)
+  &__header {
+    display: flex;
+    justify-content: space-between;
+    padding-bottom: $spacing-sm;
+    border-bottom: 1px solid $color-border-light;
+  }
+  
+  &__title {
+    font-size: $font-size-lg;
+    font-weight: $font-weight-bold;
+    color: $color-text-primary;
+  }
+  
+  &__body {
+    padding: $spacing-md 0;
+  }
+  
+  &__footer {
+    display: flex;
+    gap: $spacing-sm;
+    padding-top: $spacing-sm;
+  }
+  
+  // 6. NESTED MODIFIERS
+  &__button {
+    padding: $spacing-sm $spacing-md;
+    border-radius: $border-radius-sm;
+    transition: $transition-base;
+    
+    &--primary {
+      background-color: $color-primary;
+      color: $color-text-white;
+      
+      &:hover:not(:disabled) {
+        background-color: $color-primary-hover;
+      }
+    }
+    
+    &--secondary {
+      background-color: transparent;
+      border: 1px solid $color-border-medium;
+      
+      &:hover:not(:disabled) {
+        background-color: $color-background-light;
+      }
+    }
+    
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  }
+}
+
+// 7. RESPONSIVE (use mixins, NOT raw media queries)
+@include respond-below(md) {
+  // Mobile only (below 768px)
+  .unique-component-name {
+    padding: $spacing-sm;
+    
+    &__footer {
+      flex-direction: column;
+    }
+  }
+}
+
+@include respond-to(md) {
+  // Tablet and up (768px+)
+  .unique-component-name {
+    padding: $spacing-lg;
+  }
+}
+
+@include respond-to(lg) {
+  // Desktop and up (992px+)
+  .unique-component-name {
+    max-width: 800px;
+  }
+}
+```
+
+---
+
+## Color Usage
+
+### Primary Actions (Greens)
+Use for main actions, success states:
+```scss
+.save-button {
+  background-color: $color-primary;        // #6B8E5F
+  color: $color-text-white;
+  
+  &:hover {
+    background-color: $color-primary-hover; // #55724c
+  }
+}
+```
+
+### Secondary Actions (Blues)
+Use for navigation, links, secondary buttons:
+```scss
+.cancel-button {
+  background-color: $color-secondary;      // #155DFC
+  color: $color-text-white;
+  
+  &:hover {
+    background-color: $color-secondary-dark;
+  }
+}
+```
+
+### Error/Destructive (Reds)
+Use for delete, errors, warnings:
+```scss
+.delete-button {
+  background-color: $color-error;          // #FF0000
+  color: $color-text-white;
+  
+  &:hover {
+    background-color: $color-error-dark;
+  }
+}
+```
+
+### Status Messages
+```scss
+.success-message {
+  background-color: $color-primary-lightest;
+  border-left: 4px solid $color-success;
+}
+
+.error-message {
+  background-color: lighten($color-error, 45%);
+  border-left: 4px solid $color-error;
+}
+
+.warning-message {
+  background-color: $color-accent-yellow-light;
+  border-left: 4px solid $color-warning;
+}
+```
+
+---
+
+## Responsive Design (3 Breakpoints)
+
+**Mobile:** 320px - 767px (default, no mixin)  
+**Tablet:** 768px - 991px  
+**Desktop:** 992px+
+
+### Mobile First 
+```scss
+.component {
+  // Mobile styles (default)
+  padding: $spacing-sm;
+  font-size: $font-size-sm;
+  
+  // Tablet and up
+  @include respond-to(md) {
+    padding: $spacing-md;
+    font-size: $font-size-body;
+  }
+  
+  // Desktop and up
+  @include respond-to(lg) {
+    padding: $spacing-lg;
+    font-size: $font-size-lg;
+  }
+}
+```
+
+
+## React Integration
+
+### className Construction
+
+**Static class:**
+```tsx
+<div className="profile-card">
+```
+
+**With modifier:**
+```tsx
+<div className={`profile-card profile-card--${variant}`}>
+```
+
+**Conditional classes:**
+```tsx
+<div className={`profile-card ${isActive ? 'profile-card--active' : ''}`}>
+```
+
+**Multiple conditions:**
+```tsx
+<button 
+  className={`
+    reserve-button 
+    reserve-button--${size}
+    ${isDisabled ? 'reserve-button--disabled' : ''}
+    ${isLoading ? 'reserve-button--loading' : ''}
+  `}
+>
+```
+
+**Child elements:**
+```tsx
+<div className="profile-card">
+  <div className="profile-card__header">
+    <h2 className="profile-card__title">Title</h2>
+  </div>
+  <div className="profile-card__body">
+    Content
+  </div>
+</div>
+```
+
+---
+
+## Common Patterns
+
+### Interactive States
+```scss
+.button {
+  transition: $transition-base;
+  
+  &:hover:not(:disabled) {
+    background-color: $color-primary-hover;
+  }
+  
+  &:active {
+    transform: scale(0.98);
+  }
+  
+  &:focus {
+    outline: 2px solid $color-secondary;
+    outline-offset: 2px;
+  }
+  
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+```
+
+### Flexbox Layout
+```scss
+.container {
+  display: flex;
+  gap: $spacing-md;
+  align-items: center;
+  justify-content: space-between;
+  
+  @include respond-below(md) {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+```
+
+### Grid Layout
+```scss
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: $spacing-lg;
+  
+  @include respond-below(md) {
+    grid-template-columns: 1fr;
+  }
+}
+```
+
+### Card with Hover Effect
+```scss
+.card {
+  padding: $spacing-md;
+  background-color: $color-background;
+  border: 1px solid $color-border-light;
+  border-radius: $border-radius-md;
+  transition: $transition-base;
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: $shadow-md;
+  }
+}
+```
+
+---
+
+## Must-Use Variables
+
+## Checklist for New Components
+
+- [ ] **Created dedicated SASS file** next to component
+- [ ] **Used unique root class name** (no conflicts)
+- [ ] Used kebab-case: `reserve-fund-card` not `reserveFundCard`
+- [ ] Imported: `@use '../variables' as *;`
+- [ ] Imported: `@use '../mixins' as *;`
+- [ ] Used color variables (no hex values)
+- [ ] Used spacing variables (no hardcoded px)
+- [ ] Used breakpoint mixins (no raw media queries)
+- [ ] Added `:hover` states for interactive elements
+- [ ] Added `:disabled` state if applicable
+- [ ] Added transitions for smooth interactions
+- [ ] Kept nesting shallow (2-3 levels max)
+- [ ] Used `box-sizing: border-box`
+- [ ] Tested mobile (< 750px)
+- [ ] Tested tablet (750px - 1000px)
+- [ ] Tested desktop (1000px+)
+
+---
+
+PLEASE NO HARDCODED VALUES!
+
+---
+
+## Example
+
+**Component: ReserveFundCard.tsx**
+```tsx
+export default function ReserveFundCard({ amount, label, variant = 'primary' }) {
+  return (
+    <div className={`reserve-fund-card reserve-fund-card--${variant}`}>
+      <div className="reserve-fund-card__header">
+        <h3 className="reserve-fund-card__title">{label}</h3>
+      </div>
+      <div className="reserve-fund-card__amount">${amount}</div>
+      <button className="reserve-fund-card__button">
+        View Details
+      </button>
+    </div>
+  );
+}
+```
+
+**Styles: ReserveFundCard.scss**
+```scss
+@use '../variables' as *;
+@use '../mixins' as *;
+
+.reserve-fund-card {
+  padding: $spacing-md;
+  background-color: $color-background;
+  border: 1px solid $color-border-light;
+  border-radius: $border-radius-md;
+  transition: $transition-base;
+  
+  &--primary {
+    border-color: $color-primary;
+  }
+  
+  &--secondary {
+    border-color: $color-secondary;
+  }
+  
+  &:hover {
+    box-shadow: $shadow-md;
+    transform: translateY(-2px);
+  }
+  
+  &__header {
+    margin-bottom: $spacing-sm;
+  }
+  
+  &__title {
+    font-size: $font-size-lg;
+    font-weight: $font-weight-bold;
+    color: $color-text-primary;
+  }
+  
+  &__amount {
+    font-size: $font-size-2xl;
+    font-weight: $font-weight-bold;
+    color: $color-primary;
+    margin: $spacing-md 0;
+  }
+  
+  &__button {
+    width: 100%;
+    padding: $spacing-sm $spacing-md;
+    background-color: $color-primary;
+    color: $color-text-white;
+    border: none;
+    border-radius: $border-radius-sm;
+    cursor: pointer;
+    transition: $transition-base;
+    
+    &:hover {
+      background-color: $color-primary-hover;
+    }
+  }
+  
+  @include respond-to(md) {
+    padding: $spacing-lg;
+  }
+}
+```

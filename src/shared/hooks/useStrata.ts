@@ -1,10 +1,9 @@
-// Strata Hook - CRUD operations for strata properties
 import { useState, useEffect, useCallback } from 'react';
 import { useAuthFetch } from './useAuthFetch';
-import type { 
-  Strata, 
+import type {
+  Strata,
   StrataWithDetails,
-  CreateStrataInput, 
+  CreateStrataInput,
   UpdateStrataInput,
   CreateStrataNoteInput,
   CreateStrataEmployeeInput,
@@ -13,16 +12,11 @@ import type {
   StrataEmployee,
   StrataService,
   ApiListResponse,
-  ApiSingleResponse 
+  ApiSingleResponse
 } from '../types/entities.types';
+import type { StrataState } from '../types/hooks.types';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-
-interface StrataState {
-  stratas: Strata[];
-  loading: boolean;
-  error: string | null;
-}
 
 export const useStrata = () => {
   const authFetch = useAuthFetch();

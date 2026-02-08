@@ -5,7 +5,6 @@ import { DataTable, type Column } from '../../shared/components/DataTable/DataTa
 import { Modal } from '../../shared/components/Modal/Modal';
 import { InputField } from '../../shared/components/FormField/FormField';
 import type { Company, CreateCompanyInput, UpdateCompanyInput } from '../../shared/types/entities.types';
-import './Companies.scss';
 
 export default function CompaniesPage() {
   const { 

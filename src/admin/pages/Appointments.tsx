@@ -2,7 +2,6 @@
 import { useAppointments } from '../../shared/hooks/useAppointments';
 import { DataTable, type Column } from '../../shared/components/DataTable/DataTable';
 import type { AppointmentWithDetails } from '../../shared/types/entities.types';
-import './Appointments.scss';
 
 // Format date as "06 Mar 26"
 const formatDate = (dateString: string): string => {

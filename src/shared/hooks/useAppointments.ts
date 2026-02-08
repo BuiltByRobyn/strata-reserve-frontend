@@ -1,19 +1,13 @@
-// Appointments Hook - CRUD operations for appointment management
 import { useState, useEffect, useCallback } from 'react';
 import { useAuthFetch } from './useAuthFetch';
-import type { 
+import type {
   AppointmentWithDetails,
   ApiListResponse,
-  ApiSingleResponse 
+  ApiSingleResponse
 } from '../types/entities.types';
+import type { AppointmentsState } from '../types/hooks.types';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-
-interface AppointmentsState {
-  appointments: AppointmentWithDetails[];
-  loading: boolean;
-  error: string | null;
-}
 
 export const useAppointments = () => {
   const authFetch = useAuthFetch();

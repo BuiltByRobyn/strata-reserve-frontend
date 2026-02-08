@@ -1,21 +1,15 @@
-// Inspector Availability Hook - CRUD operations for inspector available dates
 import { useState, useEffect, useCallback } from 'react';
 import { useAuthFetch } from './useAuthFetch';
-import type { 
-  InspectorAvailableDate, 
-  CreateInspectorAvailableDateInput, 
+import type {
+  InspectorAvailableDate,
+  CreateInspectorAvailableDateInput,
   UpdateInspectorAvailableDateInput,
   ApiListResponse,
-  ApiSingleResponse 
+  ApiSingleResponse
 } from '../types/entities.types';
+import type { InspectorAvailabilityState } from '../types/hooks.types';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-
-interface InspectorAvailabilityState {
-  availableDates: InspectorAvailableDate[];
-  loading: boolean;
-  error: string | null;
-}
 
 export const useInspectorAvailability = (inspectorProfileId?: string) => {
   const authFetch = useAuthFetch();

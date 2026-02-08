@@ -1,26 +1,14 @@
-// Users Hook - CRUD operations for user management
 import { useState, useEffect, useCallback } from 'react';
 import { useAuthFetch } from './useAuthFetch';
-import type { 
+import type {
   UserWithStratas,
   CreateUserInput,
   ApiListResponse,
-  ApiSingleResponse 
+  ApiSingleResponse
 } from '../types/entities.types';
+import type { UsersState, FetchUsersParams } from '../types/hooks.types';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-
-interface UsersState {
-  users: UserWithStratas[];
-  loading: boolean;
-  error: string | null;
-}
-
-interface FetchUsersParams {
-  search?: string;
-  strataId?: number;
-  userTypeId?: number;
-}
 
 export const useUsers = () => {
   const authFetch = useAuthFetch();
