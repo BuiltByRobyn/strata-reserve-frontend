@@ -11,14 +11,23 @@
     margin-bottom: $spacing-lg;
     border-bottom: 2px solid $color-border-light;
 
+    @include respond-to(desktop) {
+      justify-content: space-between;
+      border-bottom: none;
+      width: 100%;
+    }
+
     h1 {
       margin: 0;
       font-size: 1.75rem;
       font-weight: 600;
       color: $color-text-dark;
     }
+  }
 
-
+  @include respond-to(desktop) {
+    margin-left: $spacing-lg;
+    padding-top: 5rem;
   }
 
   .error-banner {
@@ -50,11 +59,20 @@
     padding: $spacing-lg;
     text-align: left;
 
+    @include respond-to(desktop) {
+      border: none;
+      padding: 0;
+    }
+
     .filter-title {
       font-size: $font-size-xl;
       color: $color-primary-dark;
       text-decoration: underline;
       font-weight: $font-weight-bold;
+
+      @include respond-to(desktop) {
+        display: none;
+      }
     }
 
     .filter-group {
@@ -198,7 +216,35 @@
     }
   }
 
+  .create-user-button-desktop {
+    display: none;
+
+    @include respond-to(desktop) {
+      display: block;
+
+      .btn-primary {
+        padding: $spacing-sm $spacing-lg;
+        background: $color-primary;
+        color: $color-white;
+        border: none;
+        border-radius: $border-radius-sm;
+        font-size: $font-size-base;
+        font-weight: 500;
+        cursor: pointer;
+        transition: background 0.2s ease;
+
+        &:hover {
+          background: $color-primary-hover;
+        }
+      }
+    }
+  }
+
   .create-user-button {
+    @include respond-to(desktop) {
+      display: none;
+    }
+
     .btn-primary {
       width: 100%;
       padding: $spacing-sm $spacing-lg;

@@ -13,7 +13,9 @@ export const adminRoutes = [
     <ProtectedRoute requireAdmin>
       <div className="app">
         <AdminNavbar />
-        <Dashboard />
+        <main className="app-main">
+          <Dashboard />
+        </main>
       </div>
     </ProtectedRoute>
   } />,
@@ -21,7 +23,9 @@ export const adminRoutes = [
     <ProtectedRoute requireAdmin>
       <div className="app">
         <AdminNavbar />
-        <Profile />
+        <main className="app-main">
+          <Profile />
+        </main>
       </div>
     </ProtectedRoute>
   } />,
@@ -29,7 +33,9 @@ export const adminRoutes = [
     <ProtectedRoute requireAdmin>
       <div className="app">
         <AdminNavbar />
-        <StrataPage />
+        <main className="app-main">
+          <StrataPage />
+        </main>
       </div>
     </ProtectedRoute>
   } />,
@@ -37,7 +43,9 @@ export const adminRoutes = [
     <ProtectedRoute requireAdmin>
       <div className="app">
         <AdminNavbar />
-        <UsersPage />
+        <main className="app-main">
+          <UsersPage />
+        </main>
       </div>
     </ProtectedRoute>
   } />,
@@ -45,7 +53,9 @@ export const adminRoutes = [
     <ProtectedRoute requireAdmin>
       <div className="app">
         <AdminNavbar />
-        <AppointmentsPage />
+        <main className="app-main">
+          <AppointmentsPage />
+        </main>
       </div>
     </ProtectedRoute>
   } />,
@@ -53,7 +63,9 @@ export const adminRoutes = [
     <ProtectedRoute requireAdmin>
       <div className="app">
         <AdminNavbar />
-        <DocumentsPage />
+        <main className="app-main">
+          <DocumentsPage />
+        </main>
       </div>
     </ProtectedRoute>
   } />,

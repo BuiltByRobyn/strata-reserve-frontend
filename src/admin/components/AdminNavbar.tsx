@@ -72,6 +72,13 @@ export const AdminNavbar = () => {
           Users
         </NavLink>
         <NavLink 
+          to="/admin/documents" 
+          className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+          onClick={closeMobileMenu}
+        >
+          Documents
+        </NavLink>
+        <NavLink 
           to="/admin/appointments" 
           className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
           onClick={closeMobileMenu}

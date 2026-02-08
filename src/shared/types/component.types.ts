@@ -16,6 +16,7 @@ export interface DataTableProps<T> {
   loading?: boolean;
   emptyMessage?: string;
   actions?: (item: T) => ReactNode;
+  actionsColumnHeader?: string;
 }
 
 export interface BaseFieldProps {

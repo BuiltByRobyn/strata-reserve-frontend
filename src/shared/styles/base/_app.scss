@@ -33,15 +33,19 @@
   margin: 0 auto;
   text-align: left;
 
-  // Tablet responsive
-  @include respond-below(md) {
-    padding: $spacing-lg;
-    max-width: 100%;
-  }
+  // // Tablet responsive
+  // @include respond-below(md) {
+  //   padding: $spacing-lg;
+  //   max-width: 100%;
+  // }
 
-  // Mobile responsive
-  @include respond-below(sm) {
-    padding: $spacing-md;
+  // // Mobile responsive
+  // @include respond-below(sm) {
+  //   padding: $spacing-md;
+  // }
+
+  @include respond-to(desktop) {
+    margin-left: $spacing-xl;
   }
 }
 

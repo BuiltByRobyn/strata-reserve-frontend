@@ -2,7 +2,9 @@ import { useState, useEffect } from 'react';
 import { useDocuments } from '../../shared/hooks/useDocuments';
 import { useLookups } from '../../shared/hooks/useLookups';
 import { useAuth } from '../../shared/contexts/AuthContext';
+import { useMediaQuery } from '../../shared/hooks/useMediaQuery';
 import { DataTable, type Column } from '../../shared/components/DataTable/DataTable';
+import { LoadingSpinner } from '../../shared/components/LoadingSpinner/LoadingSpinner';
 import { Modal } from '../../shared/components/Modal/Modal';
 import { InputField, SelectField, TextareaField, FormRow } from '../../shared/components/FormField/FormField';
 import type { DocumentWithDetails, DocumentUploadData } from '../../shared/types/document.types';
@@ -14,7 +16,7 @@ const formatTypeName = (name: string): string =>
   name.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 
 export default function DocumentsPage() {
-  const { documents, loading, error, refetch, updateDocumentStatus, deleteDocument, searchDocuments } = useDocuments();
+  const { documents, loading, error, refetch, updateDocumentStatus, deleteDocument } = useDocuments();
   const { documentTypes, reviewStatuses } = useLookups();
   const { session, user } = useAuth();
 
@@ -39,8 +41,28 @@ export default function DocumentsPage() {
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
 
+  const isDesktop = useMediaQuery('(min-width: 600px)');
+
   useEffect(() => {
     let result = documents;
+
+    if (searchQuery.trim()) {
+      const search = searchQuery.toLowerCase().trim();
+      result = result.filter(d => {
+        const fileName = (d.fileName || '').toLowerCase();
+        const strataPlan = (d.serviceRequest.strata.strataPlan || '').toLowerCase();
+        const complexName = (d.serviceRequest.strata.complexName || '').toLowerCase();
+        const typeName = formatTypeName(d.documentType.typeName || '').toLowerCase();
+        const statusName = (d.reviewStatus?.statusName || '').toLowerCase();
+        return (
+          fileName.includes(search) ||
+          strataPlan.includes(search) ||
+          complexName.includes(search) ||
+          typeName.includes(search) ||
+          statusName.includes(search)
+        );
+      });
+    }
 
     if (filterDocType) {
       result = result.filter(d => d.documentType.documentTypeId === parseInt(filterDocType));
@@ -54,20 +76,7 @@ export default function DocumentsPage() {
     }
 
     setFilteredDocuments(result);
-  }, [documents, filterDocType, filterStrata]);
-
-  const handleSearch = async () => {
-    if (!searchQuery.trim()) {
-      refetch();
-      return;
-    }
-    const results = await searchDocuments(searchQuery);
-    setFilteredDocuments(results);
-  };
-
-  const handleSearchKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') handleSearch();
-  };
+  }, [documents, searchQuery, filterDocType, filterStrata]);
 
   const getStatusBadgeClass = (statusName?: string): string => {
     if (!statusName) return 'status-badge pending';
@@ -240,54 +249,123 @@ export default function DocumentsPage() {
 
   return (
     <div className="documents-page">
-      <div className="page-header">
-        <h1>Documents</h1>
+        <div className="page-header">
+          <h1>Documents</h1>
+          <div className="add-document-button-desktop">
+            <button className="btn-primary" onClick={openUploadModal}>
+              + Add New Document
+            </button>
+          </div>
+        </div>
+      <div className="page-content">
+
+        <div className="filters-row">
+          <div className="search-field">
+            <InputField
+              label="Search"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search documents..."
+            />
+          </div>
+          <SelectField
+            label="Document Type"
+            value={filterDocType}
+            onChange={(e) => setFilterDocType(e.target.value)}
+            options={documentTypes.map(dt => ({ value: dt.documentTypeId, label: formatTypeName(dt.typeName) }))}
+            placeholder="All Types"
+          />
+          <InputField
+            label="Strata"
+            value={filterStrata}
+            onChange={(e) => setFilterStrata(e.target.value)}
+            placeholder="Filter by strata..."
+          />
+        </div>
+
+      </div>
+
+      <div className="add-document-button">
         <button className="btn-primary" onClick={openUploadModal}>
           + Add New Document
         </button>
       </div>
 
-      <div className="filters-row">
-        <div className="search-field">
-          <InputField
-            label="Search"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            onKeyDown={handleSearchKeyDown}
-            placeholder="Search documents..."
-          />
-          <button className="btn-search" onClick={handleSearch}>Search</button>
-        </div>
-        <SelectField
-          label="Document Type"
-          value={filterDocType}
-          onChange={(e) => setFilterDocType(e.target.value)}
-          options={documentTypes.map(dt => ({ value: dt.documentTypeId, label: formatTypeName(dt.typeName) }))}
-          placeholder="All Types"
-        />
-        <InputField
-          label="Strata"
-          value={filterStrata}
-          onChange={(e) => setFilterStrata(e.target.value)}
-          placeholder="Filter by strata..."
-        />
-      </div>
-
       {error && <div className="error-banner">{error}</div>}
 
-      <DataTable
-        columns={columns}
-        data={filteredDocuments}
-        keyExtractor={(d) => d.serviceRequestDocumentId}
-        loading={loading}
-        emptyMessage="No documents found."
-        actions={(doc) => (
-          <>
-            <button className="btn-edit" onClick={() => openStatusModal(doc)}>Review</button>
-            <button className="btn-delete" onClick={() => handleDelete(doc)}>Delete</button>
-          </>
-        )}
-      />
+      {isDesktop ? (
+        <DataTable
+          columns={columns}
+          data={filteredDocuments}
+          keyExtractor={(d) => d.serviceRequestDocumentId}
+          loading={loading}
+          emptyMessage="No documents found."
+          actions={(doc) => (
+            <>
+              <button className="btn-edit" onClick={() => openStatusModal(doc)}>Review</button>
+              <button className="btn-delete" onClick={() => handleDelete(doc)}>Delete</button>
+            </>
+          )}
+        />
+      ) : (
+        <>
+          {loading && <LoadingSpinner />}
+          {!loading && filteredDocuments.length === 0 && (
+            <div className="data-table-empty">
+              <p>No documents found.</p>
+            </div>
+          )}
+          {!loading && filteredDocuments.length > 0 && (
+            <div className="documents-mobile-list">
+              {filteredDocuments.map((doc) => (
+                <div key={doc.serviceRequestDocumentId} className="documents-mobile-table-wrap">
+                  <table className="data-table documents-table-mobile">
+                    <tbody>
+                      <tr>
+                        <td className="mobile-label-col">File Name</td>
+                        <td className="mobile-value-col">{doc.fileName}</td>
+                      </tr>
+                      <tr>
+                        <td className="mobile-label-col">Strata</td>
+                        <td className="mobile-value-col">
+                          {doc.serviceRequest.strata.complexName || doc.serviceRequest.strata.strataPlan || '-'}
+                        </td>
+                      </tr>
+                      <tr>
+                        <td className="mobile-label-col">Strata ID</td>
+                        <td className="mobile-value-col">{doc.serviceRequest.strata.strataPlan || '-'}</td>
+                      </tr>
+                      <tr>
+                        <td className="mobile-label-col">Document Type</td>
+                        <td className="mobile-value-col">{formatTypeName(doc.documentType.typeName)}</td>
+                      </tr>
+                      <tr>
+                        <td className="mobile-label-col">Upload Date</td>
+                        <td className="mobile-value-col">{formatDate(doc.uploadedAt)}</td>
+                      </tr>
+                      <tr>
+                        <td className="mobile-label-col">Status</td>
+                        <td className="mobile-value-col">
+                          <span className={getStatusBadgeClass(doc.reviewStatus?.statusName)}>
+                            {doc.reviewStatus?.statusName || 'Pending'}
+                          </span>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td className="mobile-label-col">Actions</td>
+                        <td className="mobile-value-col actions-cell">
+                          <button className="btn-edit" onClick={() => openStatusModal(doc)}>Review</button>
+                          <button className="btn-delete" onClick={() => handleDelete(doc)}>Delete</button>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
+      )}
 
       {/* Status Review Modal */}
       <Modal
