@@ -10,6 +10,18 @@
   // box-shadow: $shadow-navbar;
   position: relative;
 
+  @include respond-to(desktop) {
+    position: fixed;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 250px;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    padding: $spacing-lg $spacing-md;
+  }
+
   &-brand {
     font-size: $font-size-lg;
     font-weight: $font-weight-bold;
@@ -83,7 +95,7 @@
     z-index: 1001;
     color: $color-text-dark;
 
-    @include respond-below(md) {
+    @include respond-below(desktop) {
       display: flex;
     }
 
@@ -117,8 +129,16 @@
     gap: $gap-nav-links;
     align-items: center;
 
+    @include respond-to(desktop) {
+      flex-direction: column;
+      align-items: stretch;
+      width: 100%;
+      gap: $spacing-xs;
+      margin-top: $spacing-lg;
+    }
+
     // Mobile responsive
-    @include respond-below(sm) {
+    @include respond-below(desktop) {
       position: fixed;
       top: 0;
       top: -100vh;
@@ -169,9 +189,17 @@
     border-radius: $border-radius-lg;
     max-width: 93%;
   }
+
+  // Tablet + desktop sidebar: full width, left-aligned
+  @include respond-to(desktop) {
+    justify-content: flex-start;
+    width: 100%;
+    padding: $spacing-sm $spacing-md;
+    max-width: none;
+  }
   
   // Mobile responsive
-  @include respond-below(sm) {
+  @include respond-below(desktop) {
     width: 100%;
     justify-content: center;
     padding: 12px 16px;
@@ -195,8 +223,7 @@
   }
 
   // Mobile responsive
-  @include respond-below(md) {
+  @include respond-below(desktop) {
     margin-top: 20px;
   }
 }
-
