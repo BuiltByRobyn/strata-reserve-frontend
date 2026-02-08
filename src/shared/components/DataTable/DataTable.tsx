@@ -11,7 +11,8 @@ export function DataTable<T>({
   onRowClick,
   loading = false,
   emptyMessage = 'No data available',
-  actions
+  actions,
+  actionsColumnHeader = 'Edit'
 }: DataTableProps<T>) {
   if (loading) {
     return <LoadingSpinner />;
@@ -44,7 +45,7 @@ export function DataTable<T>({
                   {col.header}
                 </th>
               ))}
-              {actions && <th className="actions-column">Edit</th>}
+              {actions && <th className="actions-column">{actionsColumnHeader}</th>}
             </tr>
           )}
         </thead>

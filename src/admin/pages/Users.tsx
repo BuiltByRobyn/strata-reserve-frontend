@@ -6,6 +6,7 @@ import { useLookups } from '../../shared/hooks/useLookups';
 import { DataTable, type Column } from '../../shared/components/DataTable/DataTable';
 import { Modal } from '../../shared/components/Modal/Modal';
 import { InputField, SelectField, FormRow } from '../../shared/components/FormField/FormField';
+import { useMediaQuery } from '../../shared/hooks/useMediaQuery';
 import type { UserWithStratas, CreateUserInput, UserFormData } from '../../shared/types/entities.types';
 
 const initialFormData: UserFormData = {
@@ -69,11 +70,56 @@ export default function UsersPage() {
     });
   }, [users, searchTerm, filterStrataId, filterUserTypeId]);
 
-  const columns: Column<UserWithStratas>[] = [
+  const isDesktop = useMediaQuery('(min-width: 600px)');
+
+  const mobileColumns: Column<UserWithStratas>[] = [
     {
       key: 'fullName',
       header: 'Name',
       render: (user) => `${user.firstName || ''} ${user.lastName || ''}`.trim() || '-'
+    }
+  ];
+
+  const desktopColumns: Column<UserWithStratas>[] = [
+    {
+      key: 'name',
+      header: 'Name',
+      render: (user) => `${user.firstName || ''} ${user.lastName || ''}`.trim() || '-'
+    },
+    {
+      key: 'email',
+      header: 'Email',
+      render: (user) => user.email || '-'
+    },
+    {
+      key: 'userType',
+      header: 'User Type',
+      render: (user) => user.userType?.userTypeName || '-'
+    },
+    {
+      key: 'strataId',
+      header: 'Strata ID',
+      render: (user) => {
+        const ids = user.strataProfiles?.length
+          ? user.strataProfiles
+              .map(se => se.strata.strataPlan ?? String(se.strata.strataId))
+              .filter(Boolean)
+              .join(', ') || 'N/A'
+          : 'N/A';
+        return ids;
+      }
+    },
+    {
+      key: 'company',
+      header: 'Management Company',
+      render: (user) => {
+        const companies = user.strataProfiles
+          ?.map(se => se.strata.company?.companyName)
+          .filter(Boolean);
+        const unique = companies?.length ? [...new Set(companies)] : [];
+        if (unique.length) return unique.join(', ');
+        return user.companyName || 'N/A';
+      }
     }
   ];
 
@@ -243,6 +289,11 @@ export default function UsersPage() {
     <div className="users-page">
       <div className="page-header">
         <h1>Users</h1>
+        <div className="create-user-button-desktop">
+          <button className="btn-primary" onClick={openCreateModal}>
+            + Create New Users
+          </button>
+        </div>
       </div>
 
       {error && <div className="error-banner">{error}</div>}
@@ -253,7 +304,7 @@ export default function UsersPage() {
           <label>Search</label>
         </div>
         <div className="filter-group">
-          <label>User</label>
+          <label>Search</label>
           <input
             type="text"
             placeholder="Search name or email..."
@@ -295,8 +346,8 @@ export default function UsersPage() {
       </div>
 
       <DataTable
-        title="Users"
-        columns={columns}
+        title={isDesktop ? undefined : 'Users'}
+        columns={isDesktop ? desktopColumns : mobileColumns}
         data={filteredUsers}
         keyExtractor={(u) => u.id}
         onRowClick={(user) => {
@@ -310,6 +361,7 @@ export default function UsersPage() {
             Edit
           </button>
         )}
+        actionsColumnHeader={isDesktop ? 'Actions' : undefined}
       />
       <div className="create-user-button">
         <button className="btn-primary" onClick={openCreateModal}>

@@ -3,27 +3,80 @@
 .documents-page {
   padding: $spacing-lg;
 
+  .page-content {
+    border: 3px solid $color-border-light;
+    border-radius: $border-radius-lg;
+    padding: $spacing-lg;
+    background: $color-white;
+    margin-bottom: $spacing-lg;
+
+    @include respond-to(desktop) {
+      border: none !important;
+    }
+  }
+
+  @include respond-below(desktop) {
+    padding: $spacing-md;
+  }
+
   .page-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
     margin-bottom: $spacing-lg;
+    flex-wrap: wrap;
+    gap: $spacing-md;
 
     h1 {
       margin: 0;
-      font-size: 1.75rem;
+      font-size: 2.5rem;
       font-weight: 600;
-      color: $color-text-dark;
+      color: $color-primary-dark;
+      text-decoration: underline;
+
+      @include respond-to(desktop) {
+        text-decoration: none;
+        font-size: $font-size-lg;
+        color: $color-text-dark;
+      }
     }
 
+    .add-document-button-desktop {
+      display: none;
+
+      @include respond-to(desktop) {
+        display: block;
+      }
+
+      .btn-primary {
+        padding: $spacing-sm $spacing-lg;
+        background: $color-primary;
+        color: $color-white;
+        border: none;
+        border-radius: $border-radius-sm;
+        font-size: 0.9375rem;
+        font-weight: 500;
+      }
+    }
+  }
+
+  .add-document-button {
+    margin-bottom: $spacing-lg;
+    @include respond-to(desktop) {
+      display: none;
+    }
+
+    margin-top: $spacing-lg;
+
     .btn-primary {
-      padding: $spacing-sm $spacing-lg;
+      width: 100%;
+      padding: $spacing-md $spacing-lg;
       background: $color-primary;
       color: $color-white;
       border: none;
       border-radius: $border-radius-sm;
-      font-size: 0.9375rem;
-      font-weight: 500;
+      font-size: $font-size-base;
+      font-weight: $font-weight-bold;
       cursor: pointer;
       transition: background 0.2s ease;
 
@@ -34,19 +87,32 @@
   }
 
   .filters-row {
+    @include respond-to(desktop) {
     display: flex;
-    gap: $spacing-md;
-    margin-bottom: $spacing-lg;
+    gap: $spacing-lg;
     align-items: flex-end;
+    flex-wrap: wrap;
+    }
+
+    label {
+      font-weight: $font-weight-bold;
+      color: $color-text-muted;
+      text-align: left;
+    }
 
     .search-field {
-      display: flex;
       gap: $spacing-sm;
       align-items: flex-end;
-      flex: 1;
+      min-width: 0;
 
       .form-field {
         flex: 1;
+        min-width: 0;
+
+        label {
+          font-weight: $font-weight-bold;
+          color: $color-text-muted;
+        }
       }
 
       .btn-search {
@@ -67,6 +133,14 @@
 
     .form-field {
       min-width: 180px;
+
+      @include respond-below(desktop) {
+        min-width: 140px;
+      }
+
+      @include respond-below(sm) {
+        min-width: 100%;
+      }
     }
   }
 
@@ -108,6 +182,84 @@
     color: $color-error;
   }
 
+  .data-table-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .documents-mobile-list {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-lg;
+  }
+
+  .documents-mobile-table-wrap {
+    border: 3px solid $color-border-light;
+    border-radius: $border-radius-lg;
+    overflow: hidden;
+    background: $color-white;
+    margin-bottom: $spacing-lg;
+  }
+
+  .documents-table-mobile {
+    width: 100%;
+    border-collapse: collapse;
+
+    thead tr {
+      border-bottom: 2px solid $color-border-light;
+      background: rgba($color-border-light, 0.3);
+
+      th {
+        text-align: left;
+        padding: $spacing-sm $spacing-md;
+        font-weight: $font-weight-bold;
+        color: $color-text-muted;
+      }
+    }
+
+    tbody tr {
+      border-bottom: 1px solid rgba($color-border-light, 0.6);
+      
+
+      &:last-child {
+        border-bottom: none;
+      }
+
+      td {
+        padding: $spacing-sm $spacing-md;
+        vertical-align: top;
+        font-size: $font-size-base;
+        padding-top: $spacing-lg;
+        padding-bottom: $spacing-lg;
+      }
+    }
+
+    .mobile-label-col {
+      font-weight: $font-weight-bold;
+      color: $color-text-muted;
+      width: 40%;
+      max-width: 120px;
+    }
+
+    .mobile-value-col {
+      color: $color-text-dark;
+      text-align: right;
+
+      &.actions-cell {
+        display: flex;
+        flex-wrap: wrap;
+        gap: $spacing-sm;
+        justify-content: flex-end;
+
+        .btn-edit,
+        .btn-delete {
+          padding: $spacing-xs $spacing-sm;
+          font-size: 0.8125rem;
+        }
+      }
+    }
+  }
+
   .form-error {
     padding: $spacing-sm;
     margin-bottom: $spacing-md;
@@ -131,5 +283,10 @@
     .form-field {
       margin-top: $spacing-md;
     }
+  }
+
+
+  @include respond-to(desktop) {
+    margin-left: $spacing-xl;
   }
 }

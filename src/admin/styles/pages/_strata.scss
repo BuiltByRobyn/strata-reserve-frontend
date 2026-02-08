@@ -3,11 +3,92 @@
 .strata-page {
   padding: $spacing-lg;
 
+  .modal-body {
+    text-align: left;
+
+    label {
+      font-size: $font-size-base;
+      font-weight: $font-weight-bold;
+      color: $color-text-muted;
+      text-align: left;
+    }
+
+    .form-row {
+      padding-bottom: $spacing-md;
+    }
+  }
+
+  .filters-row {
+    @include respond-to(desktop) {
+      display: flex;
+      gap: $spacing-lg;
+      // margin-bottom: $spacing-lg;
+      align-items: flex-end;
+      flex-wrap: wrap;
+    }
+
+    label {
+      font-weight: $font-weight-bold;
+      color: $color-text-muted;
+      text-align: left;
+    }
+  }
+
+  @include respond-to(desktop) {
+    margin-left: $spacing-xl;
+  }
+
+  .page-content {
+    border: 3px solid $color-border-light;
+    border-radius: $border-radius-lg;
+    padding: $spacing-lg;
+    background: $color-white;
+    margin-bottom: $spacing-lg;
+
+    h1 {
+      @include respond-to(desktop) {
+        display: none;
+      }
+    }
+
+    @include respond-to(desktop) {
+      border: none !important;
+    }
+
+    @include respond-below(desktop) {
+      padding: $spacing-md;
+    }
+
+    .filter-title {
+      font-size: 2.5rem;
+      font-weight: 600;
+      color: $color-primary-dark;
+      text-decoration: underline;
+      text-align: left;
+      margin-top: 0;
+
+      @include respond-to(desktop) {
+        text-decoration: none;
+        font-size: $font-size-lg;
+        color: $color-text-dark;
+      }
+    }
+  }
+
   .page-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
     margin-bottom: $spacing-lg;
+    justify-content: center;
+    border-bottom: 2px solid $color-border-light;
+    padding-bottom: $spacing-md;
+
+    @include respond-to(desktop) {
+      justify-content: space-between;
+      border-bottom: none;
+      padding-bottom: 0;
+    }
 
     h1 {
       margin: 0;
@@ -16,19 +97,108 @@
       color: $color-text-dark;
     }
 
+    .add-strata-button-desktop {
+      display: none;
+
+      @include respond-to(desktop) {
+        display: block;
+      }
+
+      .btn-primary {
+        padding: $spacing-sm $spacing-lg;
+        background: $color-primary;
+        color: $color-white;
+        border: none;
+        border-radius: $border-radius-sm;
+        font-size: 0.9375rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: background 0.2s ease;
+
+        &:hover {
+          background: $color-primary-hover;
+        }
+      }
+    }
+  }
+
+  .add-strata-button {
+    margin-bottom: $spacing-lg;
+
+    @include respond-to(desktop) {
+      display: none;
+    }
+
     .btn-primary {
-      padding: $spacing-sm $spacing-lg;
+      width: 100%;
+      padding: $spacing-md $spacing-lg;
       background: $color-primary;
       color: $color-white;
       border: none;
       border-radius: $border-radius-sm;
       font-size: 0.9375rem;
-      font-weight: 500;
+      font-weight: $font-weight-bold;
       cursor: pointer;
       transition: background 0.2s ease;
 
       &:hover {
         background: $color-primary-hover;
+      }
+    }
+  }
+
+  .data-table-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  // Mobile: 2 columns — Complex Name, Edit (buttons underneath)
+  .strata-table-mobile {
+    width: 100%;
+    border-collapse: collapse;
+
+    .strata-mobile-title {
+      text-align: center;
+      padding: $spacing-md;
+      font-size: $font-size-base;
+      font-weight: $font-weight-bold;
+      color: $color-primary-dark;
+      border-bottom: 2px solid $color-border-light;
+    }
+
+    tr {
+      border-bottom: 2px solid $color-border-light;
+      &:last-child {
+        border-bottom: none;
+      }
+    }
+
+    th.strata-mobile-col-name,
+    th.strata-mobile-col-actions {
+      text-align: left;
+      padding: $spacing-sm $spacing-md;
+      font-weight: $font-weight-bold;
+      color: $color-text-muted;
+      border-bottom: 1px solid $color-border-light;
+    }
+
+    td {
+      font-size: $font-size-base;
+      padding: $spacing-sm $spacing-md;
+      border-bottom: 1px solid rgba($color-border-light, 0.6);
+      vertical-align: middle;
+    }
+
+    .strata-mobile-col-name {
+      color: $color-text-dark;
+    }
+
+    .strata-mobile-col-actions {
+      .strata-mobile-actions {
+        display: flex;
+        flex-direction: column;
+        gap: $spacing-xs;
+        align-items: center;
       }
     }
   }

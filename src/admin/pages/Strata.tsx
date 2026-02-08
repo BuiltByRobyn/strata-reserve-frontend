@@ -1,12 +1,14 @@
 // Strata Page - Admin management of strata properties
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useStrata } from "../../shared/hooks/useStrata";
 import { useLookups } from "../../shared/hooks/useLookups";
 import { useCompanies } from "../../shared/hooks/useCompanies";
+import { useMediaQuery } from "../../shared/hooks/useMediaQuery";
 import {
   DataTable,
   type Column,
 } from "../../shared/components/DataTable/DataTable";
+import { LoadingSpinner } from "../../shared/components/LoadingSpinner/LoadingSpinner";
 import { Modal } from "../../shared/components/Modal/Modal";
 import {
   InputField,
@@ -31,6 +33,56 @@ export default function StrataPage() {
   const [formData, setFormData] = useState<CreateStrataInput>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterPropertyTypeId, setFilterPropertyTypeId] = useState("");
+  const [filterCity, setFilterCity] = useState("");
+
+  const isDesktop = useMediaQuery("(min-width: 600px)");
+
+  const cities = useMemo(
+    () =>
+      [...new Set(stratas.map((s) => s.town).filter(Boolean))].sort() as string[],
+    [stratas]
+  );
+
+  const [filteredStratas, setFilteredStratas] = useState<Strata[]>([]);
+
+  useEffect(() => {
+    let result = stratas;
+
+    if (searchQuery.trim()) {
+      const search = searchQuery.toLowerCase().trim();
+      result = result.filter((s) => {
+        const strataPlan = (s.strataPlan || "").toLowerCase();
+        const complexName = (s.complexName || "").toLowerCase();
+        const streetName = (s.streetName || "").toLowerCase();
+        const town = (s.town || "").toLowerCase();
+        const companyName = (s.company?.companyName || "").toLowerCase();
+        return (
+          strataPlan.includes(search) ||
+          complexName.includes(search) ||
+          streetName.includes(search) ||
+          town.includes(search) ||
+          companyName.includes(search)
+        );
+      });
+    }
+
+    if (filterPropertyTypeId) {
+      result = result.filter(
+        (s) => s.propertyTypeId === parseInt(filterPropertyTypeId)
+      );
+    }
+
+    if (filterCity) {
+      result = result.filter(
+        (s) => (s.town || "").toLowerCase() === filterCity.toLowerCase()
+      );
+    }
+
+    setFilteredStratas(result);
+  }, [stratas, searchQuery, filterPropertyTypeId, filterCity]);
 
   const columns: Column<Strata>[] = [
     { key: "strataPlan", header: "Strata Plan" },
@@ -123,36 +175,124 @@ export default function StrataPage() {
   return (
     <div className="strata-page">
       <div className="page-header">
-        <h1>Strata Properties</h1>
+        <h1>Strata List</h1>
+        <div className="add-strata-button-desktop">
+          <button className="btn-primary" onClick={openCreateModal}>
+            + Create New Strata
+          </button>
+        </div>
+      </div>
+
+      <div className="page-content">
+        <h1 className="filter-title">Search</h1>
+        <div className="filters-row">
+          <div className="search-field">
+            <InputField
+              label="Search"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search strata..."
+            />
+          </div>
+          <SelectField
+            label="Property Type"
+            value={filterPropertyTypeId}
+            onChange={(e) => setFilterPropertyTypeId(e.target.value)}
+            options={propertyTypes.map((pt) => ({
+              value: pt.propertyTypeId,
+              label: pt.propertyTypeName,
+            }))}
+            placeholder="All Types"
+          />
+          <SelectField
+            label="City"
+            value={filterCity}
+            onChange={(e) => setFilterCity(e.target.value)}
+            options={cities.map((c) => ({ value: c, label: c }))}
+            placeholder="All Cities"
+          />
+        </div>
+      </div>
+
+      <div className="add-strata-button">
         <button className="btn-primary" onClick={openCreateModal}>
-          + Add Strata
+          + Create New Strata
         </button>
       </div>
 
       {error && <div className="error-banner">{error}</div>}
 
-      <DataTable
-        columns={columns}
-        data={stratas}
-        keyExtractor={(s) => s.strataId}
-        loading={loading}
-        emptyMessage="No strata properties found. Click 'Add Strata' to create one."
-        actions={(strata) => (
-          <>
-            <button className="btn-edit" onClick={() => openEditModal(strata)}>
-              Edit
-            </button>
-            <button className="btn-delete" onClick={() => handleDelete(strata)}>
-              Delete
-            </button>
-          </>
-        )}
-      />
+      {isDesktop ? (
+        <DataTable
+          columns={columns}
+          data={filteredStratas}
+          keyExtractor={(s) => s.strataId}
+          loading={loading}
+          emptyMessage="No strata properties found. Click 'Create New Strata' to create one."
+          actions={(strata) => (
+            <>
+              <button className="btn-edit" onClick={() => openEditModal(strata)}>
+                Edit
+              </button>
+              <button className="btn-delete" onClick={() => handleDelete(strata)}>
+                Delete
+              </button>
+            </>
+          )}
+        />
+      ) : (
+        <>
+          {loading && <LoadingSpinner />}
+          {!loading && filteredStratas.length === 0 && (
+            <div className="data-table-empty">
+              <p>No strata properties found. Click &apos;Create New Strata&apos; to create one.</p>
+            </div>
+          )}
+          {!loading && filteredStratas.length > 0 && (
+            <div className="data-table-container">
+              <table className="data-table strata-table-mobile">
+                <thead>
+                  <tr>
+                    <th colSpan={2} className="strata-mobile-title">
+                      Stratas
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredStratas.map((strata) => (
+                    <tr key={strata.strataId}>
+                      <td className="strata-mobile-col-name">
+                        {strata.complexName || strata.strataPlan || "-"}
+                      </td>
+                      <td className="strata-mobile-col-actions actions-cell">
+                        <div className="strata-mobile-actions">
+                          <button
+                            className="btn-edit"
+                            onClick={() => openEditModal(strata)}
+                          >
+                            Edit
+                          </button>
+                          <button
+                            className="btn-delete"
+                            onClick={() => handleDelete(strata)}
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </>
+      )}
 
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        title={editingStrata ? "Edit Strata" : "Add Strata"}
+        title={editingStrata ? "Edit Strata" : "Create New Strata"}
         size="large"
         footer={
           <>
@@ -181,12 +321,14 @@ export default function StrataPage() {
               value={formData.strataPlan || ""}
               onChange={(e) => updateField("strataPlan", e.target.value)}
               placeholder="e.g., VIS 2345"
+              required
             />
             <InputField
               label="Complex Name"
               value={formData.complexName || ""}
               onChange={(e) => updateField("complexName", e.target.value)}
               placeholder="e.g., Maple Gardens"
+              required
             />
           </FormRow>
 
@@ -202,6 +344,7 @@ export default function StrataPage() {
               value={formData.streetName || ""}
               onChange={(e) => updateField("streetName", e.target.value)}
               placeholder="e.g., 123 Main St"
+              required
             />
           </FormRow>
 
@@ -211,12 +354,14 @@ export default function StrataPage() {
               value={formData.town || ""}
               onChange={(e) => updateField("town", e.target.value)}
               placeholder="e.g., Vancouver"
+              required
             />
             <InputField
               label="Province"
               value={formData.province || ""}
               onChange={(e) => updateField("province", e.target.value)}
               placeholder="e.g., BC"
+              required
             />
           </FormRow>
 
@@ -226,6 +371,7 @@ export default function StrataPage() {
               value={formData.postalCode || ""}
               onChange={(e) => updateField("postalCode", e.target.value)}
               placeholder="e.g., V6B 1A1"
+              required
             />
             <InputField
               label="Country"
@@ -257,6 +403,7 @@ export default function StrataPage() {
                 label: lt.legalTypeName,
               }))}
               placeholder="Select legal type"
+              required
             />
             <SelectField
               label="Property Type"
@@ -272,6 +419,7 @@ export default function StrataPage() {
                 label: pt.propertyTypeName,
               }))}
               placeholder="Select property type"
+              required
             />
           </FormRow>
 
