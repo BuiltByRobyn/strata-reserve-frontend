@@ -10,6 +10,7 @@ export interface Column<T> {
 }
 
 interface DataTableProps<T> {
+  title?: string;
   columns: Column<T>[];
   data: T[];
   keyExtractor: (item: T) => string | number;
@@ -20,6 +21,7 @@ interface DataTableProps<T> {
 }
 
 export function DataTable<T>({
+  title,
   columns,
   data,
   keyExtractor,
@@ -45,18 +47,28 @@ export function DataTable<T>({
     );
   }
 
+  const colCount = columns.length + (actions ? 1 : 0);
+
   return (
     <div className="data-table-container">
       <table className="data-table">
         <thead>
-          <tr>
-            {columns.map((col) => (
-              <th key={col.key} style={col.width ? { width: col.width } : undefined}>
-                {col.header}
+          {title ? (
+            <tr>
+              <th colSpan={colCount} className="data-table-title">
+                {title}
               </th>
-            ))}
-            {actions && <th className="actions-column">Actions</th>}
-          </tr>
+            </tr>
+          ) : (
+            <tr>
+              {columns.map((col) => (
+                <th key={col.key} style={col.width ? { width: col.width } : undefined}>
+                  {col.header}
+                </th>
+              ))}
+              {actions && <th className="actions-column">Edit</th>}
+            </tr>
+          )}
         </thead>
         <tbody>
           {data.map((item) => (

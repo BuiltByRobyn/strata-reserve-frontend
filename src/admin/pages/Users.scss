@@ -6,8 +6,10 @@
   .page-header {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: center;
+    padding-bottom: $spacing-md;
     margin-bottom: $spacing-lg;
+    border-bottom: 2px solid $color-border-light;
 
     h1 {
       margin: 0;
@@ -16,21 +18,7 @@
       color: $color-text-dark;
     }
 
-    .btn-primary {
-      padding: $spacing-sm $spacing-lg;
-      background: $color-primary;
-      color: $color-white;
-      border: none;
-      border-radius: $border-radius-sm;
-      font-size: 0.9375rem;
-      font-weight: 500;
-      cursor: pointer;
-      transition: background 0.2s ease;
 
-      &:hover {
-        background: $color-primary-hover;
-      }
-    }
   }
 
   .error-banner {
@@ -57,6 +45,17 @@
     gap: $spacing-lg;
     margin-bottom: $spacing-lg;
     flex-wrap: wrap;
+    border: 2px solid $color-gray-lightest;
+    border-radius: $border-radius-lg;
+    padding: $spacing-lg;
+    text-align: left;
+
+    .filter-title {
+      font-size: $font-size-xl;
+      color: $color-primary-dark;
+      text-decoration: underline;
+      font-weight: $font-weight-bold;
+    }
 
     .filter-group {
       display: flex;
@@ -68,7 +67,8 @@
       label {
         font-size: 0.875rem;
         font-weight: 500;
-        color: $color-text-dark;
+        color: $color-text-muted;
+        font-weight: $font-weight-bold;
       }
 
       .filter-input,
@@ -196,5 +196,49 @@
     &:hover {
       background: $color-error-dark;
     }
+  }
+
+  .create-user-button {
+    .btn-primary {
+      width: 100%;
+      padding: $spacing-sm $spacing-lg;
+      background: $color-primary;
+      color: $color-white;
+      border: none;
+      border-radius: $border-radius-sm;
+      font-size: 0.9375rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.2s ease;
+      margin-left: 0;
+      margin-right: 0;
+      margin-top: 1.5rem;
+
+      &:hover {
+        background: $color-primary-hover;
+      }
+    }
+  }
+}
+
+.view-user-table {
+  width: 100%;
+  border-collapse: collapse;
+
+  th,
+  td {
+    padding: $spacing-sm $spacing-md;
+    text-align: left;
+    border-bottom: 1px solid $color-border-light;
+  }
+
+  th {
+    font-weight: 600;
+    color: $color-text-dark;
+    width: 40%;
+  }
+
+  td {
+    color: $color-text-primary;
   }
 }
