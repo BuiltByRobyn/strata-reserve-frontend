@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useDocuments } from '../../shared/hooks/useDocuments';
 import { useLookups } from '../../shared/hooks/useLookups';
 import { useAuth } from '../../shared/contexts/AuthContext';
+import { useAuthFetch } from '../../shared/hooks/useAuthFetch';
 import { useMediaQuery } from '../../shared/hooks/useMediaQuery';
 import { DataTable, type Column } from '../../shared/components/DataTable/DataTable';
 import { LoadingSpinner } from '../../shared/components/LoadingSpinner/LoadingSpinner';
@@ -10,6 +11,7 @@ import { InputField, SelectField, TextareaField, FormRow } from '../../shared/co
 import type { DocumentWithDetails, DocumentUploadData } from '../../shared/types/document.types';
 import { STRATA_ID_PATTERN, formatStrataId } from '../../shared/utils/strataUtils';
 
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 
 const formatTypeName = (name: string): string =>
@@ -19,11 +21,13 @@ export default function DocumentsPage() {
   const { documents, loading, error, refetch, updateDocumentStatus, deleteDocument } = useDocuments();
   const { documentTypes, reviewStatuses } = useLookups();
   const { session, user } = useAuth();
+  const authFetch = useAuthFetch();
 
   const [filteredDocuments, setFilteredDocuments] = useState<DocumentWithDetails[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterDocType, setFilterDocType] = useState('');
   const [filterStrata, setFilterStrata] = useState('');
+  const [showArchived, setShowArchived] = useState(false);
 
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
@@ -44,7 +48,31 @@ export default function DocumentsPage() {
   const isDesktop = useMediaQuery('(min-width: 600px)');
 
   useEffect(() => {
+    if (!STRATA_ID_PATTERN.test(uploadForm.strataId)) return;
+
+    const lookup = async () => {
+      try {
+        const res = await authFetch(`${API_BASE}/admin/strata/search?q=${encodeURIComponent(uploadForm.strataId)}`);
+        const data = await res.json();
+        if (data.success && data.data?.length > 0) {
+          const match = data.data.find((s: { strataPlan: string }) =>
+            s.strataPlan?.toUpperCase() === uploadForm.strataId.toUpperCase()
+          );
+          if (match?.complexName) {
+            setUploadForm(prev => ({ ...prev, strataName: match.complexName }));
+          }
+        }
+      } catch { /* ignore lookup failures */ }
+    };
+    lookup();
+  }, [uploadForm.strataId, authFetch]);
+
+  useEffect(() => {
     let result = documents;
+
+    if (!showArchived) {
+      result = result.filter(d => !d.fileName.includes('- Archived'));
+    }
 
     if (searchQuery.trim()) {
       const search = searchQuery.toLowerCase().trim();
@@ -76,7 +104,7 @@ export default function DocumentsPage() {
     }
 
     setFilteredDocuments(result);
-  }, [documents, searchQuery, filterDocType, filterStrata]);
+  }, [documents, searchQuery, filterDocType, filterStrata, showArchived]);
 
   const getStatusBadgeClass = (statusName?: string): string => {
     if (!statusName) return 'status-badge pending';
@@ -281,6 +309,15 @@ export default function DocumentsPage() {
             onChange={(e) => setFilterStrata(e.target.value)}
             placeholder="Filter by strata..."
           />
+          <div className="form-field">
+            <label>&nbsp;</label>
+            <button
+              className={showArchived ? 'btn-primary' : 'btn-secondary'}
+              onClick={() => setShowArchived(prev => !prev)}
+            >
+              {showArchived ? 'Hide Archived' : 'Show Archived'}
+            </button>
+          </div>
         </div>
 
       </div>
@@ -461,8 +498,8 @@ export default function DocumentsPage() {
             <InputField
               label="Strata Name"
               value={uploadForm.strataName}
-              onChange={(e) => setUploadForm(prev => ({ ...prev, strataName: e.target.value }))}
-              placeholder="Strata name"
+              disabled
+              placeholder="Auto-populated from Strata ID"
             />
             <InputField
               label="Strata ID"

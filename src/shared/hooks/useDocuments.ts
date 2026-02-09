@@ -1,13 +1,16 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuthFetch } from './useAuthFetch';
+import { useAuth } from '../contexts/AuthContext';
 import type { DocumentWithDetails } from '../types/document.types';
 import type { ApiListResponse, ApiSingleResponse } from '../types/entities.types';
 import type { DocumentsState } from '../types/hooks.types';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 
 export const useDocuments = () => {
   const authFetch = useAuthFetch();
+  const { session } = useAuth();
   const [state, setState] = useState<DocumentsState>({
     documents: [],
     loading: true,
@@ -72,9 +75,17 @@ export const useDocuments = () => {
   }, [authFetch, fetchDocuments]);
 
   const deleteDocument = useCallback(async (id: number): Promise<boolean> => {
+    const token = session?.access_token;
+    if (!token) throw new Error('Not authenticated');
+
     try {
-      const response = await authFetch(`${API_BASE}/admin/documents/${id}`, {
-        method: 'DELETE'
+      const response = await fetch(`${SUPABASE_URL}/functions/v1/delete-document`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ documentId: id }),
       });
       const data = await response.json();
 
@@ -87,7 +98,7 @@ export const useDocuments = () => {
       console.error('Error deleting document:', error);
       throw error;
     }
-  }, [authFetch, fetchDocuments]);
+  }, [session, fetchDocuments]);
 
   const searchDocuments = useCallback(async (query: string): Promise<DocumentWithDetails[]> => {
     try {
