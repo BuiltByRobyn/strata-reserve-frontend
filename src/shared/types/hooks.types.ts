@@ -3,6 +3,7 @@ import type {
   Company,
   CompanyHoliday,
   InspectorAvailableDate,
+  ServiceRequest,
   Strata,
   UserWithStratas,
   UserType,
@@ -61,6 +62,12 @@ export interface StrataState {
 
 export interface UsersState {
   users: UserWithStratas[];
+  loading: boolean;
+  error: string | null;
+}
+
+export interface ServiceRequestsState {
+  serviceRequests: ServiceRequest[];
   loading: boolean;
   error: string | null;
 }

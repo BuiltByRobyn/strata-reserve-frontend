@@ -21,16 +21,16 @@ $breakpoint-desktop: 600px;   // Nav layout: mobile vs desktop
 
 @mixin respond-below($breakpoint) {
   @if $breakpoint == sm {
-    @media (max-width: ($breakpoint-sm - 1px)) { @content; }
+    @media (max-width: ($breakpoint-sm - 0.02px)) { @content; }
   }
   @if $breakpoint == md {
-    @media (max-width: ($breakpoint-md - 1px)) { @content; }
+    @media (max-width: ($breakpoint-md - 0.02px)) { @content; }
   }
   @if $breakpoint == lg {
-    @media (max-width: ($breakpoint-lg - 1px)) { @content; }
+    @media (max-width: ($breakpoint-lg - 0.02px)) { @content; }
   }
   @if $breakpoint == desktop {
-    @media (max-width: ($breakpoint-desktop - 1px)) { @content; }
+    @media (max-width: ($breakpoint-desktop - 0.02px)) { @content; }
   }
 }
 

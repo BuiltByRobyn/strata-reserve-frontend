@@ -1,0 +1,261 @@
+@use '../../../shared/styles/variables' as *;
+
+.strata-detail-page {
+  padding: $spacing-lg;
+
+  @include respond-to(desktop) {
+    margin-left: $spacing-xl;
+  }
+
+  .back-link {
+    display: inline-block;
+    background: none;
+    border: none;
+    color: $color-text-muted;
+    font-size: $font-size-sm;
+    cursor: pointer;
+    padding: 0;
+    margin-bottom: $spacing-md;
+
+    &:hover {
+      color: $color-primary-dark;
+    }
+  }
+
+  .detail-header {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-md;
+    margin-bottom: $spacing-lg;
+
+    @include respond-to(desktop) {
+      flex-direction: row;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 1.75rem;
+      font-weight: 600;
+      color: $color-text-dark;
+    }
+
+    .action-buttons {
+      display: flex;
+      gap: $spacing-sm;
+      flex-wrap: wrap;
+
+      .btn-primary {
+        padding: $spacing-xs $spacing-md;
+        font-size: $font-size-sm;
+      }
+    }
+  }
+
+  .strata-info-card {
+    border: 2px solid $color-border-light;
+    border-radius: $border-radius-lg;
+    padding: $spacing-lg;
+    margin-bottom: $spacing-lg;
+    background: $color-white;
+
+    .info-row {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: $spacing-md;
+      padding: $spacing-sm 0;
+
+      @include respond-to(desktop) {
+        grid-template-columns: 1fr 1fr 1fr;
+      }
+
+      &:first-child {
+        padding-bottom: $spacing-md;
+        border-bottom: 1px solid $color-border-light;
+      }
+
+      &:last-child {
+        padding-top: $spacing-md;
+      }
+    }
+
+    .info-item {
+      display: flex;
+      flex-direction: column;
+      gap: $spacing-xs;
+    }
+
+    .info-label {
+      font-size: 0.75rem;
+      font-weight: $font-weight-bold;
+      color: $color-text-muted;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .info-value {
+      font-size: $font-size-base;
+      color: $color-text-dark;
+    }
+  }
+
+  .tab-content {
+    margin-top: $spacing-lg;
+  }
+
+  .tab-panel {
+    min-height: 200px;
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: $spacing-2xl $spacing-lg;
+
+    h2 {
+      font-size: $font-size-lg;
+      font-weight: 600;
+      color: $color-text-dark;
+      margin-bottom: $spacing-lg;
+    }
+
+    p {
+      color: $color-text-muted;
+      margin-bottom: $spacing-md;
+    }
+
+    .btn-create-sr {
+      padding: $spacing-sm $spacing-xl;
+      font-size: $font-size-base;
+    }
+  }
+
+  .active-survey {
+    .survey-header {
+      margin-bottom: $spacing-lg;
+
+      h2 {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: $color-text-dark;
+        margin-bottom: $spacing-md;
+      }
+
+      .survey-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: $spacing-lg;
+        font-size: $font-size-sm;
+        color: $color-text-muted;
+
+        strong {
+          color: $color-text-dark;
+        }
+      }
+    }
+
+    .survey-actions-bottom {
+      margin-top: $spacing-xl;
+      padding-top: $spacing-lg;
+      border-top: 1px solid $color-border-light;
+      display: flex;
+      justify-content: flex-end;
+
+      .btn-delete-survey {
+        padding: $spacing-sm $spacing-lg;
+      }
+    }
+  }
+
+  .archived-list {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-sm;
+
+    .archived-item {
+      display: flex;
+      align-items: center;
+      gap: $spacing-lg;
+      padding: $spacing-md;
+      border: 1px solid $color-border-light;
+      border-radius: $border-radius-sm;
+      background: $color-white;
+
+      .archived-service {
+        font-weight: $font-weight-medium;
+        color: $color-text-dark;
+        flex: 1;
+      }
+
+      .archived-date {
+        font-size: $font-size-sm;
+        color: $color-text-muted;
+      }
+    }
+  }
+
+  .notes-list {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-md;
+
+    .note-item {
+      padding: $spacing-md;
+      border: 1px solid $color-border-light;
+      border-radius: $border-radius-sm;
+      background: $color-white;
+
+      .note-message {
+        margin: 0 0 $spacing-sm;
+        color: $color-text-dark;
+      }
+
+      .note-meta {
+        display: flex;
+        gap: $spacing-lg;
+        font-size: $font-size-sm;
+        color: $color-text-muted;
+      }
+    }
+  }
+
+  .delete-confirmation {
+    text-align: center;
+    padding: $spacing-md;
+
+    p {
+      margin-bottom: $spacing-sm;
+      color: $color-text-dark;
+    }
+
+    .delete-warning {
+      color: $color-text-muted;
+      font-size: $font-size-sm;
+      font-style: italic;
+    }
+  }
+
+  .form-error {
+    padding: $spacing-sm;
+    margin-bottom: $spacing-md;
+    background: rgba($color-error, 0.1);
+    border-radius: $border-radius-sm;
+    color: $color-error;
+    font-size: 0.875rem;
+  }
+
+  .modal-body {
+    text-align: left;
+
+    label {
+      font-size: $font-size-base;
+      font-weight: $font-weight-bold;
+      color: $color-text-muted;
+      text-align: left;
+    }
+
+    .form-row {
+      padding-bottom: $spacing-md;
+    }
+  }
+}

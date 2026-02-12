@@ -26,13 +26,25 @@ export const ClientNavbar = () => {
   return (
     <nav className="navbar client-navbar">
       <div className="navbar-brand">
-        <img src="/logo.svg" alt="Building Icon" />
+        <img src="/logonobg.svg" alt="Building Icon" />
         <div className="navbar-brand-titles">
           <span>Strata Reserve</span>
-          <div className="navbar-brand-text">Planning Portal</div>
-        <div className="navbar-user-info">
-          User: {clientUser?.firstName} {clientUser?.lastName}
+          <div className="navbar-brand-text">Information Report Portal</div>
         </div>
+      </div>
+
+      <div className="navbar-user-info">
+        <div className="navbar-user-title">
+          Strata ID:
+        </div>
+        <div className="navbar-user-details">
+          {clientUser?.strataPlan || 'N/A'}
+        </div>
+        <div className="navbar-user-title">
+          User:
+        </div>
+        <div className="navbar-user-details">
+          {clientUser?.firstName} {clientUser?.lastName}
         </div>
       </div>
       
@@ -49,33 +61,68 @@ export const ClientNavbar = () => {
       </button>
 
       <div className={`navbar-links ${isMobileMenuOpen ? 'active' : ''}`}>
-        <NavLink 
-          to="/client/dashboard" 
-          className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} 
+        <NavLink
+          to="/client/dashboard"
+          className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
           onClick={closeMobileMenu}
           end
         >
           Dashboard
         </NavLink>
-        <NavLink 
-          to="/client/reports" 
+        <NavLink
+          to="/client/strata-information"
           className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
           onClick={closeMobileMenu}
         >
-          My Reports
+          Strata Information
         </NavLink>
-        <NavLink 
-          to="/client/profile" 
+        <NavLink
+          to="/client/strata-members"
+          className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+          onClick={closeMobileMenu}
+        >
+          Strata Members
+        </NavLink>
+        <NavLink
+          to="/client/timelines"
+          className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+          onClick={closeMobileMenu}
+        >
+          Timelines
+        </NavLink>
+        <NavLink
+          to="/client/survey"
+          className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+          onClick={closeMobileMenu}
+        >
+          Survey
+        </NavLink>
+        <NavLink
+          to="/client/documents"
+          className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+          onClick={closeMobileMenu}
+        >
+          Documents
+        </NavLink>
+        <NavLink
+          to="/client/inspection-date"
+          className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+          onClick={closeMobileMenu}
+        >
+          Inspection Date
+        </NavLink>
+        <NavLink
+          to="/client/profile"
           className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
           onClick={closeMobileMenu}
         >
           {clientUser?.firstName ? `${clientUser.firstName} ${clientUser.lastName}` : 'Profile'}
         </NavLink>
-        <button 
+        <button
           onClick={() => {
             handleLogout();
             closeMobileMenu();
-          }} 
+          }}
           className="nav-link logout-btn"
         >
           <img src="/icons/logout-icon.svg" alt="" />Sign Out
