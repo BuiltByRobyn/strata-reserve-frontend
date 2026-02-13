@@ -5,46 +5,33 @@ import { supabase } from '../../shared/lib/supabaseClient';
 import { LoadingSpinner } from '../../shared/components/LoadingSpinner/LoadingSpinner';
 import { Modal } from '../../shared/components/Modal/Modal';
 import { InputField, FormRow } from '../../shared/components/FormField/FormField';
+import type {
+  StrataMemberInfo,
+  UpdateProfileInput,
+} from '../../shared/types/entities.types';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-
-interface MemberInfo {
-  profileId: string;
-  firstName: string | null;
-  lastName: string | null;
-  email: string | null;
-  phoneNumber: string | null;
-  position: string | null;
-}
-
-interface UpdateFormData {
-  firstName: string;
-  lastName: string;
-  email: string;
-  cellNumber: string;
-  officeNumber: string;
-  role: string;
-}
 
 const STRATA_ROLES = ['Property Manager', 'Councillor'];
 
 const StrataMembers = () => {
   const { user } = useAuth();
   const authFetch = useAuthFetch();
-  const [currentUser, setCurrentUser] = useState<MemberInfo | null>(null);
-  const [otherMembers, setOtherMembers] = useState<MemberInfo[]>([]);
+
+  const [currentUser, setCurrentUser] = useState<StrataMemberInfo | null>(null);
+  const [otherMembers, setOtherMembers] = useState<StrataMemberInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [formData, setFormData] = useState<UpdateFormData>({
+
+  const [formData, setFormData] = useState<UpdateProfileInput>({
     firstName: '',
     lastName: '',
-    email: '',
-    cellNumber: '',
-    officeNumber: '',
-    role: '',
+    phoneNumber: '',
   });
+
+  const [role, setRole] = useState<string>('');
 
   const fetchMembers = async () => {
     if (!user || user.role !== 'client') return;
@@ -54,13 +41,10 @@ const StrataMembers = () => {
         .from('strata_profiles')
         .select('strata_id')
         .eq('profile_id', user.id)
-        .limit(1)
         .single();
 
       if (strataError) throw strataError;
       if (!userStrataProfile) throw new Error('No strata association found');
-
-      const strataId = userStrataProfile.strata_id;
 
       const { data: members, error: membersError } = await supabase
         .from('strata_profiles')
@@ -74,18 +58,12 @@ const StrataMembers = () => {
             phone_number
           )
         `)
-        .eq('strata_id', strataId);
+        .eq('strata_id', userStrataProfile.strata_id);
 
       if (membersError) throw membersError;
 
-      const mapped: MemberInfo[] = (members || []).map((m) => {
-        const p = m.profile as unknown as {
-          id: string;
-          first_name: string | null;
-          last_name: string | null;
-          email: string | null;
-          phone_number: string | null;
-        };
+      const mapped: StrataMemberInfo[] = (members || []).map((m) => {
+        const p = m.profile as any;
         return {
           profileId: p.id,
           firstName: p.first_name,
@@ -96,13 +74,10 @@ const StrataMembers = () => {
         };
       });
 
-      const me = mapped.find((m) => m.profileId === user.id) || null;
-      const others = mapped.filter((m) => m.profileId !== user.id);
-
-      setCurrentUser(me);
-      setOtherMembers(others);
+      setCurrentUser(mapped.find((m) => m.profileId === user.id) || null);
+      setOtherMembers(mapped.filter((m) => m.profileId !== user.id));
     } catch (err) {
-      console.error('Error fetching strata members:', err);
+      console.error(err);
       setError('Failed to load strata members.');
     } finally {
       setLoading(false);
@@ -115,14 +90,14 @@ const StrataMembers = () => {
 
   const openUpdateModal = () => {
     if (!currentUser) return;
+
     setFormData({
       firstName: currentUser.firstName || '',
       lastName: currentUser.lastName || '',
-      email: currentUser.email || '',
-      cellNumber: currentUser.phoneNumber || '',
-      officeNumber: currentUser.phoneNumber || '',
-      role: currentUser.position || '',
+      phoneNumber: currentUser.phoneNumber || '',
     });
+
+    setRole(currentUser.position || '');
     setIsModalOpen(true);
   };
 
@@ -130,41 +105,37 @@ const StrataMembers = () => {
     if (!user || !currentUser) return;
 
     setSaving(true);
+
     try {
-      // Update profile and strata position via backend API
       const response = await authFetch(`${API_BASE}/client/profile`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          firstName: formData.firstName,
-          lastName: formData.lastName,
-          phoneNumber: formData.cellNumber,
-          strataPosition: formData.role,
+          ...formData,
+          strataPosition: role,
         }),
       });
 
       const data = await response.json();
+
       if (!response.ok || !data.success) {
         throw new Error(data.error || 'Failed to update profile');
       }
 
-      // Update local state so UI reflects changes
       setCurrentUser((prev) =>
         prev
           ? {
               ...prev,
-              firstName: formData.firstName,
-              lastName: formData.lastName,
-              email: formData.email,
-              phoneNumber: formData.cellNumber,
-              position: formData.role,
+              ...formData,
+              position: role,
             }
           : prev
       );
+
       setIsModalOpen(false);
     } catch (err) {
-      console.error('Error updating personal details:', err);
-      alert('Failed to save changes. Please try again.');
+      console.error(err);
+      alert('Failed to save changes.');
     } finally {
       setSaving(false);
     }
@@ -184,34 +155,20 @@ const StrataMembers = () => {
   return (
     <div className="page-container">
       <h1>Strata Members</h1>
-      <p className="strata-members__subtitle">The following members are associated with your strata</p>
 
       {currentUser && (
         <div className="strata-members__card">
-          <div className="strata-members__card-header">
-            <h2>Your Personal Details</h2>
-            {currentUser.position && (
-              <span className="strata-members__badge">{currentUser.position}</span>
-            )}
-          </div>
-          <div className="strata-members__table">
-            <div className="strata-members__table-header">
-              <span>Name</span>
-              <span>Email</span>
-              <span>Cell</span>
-              <span>Office</span>
-            </div>
-            <div className="strata-members__table-row">
-              <span>{[currentUser.firstName, currentUser.lastName].filter(Boolean).join(' ') || 'N/A'}</span>
-              <span>{currentUser.email || 'N/A'}</span>
-              <span>{currentUser.phoneNumber || 'N/A'}</span>
-              <span>{currentUser.phoneNumber || 'N/A'}</span>
-            </div>
-          </div>
-          <button
-            className="strata-members__update-btn"
-            onClick={openUpdateModal}
-          >
+          <h2>Your Personal Details</h2>
+          <p>
+            {[currentUser.firstName, currentUser.lastName]
+              .filter(Boolean)
+              .join(' ') || 'N/A'}
+          </p>
+          <p>{currentUser.email || 'N/A'}</p>
+          <p>{currentUser.phoneNumber || 'N/A'}</p>
+          <p>{currentUser.position || 'N/A'}</p>
+
+          <button onClick={openUpdateModal}>
             Update Your Details
           </button>
         </div>
@@ -219,120 +176,81 @@ const StrataMembers = () => {
 
       {otherMembers.map((member) => (
         <div key={member.profileId} className="strata-members__card">
-          <div className="strata-members__card-header">
-            <h2>Alternative Site Contact</h2>
-            {member.position && (
-              <span className="strata-members__badge">{member.position}</span>
-            )}
-          </div>
-          <div className="strata-members__table">
-            <div className="strata-members__table-header">
-              <span>Name</span>
-              <span>Email</span>
-              <span>Cell</span>
-              <span>Office</span>
-            </div>
-            <div className="strata-members__table-row">
-              <span>{[member.firstName, member.lastName].filter(Boolean).join(' ') || 'N/A'}</span>
-              <span>{member.email || 'N/A'}</span>
-              <span>{member.phoneNumber || 'N/A'}</span>
-              <span>{member.phoneNumber || 'N/A'}</span>
-            </div>
-          </div>
+          <h2>Alternative Site Contact</h2>
+          <p>
+            {[member.firstName, member.lastName]
+              .filter(Boolean)
+              .join(' ') || 'N/A'}
+          </p>
+          <p>{member.email || 'N/A'}</p>
+          <p>{member.phoneNumber || 'N/A'}</p>
+          <p>{member.position || 'N/A'}</p>
         </div>
       ))}
-
-      {!currentUser && otherMembers.length === 0 && (
-        <p>No members found for your strata.</p>
-      )}
 
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         title="Update Personal Details"
-        size="large"
         footer={
           <>
-            <button
-              className="btn-secondary"
-              onClick={() => setIsModalOpen(false)}
-              disabled={saving}
-            >
+            <button onClick={() => setIsModalOpen(false)} disabled={saving}>
               Cancel
             </button>
-            <button
-              className="btn-primary"
-              onClick={handleSave}
-              disabled={saving}
-            >
-              {saving ? 'Saving...' : 'Save Changes'}
+            <button onClick={handleSave} disabled={saving}>
+              {saving ? 'Saving...' : 'Save'}
             </button>
           </>
         }
       >
-        <div className="update-details-form">
-          <FormRow>
-            <InputField
-              label="First Name"
-              required
-              value={formData.firstName}
-              onChange={(e) => setFormData((prev) => ({ ...prev, firstName: e.target.value }))}
-              placeholder="Enter first name"
-            />
-            <InputField
-              label="Last Name"
-              required
-              value={formData.lastName}
-              onChange={(e) => setFormData((prev) => ({ ...prev, lastName: e.target.value }))}
-              placeholder="Enter last name"
-            />
-          </FormRow>
-          <FormRow>
-            <InputField
-              label="Email"
-              required
-              type="email"
-              value={formData.email}
-              onChange={(e) => setFormData((prev) => ({ ...prev, email: e.target.value }))}
-              placeholder="Enter email"
-            />
-            <InputField
-              label="Cell Number"
-              required
-              type="tel"
-              value={formData.cellNumber}
-              onChange={(e) => setFormData((prev) => ({ ...prev, cellNumber: e.target.value }))}
-              placeholder="Enter cell number"
-            />
-          </FormRow>
-          <FormRow>
-            <InputField
-              label="Office Number"
-              required
-              type="tel"
-              value={formData.officeNumber}
-              onChange={(e) => setFormData((prev) => ({ ...prev, officeNumber: e.target.value }))}
-              placeholder="Enter office number"
-            />
-            <div className="strata-members__role-field">
-              <span className="strata-members__role-label">
-                Please select your strata role:
-                <span className="required">*</span>
-              </span>
-              <div className="strata-members__role-options">
-                {STRATA_ROLES.map((role) => (
-                  <label key={role} className="strata-members__role-checkbox">
-                    <input
-                      type="checkbox"
-                      checked={formData.role === role}
-                      onChange={() => setFormData((prev) => ({ ...prev, role }))}
-                    />
-                    {role}
-                  </label>
-                ))}
-              </div>
-            </div>
-          </FormRow>
+        <FormRow>
+          <InputField
+            label="First Name"
+            value={formData.firstName || ''}
+            onChange={(e) =>
+              setFormData((prev) => ({
+                ...prev,
+                firstName: e.target.value,
+              }))
+            }
+          />
+          <InputField
+            label="Last Name"
+            value={formData.lastName || ''}
+            onChange={(e) =>
+              setFormData((prev) => ({
+                ...prev,
+                lastName: e.target.value,
+              }))
+            }
+          />
+        </FormRow>
+
+        <FormRow>
+          <InputField
+            label="Phone Number"
+            value={formData.phoneNumber || ''}
+            onChange={(e) =>
+              setFormData((prev) => ({
+                ...prev,
+                phoneNumber: e.target.value,
+              }))
+            }
+          />
+        </FormRow>
+
+        <div>
+          <label>Strata Role</label>
+          {STRATA_ROLES.map((r) => (
+            <label key={r}>
+              <input
+                type="radio"
+                checked={role === r}
+                onChange={() => setRole(r)}
+              />
+              {r}
+            </label>
+          ))}
         </div>
       </Modal>
     </div>

@@ -2,18 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../../shared/contexts/AuthContext';
 import { supabase } from '../../shared/lib/supabaseClient';
 import { LoadingSpinner } from '../../shared/components/LoadingSpinner/LoadingSpinner';
-
-interface StrataInfo {
-  strataId: number;
-  strataPlan: string | null;
-  complexName: string | null;
-  streetName: string | null;
-  town: string | null;
-  province: string | null;
-  postalCode: string | null;
-  legalType: { legalTypeName: string } | null;
-  propertyType: { propertyTypeName: string } | null;
-}
+import type { StrataInfo } from '../../shared/types/entities.types';
 
 const StrataInformation = () => {
   const { user } = useAuth();
@@ -26,51 +15,35 @@ const StrataInformation = () => {
       if (!user || user.role !== 'client') return;
 
       try {
-        const { data: strataProfile, error: profileError } = await supabase
+        const { data, error } = await supabase
           .from('strata_profiles')
           .select(`
             strata:strata_id (
-              id:strata_id,
-              strata_plan,
-              complex_name,
-              street_name,
+              strataId:strata_id,
+              strataPlan:strata_plan,
+              complexName:complex_name,
+              streetName:street_name,
               town,
               province,
-              postal_code,
-              legal_type:legal_type_id (legal_type_name),
-              property_type:property_type_id (property_type_name)
+              postalCode:postal_code,
+              legalType:legal_type_id (
+                legalTypeId:legal_type_id,
+                legalTypeName:legal_type_name
+              ),
+              propertyType:property_type_id (
+                propertyTypeId:property_type_id,
+                propertyTypeName:property_type_name
+              )
             )
           `)
           .eq('profile_id', user.id)
-          .limit(1)
           .single();
 
-        if (profileError) throw profileError;
+        if (error) throw error;
 
-        if (strataProfile?.strata) {
-          const s = strataProfile.strata as unknown as {
-            id: number;
-            strata_plan: string | null;
-            complex_name: string | null;
-            street_name: string | null;
-            town: string | null;
-            province: string | null;
-            postal_code: string | null;
-            legal_type: { legal_type_name: string } | null;
-            property_type: { property_type_name: string } | null;
-          };
-
-          setStrata({
-            strataId: s.id,
-            strataPlan: s.strata_plan,
-            complexName: s.complex_name,
-            streetName: s.street_name,
-            town: s.town,
-            province: s.province,
-            postalCode: s.postal_code,
-            legalType: s.legal_type ? { legalTypeName: s.legal_type.legal_type_name } : null,
-            propertyType: s.property_type ? { propertyTypeName: s.property_type.property_type_name } : null,
-          });
+        if (data?.strata) {
+          setStrata(data.strata as unknown as StrataInfo);
+          // had to cast to unknown first because of the nested select structure, but it should match our StrataInfo type
         }
       } catch (err) {
         console.error('Error fetching strata information:', err);
@@ -155,11 +128,15 @@ const StrataInformation = () => {
         <div className="strata-info__row strata-info__row--2col">
           <div className="strata-info__field">
             <span className="strata-info__label">Property Type</span>
-            <span className="strata-info__value">{strata.propertyType?.propertyTypeName || 'N/A'}</span>
+            <span className="strata-info__value">
+              {strata.propertyType?.propertyTypeName || 'N/A'}
+            </span>
           </div>
           <div className="strata-info__field">
             <span className="strata-info__label">Legal Type</span>
-            <span className="strata-info__value">{strata.legalType?.legalTypeName || 'N/A'}</span>
+            <span className="strata-info__value">
+              {strata.legalType?.legalTypeName || 'N/A'}
+            </span>
           </div>
         </div>
       </div>
