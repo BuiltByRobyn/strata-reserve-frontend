@@ -1,9 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../shared/contexts/AuthContext';
+import { useAuthFetch } from '../../shared/hooks/useAuthFetch';
 import { supabase } from '../../shared/lib/supabaseClient';
 import { LoadingSpinner } from '../../shared/components/LoadingSpinner/LoadingSpinner';
 import { Modal } from '../../shared/components/Modal/Modal';
 import { InputField, FormRow } from '../../shared/components/FormField/FormField';
+
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 interface MemberInfo {
   profileId: string;
@@ -27,6 +30,7 @@ const STRATA_ROLES = ['Property Manager', 'Councillor'];
 
 const StrataMembers = () => {
   const { user } = useAuth();
+  const authFetch = useAuthFetch();
   const [currentUser, setCurrentUser] = useState<MemberInfo | null>(null);
   const [otherMembers, setOtherMembers] = useState<MemberInfo[]>([]);
   const [loading, setLoading] = useState(true);
@@ -127,26 +131,21 @@ const StrataMembers = () => {
 
     setSaving(true);
     try {
-      // Update profile fields
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .update({
-          first_name: formData.firstName,
-          last_name: formData.lastName,
-          phone_number: formData.cellNumber,
-        })
-        .eq('id', user.id);
+      // Update profile and strata position via backend API
+      const response = await authFetch(`${API_BASE}/client/profile`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          phoneNumber: formData.cellNumber,
+          strataPosition: formData.role,
+        }),
+      });
 
-      if (profileError) throw profileError;
-
-      // Update strata position
-      const { error: positionError } = await supabase
-        .from('strata_profiles')
-        .update({ strata_position: formData.role })
-        .eq('profile_id', user.id);
-
-      if (positionError) {
-        console.warn('Could not update strata position (may require admin):', positionError);
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || 'Failed to update profile');
       }
 
       // Update local state so UI reflects changes
