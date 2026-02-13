@@ -1,0 +1,68 @@
+@use '../../../shared/styles/variables' as *;
+
+.strata-info__subtitle {
+  color: $color-text-secondary;
+  margin-bottom: $spacing-lg;
+}
+
+.strata-info__card {
+  max-width: $max-width-page;
+  background: $color-white;
+  border: 1px solid $color-border-light;
+  border-radius: $border-radius-lg;
+  padding: $spacing-xl $spacing-lg;
+}
+
+.strata-info__section-title {
+  margin: 0 0 $spacing-lg;
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: $color-text-dark;
+}
+
+.strata-info__row {
+  padding: $spacing-sm 0;
+
+  &--2col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: $spacing-lg;
+
+    @include respond-below(sm) {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  &--3col {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: $spacing-lg;
+
+    @include respond-below(sm) {
+      grid-template-columns: 1fr;
+    }
+  }
+}
+
+.strata-info__field {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+}
+
+.strata-info__label {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: $color-text-light;
+}
+
+.strata-info__value {
+  font-size: 1rem;
+  color: $color-text-dark;
+  font-weight: 400;
+}
+
+.strata-info__divider {
+  border-top: 1px solid $color-border-light;
+  margin: $spacing-md 0;
+}

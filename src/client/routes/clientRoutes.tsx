@@ -6,6 +6,8 @@ import { Profile } from '../pages/Profile';
 import DocumentsPage from '../pages/Documents';
 import SurveyPage from '../pages/Survey';
 import SurveySectionPage from '../pages/SurveySection';
+import StrataInformation from '../pages/StrataInformation';
+import StrataMembers from '../pages/StrataMembers';
 
 export const clientRoutes = [
   <Route key="client-dashboard" path="/client/dashboard" element={
@@ -21,6 +23,26 @@ export const clientRoutes = [
       <div className="app">
         <ClientNavbar />
         <Profile />
+      </div>
+    </ProtectedRoute>
+  } />,
+  <Route key="client-strata-information" path="/client/strata-information" element={
+    <ProtectedRoute requireClient>
+      <div className="app">
+        <ClientNavbar />
+        <main className="app-main">
+          <StrataInformation />
+        </main>
+      </div>
+    </ProtectedRoute>
+  } />,
+  <Route key="client-strata-members" path="/client/strata-members" element={
+    <ProtectedRoute requireClient>
+      <div className="app">
+        <ClientNavbar />
+        <main className="app-main">
+          <StrataMembers />
+        </main>
       </div>
     </ProtectedRoute>
   } />,
