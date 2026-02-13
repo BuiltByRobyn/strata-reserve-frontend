@@ -1,5 +1,5 @@
-// Strata Page - Admin management of strata properties
 import { useState, useEffect, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { useStrata } from "../../shared/hooks/useStrata";
 import { useLookups } from "../../shared/hooks/useLookups";
 import { useCompanies } from "../../shared/hooks/useCompanies";
@@ -24,9 +24,9 @@ import type {
 export default function StrataPage() {
   const { stratas, loading, error, createStrata, updateStrata, deleteStrata } =
     useStrata();
-
   const { legalTypes, propertyTypes } = useLookups();
   const { companies } = useCompanies();
+  const navigate = useNavigate();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingStrata, setEditingStrata] = useState<Strata | null>(null);
@@ -229,12 +229,25 @@ export default function StrataPage() {
           keyExtractor={(s) => s.strataId}
           loading={loading}
           emptyMessage="No strata properties found. Click 'Create New Strata' to create one."
+          onRowClick={(strata) => navigate(`/admin/strata/${strata.strataId}`)}
           actions={(strata) => (
             <>
-              <button className="btn-edit" onClick={() => openEditModal(strata)}>
+              <button
+                className="btn-edit"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  openEditModal(strata);
+                }}
+              >
                 Edit
               </button>
-              <button className="btn-delete" onClick={() => handleDelete(strata)}>
+              <button
+                className="btn-delete"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDelete(strata);
+                }}
+              >
                 Delete
               </button>
             </>
@@ -260,7 +273,11 @@ export default function StrataPage() {
                 </thead>
                 <tbody>
                   {filteredStratas.map((strata) => (
-                    <tr key={strata.strataId}>
+                    <tr
+                      key={strata.strataId}
+                      onClick={() => navigate(`/admin/strata/${strata.strataId}`)}
+                      style={{ cursor: "pointer" }}
+                    >
                       <td className="strata-mobile-col-name">
                         {strata.complexName || strata.strataPlan || "-"}
                       </td>
@@ -268,13 +285,19 @@ export default function StrataPage() {
                         <div className="strata-mobile-actions">
                           <button
                             className="btn-edit"
-                            onClick={() => openEditModal(strata)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openEditModal(strata);
+                            }}
                           >
                             Edit
                           </button>
                           <button
                             className="btn-delete"
-                            onClick={() => handleDelete(strata)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDelete(strata);
+                            }}
                           >
                             Delete
                           </button>

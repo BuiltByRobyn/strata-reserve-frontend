@@ -16,6 +16,7 @@ export interface ClientUser {
   email: string;
   role: 'client';
   companyName: string;
+  strataPlan: string | null;
   firstName: string;
   lastName: string;
   createdAt: string;
