@@ -17,9 +17,11 @@
 @use '../../admin/styles/pages/appointments';
 @use '../../admin/styles/pages/companies';
 @use '../../admin/styles/pages/documents';
+@use '../../admin/styles/pages/profile' as admin-profile;
 @use '../../admin/styles/pages/strata';
 @use '../../admin/styles/pages/users';
 
 @use '../../client/styles/pages/documents' as client-documents;
+@use '../../client/styles/pages/profile' as client-profile;
 
 @use 'utilities/responsive';
