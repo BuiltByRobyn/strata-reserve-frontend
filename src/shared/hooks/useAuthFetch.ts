@@ -1,22 +1,26 @@
-// Simple auth fetch that doesn't rely on context
-// For now, it just returns a fetch function without auth
-// In production, you would get the token from localStorage or other storage
+import { useCallback } from 'react';
+import { useAuth } from '../contexts/AuthContext';
 
 export const useAuthFetch = () => {
-  const authFetch = async (url: string, options: RequestInit = {}) => {
-    // In a real app, you'd get the token from localStorage or a cookie
-    // const token = localStorage.getItem('auth_token');
-    
+  const { session } = useAuth();
+
+  const authFetch = useCallback(async (url: string, options: RequestInit = {}): Promise<Response> => {
+    const token = session?.access_token;
+
+    if (!token) {
+      throw new Error('No authentication token available');
+    }
+
     const headers = {
       ...options.headers,
-      // 'Authorization': `Bearer ${token}`,
+      'Authorization': `Bearer ${token}`,
     };
 
     return fetch(url, {
       ...options,
       headers,
     });
-  };
+  }, [session]);
 
   return authFetch;
 };

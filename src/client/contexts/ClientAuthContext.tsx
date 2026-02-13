@@ -2,15 +2,7 @@ import { createContext, useContext, useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import type { User, Session, AuthError } from '@supabase/supabase-js';
 import { supabase } from '../../shared/lib/supabaseClient';
-import type { ClientUser } from '../../shared/types/auth.types';
-
-interface ClientAuthContextType {
-  user: ClientUser | null;
-  session: Session | null;
-  loading: boolean;
-  signIn: (email: string, password: string) => Promise<{ error: AuthError | null }>;
-  signOut: () => Promise<void>;
-}
+import type { ClientUser, ClientAuthContextType } from '../../shared/types/auth.types';
 
 const ClientAuthContext = createContext<ClientAuthContextType | undefined>(undefined);
 

@@ -26,8 +26,14 @@ export const AdminNavbar = () => {
   return (
     <nav className="navbar admin-navbar">
       <div className="navbar-brand">
-        <span className="admin-badge-small">Admin</span>
-        Strata Reserve Planning (SRP)
+        <img src="/logo.svg" alt="Building Icon" />
+        <div className="navbar-brand-titles">
+          <span>Strata Reserve</span>
+          <div className="navbar-brand-text">Planning Portal</div>
+        <div className="navbar-user-info">
+          User: {adminUser?.fullName}
+        </div>
+        </div>
       </div>
       
       {/* Hamburger Menu Button */}
@@ -52,25 +58,32 @@ export const AdminNavbar = () => {
           Dashboard
         </NavLink>
         <NavLink 
-          to="/admin/clients" 
+          to="/admin/strata" 
           className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
           onClick={closeMobileMenu}
         >
-          Clients
+          Strata
         </NavLink>
         <NavLink 
-          to="/admin/reports" 
+          to="/admin/users" 
           className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
           onClick={closeMobileMenu}
         >
-          Reports
+          Users
         </NavLink>
         <NavLink 
-          to="/admin/upload" 
-          className={({ isActive }) => `nav-link upload-btn ${isActive ? 'active' : ''}`}
+          to="/admin/documents" 
+          className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
           onClick={closeMobileMenu}
         >
-          Upload Document
+          Documents
+        </NavLink>
+        <NavLink 
+          to="/admin/appointments" 
+          className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+          onClick={closeMobileMenu}
+        >
+          Appointments
         </NavLink>
         <NavLink 
           to="/admin/profile" 
@@ -86,7 +99,7 @@ export const AdminNavbar = () => {
           }} 
           className="nav-link logout-btn"
         >
-          Logout
+          <img src="/icons/logout-icon.svg" alt="" />Sign out
         </button>
       </div>
     </nav>
