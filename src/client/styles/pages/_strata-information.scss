@@ -1,0 +1,65 @@
+@use '../../../shared/styles/variables' as *;
+
+.strata-info {
+  max-width: $max-width-page;
+
+  &__section {
+    margin-bottom: $spacing-xl;
+    padding: $spacing-lg;
+    background: $color-white;
+    border: 1px solid $color-border-light;
+    border-radius: $border-radius-lg;
+
+    h2 {
+      margin: 0 0 $spacing-md;
+      font-size: 1.125rem;
+      font-weight: 600;
+      color: $color-primary-dark;
+      padding-bottom: $spacing-sm;
+      border-bottom: 2px solid $color-primary-lightest;
+    }
+  }
+
+  &__grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: $spacing-md $spacing-xl;
+
+    @include respond-below(sm) {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  &__field {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-xs;
+
+    &--full {
+      grid-column: 1 / -1;
+    }
+  }
+
+  &__label {
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: $color-text-light;
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+  }
+
+  &__value {
+    font-size: 1rem;
+    color: $color-text-dark;
+    font-weight: 400;
+  }
+
+  &__link {
+    color: $color-secondary;
+    text-decoration: none;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+}
