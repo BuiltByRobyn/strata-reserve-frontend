@@ -173,7 +173,9 @@ export default function ClientDocumentsPage() {
                         </>
                       )}
                       {isDocumentUploaded(doc) && (
-                        <span className="check-icon">&#10003;</span>
+                        <>
+                          <span className="check-icon">&#10003;</span>
+                        </>
                       )}
                     </div>
                   </div>

@@ -7,6 +7,7 @@
 @use 'components/datatable';
 @use 'components/formfield';
 @use 'components/modal';
+@use '../components/DocumentPreview/DocumentPreview';
 @use 'components/tabs';
 
 @use 'pages/dashboard';
@@ -18,11 +19,13 @@
 @use '../../admin/styles/pages/appointments';
 @use '../../admin/styles/pages/companies';
 @use '../../admin/styles/pages/documents';
+@use '../../admin/styles/pages/profile' as admin-profile;
 @use '../../admin/styles/pages/strata';
 @use '../../admin/styles/pages/strata-detail';
 @use '../../admin/styles/pages/users';
 
 @use '../../client/styles/pages/documents' as client-documents;
+@use '../../client/styles/pages/profile' as client-profile;
 @use '../../client/styles/pages/survey' as client-survey;
 
 @use 'utilities/responsive';

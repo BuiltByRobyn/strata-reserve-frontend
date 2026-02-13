@@ -187,6 +187,21 @@
       }
     }
 
+    .btn-preview {
+      padding: $spacing-xs $spacing-md;
+      background: $color-secondary;
+      color: $color-white;
+      border: none;
+      border-radius: $border-radius-sm;
+      font-size: 0.8125rem;
+      cursor: pointer;
+      transition: background 0.2s ease;
+
+      &:hover {
+        background: $color-secondary-dark;
+      }
+    }
+
     .check-icon {
       font-size: 1.25rem;
       color: $color-success;

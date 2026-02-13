@@ -2,7 +2,7 @@ import { Route } from 'react-router-dom';
 import { ProtectedRoute } from '../../shared/routes/ProtectedRoute';
 import { AdminNavbar } from '../components/AdminNavbar';
 import { Dashboard } from '../pages/Dashboard';
-import { Profile } from '../pages/Profile';
+import ProfilePage from '../pages/Profile';
 import StrataPage from '../pages/Strata';
 import StrataDetailPage from '../pages/StrataDetail';
 import UsersPage from '../pages/Users';
@@ -25,7 +25,7 @@ export const adminRoutes = [
       <div className="app">
         <AdminNavbar />
         <main className="app-main">
-          <Profile />
+          <ProfilePage />
         </main>
       </div>
     </ProtectedRoute>
