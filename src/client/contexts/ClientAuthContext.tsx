@@ -32,6 +32,7 @@ export const ClientAuthProvider = ({ children }: { children: ReactNode }) => {
         email: supabaseUser.email!,
         role: 'client' as const,
         companyName: data.companyName || '',
+        strataId: data.strataId ?? null,
         strataPlan: data.strataPlan || null,
         firstName: data.firstName || '',
         lastName: data.lastName || '',
