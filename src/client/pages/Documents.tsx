@@ -17,7 +17,7 @@ export default function ClientDocumentsPage() {
   } = useClientDocuments();
 
   // TODO: Replace with actual service request ID from user context/route
-  const [serviceRequestId] = useState<number | null>(null);
+  const [serviceRequestId] = useState<number | null>(1); // Changed to 1 for testing
   const [uploadingDocTypeId, setUploadingDocTypeId] = useState<number | null>(null);
   const [uploadSuccess, setUploadSuccess] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -156,7 +156,9 @@ export default function ClientDocumentsPage() {
                         </>
                       )}
                       {isDocumentUploaded(doc) && (
-                        <span className="check-icon">&#10003;</span>
+                        <>
+                          <span className="check-icon">&#10003;</span>
+                        </>
                       )}
                     </div>
                   </div>

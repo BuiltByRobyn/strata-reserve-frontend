@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useDocuments } from '../../shared/hooks/useDocuments';
 import { useLookups } from '../../shared/hooks/useLookups';
 import { useAuth } from '../../shared/contexts/AuthContext';
@@ -7,6 +7,7 @@ import { useMediaQuery } from '../../shared/hooks/useMediaQuery';
 import { DataTable, type Column } from '../../shared/components/DataTable/DataTable';
 import { LoadingSpinner } from '../../shared/components/LoadingSpinner/LoadingSpinner';
 import { Modal } from '../../shared/components/Modal/Modal';
+import { DocumentPreviewModal } from '../../shared/components/DocumentPreview/DocumentPreviewModal';
 import { InputField, SelectField, TextareaField, FormRow } from '../../shared/components/FormField/FormField';
 import type { DocumentWithDetails, DocumentUploadData } from '../../shared/types/document.types';
 import { STRATA_ID_PATTERN, formatStrataId } from '../../shared/utils/strataUtils';
@@ -44,6 +45,11 @@ export default function DocumentsPage() {
   });
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+
+  // Document preview state
+  const [previewModalOpen, setPreviewModalOpen] = useState(false);
+  const [previewDocumentId, setPreviewDocumentId] = useState<number | null>(null);
+  const [previewDocumentName, setPreviewDocumentName] = useState('');
 
   const isDesktop = useMediaQuery('(min-width: 600px)');
 
@@ -128,7 +134,11 @@ export default function DocumentsPage() {
     {
       key: 'fileName',
       header: 'File Name',
-      render: (doc) => doc.fileName
+      render: (doc) => (
+        <button className="btn-link" onClick={() => handlePreview(doc)} title="View document">
+          {doc.fileName}
+        </button>
+      )
     },
     {
       key: 'strata',
@@ -194,6 +204,18 @@ export default function DocumentsPage() {
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Failed to delete document');
     }
+  };
+
+  const handlePreview = (doc: DocumentWithDetails) => {
+    setPreviewDocumentId(doc.serviceRequestDocumentId);
+    setPreviewDocumentName(doc.fileName);
+    setPreviewModalOpen(true);
+  };
+
+  const handleClosePreview = () => {
+    setPreviewModalOpen(false);
+    setPreviewDocumentId(null);
+    setPreviewDocumentName('');
   };
 
   const openUploadModal = () => {
@@ -519,6 +541,14 @@ export default function DocumentsPage() {
           />
         </form>
       </Modal>
+
+      {/* Document Preview Modal */}
+      <DocumentPreviewModal
+        isOpen={previewModalOpen}
+        onClose={handleClosePreview}
+        documentId={previewDocumentId}
+        documentName={previewDocumentName}
+      />
     </div>
   );
 }
