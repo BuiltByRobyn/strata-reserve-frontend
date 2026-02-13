@@ -3,8 +3,7 @@ import { useAuthFetch } from './useAuthFetch';
 import { useAuth } from '../contexts/AuthContext';
 import type { DocumentWithDetails, RequiredDocumentChecklist } from '../types/document.types';
 import type { ApiListResponse } from '../types/entities.types';
-
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+import { API_BASE } from '../lib/api';
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 
 export const useClientDocuments = () => {

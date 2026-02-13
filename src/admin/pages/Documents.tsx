@@ -10,8 +10,7 @@ import { Modal } from '../../shared/components/Modal/Modal';
 import { InputField, SelectField, TextareaField, FormRow } from '../../shared/components/FormField/FormField';
 import type { DocumentWithDetails, DocumentUploadData } from '../../shared/types/document.types';
 import { STRATA_ID_PATTERN, formatStrataId } from '../../shared/utils/strataUtils';
-
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+import { API_BASE } from '../../shared/lib/api';
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 
 const formatTypeName = (name: string): string =>

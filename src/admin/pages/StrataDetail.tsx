@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useStrata } from "../../shared/hooks/useStrata";
 import { useServiceRequests } from "../../shared/hooks/useServiceRequests";
+import { useLookups } from "../../shared/hooks/useLookups";
 import { useAuth } from "../../shared/contexts/AuthContext";
 import { useSurvey } from "../../shared/hooks/useSurvey";
 import { LoadingSpinner } from "../../shared/components/LoadingSpinner/LoadingSpinner";
@@ -61,6 +62,7 @@ export default function StrataDetailPage() {
     refetch: fetchServiceRequests,
   } = useServiceRequests();
   const { user } = useAuth();
+  const { services } = useLookups();
 
   const activeSurvey = useSurvey("admin");
   const archivedSurvey = useSurvey("admin");
@@ -573,9 +575,9 @@ export default function StrataDetailPage() {
               label="Request Type"
               value={srFormData.serviceId}
               onChange={(e) => updateSrField("serviceId", e.target.value)}
-              options={(strata.strataServices || []).map((ss) => ({
-                value: ss.service.serviceId,
-                label: ss.service.serviceName,
+              options={services.map((s) => ({
+                value: s.serviceId,
+                label: s.serviceName,
               }))}
               placeholder="-- Select Request Type --"
               required

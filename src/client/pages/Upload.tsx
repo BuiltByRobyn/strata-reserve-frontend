@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useAuthFetch } from "../../shared/hooks/useAuthFetch";
-
-const API_URL = "http://localhost:3000";
+import { API_BASE as API_URL } from "../../shared/lib/api";
 
 export const Upload = () => {
   const [uploadStatus, setUploadStatus] = useState<string>("");

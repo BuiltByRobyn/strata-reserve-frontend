@@ -6,8 +6,7 @@ import type {
   SaveResponsePayload,
 } from '../types/survey.types';
 import type { ApiResponse } from '../types/entities.types';
-
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+import { API_BASE } from '../lib/api';
 
 export const useSurvey = (routePrefix: 'client' | 'admin' = 'client') => {
   const authFetch = useAuthFetch();

@@ -47,19 +47,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       } else {
         console.log('User is CLIENT');
 
-        // Fetch strata plan via strata_profiles join
+        let strataId: number | null = null;
         let strataPlan: string | null = null;
         try {
           const { data: strataProfile } = await supabase
             .from('strata_profiles')
-            .select('strata:strata_id(strata_plan)')
+            .select('strata_id, strata:strata_id(strata_plan)')
             .eq('profile_id', supabaseUser.id)
             .limit(1)
             .single();
 
-          if (strataProfile?.strata) {
+          if (strataProfile) {
+            strataId = strataProfile.strata_id;
             const strata = strataProfile.strata as unknown as { strata_plan: string | null };
-            strataPlan = strata.strata_plan;
+            strataPlan = strata?.strata_plan ?? null;
           }
         } catch (err) {
           console.warn('Could not fetch strata plan for client:', err);
@@ -70,6 +71,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           email: supabaseUser.email!,
           role: 'client' as const,
           companyName: profile.company_name || 'N/A',
+          strataId,
           strataPlan,
           firstName: profile.first_name || 'User',
           lastName: profile.last_name || '',
