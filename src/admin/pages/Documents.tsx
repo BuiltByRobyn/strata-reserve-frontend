@@ -20,7 +20,7 @@ const getFileExtension = (fileName: string): string =>
   fileName.split('.').pop()?.toLowerCase() || '';
 
 export default function DocumentsPage() {
-  const { documents, loading, error, refetch, updateDocumentStatus, deleteDocument, previewDocument, previewLoading, previewUrl, previewFileName, closePreview } = useDocuments();
+  const { documents, loading, error, refetch, updateDocumentStatus, deleteDocument, syncDocuments, previewDocument, previewLoading, previewUrl, previewFileName, closePreview } = useDocuments();
   const { documentTypes, reviewStatuses } = useLookups();
   const { session, user } = useAuth();
   const authFetch = useAuthFetch();
@@ -46,6 +46,8 @@ export default function DocumentsPage() {
   });
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [syncing, setSyncing] = useState(false);
+  const [syncMessage, setSyncMessage] = useState<string | null>(null);
 
   const isDesktop = useMediaQuery('(min-width: 600px)');
 
@@ -198,6 +200,27 @@ export default function DocumentsPage() {
     }
   };
 
+  const handleSync = async () => {
+    setSyncing(true);
+    setSyncMessage(null);
+
+    try {
+      const result = await syncDocuments();
+      if (result) {
+        if (result.removed > 0) {
+          setSyncMessage(`Sync complete: ${result.removed} orphaned record${result.removed === 1 ? '' : 's'} removed out of ${result.total} checked.`);
+        } else {
+          setSyncMessage(`Sync complete: All ${result.total} documents verified.`);
+        }
+      }
+    } catch (err) {
+      setSyncMessage(err instanceof Error ? err.message : 'Sync failed');
+    } finally {
+      setSyncing(false);
+      setTimeout(() => setSyncMessage(null), 5000);
+    }
+  };
+
   const openUploadModal = () => {
     setUploadForm({
       documentName: '',
@@ -282,6 +305,9 @@ export default function DocumentsPage() {
         <div className="page-header">
           <h1>Documents</h1>
           <div className="add-document-button-desktop">
+            <button className="btn-secondary" onClick={handleSync} disabled={syncing}>
+              {syncing ? 'Syncing...' : 'Sync with Dropbox'}
+            </button>
             <button className="btn-primary" onClick={openUploadModal}>
               + Add New Document
             </button>
@@ -325,11 +351,15 @@ export default function DocumentsPage() {
       </div>
 
       <div className="add-document-button">
+        <button className="btn-secondary" onClick={handleSync} disabled={syncing}>
+          {syncing ? 'Syncing...' : 'Sync with Dropbox'}
+        </button>
         <button className="btn-primary" onClick={openUploadModal}>
           + Add New Document
         </button>
       </div>
 
+      {syncMessage && <div className="info-banner">{syncMessage}</div>}
       {error && <div className="error-banner">{error}</div>}
 
       {isDesktop ? (

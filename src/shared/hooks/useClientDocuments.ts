@@ -134,16 +134,20 @@ export const useClientDocuments = () => {
         }
       );
 
-      const data = await response.json();
+      const responseType = response.headers.get('Content-Type') || '';
+
+      if (responseType.includes('application/json')) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to get preview');
+      }
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to get preview link');
+        throw new Error('Failed to get preview');
       }
 
-      setPreviewUrl(data.url);
-      if (data.fileName) {
-        setPreviewFileName(data.fileName);
-      }
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      setPreviewUrl(blobUrl);
     } catch (err) {
       console.error('Preview error:', err);
       setError(err instanceof Error ? err.message : 'Failed to preview document');
@@ -154,9 +158,12 @@ export const useClientDocuments = () => {
   }, [session]);
 
   const closePreview = useCallback(() => {
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+    }
     setPreviewUrl(null);
     setPreviewFileName(null);
-  }, []);
+  }, [previewUrl]);
 
   const getDocumentsByServiceRequest = useCallback(async (serviceRequestId: number) => {
     try {

@@ -1,3 +1,7 @@
+import type { ReviewStatus } from './entities.types';
+
+export type { ReviewStatus };
+
 export interface DocumentUploadData {
   documentName: string;
   file: File | null;
@@ -10,11 +14,6 @@ export interface DocumentUploadData {
 export interface DocumentType {
   documentTypeId: number;
   typeName: string;
-}
-
-export interface ReviewStatus {
-  reviewStatusId: number;
-  statusName: string;
 }
 
 export interface UploadedDocument {
@@ -52,10 +51,18 @@ export interface RequiredDocumentChecklist {
   uploadedDocument?: UploadedDocument | null;
 }
 
-export interface DocumentUploadProps {
+export interface DocumentPreviewData {
+  documentId: number;
+  fileName: string;
+  documentType: string;
+  signedUrl: string;
+  expiresIn: number;
+}
+
+export interface DocumentPreviewModalProps {
   isOpen: boolean;
   onClose: () => void;
-  serviceRequestId: number;
-  onUploadComplete?: (document: UploadedDocument) => void;
-  uploadedBy: string;
+  documentId: number | null;
+  documentName: string;
+  endpoint?: 'admin' | 'client';
 }

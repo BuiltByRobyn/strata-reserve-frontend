@@ -127,16 +127,20 @@ export const useDocuments = () => {
         }
       );
 
-      const data = await response.json();
+      const responseType = response.headers.get('Content-Type') || '';
+
+      if (responseType.includes('application/json')) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to get preview');
+      }
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to get preview link');
+        throw new Error('Failed to get preview');
       }
 
-      setPreviewUrl(data.url);
-      if (data.fileName) {
-        setPreviewFileName(data.fileName);
-      }
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      setPreviewUrl(blobUrl);
     } catch (err) {
       console.error('Preview error:', err);
       setState(prev => ({
@@ -150,9 +154,42 @@ export const useDocuments = () => {
   }, [session]);
 
   const closePreview = useCallback(() => {
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+    }
     setPreviewUrl(null);
     setPreviewFileName(null);
-  }, []);
+  }, [previewUrl]);
+
+  const syncDocuments = useCallback(async (): Promise<{ total: number; removed: number } | null> => {
+    const token = session?.access_token;
+    if (!token) throw new Error('Not authenticated');
+
+    try {
+      const response = await fetch(`${SUPABASE_URL}/functions/v1/sync-documents`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({}),
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Sync failed');
+      }
+
+      if (data.removed > 0) {
+        await fetchDocuments();
+      }
+
+      return { total: data.total, removed: data.removed };
+    } catch (error) {
+      console.error('Error syncing documents:', error);
+      throw error;
+    }
+  }, [session, fetchDocuments]);
 
   const searchDocuments = useCallback(async (query: string): Promise<DocumentWithDetails[]> => {
     try {
@@ -179,6 +216,7 @@ export const useDocuments = () => {
     getDocumentById,
     updateDocumentStatus,
     deleteDocument,
+    syncDocuments,
     searchDocuments,
     previewDocument,
     previewLoading,

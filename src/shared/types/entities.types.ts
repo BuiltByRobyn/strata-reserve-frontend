@@ -31,10 +31,6 @@ export interface Company {
   };
 }
 
-export interface CompanyWithStratas extends Company {
-  stratas: StrataBasic[];
-}
-
 export interface CreateCompanyInput {
   companyName: string;
   companyTelephone?: string;
@@ -52,13 +48,9 @@ export interface StrataBasic {
   town: string | null;
 }
 
-export interface Strata {
-  strataId: number;
-  strataPlan: string | null;
-  complexName: string | null;
+export interface Strata extends StrataBasic {
   unitNumber: string | null;
   streetName: string | null;
-  town: string | null;
   province: string | null;
   postalCode: string | null;
   country: string | null;
@@ -85,6 +77,20 @@ export interface StrataWithDetails extends Strata {
   strataNotes: StrataNoteWithCreator[];
   strataProfiles: StrataProfileWithProfile[];
   strataServices: StrataServiceWithDetails[];
+}
+
+export type StrataInfo = Pick<
+  Strata,
+  'strataId' | 'strataPlan' | 'complexName' | 'streetName' | 'town' | 'province' | 'postalCode' | 'legalType' | 'propertyType'
+>;
+
+export interface StrataMemberInfo {
+  profileId: string;
+  firstName: string | null;
+  lastName: string | null;
+  email: string | null;
+  phoneNumber: string | null;
+  position: string | null;
 }
 
 export interface CreateStrataInput {
@@ -198,18 +204,7 @@ export interface Profile extends ProfileBasic {
   };
 }
 
-export interface ProfileWithStratas extends Profile {
-  strataProfiles: StrataProfileWithStrata[];
-}
 
-export interface UpdateProfileInput {
-  firstName?: string;
-  lastName?: string;
-  displayName?: string;
-  phoneNumber?: string | null;
-  userTypeId?: number | null;
-  mustChangePassword?: boolean;
-}
 
 export interface CreateUserInput {
   firstName: string;
@@ -415,6 +410,27 @@ export type ApiSingleResponse<T> = ApiResponse<T>;
 export interface StrataAssociation {
   strataId: number;
   strataPosition?: string;
+}
+
+export interface AdminProfileFormData {
+  companyName: string;
+  contactName: string;
+  role: string;
+  address: string;
+  city: string;
+  province: string;
+  postalCode: string;
+  email: string;
+}
+
+export interface UpdateAdminProfileInput {
+  fullName?: string;
+  email?: string;
+  companyName?: string;
+  address?: string;
+  city?: string;
+  province?: string;
+  postalCode?: string;
 }
 
 export interface UserFormData {
