@@ -1,65 +1,68 @@
 @use '../../../shared/styles/variables' as *;
 
-.strata-info {
+.strata-info__subtitle {
+  color: $color-text-secondary;
+  margin-bottom: $spacing-lg;
+}
+
+.strata-info__card {
   max-width: $max-width-page;
+  background: $color-white;
+  border: 1px solid $color-border-light;
+  border-radius: $border-radius-lg;
+  padding: $spacing-xl $spacing-lg;
+}
 
-  &__section {
-    margin-bottom: $spacing-xl;
-    padding: $spacing-lg;
-    background: $color-white;
-    border: 1px solid $color-border-light;
-    border-radius: $border-radius-lg;
+.strata-info__section-title {
+  margin: 0 0 $spacing-lg;
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: $color-text-dark;
+}
 
-    h2 {
-      margin: 0 0 $spacing-md;
-      font-size: 1.125rem;
-      font-weight: 600;
-      color: $color-primary-dark;
-      padding-bottom: $spacing-sm;
-      border-bottom: 2px solid $color-primary-lightest;
-    }
-  }
+.strata-info__row {
+  padding: $spacing-sm 0;
 
-  &__grid {
+  &--2col {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: $spacing-md $spacing-xl;
+    gap: $spacing-lg;
 
     @include respond-below(sm) {
       grid-template-columns: 1fr;
     }
   }
 
-  &__field {
-    display: flex;
-    flex-direction: column;
-    gap: $spacing-xs;
+  &--3col {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: $spacing-lg;
 
-    &--full {
-      grid-column: 1 / -1;
+    @include respond-below(sm) {
+      grid-template-columns: 1fr;
     }
   }
+}
 
-  &__label {
-    font-size: 0.8125rem;
-    font-weight: 500;
-    color: $color-text-light;
-    text-transform: uppercase;
-    letter-spacing: 0.025em;
-  }
+.strata-info__field {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+}
 
-  &__value {
-    font-size: 1rem;
-    color: $color-text-dark;
-    font-weight: 400;
-  }
+.strata-info__label {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: $color-text-light;
+}
 
-  &__link {
-    color: $color-secondary;
-    text-decoration: none;
+.strata-info__value {
+  font-size: 1rem;
+  color: $color-text-dark;
+  font-weight: 400;
+}
 
-    &:hover {
-      text-decoration: underline;
-    }
-  }
+.strata-info__divider {
+  border-top: 1px solid $color-border-light;
+  margin: $spacing-md 0;
 }

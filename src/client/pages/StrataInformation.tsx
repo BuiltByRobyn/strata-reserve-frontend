@@ -7,16 +7,12 @@ interface StrataInfo {
   strataId: number;
   strataPlan: string | null;
   complexName: string | null;
-  unitNumber: string | null;
   streetName: string | null;
   town: string | null;
   province: string | null;
   postalCode: string | null;
-  country: string | null;
-  website: string | null;
   legalType: { legalTypeName: string } | null;
   propertyType: { propertyTypeName: string } | null;
-  company: { companyName: string; companyTelephone: string | null } | null;
 }
 
 const StrataInformation = () => {
@@ -37,16 +33,12 @@ const StrataInformation = () => {
               id:strata_id,
               strata_plan,
               complex_name,
-              unit_number,
               street_name,
               town,
               province,
               postal_code,
-              country,
-              website,
               legal_type:legal_type_id (legal_type_name),
-              property_type:property_type_id (property_type_name),
-              company:company_id (company_name, company_telephone)
+              property_type:property_type_id (property_type_name)
             )
           `)
           .eq('profile_id', user.id)
@@ -60,32 +52,24 @@ const StrataInformation = () => {
             id: number;
             strata_plan: string | null;
             complex_name: string | null;
-            unit_number: string | null;
             street_name: string | null;
             town: string | null;
             province: string | null;
             postal_code: string | null;
-            country: string | null;
-            website: string | null;
             legal_type: { legal_type_name: string } | null;
             property_type: { property_type_name: string } | null;
-            company: { company_name: string; company_telephone: string | null } | null;
           };
 
           setStrata({
             strataId: s.id,
             strataPlan: s.strata_plan,
             complexName: s.complex_name,
-            unitNumber: s.unit_number,
             streetName: s.street_name,
             town: s.town,
             province: s.province,
             postalCode: s.postal_code,
-            country: s.country,
-            website: s.website,
             legalType: s.legal_type ? { legalTypeName: s.legal_type.legal_type_name } : null,
             propertyType: s.property_type ? { propertyTypeName: s.property_type.property_type_name } : null,
-            company: s.company ? { companyName: s.company.company_name, companyTelephone: s.company.company_telephone } : null,
           });
         }
       } catch (err) {
@@ -104,7 +88,7 @@ const StrataInformation = () => {
   if (error) {
     return (
       <div className="page-container">
-        <h1>Strata Information</h1>
+        <h1>Property Profile</h1>
         <p className="error-message">{error}</p>
       </div>
     );
@@ -113,78 +97,71 @@ const StrataInformation = () => {
   if (!strata) {
     return (
       <div className="page-container">
-        <h1>Strata Information</h1>
+        <h1>Property Profile</h1>
         <p>No strata information found for your account.</p>
       </div>
     );
   }
 
-  const address = [strata.unitNumber, strata.streetName, strata.town, strata.province, strata.postalCode, strata.country]
-    .filter(Boolean)
-    .join(', ');
-
   return (
     <div className="page-container">
-      <h1>Strata Information</h1>
+      <h1>Property Profile</h1>
+      <p className="strata-info__subtitle">Please verify your strata information</p>
 
-      <div className="strata-info">
-        <div className="strata-info__section">
-          <h2>General</h2>
-          <div className="strata-info__grid">
-            <div className="strata-info__field">
-              <span className="strata-info__label">Strata Plan</span>
-              <span className="strata-info__value">{strata.strataPlan || 'N/A'}</span>
-            </div>
-            <div className="strata-info__field">
-              <span className="strata-info__label">Complex Name</span>
-              <span className="strata-info__value">{strata.complexName || 'N/A'}</span>
-            </div>
-            <div className="strata-info__field">
-              <span className="strata-info__label">Legal Type</span>
-              <span className="strata-info__value">{strata.legalType?.legalTypeName || 'N/A'}</span>
-            </div>
-            <div className="strata-info__field">
-              <span className="strata-info__label">Property Type</span>
-              <span className="strata-info__value">{strata.propertyType?.propertyTypeName || 'N/A'}</span>
-            </div>
+      <div className="strata-info__card">
+        <h2 className="strata-info__section-title">Basic Information</h2>
+
+        <div className="strata-info__row strata-info__row--2col">
+          <div className="strata-info__field">
+            <span className="strata-info__label">Strata Plan</span>
+            <span className="strata-info__value">{strata.strataPlan || 'N/A'}</span>
+          </div>
+          <div className="strata-info__field">
+            <span className="strata-info__label">Complex Name</span>
+            <span className="strata-info__value">{strata.complexName || 'N/A'}</span>
           </div>
         </div>
 
-        <div className="strata-info__section">
-          <h2>Address</h2>
-          <div className="strata-info__grid">
-            <div className="strata-info__field strata-info__field--full">
-              <span className="strata-info__label">Full Address</span>
-              <span className="strata-info__value">{address || 'N/A'}</span>
-            </div>
-            {strata.website && (
-              <div className="strata-info__field">
-                <span className="strata-info__label">Website</span>
-                <a href={strata.website} target="_blank" rel="noopener noreferrer" className="strata-info__value strata-info__link">
-                  {strata.website}
-                </a>
-              </div>
-            )}
+        <div className="strata-info__divider" />
+
+        <div className="strata-info__row">
+          <div className="strata-info__field">
+            <span className="strata-info__label">Address</span>
+            <span className="strata-info__value">{strata.streetName || 'N/A'}</span>
           </div>
         </div>
 
-        {strata.company && (
-          <div className="strata-info__section">
-            <h2>Management Company</h2>
-            <div className="strata-info__grid">
-              <div className="strata-info__field">
-                <span className="strata-info__label">Company Name</span>
-                <span className="strata-info__value">{strata.company.companyName}</span>
-              </div>
-              {strata.company.companyTelephone && (
-                <div className="strata-info__field">
-                  <span className="strata-info__label">Phone</span>
-                  <span className="strata-info__value">{strata.company.companyTelephone}</span>
-                </div>
-              )}
-            </div>
+        <div className="strata-info__divider" />
+
+        <div className="strata-info__row strata-info__row--3col">
+          <div className="strata-info__field">
+            <span className="strata-info__label">City</span>
+            <span className="strata-info__value">{strata.town || 'N/A'}</span>
           </div>
-        )}
+          <div className="strata-info__field">
+            <span className="strata-info__label">Province</span>
+            <span className="strata-info__value">{strata.province || 'N/A'}</span>
+          </div>
+          <div className="strata-info__field">
+            <span className="strata-info__label">Postal Code</span>
+            <span className="strata-info__value">{strata.postalCode || 'N/A'}</span>
+          </div>
+        </div>
+
+        <div className="strata-info__divider" />
+
+        <h2 className="strata-info__section-title">Property Type</h2>
+
+        <div className="strata-info__row strata-info__row--2col">
+          <div className="strata-info__field">
+            <span className="strata-info__label">Property Type</span>
+            <span className="strata-info__value">{strata.propertyType?.propertyTypeName || 'N/A'}</span>
+          </div>
+          <div className="strata-info__field">
+            <span className="strata-info__label">Legal Type</span>
+            <span className="strata-info__value">{strata.legalType?.legalTypeName || 'N/A'}</span>
+          </div>
+        </div>
       </div>
     </div>
   );

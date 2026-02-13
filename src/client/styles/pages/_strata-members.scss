@@ -1,0 +1,144 @@
+@use '../../../shared/styles/variables' as *;
+
+.strata-members__subtitle {
+  color: $color-text-secondary;
+  margin-bottom: $spacing-lg;
+}
+
+.strata-members__card {
+  max-width: $max-width-page;
+  background: $color-white;
+  border: 1px solid $color-border-light;
+  border-radius: $border-radius-lg;
+  padding: $spacing-lg;
+  margin-bottom: $spacing-lg;
+}
+
+.strata-members__card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: $spacing-md;
+
+  h2 {
+    margin: 0;
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: $color-text-dark;
+  }
+}
+
+.strata-members__badge {
+  display: inline-block;
+  padding: $spacing-xs $spacing-md;
+  border: 1.5px solid $color-accent-brown;
+  border-radius: 9999px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: $color-accent-brown;
+  background: rgba($color-accent-yellow, 0.1);
+}
+
+.strata-members__table {
+  width: 100%;
+  margin-bottom: $spacing-sm;
+}
+
+.strata-members__table-header,
+.strata-members__table-row {
+  display: grid;
+  grid-template-columns: 1fr 1.5fr 1fr 1fr;
+  gap: $spacing-sm;
+  padding: $spacing-sm 0;
+
+  @include respond-below(sm) {
+    grid-template-columns: 1fr 1fr;
+    gap: $spacing-xs;
+  }
+}
+
+.strata-members__table-header {
+  border-bottom: 1px solid $color-border-light;
+
+  span {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: $color-text-light;
+  }
+}
+
+.strata-members__table-row {
+  span {
+    font-size: 0.9375rem;
+    color: $color-text-dark;
+    word-break: break-word;
+  }
+}
+
+.strata-members__update-btn {
+  display: block;
+  width: 100%;
+  margin-top: $spacing-md;
+  padding: $spacing-sm $spacing-md;
+  background: $color-primary;
+  color: $color-text-white;
+  border: none;
+  border-radius: $border-radius-md;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: center;
+  transition: background-color 0.2s;
+
+  &:hover {
+    background: $color-primary-hover;
+  }
+}
+
+.strata-members__role-field {
+  display: flex;
+  flex-direction: column;
+}
+
+.strata-members__role-label {
+  display: block;
+  margin-bottom: $spacing-xs;
+  font-weight: 500;
+  font-size: 0.875rem;
+  color: $color-text-dark;
+
+  .required {
+    color: $color-error;
+    margin-left: 2px;
+  }
+}
+
+.strata-members__role-options {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+  margin-top: $spacing-xs;
+}
+
+.strata-members__role-checkbox {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  font-size: 0.9375rem;
+  color: $color-text-dark;
+  cursor: pointer;
+
+  input[type="checkbox"] {
+    width: 18px;
+    min-width: 18px;
+    height: 18px;
+    accent-color: $color-primary;
+    cursor: pointer;
+  }
+}
+
+.update-details-form {
+  .form-row {
+    margin-bottom: $spacing-md;
+  }
+}
