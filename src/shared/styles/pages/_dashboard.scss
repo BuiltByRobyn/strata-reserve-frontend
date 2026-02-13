@@ -1,0 +1,18 @@
+@use '../variables' as *;
+
+/* Dashboard Page Styles */
+.dashboard-container {
+  padding: $spacing-lg;
+  
+  // Tablet responsive
+  @include respond-below(md) {
+    padding: $spacing-md;
+  }
+
+  // Mobile responsive
+  @include respond-below(sm) {
+    padding: $spacing-sm;
+  }
+}
+
+// Add dashboard specific styles here as needed

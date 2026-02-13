@@ -1,0 +1,302 @@
+@use '../variables' as *;
+
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: relative;
+
+  @include respond-to(desktop) {
+    width: 250px;
+    min-width: 250px;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    box-shadow: $shadow-navbar;
+  }
+
+  &-brand {
+    font-size:$font-size-base ;
+    font-weight: $font-weight-bold;
+    color: $color-text-secondary;
+    background-color: $color-primary;
+    z-index: 1001;
+    display: grid;
+    padding: 1rem;
+    grid-template-columns: 0.4fr 1fr;
+    align-items: center;
+    gap: $spacing-sm;
+
+    & > img {
+      width: 4rem;
+      height: 4rem;
+    }
+
+    @include respond-to(desktop) {
+      border-bottom: 1px solid $color-gray-lightest;
+      padding-bottom: $spacing-md;
+    }
+
+    // Hide logo/brand on mobile - user info replaces it
+    @include respond-below(desktop) {
+      display: none;
+    }
+
+    .navbar-brand-titles {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      color: $color-off-white;
+
+      & > span {
+        font-size: $font-size-md;
+      }
+
+      .navbar-brand-text {
+        font-size: $font-size-base;
+        font-weight: $font-weight-normal;
+        color: $color-gray-lightest;
+      }
+    }
+
+  }
+
+  
+     .navbar-user-info {
+        text-align: left;
+        padding: 1rem 1rem 0 1rem;
+        background-color: $color-gray-lightest;
+        font-size: $font-size-base;
+        font-weight: $font-weight-normal;
+        border-bottom: 1px solid $color-gray-light;
+        color: $color-text-secondary;
+
+        // Mobile: user info becomes the green header bar
+        @include respond-below(desktop) {
+          background-color: $color-primary;
+          color: $color-off-white;
+          z-index: 1001;
+          padding: 1rem 3.5rem 1rem 1rem;
+          border-bottom: none;
+          width: 100%;
+        }
+
+    .navbar-user-title {
+      font-size: $font-size-sm;
+      font-weight: $font-weight-light;
+      margin: $spacing-sm 0;
+      color: $color-gray;
+
+      @include respond-below(desktop) {
+        color: $color-gray-lightest;
+        text-transform: uppercase;
+        font-size: 0.65rem;
+        letter-spacing: 0.5px;
+        margin: 0;
+      }
+    }
+
+    .navbar-user-details {
+      font-size: $font-size-sm;
+      font-weight: $font-weight-bold;
+      color: $color-gray;
+      margin: $spacing-xs 0 $spacing-lg 0;
+
+      @include respond-below(desktop) {
+        color: $color-off-white;
+        margin: 0 0 $spacing-sm 0;
+      }
+    }
+
+    
+    
+
+    .admin-badge-small {
+      display: inline-block;
+      padding: 2px 8px;
+      background-color: rgba(220, 38, 38, 0.9);
+      border-radius: $border-radius-sm;
+      font-size: 0.7rem;
+      font-weight: $font-weight-bold;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    // Responsive font size for brand
+    @include respond-below(md) {
+      font-size: 1.2rem;
+    }
+
+    @include respond-below(sm) {
+      font-size: 1rem;
+      
+      .admin-badge-small {
+        font-size: 0.6rem;
+        padding: 1px 6px;
+      }
+    }
+  }
+
+  // Hamburger Menu Button (mobile only)
+  &-hamburger {
+    display: none;
+    flex-direction: column;
+    justify-content: space-around;
+    width: 28px;
+    height: 24px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    z-index: 1001;
+    color: $color-text-dark;
+
+    @include respond-below(desktop) {
+      display: flex;
+      position: absolute;
+      right: 1rem;
+      top: 50%;
+      transform: translateY(-50%);
+    }
+
+    span {
+      width: 28px;
+      height: 3px;
+      background-color: $color-off-white;
+      border-radius: 2px;
+      transition: all 0.3s ease;
+      transform-origin: center;
+    }
+
+    // Hamburger animation when active
+    &.active {
+      span:nth-child(1) {
+        transform: translateY(7px) rotate(45deg);
+      }
+
+      span:nth-child(2) {
+        opacity: 0;
+      }
+
+      span:nth-child(3) {
+        transform: translateY(-9px) rotate(-45deg);
+      }
+    }
+  }
+
+  &-links {
+    display: flex;
+    padding: $spacing-lg $spacing-md;
+    gap: $gap-nav-links;
+    align-items: center;
+
+    @include respond-to(desktop) {
+      flex-direction: column;
+      align-items: stretch;
+      gap: $spacing-xs;
+    }
+
+    // Mobile responsive
+    @include respond-below(desktop) {
+      display: none;
+      position: fixed;
+      top: 0;
+      height: 100vh;
+      width: 100%;
+      left: 0;
+      max-width: 100%;
+      background-color: $color-white;
+      flex-direction: column;
+      justify-content: flex-start;
+      gap: 8px;
+      z-index: 1000;
+      overflow-y: auto;
+
+      &.active {
+        display: flex;
+        top: 0;
+        left: 0;
+        margin-top: 100px;
+        padding-top: 1rem;
+        margin-right: 1rem;
+        border-top: 1px solid $color-gray-lightest;
+      }
+    }
+  }
+}
+
+.nav-link {
+  text-decoration: none;
+  color: $color-text-secondary;
+  font-weight: $font-weight-medium;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: $spacing-nav-link-padding;
+
+  &:hover {
+    background-color: $color-primary-lightest;
+    border-radius: $border-radius-lg;
+  }
+  
+  &.active {
+    background-color: $color-primary;
+    color: $color-text-white;
+    border-radius: $border-radius-lg;
+
+    &:hover {
+        background-color: $color-primary-hover;
+        border-color: $color-primary-lightest;
+    }
+  }
+
+  // Tablet + desktop sidebar: full width, left-aligned
+  @include respond-to(desktop) {
+    justify-content: flex-start;
+    width: 100%;
+    padding-left: $spacing-lg;
+    padding-top: $spacing-md;
+    padding-bottom: $spacing-md;
+    max-width: 90%;
+
+    &.active {
+      padding-right: 0;
+    }
+
+    &:hover {
+      background-color: $color-primary-lightest;
+      border-radius: $border-radius-lg;
+      padding-right: 0;
+    }
+  }
+  
+  // Mobile responsive
+  @include respond-below(desktop) {
+    width: 100%;
+    justify-content: center;
+    padding: 12px 16px;
+    font-size: 1.1rem;
+  }
+}
+
+.logout-btn {
+  color: $color-error-light;
+  background: none;
+  border: $border-width-thin solid $color-text-white;
+  border-top: 1px solid $color-gray-lightest;
+  font-family: inherit;
+  font-size: inherit;
+  cursor: pointer;
+  // margin-left: 1rem;
+  gap: $spacing-sm;
+
+  // &:hover {
+  //   background-color: rgba(255, 255, 255, 0.1);
+  // }
+
+  // Mobile responsive
+  // @include respond-below(desktop) {
+  //   margin-top: 20px;
+  // }
+}

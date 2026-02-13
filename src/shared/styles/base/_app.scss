@@ -1,0 +1,136 @@
+@use '../variables' as *;
+
+/* Global Styles for App Structure */
+#root {
+  /* Removed max-width and centered margin to allow full-screen pages */
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+/* Wrapper for protected pages with navbar */
+.app {
+  @include respond-to(desktop) {
+    display: flex;
+  }
+}
+
+/* Main content area - sits beside the navbar in flex layout (desktop) */
+.app-main {
+  @include respond-to(desktop) {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
+.page-container {
+  padding: $spacing-page-padding;
+  max-width: $max-width-page;
+  text-align: left;
+
+  // // Tablet responsive
+  // @include respond-below(md) {
+  //   padding: $spacing-lg;
+  //   max-width: 100%;
+  // }
+
+  // // Mobile responsive
+  // @include respond-below(sm) {
+  //   padding: $spacing-md;
+  // }
+
+}
+
+h1 {
+  font-size: $font-size-xl;
+  margin-bottom: $spacing-md;
+  color: $color-text-primary;
+
+  // Tablet responsive
+  @include respond-below(md) {
+    font-size: 2rem;
+  }
+
+  // Mobile responsive
+  @include respond-below(sm) {
+    font-size: 1.75rem;
+  }
+}
+
+h2 {
+  font-size: $font-size-lg;
+  margin-bottom: $spacing-sm;
+  color: $color-text-primary;
+
+  // Mobile responsive
+  @include respond-below(sm) {
+    font-size: 1.3rem;
+  }
+}
+
+h3 {
+  font-size: 1.2rem;
+  margin-bottom: $spacing-sm;
+  color: $color-text-primary;
+
+  // Mobile responsive
+  @include respond-below(sm) {
+    font-size: 1.1rem;
+  }
+}
+
+.action-btn {
+  background-color: $color-btn-primary;
+  color: $color-btn-primary-text;
+  border: none;
+  padding: $spacing-btn-padding;
+  font-size: $font-size-base;
+  font-weight: $font-weight-medium;
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color 0.25s;
+  border-radius: $border-radius-lg;
+
+  &:hover {
+    background-color: $color-btn-primary-hover;
+  }
+
+  // Mobile responsive
+  @include respond-below(sm) {
+    width: 100%;
+    padding: 12px 16px;
+  }
+}
+
+.response-area {
+  margin-top: $spacing-response-margin;
+  background: $color-primary;
+  padding: $spacing-response-padding;
+  border-radius: $border-radius-lg;
+  border: 1px solid $color-primary;
+  text-align: left;
+  overflow-x: auto;
+
+  // Mobile responsive
+  @include respond-below(md) {
+    margin-top: $spacing-lg;
+    padding: $spacing-md;
+  }
+
+  @include respond-below(sm) {
+    margin-top: $spacing-md;
+    padding: $spacing-sm;
+  }
+
+  pre {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    overflow-x: auto;
+    font-size: 0.9rem;
+
+    // Mobile responsive
+    @include respond-below(sm) {
+      font-size: 0.8rem;
+    }
+  }
+}
