@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useClientDocuments } from '../../shared/hooks/useClientDocuments';
+import { useClientServiceRequest } from '../../shared/hooks/useClientServiceRequest';
 import { LoadingSpinner } from '../../shared/components/LoadingSpinner/LoadingSpinner';
 import { Modal } from '../../shared/components/Modal/Modal';
 import type { RequiredDocumentChecklist } from '../../shared/types/document.types';
@@ -25,8 +26,7 @@ export default function ClientDocumentsPage() {
     closePreview
   } = useClientDocuments();
 
-  // TODO: Replace with actual service request ID from user context/route
-  const [serviceRequestId] = useState<number | null>(null);
+  const { serviceRequestId, loading: srLoading } = useClientServiceRequest();
   const [uploadingDocTypeId, setUploadingDocTypeId] = useState<number | null>(null);
   const [uploadSuccess, setUploadSuccess] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -87,6 +87,8 @@ export default function ClientDocumentsPage() {
   const isDocumentUploaded = (doc: RequiredDocumentChecklist): boolean => {
     return !!doc.uploadedDocument;
   };
+
+  if (srLoading) return <LoadingSpinner />;
 
   if (!serviceRequestId) {
     return (

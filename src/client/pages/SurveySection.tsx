@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useSurvey } from '../../shared/hooks/useSurvey';
+import { useClientServiceRequest } from '../../shared/hooks/useClientServiceRequest';
 import { SurveyProgressBar } from '../../shared/components/SurveyProgressBar/SurveyProgressBar';
 import { SurveyCategoryNav } from '../../shared/components/SurveyCategoryNav/SurveyCategoryNav';
 import { LoadingSpinner } from '../../shared/components/LoadingSpinner/LoadingSpinner';
@@ -10,12 +11,12 @@ import {
 } from '../../shared/types/survey.types';
 import type { SurveyQuestion, SaveResponsePayload } from '../../shared/types/survey.types';
 
-const SERVICE_REQUEST_ID = 1;
 const QUESTIONS_PER_PAGE = 5;
 
 export default function SurveySectionPage() {
   const { section } = useParams<{ section: string }>();
   const navigate = useNavigate();
+  const { serviceRequestId, loading: srLoading } = useClientServiceRequest();
   const {
     questions: allQuestions,
     responses,
@@ -33,9 +34,11 @@ export default function SurveySectionPage() {
   const prevSectionRef = useRef(section);
 
   useEffect(() => {
-    fetchQuestions(SERVICE_REQUEST_ID);
-    fetchResponses(SERVICE_REQUEST_ID);
-  }, [fetchQuestions, fetchResponses]);
+    if (serviceRequestId) {
+      fetchQuestions(serviceRequestId);
+      fetchResponses(serviceRequestId);
+    }
+  }, [serviceRequestId, fetchQuestions, fetchResponses]);
 
   const sectionConfig = SURVEY_SECTIONS.find(s => s.key === section);
   const range = section ? SECTION_QUESTION_RANGES[section] : null;
@@ -60,12 +63,13 @@ export default function SurveySectionPage() {
   }, [localAnswers]);
 
   const saveCurrent = useCallback(async () => {
+    if (!serviceRequestId) return;
     const payloads = buildPendingPayloads();
     if (payloads.length > 0) {
-      await saveResponses(SERVICE_REQUEST_ID, payloads);
+      await saveResponses(serviceRequestId, payloads);
       setLocalAnswers({});
     }
-  }, [buildPendingPayloads, saveResponses]);
+  }, [serviceRequestId, buildPendingPayloads, saveResponses]);
 
   useEffect(() => {
     if (prevPageRef.current !== page || prevSectionRef.current !== section) {
@@ -265,7 +269,15 @@ export default function SurveySectionPage() {
     );
   };
 
-  if (loading) return <LoadingSpinner />;
+  if (srLoading || loading) return <LoadingSpinner />;
+
+  if (!serviceRequestId) {
+    return (
+      <div className="survey-section-page">
+        <p>No active service request found. Please contact your administrator.</p>
+      </div>
+    );
+  }
 
   const hasQuestions = sectionQuestions.length > 0;
 

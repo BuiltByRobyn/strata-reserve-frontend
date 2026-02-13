@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import type { User, Session, AuthError } from '@supabase/supabase-js';
 import { supabase } from '../../shared/lib/supabaseClient';
 import type { ClientUser, ClientAuthContextType } from '../../shared/types/auth.types';
+import { API_BASE } from '../../shared/lib/api';
 
 const ClientAuthContext = createContext<ClientAuthContextType | undefined>(undefined);
 
@@ -14,7 +15,7 @@ export const ClientAuthProvider = ({ children }: { children: ReactNode }) => {
   const fetchClientProfile = async (supabaseUser: User): Promise<ClientUser | null> => {
     try {
       // Fetch client profile from backend
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/client/profile`, {
+      const response = await fetch(`${API_BASE}/client/profile`, {
         headers: {
           'Authorization': `Bearer ${session?.access_token}`,
         },
