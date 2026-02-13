@@ -11,8 +11,7 @@ import { DocumentPreviewModal } from '../../shared/components/DocumentPreview/Do
 import { InputField, SelectField, TextareaField, FormRow } from '../../shared/components/FormField/FormField';
 import type { DocumentWithDetails, DocumentUploadData } from '../../shared/types/document.types';
 import { STRATA_ID_PATTERN, formatStrataId } from '../../shared/utils/strataUtils';
-
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+import { API_BASE } from '../../shared/lib/api';
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 
 const formatTypeName = (name: string): string =>
@@ -359,6 +358,7 @@ export default function DocumentsPage() {
           keyExtractor={(d) => d.serviceRequestDocumentId}
           loading={loading}
           emptyMessage="No documents found."
+          onRowClick={(doc) => handlePreview(doc)}
           actions={(doc) => (
             <>
               <button className="btn-edit" onClick={() => openStatusModal(doc)}>Review</button>
@@ -377,7 +377,10 @@ export default function DocumentsPage() {
           {!loading && filteredDocuments.length > 0 && (
             <div className="documents-mobile-list">
               {filteredDocuments.map((doc) => (
-                <div key={doc.serviceRequestDocumentId} className="documents-mobile-table-wrap">
+                <div
+                  key={doc.serviceRequestDocumentId}
+                  className="documents-mobile-table-wrap"
+                >
                   <table className="data-table documents-table-mobile">
                     <tbody>
                       <tr>
@@ -410,7 +413,7 @@ export default function DocumentsPage() {
                           </span>
                         </td>
                       </tr>
-                      <tr>
+                      <tr onClick={(e) => e.stopPropagation()}>
                         <td className="mobile-label-col">Actions</td>
                         <td className="mobile-value-col actions-cell">
                           <button className="btn-edit" onClick={() => openStatusModal(doc)}>Review</button>

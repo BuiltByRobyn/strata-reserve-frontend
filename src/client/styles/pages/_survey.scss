@@ -1,0 +1,316 @@
+@use '../../../shared/styles/variables' as *;
+
+.survey-progress-bar {
+  margin-bottom: $spacing-lg;
+
+  .progress-track {
+    width: 100%;
+    height: 8px;
+    background: $color-border-light;
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: $color-primary;
+    border-radius: 4px;
+    transition: width 0.3s ease;
+  }
+}
+
+.survey-category-nav {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1fr 1fr 1fr 1fr;
+  margin-bottom: $spacing-xl;
+  width: 100%;
+
+  .category-btn {
+    padding: $spacing-sm $spacing-xs;
+    width: 100;
+    background: $color-white;
+    border: 1px solid $color-border-light;
+    border-radius: $border-radius-sm;
+    font-size: $font-size-sm;
+    font-weight: $font-weight-medium;
+    color: $color-text-muted;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover {
+      border-color: $color-primary;
+      color: $color-primary-dark;
+    }
+
+    &--active {
+      background: $color-primary;
+      color: $color-white;
+      border-color: $color-primary;
+    }
+
+    &--complete {
+      border-color: $color-primary-light;
+    }
+  }
+}
+
+.survey-page {
+  padding: $spacing-lg;
+
+  h1 {
+    margin: $spacing-lg 0;
+    text-align: left;
+    font-size: 1.75rem;
+    font-weight: 600;
+    color: $color-text-dark;
+  }
+
+  .survey-subtitle {
+    margin: 0 0 $spacing-lg;
+    text-align: left;
+    color: $color-text-muted;
+    font-size: $font-size-sm;
+  }
+
+  .survey-section-list {
+    display: flex;
+    flex-direction: column;
+    border: 1px solid $color-border-light;
+    border-radius: $border-radius-lg;
+    overflow: hidden;
+    background: $color-white;
+  }
+
+  .survey-section-item {
+    display: grid;
+    grid-template-columns: 6fr 1fr;
+    align-items: center;
+    justify-content: space-between;
+    padding: $spacing-md $spacing-lg;
+    border-bottom: 1px solid $color-border-light;
+    cursor: pointer;
+    transition: background 0.2s ease;
+
+    &:last-child {
+      border-bottom: none;
+    }
+
+    &:hover {
+      background: $color-background-off-white;
+    }
+
+    .section-info {
+      display: flex;
+      flex-direction: column;
+      gap: $spacing-xs;
+      min-width: 0;
+      overflow: hidden;
+
+      @media (min-width: 1150px) {
+        flex-direction: row;
+        align-items: center;
+        gap: $spacing-xl;
+      }
+    }
+
+    .section-label {
+      font-weight: $font-weight-bold;
+      color: $color-text-dark;
+      min-width: 140px;
+    }
+
+    .section-description {
+      font-size: $font-size-sm;
+      color: $color-text-muted;
+    }
+
+    .section-status {
+      padding: $spacing-xs $spacing-md;
+      border-radius: $border-radius-sm;
+      font-size: 0.75rem;
+      font-weight: $font-weight-bold;
+      white-space: nowrap;
+      margin-left: 1rem;
+      width: 5rem;
+      max-width: 100px;
+      text-align: center;
+      justify-self: end;
+
+      &.incomplete {
+        border: 1px solid $color-accent-brown;
+        color: $color-accent-brown;
+      }
+
+      &.complete {
+        background: rgba($color-primary, 0.1);
+        border: 1px solid $color-primary;
+        color: $color-primary-dark;
+      }
+    }
+  }
+}
+
+.survey-section-page {
+  padding: $spacing-lg;
+  text-align: left;
+
+  @include respond-to(desktop) {
+    margin-left: $spacing-xl;
+  }
+
+  h1 {
+    margin: 0 0 $spacing-lg;
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: $color-text-dark;
+  }
+
+  .survey-questions-container {
+    margin-top: $spacing-lg;
+    min-height: 300px;
+  }
+
+  .survey-coming-soon {
+    padding: $spacing-xl;
+    text-align: center;
+    background: $color-white;
+    border: 1px solid $color-border-light;
+    border-radius: $border-radius-lg;
+    color: $color-text-muted;
+
+    p {
+      font-size: $font-size-base;
+    }
+  }
+
+  .survey-question {
+    padding: $spacing-lg;
+    border-bottom: 1px solid $color-border-light;
+
+    &:last-child {
+      border-bottom: none;
+    }
+
+    .question-label {
+      display: block;
+      font-weight: $font-weight-medium;
+      color: $color-text-dark;
+      margin-bottom: $spacing-sm;
+      font-size: $font-size-base;
+    }
+
+    .required-mark {
+      color: $color-error;
+      margin-left: $spacing-xs;
+    }
+
+    .question-info {
+      font-size: $font-size-sm;
+      color: $color-text-muted;
+      margin: 0 0 $spacing-sm;
+      font-style: italic;
+    }
+
+    .question-input {
+      width: 100%;
+      padding: $spacing-sm $spacing-md;
+      border: 1px solid $color-border-light;
+      border-radius: $border-radius-sm;
+      font-size: $font-size-sm;
+      color: $color-text-dark;
+      background: $color-white;
+      box-sizing: border-box;
+
+      &:focus {
+        outline: none;
+        border-color: $color-primary;
+      }
+    }
+
+    .question-textarea {
+      resize: vertical;
+      font-family: $font-family-base;
+    }
+
+    .question-boolean,
+    .question-choices {
+      display: flex;
+      flex-direction: column;
+      gap: $spacing-sm;
+      margin-top: $spacing-xs;
+    }
+
+    .question-checkboxes {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: $spacing-sm;
+
+      @include respond-to(desktop) {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    .choice-option {
+      display: flex;
+      align-items: center;
+      gap: $spacing-sm;
+      font-size: $font-size-sm;
+      color: $color-text-dark;
+      cursor: pointer;
+
+      input[type='radio'],
+      input[type='checkbox'] {
+        accent-color: $color-primary;
+      }
+    }
+
+    .question-none-or-explain {
+      display: flex;
+      flex-direction: column;
+      gap: $spacing-sm;
+    }
+  }
+
+  .survey-pagination {
+    display: flex;
+    justify-content: center;
+    gap: $spacing-md;
+    padding: $spacing-lg 0;
+    border-top: 1px solid $color-border-light;
+    margin-top: $spacing-md;
+
+    .btn-nav {
+      padding: $spacing-sm $spacing-xl;
+      min-width: 160px;
+      font-size: $font-size-sm;
+      border-radius: $border-radius-sm;
+      cursor: pointer;
+      transition: all 0.2s ease;
+
+      &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+    }
+
+    .btn-secondary {
+      background: $color-white;
+      border: 1px solid $color-border-light;
+      color: $color-text-dark;
+
+      &:hover:not(:disabled) {
+        border-color: $color-text-muted;
+      }
+    }
+
+    .btn-primary {
+      background: $color-primary;
+      border: none;
+      color: $color-white;
+
+      &:hover:not(:disabled) {
+        background: $color-primary-hover;
+      }
+    }
+  }
+}

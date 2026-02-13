@@ -1,0 +1,61 @@
+@use '../variables' as *;
+
+.tabs {
+  display: flex;
+  gap: $spacing-xs;
+
+  &--default {
+    border-bottom: 2px solid $color-border-light;
+    gap: 0;
+
+    .tabs__tab {
+      padding: $spacing-sm $spacing-lg;
+      background: none;
+      border: none;
+      border-bottom: 3px solid transparent;
+      margin-bottom: -2px;
+      font-size: $font-size-base;
+      font-weight: $font-weight-medium;
+      color: $color-text-muted;
+      cursor: pointer;
+      transition: color 0.2s ease, border-color 0.2s ease;
+
+      &:hover {
+        color: $color-text-dark;
+      }
+
+      &--active {
+        color: $color-text-dark;
+        border-bottom-color: $color-primary;
+        font-weight: $font-weight-bold;
+      }
+    }
+  }
+
+  &--pill {
+    flex-wrap: wrap;
+
+    .tabs__tab {
+      padding: $spacing-xs $spacing-md;
+      background: $color-white;
+      border: 1px solid $color-border-light;
+      border-radius: $border-radius-sm;
+      font-size: $font-size-sm;
+      font-weight: $font-weight-medium;
+      color: $color-text-muted;
+      cursor: pointer;
+      transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+
+      &:hover {
+        border-color: $color-primary;
+        color: $color-primary-dark;
+      }
+
+      &--active {
+        background: $color-primary;
+        color: $color-white;
+        border-color: $color-primary;
+      }
+    }
+  }
+}

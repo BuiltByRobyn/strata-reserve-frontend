@@ -10,27 +10,22 @@
 
 /* Wrapper for protected pages with navbar */
 .app {
-  max-width: $max-width-root;
-  margin: 0 auto;
-  text-align: center;
-
-  // Tablet and mobile responsive
-  @include respond-below(lg) {
-    max-width: 100%;
+  @include respond-to(desktop) {
+    display: flex;
   }
 }
 
-/* Main content area - offset when navbar is a fixed sidebar (desktop from 600px) */
+/* Main content area - sits beside the navbar in flex layout (desktop) */
 .app-main {
   @include respond-to(desktop) {
-    margin-left: 250px;
+    flex: 1;
+    min-width: 0;
   }
 }
 
 .page-container {
   padding: $spacing-page-padding;
   max-width: $max-width-page;
-  margin: 0 auto;
   text-align: left;
 
   // // Tablet responsive
@@ -44,9 +39,6 @@
   //   padding: $spacing-md;
   // }
 
-  @include respond-to(desktop) {
-    margin-left: $spacing-xl;
-  }
 }
 
 h1 {

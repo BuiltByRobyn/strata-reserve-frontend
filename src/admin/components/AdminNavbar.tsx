@@ -26,15 +26,27 @@ export const AdminNavbar = () => {
   return (
     <nav className="navbar admin-navbar">
       <div className="navbar-brand">
-        <img src="/logo.svg" alt="Building Icon" />
+        <img src="/logonobg.svg" alt="Building Icon" />
         <div className="navbar-brand-titles">
           <span>Strata Reserve</span>
-          <div className="navbar-brand-text">Planning Portal</div>
-        <div className="navbar-user-info">
-          User: {adminUser?.fullName}
-        </div>
+          <div className="navbar-brand-text">Information Report Portal</div>
         </div>
       </div>
+
+      <div className="navbar-user-info">
+        <div className="navbar-user-title">
+          Company:
+          </div>
+          <div className="navbar-user-details">
+            Strata Reserve Planning
+            </div>
+          <div className="navbar-user-title">
+          User:
+          </div>
+            <div className="navbar-user-details">
+            {adminUser?.fullName}
+          </div>
+        </div>
       
       {/* Hamburger Menu Button */}
       <button 

@@ -4,67 +4,112 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: $spacing-nav-padding;
-  background-color: $color-white;
-  color: $color-text-white;
-  // box-shadow: $shadow-navbar;
   position: relative;
 
   @include respond-to(desktop) {
-    position: fixed;
-    left: 0;
-    top: 0;
-    bottom: 0;
     width: 250px;
+    min-width: 250px;
     flex-direction: column;
     align-items: stretch;
     justify-content: flex-start;
-    padding: $spacing-lg $spacing-md;
-    gap: $spacing-lg;
     box-shadow: $shadow-navbar;
   }
 
   &-brand {
-    font-size: $font-size-lg;
+    font-size:$font-size-base ;
     font-weight: $font-weight-bold;
     color: $color-text-secondary;
+    background-color: $color-primary;
     z-index: 1001;
-    display: flex;
+    display: grid;
+    padding: 1rem;
+    grid-template-columns: 0.4fr 1fr;
     align-items: center;
     gap: $spacing-sm;
+
+    & > img {
+      width: 4rem;
+      height: 4rem;
+    }
 
     @include respond-to(desktop) {
       border-bottom: 1px solid $color-gray-lightest;
       padding-bottom: $spacing-md;
     }
 
+    // Hide logo/brand on mobile - user info replaces it
+    @include respond-below(desktop) {
+      display: none;
+    }
+
     .navbar-brand-titles {
       display: flex;
       flex-direction: column;
-      align-items: flex-start;
+      gap: 0.5rem;
+      color: $color-off-white;
 
       & > span {
-        font-size: $font-size-lg;
+        font-size: $font-size-md;
       }
 
       .navbar-brand-text {
         font-size: $font-size-base;
-        // font-weight: $font-weight-normal;
-        color: $color-text-secondary;
-      }
-
-      .navbar-user-info {
-        // visibility: hidden;
-        padding-top: .5rem;
-        font-size: $font-size-base;
         font-weight: $font-weight-normal;
-        color: $color-text-secondary;
-
-        @include respond-to(desktop) {
-          padding-top: $spacing-md;
-        }
+        color: $color-gray-lightest;
       }
     }
+
+  }
+
+  
+     .navbar-user-info {
+        text-align: left;
+        padding: 1rem 1rem 0 1rem;
+        background-color: $color-gray-lightest;
+        font-size: $font-size-base;
+        font-weight: $font-weight-normal;
+        border-bottom: 1px solid $color-gray-light;
+        color: $color-text-secondary;
+
+        // Mobile: user info becomes the green header bar
+        @include respond-below(desktop) {
+          background-color: $color-primary;
+          color: $color-off-white;
+          z-index: 1001;
+          padding: 1rem 3.5rem 1rem 1rem;
+          border-bottom: none;
+          width: 100%;
+        }
+
+    .navbar-user-title {
+      font-size: $font-size-sm;
+      font-weight: $font-weight-light;
+      margin: $spacing-sm 0;
+      color: $color-gray;
+
+      @include respond-below(desktop) {
+        color: $color-gray-lightest;
+        text-transform: uppercase;
+        font-size: 0.65rem;
+        letter-spacing: 0.5px;
+        margin: 0;
+      }
+    }
+
+    .navbar-user-details {
+      font-size: $font-size-sm;
+      font-weight: $font-weight-bold;
+      color: $color-gray;
+      margin: $spacing-xs 0 $spacing-lg 0;
+
+      @include respond-below(desktop) {
+        color: $color-off-white;
+        margin: 0 0 $spacing-sm 0;
+      }
+    }
+
+    
+    
 
     .admin-badge-small {
       display: inline-block;
@@ -108,12 +153,16 @@
 
     @include respond-below(desktop) {
       display: flex;
+      position: absolute;
+      right: 1rem;
+      top: 50%;
+      transform: translateY(-50%);
     }
 
     span {
       width: 28px;
       height: 3px;
-      background-color: $color-text-secondary;
+      background-color: $color-off-white;
       border-radius: 2px;
       transition: all 0.3s ease;
       transform-origin: center;
@@ -137,22 +186,21 @@
 
   &-links {
     display: flex;
+    padding: $spacing-lg $spacing-md;
     gap: $gap-nav-links;
     align-items: center;
 
     @include respond-to(desktop) {
       flex-direction: column;
       align-items: stretch;
-      width: 100%;
       gap: $spacing-xs;
-      margin-top: $spacing-lg;
     }
 
     // Mobile responsive
     @include respond-below(desktop) {
+      display: none;
       position: fixed;
       top: 0;
-      top: -100vh;
       height: 100vh;
       width: 100%;
       left: 0;
@@ -161,17 +209,15 @@
       flex-direction: column;
       justify-content: flex-start;
       gap: 8px;
-      transition: top 0.3s ease;
       z-index: 1000;
-      // overflow-y: auto;
+      overflow-y: auto;
 
       &.active {
+        display: flex;
         top: 0;
-        // width: calc(100% - 2rem);
         left: 0;
         margin-top: 100px;
         padding-top: 1rem;
-        // margin-left: 1rem;
         margin-right: 1rem;
         border-top: 1px solid $color-gray-lightest;
       }

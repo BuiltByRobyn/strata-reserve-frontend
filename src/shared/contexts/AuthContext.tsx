@@ -46,11 +46,33 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return adminUser;
       } else {
         console.log('User is CLIENT');
+
+        let strataId: number | null = null;
+        let strataPlan: string | null = null;
+        try {
+          const { data: strataProfile } = await supabase
+            .from('strata_profiles')
+            .select('strata_id, strata:strata_id(strata_plan)')
+            .eq('profile_id', supabaseUser.id)
+            .limit(1)
+            .single();
+
+          if (strataProfile) {
+            strataId = strataProfile.strata_id;
+            const strata = strataProfile.strata as unknown as { strata_plan: string | null };
+            strataPlan = strata?.strata_plan ?? null;
+          }
+        } catch (err) {
+          console.warn('Could not fetch strata plan for client:', err);
+        }
+
         const clientUser: ClientUser = {
           id: supabaseUser.id,
           email: supabaseUser.email!,
           role: 'client' as const,
-          companyName: 'Sample Company',
+          companyName: profile.company_name || 'N/A',
+          strataId,
+          strataPlan,
           firstName: profile.first_name || 'User',
           lastName: profile.last_name || '',
           createdAt: supabaseUser.created_at,

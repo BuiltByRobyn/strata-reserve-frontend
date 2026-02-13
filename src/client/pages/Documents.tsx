@@ -1,10 +1,15 @@
 import { useState, useEffect, useRef } from 'react';
 import { useClientDocuments } from '../../shared/hooks/useClientDocuments';
+import { useClientServiceRequest } from '../../shared/hooks/useClientServiceRequest';
 import { LoadingSpinner } from '../../shared/components/LoadingSpinner/LoadingSpinner';
+import { Modal } from '../../shared/components/Modal/Modal';
 import type { RequiredDocumentChecklist } from '../../shared/types/document.types';
 
 const formatTypeName = (name: string): string =>
   name.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+
+const getFileExtension = (fileName: string): string =>
+  fileName.split('.').pop()?.toLowerCase() || '';
 
 export default function ClientDocumentsPage() {
   const {
@@ -13,11 +18,15 @@ export default function ClientDocumentsPage() {
     error,
     uploading,
     fetchRequiredDocuments,
-    uploadDocument
+    uploadDocument,
+    previewDocument,
+    previewLoading,
+    previewUrl,
+    previewFileName,
+    closePreview
   } = useClientDocuments();
 
-  // TODO: Replace with actual service request ID from user context/route
-  const [serviceRequestId] = useState<number | null>(1); // Changed to 1 for testing
+  const { serviceRequestId, loading: srLoading } = useClientServiceRequest();
   const [uploadingDocTypeId, setUploadingDocTypeId] = useState<number | null>(null);
   const [uploadSuccess, setUploadSuccess] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -79,6 +88,8 @@ export default function ClientDocumentsPage() {
     return !!doc.uploadedDocument;
   };
 
+  if (srLoading) return <LoadingSpinner />;
+
   if (!serviceRequestId) {
     return (
       <div className="client-documents-page">
@@ -130,6 +141,12 @@ export default function ClientDocumentsPage() {
                   <div
                     key={doc.requiredDocumentId}
                     className={`document-item ${isDocumentUploaded(doc) ? 'uploaded' : ''}`}
+                    onClick={() => {
+                      if (doc.uploadedDocument) {
+                        previewDocument(doc.uploadedDocument.serviceRequestDocumentId, doc.uploadedDocument.fileName);
+                      }
+                    }}
+                    style={{ cursor: isDocumentUploaded(doc) ? 'pointer' : 'default' }}
                   >
                     <div className="document-info">
                       <span className="document-name">{formatTypeName(doc.documentType.typeName)}</span>
@@ -168,6 +185,36 @@ export default function ClientDocumentsPage() {
           ))}
         </div>
       )}
+
+      {/* Document Preview Modal */}
+      <Modal
+        isOpen={previewLoading || !!previewUrl}
+        onClose={closePreview}
+        title={previewFileName || 'Document Preview'}
+        size="preview"
+      >
+        {previewLoading ? (
+          <LoadingSpinner />
+        ) : previewUrl ? (
+          (() => {
+            const ext = getFileExtension(previewFileName || '');
+            if (ext === 'pdf') {
+              return <iframe src={previewUrl} title="Document Preview" />;
+            }
+            if (['jpg', 'jpeg', 'png'].includes(ext)) {
+              return <img src={previewUrl} alt={previewFileName || 'Document'} />;
+            }
+            return (
+              <div style={{ padding: '2rem', textAlign: 'center' }}>
+                <p>Preview not available for this file type.</p>
+                <a href={previewUrl} target="_blank" rel="noopener noreferrer" className="btn-primary" style={{ display: 'inline-block', marginTop: '1rem', padding: '0.5rem 1rem', textDecoration: 'none', borderRadius: '4px' }}>
+                  Download File
+                </a>
+              </div>
+            );
+          })()
+        ) : null}
+      </Modal>
     </div>
   );
 }

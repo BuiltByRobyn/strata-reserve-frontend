@@ -4,6 +4,7 @@ import { AdminNavbar } from '../components/AdminNavbar';
 import { Dashboard } from '../pages/Dashboard';
 import ProfilePage from '../pages/Profile';
 import StrataPage from '../pages/Strata';
+import StrataDetailPage from '../pages/StrataDetail';
 import UsersPage from '../pages/Users';
 import AppointmentsPage from '../pages/Appointments';
 import DocumentsPage from '../pages/Documents';
@@ -25,6 +26,16 @@ export const adminRoutes = [
         <AdminNavbar />
         <main className="app-main">
           <ProfilePage />
+        </main>
+      </div>
+    </ProtectedRoute>
+  } />,
+  <Route key="admin-strata-detail" path="/admin/strata/:id" element={
+    <ProtectedRoute requireAdmin>
+      <div className="app">
+        <AdminNavbar />
+        <main className="app-main">
+          <StrataDetailPage />
         </main>
       </div>
     </ProtectedRoute>

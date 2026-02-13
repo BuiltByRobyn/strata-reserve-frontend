@@ -3,8 +3,7 @@ import { useAuthFetch } from './useAuthFetch';
 import { useAuth } from '../contexts/AuthContext';
 import type { DocumentWithDetails, RequiredDocumentChecklist } from '../types/document.types';
 import type { ApiListResponse } from '../types/entities.types';
-
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+import { API_BASE } from '../lib/api';
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 
 export const useClientDocuments = () => {
@@ -107,6 +106,58 @@ export const useClientDocuments = () => {
     }
   }, [session]);
 
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewFileName, setPreviewFileName] = useState<string | null>(null);
+
+  const previewDocument = useCallback(async (documentId: number, fileName?: string): Promise<void> => {
+    const token = session?.access_token;
+    if (!token) {
+      setError('Not authenticated');
+      return;
+    }
+
+    setPreviewLoading(true);
+    setPreviewUrl(null);
+    setPreviewFileName(fileName || null);
+
+    try {
+      const response = await fetch(
+        `${SUPABASE_URL}/functions/v1/preview-document`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ documentId }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to get preview link');
+      }
+
+      setPreviewUrl(data.url);
+      if (data.fileName) {
+        setPreviewFileName(data.fileName);
+      }
+    } catch (err) {
+      console.error('Preview error:', err);
+      setError(err instanceof Error ? err.message : 'Failed to preview document');
+      setPreviewFileName(null);
+    } finally {
+      setPreviewLoading(false);
+    }
+  }, [session]);
+
+  const closePreview = useCallback(() => {
+    setPreviewUrl(null);
+    setPreviewFileName(null);
+  }, []);
+
   const getDocumentsByServiceRequest = useCallback(async (serviceRequestId: number) => {
     try {
       const response = await authFetch(`${API_BASE}/client/service-requests/${serviceRequestId}/documents`);
@@ -131,6 +182,11 @@ export const useClientDocuments = () => {
     fetchMyDocuments,
     fetchRequiredDocuments,
     uploadDocument,
+    previewDocument,
+    previewLoading,
+    previewUrl,
+    previewFileName,
+    closePreview,
     getDocumentsByServiceRequest
   };
 };

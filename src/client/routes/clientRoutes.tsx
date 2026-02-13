@@ -4,6 +4,8 @@ import { ClientNavbar } from '../components/ClientNavbar';
 import { Dashboard } from '../pages/Dashboard';
 import { Profile } from '../pages/Profile';
 import DocumentsPage from '../pages/Documents';
+import SurveyPage from '../pages/Survey';
+import SurveySectionPage from '../pages/SurveySection';
 
 export const clientRoutes = [
   <Route key="client-dashboard" path="/client/dashboard" element={
@@ -27,6 +29,26 @@ export const clientRoutes = [
       <div className="app">
         <ClientNavbar />
         <DocumentsPage />
+      </div>
+    </ProtectedRoute>
+  } />,
+  <Route key="client-survey-section" path="/client/survey/:section" element={
+    <ProtectedRoute requireClient>
+      <div className="app">
+        <ClientNavbar />
+        <main className="app-main">
+          <SurveySectionPage />
+        </main>
+      </div>
+    </ProtectedRoute>
+  } />,
+  <Route key="client-survey" path="/client/survey" element={
+    <ProtectedRoute requireClient>
+      <div className="app">
+        <ClientNavbar />
+        <main className="app-main">
+          <SurveyPage />
+        </main>
       </div>
     </ProtectedRoute>
   } />,

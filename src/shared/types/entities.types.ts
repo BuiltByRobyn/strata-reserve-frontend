@@ -1,9 +1,3 @@
-// Entity types for Strata Reserve Planning
-
-// ============================================
-// Lookup Types
-// ============================================
-
 export interface UserType {
   userTypeId: number;
   userTypeName: string;
@@ -25,10 +19,6 @@ export interface Service {
   serviceName: string;
   serviceDescription: string | null;
 }
-
-// ============================================
-// Company Types
-// ============================================
 
 export interface Company {
   companyId: number;
@@ -54,10 +44,6 @@ export interface UpdateCompanyInput {
   companyName?: string;
   companyTelephone?: string | null;
 }
-
-// ============================================
-// Strata Types
-// ============================================
 
 export interface StrataBasic {
   strataId: number;
@@ -281,6 +267,29 @@ export interface ServiceRequest {
   service?: Service;
   strata?: Strata;
   requestedBy?: ProfileBasic;
+  _count?: {
+    questionResponses: number;
+    serviceRequestDocuments: number;
+    appointments: number;
+  };
+}
+
+export interface ServiceRequestWithDetails extends ServiceRequest {
+  service: Service;
+  strata: Strata;
+  requestedBy: ProfileBasic;
+  _count?: {
+    questionResponses: number;
+    serviceRequestDocuments: number;
+    appointments: number;
+  };
+}
+
+export interface CreateServiceRequestInput {
+  serviceId: number;
+  strataId: number;
+  requestedByProfileId: string;
+  notes?: string;
 }
 
 export interface AppointmentRequest {
