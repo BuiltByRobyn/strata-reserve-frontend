@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useDocuments } from '../../shared/hooks/useDocuments';
 import { useLookups } from '../../shared/hooks/useLookups';
 import { useAuth } from '../../shared/contexts/AuthContext';
@@ -17,8 +17,11 @@ const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const formatTypeName = (name: string): string =>
   name.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 
+const getFileExtension = (fileName: string): string =>
+  fileName.split('.').pop()?.toLowerCase() || '';
+
 export default function DocumentsPage() {
-  const { documents, loading, error, refetch, updateDocumentStatus, deleteDocument } = useDocuments();
+  const { documents, loading, error, refetch, updateDocumentStatus, deleteDocument, previewDocument, previewLoading, previewUrl, previewFileName, closePreview } = useDocuments();
   const { documentTypes, reviewStatuses } = useLookups();
   const { session, user } = useAuth();
   const authFetch = useAuthFetch();
@@ -337,6 +340,7 @@ export default function DocumentsPage() {
           keyExtractor={(d) => d.serviceRequestDocumentId}
           loading={loading}
           emptyMessage="No documents found."
+          onRowClick={(doc) => previewDocument(doc.serviceRequestDocumentId, doc.fileName)}
           actions={(doc) => (
             <>
               <button className="btn-edit" onClick={() => openStatusModal(doc)}>Review</button>
@@ -355,7 +359,12 @@ export default function DocumentsPage() {
           {!loading && filteredDocuments.length > 0 && (
             <div className="documents-mobile-list">
               {filteredDocuments.map((doc) => (
-                <div key={doc.serviceRequestDocumentId} className="documents-mobile-table-wrap">
+                <div
+                  key={doc.serviceRequestDocumentId}
+                  className="documents-mobile-table-wrap clickable"
+                  onClick={() => previewDocument(doc.serviceRequestDocumentId, doc.fileName)}
+                  style={{ cursor: 'pointer' }}
+                >
                   <table className="data-table documents-table-mobile">
                     <tbody>
                       <tr>
@@ -388,7 +397,7 @@ export default function DocumentsPage() {
                           </span>
                         </td>
                       </tr>
-                      <tr>
+                      <tr onClick={(e) => e.stopPropagation()}>
                         <td className="mobile-label-col">Actions</td>
                         <td className="mobile-value-col actions-cell">
                           <button className="btn-edit" onClick={() => openStatusModal(doc)}>Review</button>
@@ -518,6 +527,36 @@ export default function DocumentsPage() {
             rows={3}
           />
         </form>
+      </Modal>
+
+      {/* Document Preview Modal */}
+      <Modal
+        isOpen={previewLoading || !!previewUrl}
+        onClose={closePreview}
+        title={previewFileName || 'Document Preview'}
+        size="preview"
+      >
+        {previewLoading ? (
+          <LoadingSpinner />
+        ) : previewUrl ? (
+          (() => {
+            const ext = getFileExtension(previewFileName || '');
+            if (ext === 'pdf') {
+              return <iframe src={previewUrl} title="Document Preview" />;
+            }
+            if (['jpg', 'jpeg', 'png'].includes(ext)) {
+              return <img src={previewUrl} alt={previewFileName || 'Document'} />;
+            }
+            return (
+              <div style={{ padding: '2rem', textAlign: 'center' }}>
+                <p>Preview not available for this file type.</p>
+                <a href={previewUrl} target="_blank" rel="noopener noreferrer" className="btn-primary" style={{ display: 'inline-block', marginTop: '1rem', padding: '0.5rem 1rem', textDecoration: 'none', borderRadius: '4px' }}>
+                  Download File
+                </a>
+              </div>
+            );
+          })()
+        ) : null}
       </Modal>
     </div>
   );
