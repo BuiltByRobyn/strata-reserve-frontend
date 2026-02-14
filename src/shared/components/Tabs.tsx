@@ -1,4 +1,4 @@
-import type { TabsProps } from '../../types/component.types';
+import type { TabsProps } from '../types/component.types';
 
 export function Tabs({ tabs, activeTab, onChange, variant = "default" }: TabsProps) {
   return (

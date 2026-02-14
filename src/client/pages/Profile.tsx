@@ -1,9 +1,9 @@
 // Client Profile Page - Display and edit client profile information
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../shared/contexts/AuthContext';
-import { LoadingSpinner } from '../../shared/components/LoadingSpinner/LoadingSpinner';
-import { Modal } from '../../shared/components/Modal/Modal';
-import { InputField, FormRow } from '../../shared/components/FormField/FormField';
+import { LoadingSpinner } from '../../shared/components/LoadingSpinner';
+import { Modal } from '../../shared/components/Modal';
+import { InputField, FormRow } from '../../shared/components/FormField';
 import { useAuthFetch } from '../../shared/hooks/useAuthFetch';
 import type { ClientUser } from '../../shared/types/auth.types';
 import type { ClientProfileFormData as ProfileData } from '../../shared/types/entities.types';

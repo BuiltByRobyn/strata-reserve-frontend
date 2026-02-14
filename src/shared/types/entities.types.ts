@@ -14,10 +14,34 @@ export interface PropertyType {
   description: string | null;
 }
 
+export interface Section {
+  sectionId: number;
+  sectionName: string;
+}
+
+export interface QuestionType {
+  questionTypeId: number;
+  questionTypeName: string;
+}
+
 export interface Service {
   serviceId: number;
   serviceName: string;
   serviceDescription: string | null;
+}
+
+export interface StrataSection {
+  strataSectionId: number;
+  strataId: number;
+  sectionId: number;
+  section: Section;
+}
+
+export interface StrataProfileSection {
+  strataProfileSectionId: number;
+  strataProfileId: number;
+  sectionId: number;
+  section: Section;
 }
 
 export interface Company {
@@ -63,6 +87,7 @@ export interface Strata extends StrataBasic {
   company?: { companyId: number; companyName: string } | null;
   legalType?: { legalTypeId: number; legalTypeName: string } | null;
   propertyType?: { propertyTypeId: number; propertyTypeName: string } | null;
+  strataSections?: StrataSection[];
   _count?: {
     strataNotes: number;
     strataProfiles: number;
@@ -77,6 +102,7 @@ export interface StrataWithDetails extends Strata {
   strataNotes: StrataNoteWithCreator[];
   strataProfiles: StrataProfileWithProfile[];
   strataServices: StrataServiceWithDetails[];
+  strataSections: StrataSection[];
 }
 
 export type StrataInfo = Pick<
@@ -106,6 +132,7 @@ export interface CreateStrataInput {
   legalTypeId?: number;
   propertyTypeId?: number;
   companyId?: number;
+  sectionIds?: number[];
 }
 
 export interface UpdateStrataInput extends Partial<CreateStrataInput> {}
@@ -147,12 +174,14 @@ export interface StrataEmployee {
 
 export interface StrataProfileWithProfile extends StrataEmployee {
   profile: ProfileBasic;
+  strataProfileSections?: StrataProfileSection[];
 }
 
 export interface StrataProfileWithStrata extends StrataEmployee {
   strata: StrataBasic & {
     company?: { companyName: string } | null;
   };
+  strataProfileSections?: StrataProfileSection[];
 }
 
 export interface CreateStrataEmployeeInput {
@@ -206,6 +235,16 @@ export interface Profile extends ProfileBasic {
 
 
 
+export interface UpdateProfileInput {
+  firstName?: string;
+  lastName?: string;
+  phoneNumber?: string;
+}
+
+export interface CompanyWithStratas extends Company {
+  stratas: Strata[];
+}
+
 export interface CreateUserInput {
   firstName: string;
   lastName: string;
@@ -216,6 +255,7 @@ export interface CreateUserInput {
   strataAssociations: Array<{
     strataId: number;
     strataPosition?: string;
+    sectionIds?: number[];
   }>;
 }
 
@@ -410,6 +450,7 @@ export type ApiSingleResponse<T> = ApiResponse<T>;
 export interface StrataAssociation {
   strataId: number;
   strataPosition?: string;
+  sectionIds?: number[];
 }
 
 export interface BaseProfileFormData {

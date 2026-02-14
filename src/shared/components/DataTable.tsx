@@ -1,5 +1,5 @@
-import { LoadingSpinner } from '../LoadingSpinner/LoadingSpinner';
-import type { Column, DataTableProps } from '../../types/component.types';
+import { LoadingSpinner } from './LoadingSpinner';
+import type { Column, DataTableProps } from '../types/component.types';
 
 export type { Column };
 

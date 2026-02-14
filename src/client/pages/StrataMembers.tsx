@@ -2,9 +2,9 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../../shared/contexts/AuthContext';
 import { useAuthFetch } from '../../shared/hooks/useAuthFetch';
 import { supabase } from '../../shared/lib/supabaseClient';
-import { LoadingSpinner } from '../../shared/components/LoadingSpinner/LoadingSpinner';
-import { Modal } from '../../shared/components/Modal/Modal';
-import { InputField, FormRow } from '../../shared/components/FormField/FormField';
+import { LoadingSpinner } from '../../shared/components/LoadingSpinner';
+import { Modal } from '../../shared/components/Modal';
+import { InputField, FormRow } from '../../shared/components/FormField';
 import type {
   StrataMemberInfo,
   UpdateProfileInput,

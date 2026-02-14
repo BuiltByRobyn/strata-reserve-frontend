@@ -7,8 +7,9 @@
 @use 'components/datatable';
 @use 'components/formfield';
 @use 'components/modal';
-@use '../components/DocumentPreview/DocumentPreview';
+@use 'components/document-preview';
 @use 'components/tabs';
+@use 'components/multiselect';
 
 @use 'pages/dashboard';
 @use 'pages/upload';
@@ -23,6 +24,7 @@
 @use '../../admin/styles/pages/strata';
 @use '../../admin/styles/pages/strata-detail';
 @use '../../admin/styles/pages/users';
+@use '../../admin/styles/pages/questions';
 
 @use '../../client/styles/pages/documents' as client-documents;
 @use '../../client/styles/pages/profile' as client-profile;

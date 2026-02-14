@@ -1,6 +1,6 @@
 // Appointments Page - Admin management of appointments
 import { useAppointments } from '../../shared/hooks/useAppointments';
-import { DataTable, type Column } from '../../shared/components/DataTable/DataTable';
+import { DataTable, type Column } from '../../shared/components/DataTable';
 import type { AppointmentWithDetails } from '../../shared/types/entities.types';
 import { formatDateShort } from '../../shared/lib/formatters';
 

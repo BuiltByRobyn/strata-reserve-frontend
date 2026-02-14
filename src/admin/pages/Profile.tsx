@@ -1,7 +1,7 @@
 // Admin Profile Page - Display and edit admin profile information
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../shared/contexts/AuthContext';
-import { LoadingSpinner } from '../../shared/components/LoadingSpinner/LoadingSpinner';
+import { LoadingSpinner } from '../../shared/components/LoadingSpinner';
 import { useAuthFetch } from '../../shared/hooks/useAuthFetch';
 import { supabase } from '../../shared/lib/supabaseClient';
 import type { AdminUser } from '../../shared/types/auth.types';

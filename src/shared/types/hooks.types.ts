@@ -9,7 +9,9 @@ import type {
   UserType,
   LegalType,
   PropertyType,
-  Service
+  Service,
+  Section,
+  QuestionType
 } from './entities.types';
 import type { DocumentWithDetails, DocumentType, ReviewStatus } from './document.types';
 
@@ -50,6 +52,8 @@ export interface LookupState {
   services: Service[];
   documentTypes: DocumentType[];
   reviewStatuses: ReviewStatus[];
+  sections: Section[];
+  questionTypes: QuestionType[];
   loading: boolean;
   error: string | null;
 }

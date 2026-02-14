@@ -3,9 +3,10 @@ import { useState, useMemo } from 'react';
 import { useUsers } from '../../shared/hooks/useUsers';
 import { useStrata } from '../../shared/hooks/useStrata';
 import { useLookups } from '../../shared/hooks/useLookups';
-import { DataTable, type Column } from '../../shared/components/DataTable/DataTable';
-import { Modal } from '../../shared/components/Modal/Modal';
-import { InputField, SelectField, FormRow } from '../../shared/components/FormField/FormField';
+import { DataTable, type Column } from '../../shared/components/DataTable';
+import { Modal } from '../../shared/components/Modal';
+import { InputField, SelectField, FormRow } from '../../shared/components/FormField';
+import { MultiSelectDropdown } from '../../shared/components/MultiSelectDropdown';
 import { useMediaQuery } from '../../shared/hooks/useMediaQuery';
 import type { UserWithStratas, CreateUserInput, UserFormData } from '../../shared/types/entities.types';
 
@@ -16,7 +17,7 @@ const initialFormData: UserFormData = {
   phoneNumber: '',
   userTypeId: undefined,
   companyName: '',
-  strataAssociations: [{ strataId: 0, strataPosition: '' }]
+  strataAssociations: [{ strataId: 0, strataPosition: '', sectionIds: [] }]
 };
 
 export default function UsersPage() {
@@ -177,9 +178,10 @@ export default function UsersPage() {
       strataAssociations: user.strataProfiles?.length
         ? user.strataProfiles.map(se => ({
             strataId: se.strata.strataId,
-            strataPosition: se.strataPosition || ''
+            strataPosition: se.strataPosition || '',
+            sectionIds: se.strataProfileSections?.map(sps => sps.sectionId) || []
           }))
-        : [{ strataId: 0, strataPosition: '' }]
+        : [{ strataId: 0, strataPosition: '', sectionIds: [] as number[] }]
     });
     setFormError(null);
     setIsModalOpen(true);
@@ -261,8 +263,16 @@ export default function UsersPage() {
   const addStrataAssociation = () => {
     setFormData(prev => ({
       ...prev,
-      strataAssociations: [...prev.strataAssociations, { strataId: 0, strataPosition: '' }]
+      strataAssociations: [...prev.strataAssociations, { strataId: 0, strataPosition: '', sectionIds: [] }]
     }));
+  };
+
+  const updateStrataAssociationSections = (index: number, sectionIds: number[]) => {
+    setFormData(prev => {
+      const newAssociations = [...prev.strataAssociations];
+      newAssociations[index] = { ...newAssociations[index], sectionIds };
+      return { ...prev, strataAssociations: newAssociations };
+    });
   };
 
   const removeStrataAssociation = (index: number) => {
@@ -466,39 +476,59 @@ export default function UsersPage() {
           </FormRow>
 
           {/* Strata Associations */}
-          {formData.strataAssociations.map((association, index) => (
-            <div key={index} className="strata-association-row">
-              <FormRow>
-                <SelectField
-                  label={`Associated Strata${index === 0 ? '' : ` ${index + 1}`}`}
-                  required
-                  value={association.strataId?.toString() || ''}
-                  onChange={(e) => updateStrataAssociation(index, 'strataId', e.target.value)}
-                  options={stratas.map(s => ({
-                    value: s.strataId,
-                    label: s.complexName || s.strataPlan || `Strata ${s.strataId}`
-                  }))}
-                  placeholder="Enter strata name"
-                />
-                <InputField
-                  label={`Strata ID${index === 0 ? '' : ` ${index + 1}`}`}
-                  required
-                  value={stratas.find(s => s.strataId === association.strataId)?.strataPlan || ''}
-                  disabled
-                  placeholder="Enter Strata ID"
-                />
-              </FormRow>
-              {index > 0 && (
-                <button
-                  type="button"
-                  className="btn-remove-strata"
-                  onClick={() => removeStrataAssociation(index)}
-                >
-                  Remove
-                </button>
-              )}
-            </div>
-          ))}
+          {formData.strataAssociations.map((association, index) => {
+            const selectedStrata = stratas.find(s => s.strataId === association.strataId);
+            const availableSections = selectedStrata?.strataSections?.map(ss => ({
+              value: ss.section.sectionId,
+              label: ss.section.sectionName
+            })) || [];
+
+            return (
+              <div key={index} className="strata-association-row">
+                <FormRow>
+                  <SelectField
+                    label={`Associated Strata${index === 0 ? '' : ` ${index + 1}`}`}
+                    required
+                    value={association.strataId?.toString() || ''}
+                    onChange={(e) => {
+                      updateStrataAssociation(index, 'strataId', e.target.value);
+                      updateStrataAssociationSections(index, []);
+                    }}
+                    options={stratas.map(s => ({
+                      value: s.strataId,
+                      label: s.complexName || s.strataPlan || `Strata ${s.strataId}`
+                    }))}
+                    placeholder="Enter strata name"
+                  />
+                  <InputField
+                    label={`Strata ID${index === 0 ? '' : ` ${index + 1}`}`}
+                    required
+                    value={selectedStrata?.strataPlan || ''}
+                    disabled
+                    placeholder="Enter Strata ID"
+                  />
+                </FormRow>
+                {association.strataId > 0 && availableSections.length > 0 && (
+                  <MultiSelectDropdown
+                    label={`Sections${index === 0 ? '' : ` ${index + 1}`}`}
+                    options={availableSections}
+                    selectedValues={association.sectionIds || []}
+                    onChange={(values) => updateStrataAssociationSections(index, values)}
+                    placeholder="Select sections"
+                  />
+                )}
+                {index > 0 && (
+                  <button
+                    type="button"
+                    className="btn-remove-strata"
+                    onClick={() => removeStrataAssociation(index)}
+                  >
+                    Remove
+                  </button>
+                )}
+              </div>
+            );
+          })}
 
           <div className="add-strata-checkbox">
             <label className="checkbox-label">

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../shared/contexts/AuthContext';
 import { supabase } from '../../shared/lib/supabaseClient';
-import { LoadingSpinner } from '../../shared/components/LoadingSpinner/LoadingSpinner';
+import { LoadingSpinner } from '../../shared/components/LoadingSpinner';
 import type { StrataInfo } from '../../shared/types/entities.types';
 
 const StrataInformation = () => {

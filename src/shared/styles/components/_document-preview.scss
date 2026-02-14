@@ -1,6 +1,5 @@
-@use '../../styles/variables' as *;
+@use '../variables' as *;
 
-/* Document Preview Modal Styles */
 .modal-body:has(.document-preview-container) {
   overflow: hidden;
   display: flex;
@@ -100,7 +99,6 @@
   }
 }
 
-/* Responsive */
 @media (max-width: 768px) {
   .document-preview-image {
     max-height: 400px;
