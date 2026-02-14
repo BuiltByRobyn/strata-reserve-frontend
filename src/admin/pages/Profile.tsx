@@ -3,25 +3,11 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../../shared/contexts/AuthContext';
 import { LoadingSpinner } from '../../shared/components/LoadingSpinner/LoadingSpinner';
 import { useAuthFetch } from '../../shared/hooks/useAuthFetch';
+import { supabase } from '../../shared/lib/supabaseClient';
 import type { AdminUser } from '../../shared/types/auth.types';
+import type { AdminProfileFormData as ProfileData } from '../../shared/types/entities.types';
+import { API_BASE } from '../../shared/lib/api';
 import '../../admin/styles/pages/_profile.scss';
-
-const API_URL = 'http://localhost:3000';
-
-interface ProfileData {
-  companyName: string;
-  contactName: string;
-  role: string;
-  address: string;
-  city: string;
-  province: string;
-  postalCode: string;
-  email: string;
-}
-
-interface EditableField {
-  [key: string]: boolean;
-}
 
 export default function ProfilePage() {
   const { user } = useAuth();
@@ -45,7 +31,6 @@ export default function ProfilePage() {
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('profile');
-  const [editableFields, setEditableFields] = useState<EditableField>({});
 
   // Fetch profile on mount
   useEffect(() => {
@@ -57,7 +42,7 @@ export default function ProfilePage() {
       setLoading(true);
       setError(null);
       
-      const response = await authFetch(`${API_URL}/admin/profile`);
+      const response = await authFetch(`${API_BASE}/admin/profile`);
       
       if (!response.ok) {
         throw new Error('Failed to fetch profile');
@@ -99,27 +84,19 @@ export default function ProfilePage() {
     setError(null);
   };
 
-  const toggleEdit = (field: string) => {
-    setEditableFields(prev => ({
-      ...prev,
-      [field]: !prev[field]
-    }));
-  };
-
   const handleSubmit = async () => {
     try {
       setSaving(true);
       setError(null);
       setSuccessMessage(null);
       
-      const response = await authFetch(`${API_URL}/admin/profile`, {
+      const response = await authFetch(`${API_BASE}/admin/profile`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           fullName: profileData.contactName,
-          email: profileData.email,
           companyName: profileData.companyName,
           address: profileData.address,
           city: profileData.city,
@@ -136,8 +113,6 @@ export default function ProfilePage() {
       
       if (data.success) {
         setSuccessMessage('Profile updated successfully!');
-        // Clear all edit modes
-        setEditableFields({});
       } else {
         throw new Error(data.error || 'Failed to update profile');
       }
@@ -149,48 +124,35 @@ export default function ProfilePage() {
     }
   };
 
-  // Profile Field Component - displays read-only value with edit icon
-  const ProfileField = ({ 
-    label, 
-    field, 
-    value, 
-    placeholder = '' 
-  }: { 
-    label: string; 
-    field: keyof ProfileData; 
-    value: string; 
+  // Profile Field Component - editable fields render as inputs, read-only as plain text
+  const ProfileField = ({
+    label,
+    field,
+    value,
+    placeholder = '',
+    readOnly = false
+  }: {
+    label: string;
+    field: keyof ProfileData;
+    value: string;
     placeholder?: string;
-  }) => {
-    const isEditing = editableFields[field];
-    
-    return (
-      <div className="profile-field">
-        <div className="field-label">
-          {label}
-          <button 
-            type="button" 
-            className="edit-icon"
-            onClick={() => toggleEdit(field)}
-            title={isEditing ? 'Save' : 'Edit'}
-          >
-            {isEditing ? '✓' : '✎'}
-          </button>
-        </div>
-        {isEditing ? (
-          <input
-            type="text"
-            value={value}
-            onChange={(e) => handleFieldChange(field, e.target.value)}
-            placeholder={placeholder}
-            className="field-input"
-            autoFocus
-          />
-        ) : (
-          <div className="field-value">{value || placeholder}</div>
-        )}
-      </div>
-    );
-  };
+    readOnly?: boolean;
+  }) => (
+    <div className={`profile-field${readOnly ? ' read-only' : ''}`}>
+      <div className="field-label">{label}</div>
+      {readOnly ? (
+        <div className="field-value">{value}</div>
+      ) : (
+        <input
+          type="text"
+          value={value}
+          onChange={(e) => handleFieldChange(field, e.target.value)}
+          placeholder={placeholder}
+          className="field-input"
+        />
+      )}
+    </div>
+  );
 
   if (loading) {
     return (
@@ -266,10 +228,11 @@ export default function ProfilePage() {
                 value={profileData.contactName}
                 placeholder="Enter contact name"
               />
-              <ProfileField 
-                label="Role" 
-                field="role" 
+              <ProfileField
+                label="Role"
+                field="role"
                 value={profileData.role}
+                readOnly
               />
             </div>
 
@@ -309,16 +272,25 @@ export default function ProfilePage() {
             <h2>Login Details</h2>
             
             <div className="login-details-row">
-              <ProfileField 
-                label="Email" 
-                field="email" 
+              <ProfileField
+                label="Email"
+                field="email"
                 value={profileData.email}
-                placeholder="Enter email"
+                readOnly
               />
-              <button 
+              <button
                 type="button"
                 className="change-password-link"
-                onClick={() => alert('Password change feature coming soon!')}
+                onClick={async () => {
+                  try {
+                    const { error: resetError } = await supabase.auth.resetPasswordForEmail(profileData.email);
+                    if (resetError) throw resetError;
+                    setSuccessMessage('Password reset email sent. Please check your inbox.');
+                  } catch (err) {
+                    console.error('Password reset error:', err);
+                    setError('Failed to send password reset email. Please try again.');
+                  }
+                }}
               >
                 Change Password
               </button>

@@ -412,15 +412,38 @@ export interface StrataAssociation {
   strataPosition?: string;
 }
 
-export interface AdminProfileFormData {
+export interface BaseProfileFormData {
   companyName: string;
-  contactName: string;
   role: string;
   address: string;
   city: string;
   province: string;
   postalCode: string;
   email: string;
+}
+
+export interface AdminProfileFormData extends BaseProfileFormData {
+  contactName: string;
+}
+
+export interface ClientProfileFormData extends BaseProfileFormData {
+  firstName: string;
+  lastName: string;
+  cellNumber: string;
+  officeNumber: string;
+}
+
+export interface EditableField {
+  [key: string]: boolean;
+}
+
+export interface CreateSRFormData {
+  serviceId: string;
+  requestedByFirstName: string;
+  requestedByLastName: string;
+  associatedCompany: string;
+  contactEmail: string;
+  contactPhone: string;
 }
 
 export interface UpdateAdminProfileInput {

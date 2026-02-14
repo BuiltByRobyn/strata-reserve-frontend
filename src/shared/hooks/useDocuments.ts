@@ -5,7 +5,7 @@ import type { DocumentWithDetails } from '../types/document.types';
 import type { ApiListResponse, ApiSingleResponse } from '../types/entities.types';
 import type { DocumentsState } from '../types/hooks.types';
 import { API_BASE } from '../lib/api';
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../lib/constants';
 
 export const useDocuments = () => {
   const authFetch = useAuthFetch();
@@ -82,6 +82,7 @@ export const useDocuments = () => {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
+          apikey: SUPABASE_ANON_KEY,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ documentId: id }),
@@ -108,6 +109,7 @@ export const useDocuments = () => {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
+          apikey: SUPABASE_ANON_KEY,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({}),

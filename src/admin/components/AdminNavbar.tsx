@@ -102,7 +102,7 @@ export const AdminNavbar = () => {
           className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
           onClick={closeMobileMenu}
         >
-          {adminUser?.fullName || 'Profile'}
+          System Settings
         </NavLink>
         <button 
           onClick={() => {

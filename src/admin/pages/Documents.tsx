@@ -12,10 +12,8 @@ import { InputField, SelectField, TextareaField, FormRow } from '../../shared/co
 import type { DocumentWithDetails, DocumentUploadData } from '../../shared/types/document.types';
 import { STRATA_ID_PATTERN, formatStrataId } from '../../shared/utils/strataUtils';
 import { API_BASE } from '../../shared/lib/api';
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-
-const formatTypeName = (name: string): string =>
-  name.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../../shared/lib/constants';
+import { formatTypeName, formatDate, getStatusBadgeClass } from '../../shared/lib/formatters';
 
 export default function DocumentsPage() {
   const { documents, loading, error, refetch, updateDocumentStatus, deleteDocument, syncDocuments } = useDocuments();
@@ -111,24 +109,6 @@ export default function DocumentsPage() {
 
     setFilteredDocuments(result);
   }, [documents, searchQuery, filterDocType, filterStrata, showArchived]);
-
-  const getStatusBadgeClass = (statusName?: string): string => {
-    if (!statusName) return 'status-badge pending';
-    switch (statusName.toLowerCase()) {
-      case 'approved': return 'status-badge approved';
-      case 'rejected': return 'status-badge rejected';
-      case 'needs revision': return 'status-badge needs-revision';
-      default: return 'status-badge pending';
-    }
-  };
-
-  const formatDate = (dateString: string): string => {
-    return new Date(dateString).toLocaleDateString('en-AU', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
-    });
-  };
 
   const columns: Column<DocumentWithDetails>[] = [
     {
@@ -295,7 +275,7 @@ export default function DocumentsPage() {
         `${SUPABASE_URL}/functions/v1/upload-document`,
         {
           method: 'POST',
-          headers: { Authorization: `Bearer ${token}` },
+          headers: { Authorization: `Bearer ${token}`, apikey: SUPABASE_ANON_KEY },
           body: formData
         }
       );
@@ -580,7 +560,7 @@ export default function DocumentsPage() {
         onClose={handleClosePreview}
         documentId={previewDocumentId}
         documentName={previewDocumentName}
-        token={session?.access_token}
+        token={session!.access_token}
       />
     </div>
   );

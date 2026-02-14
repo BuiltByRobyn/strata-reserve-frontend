@@ -1,4 +1,5 @@
 import type { ReactNode, InputHTMLAttributes, SelectHTMLAttributes, TextareaHTMLAttributes } from 'react';
+import type { SurveySection } from './survey.types';
 
 export interface Column<T> {
   key: string;
@@ -52,8 +53,35 @@ export interface ProtectedRouteProps {
   requireClient?: boolean;
 }
 
-export interface DocumentUploadComponentProps {
-  serviceRequestId: number;
-  documentTypeId: number;
-  onUploadComplete?: () => void;
+export interface ModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  title: string;
+  size?: 'small' | 'medium' | 'large' | 'preview';
+  footer?: ReactNode;
+  children: ReactNode;
+}
+
+export interface Tab {
+  key: string;
+  label: string;
+}
+
+export interface TabsProps {
+  tabs: Tab[];
+  activeTab: string;
+  onChange: (key: string) => void;
+  variant?: 'default' | 'pill';
+}
+
+export interface SurveyProgressBarProps {
+  answered: number;
+  total: number;
+}
+
+export interface SurveyCategoryNavProps {
+  sections: SurveySection[];
+  activeSection: string;
+  onSelect: (sectionKey: string) => void;
+  completionMap?: Record<string, boolean>;
 }

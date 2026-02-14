@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import type { DocumentWithDetails, RequiredDocumentChecklist } from '../types/document.types';
 import type { ApiListResponse } from '../types/entities.types';
 import { API_BASE } from '../lib/api';
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../lib/constants';
 
 export const useClientDocuments = () => {
   const authFetch = useAuthFetch();
@@ -85,7 +85,7 @@ export const useClientDocuments = () => {
         `${SUPABASE_URL}/functions/v1/upload-document`,
         {
           method: 'POST',
-          headers: { Authorization: `Bearer ${token}` },
+          headers: { Authorization: `Bearer ${token}`, apikey: SUPABASE_ANON_KEY },
           body: formData
         }
       );

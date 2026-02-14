@@ -23,6 +23,7 @@ import type { SurveyQuestion } from "../../shared/types/survey.types";
 import type {
   StrataWithDetails,
   ServiceRequest,
+  CreateSRFormData,
 } from "../../shared/types/entities.types";
 
 const MAIN_TABS = [
@@ -31,15 +32,6 @@ const MAIN_TABS = [
   { key: "documents", label: "Documents" },
   { key: "notes", label: "Notes" },
 ];
-
-interface CreateSRFormData {
-  serviceId: string;
-  requestedByFirstName: string;
-  requestedByLastName: string;
-  associatedCompany: string;
-  contactEmail: string;
-  contactPhone: string;
-}
 
 const INITIAL_SR_FORM: CreateSRFormData = {
   serviceId: "",

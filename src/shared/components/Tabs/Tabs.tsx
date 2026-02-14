@@ -1,14 +1,4 @@
-interface Tab {
-  key: string;
-  label: string;
-}
-
-interface TabsProps {
-  tabs: Tab[];
-  activeTab: string;
-  onChange: (key: string) => void;
-  variant?: "default" | "pill";
-}
+import type { TabsProps } from '../../types/component.types';
 
 export function Tabs({ tabs, activeTab, onChange, variant = "default" }: TabsProps) {
   return (

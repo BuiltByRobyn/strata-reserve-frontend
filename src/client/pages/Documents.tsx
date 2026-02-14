@@ -5,9 +5,8 @@ import { useAuth } from '../../shared/contexts/AuthContext';
 import { LoadingSpinner } from '../../shared/components/LoadingSpinner/LoadingSpinner';
 import { DocumentPreviewModal } from '../../shared/components/DocumentPreview/DocumentPreviewModal';
 import type { RequiredDocumentChecklist } from '../../shared/types/document.types';
-
-const formatTypeName = (name: string): string =>
-  name.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+import { formatTypeName } from '../../shared/lib/formatters';
+import { validateFileType, validateFileSize } from '../../shared/lib/validation';
 
 export default function ClientDocumentsPage() {
   const {
@@ -53,23 +52,11 @@ export default function ClientDocumentsPage() {
     const file = e.target.files?.[0];
     if (!file || !uploadingDocTypeId || !serviceRequestId) return;
 
-    const allowedTypes = [
-      'application/pdf',
-      'image/jpeg',
-      'image/jpg',
-      'application/msword',
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-    ];
+    const typeError = validateFileType(file);
+    if (typeError) { alert(typeError); return; }
 
-    if (!allowedTypes.includes(file.type)) {
-      alert('Only PDF, JPEG, and DOC/DOCX files are allowed');
-      return;
-    }
-
-    if (file.size > 10 * 1024 * 1024) {
-      alert('File too large. Maximum 10MB');
-      return;
-    }
+    const sizeError = validateFileSize(file);
+    if (sizeError) { alert(sizeError); return; }
 
     const success = await uploadDocument(file, serviceRequestId, uploadingDocTypeId);
     if (success) {
@@ -199,7 +186,7 @@ export default function ClientDocumentsPage() {
         onClose={handleClosePreview}
         documentId={previewDocumentId}
         documentName={previewDocumentName}
-        token={session?.access_token}
+        token={session!.access_token}
       />
     </div>
   );

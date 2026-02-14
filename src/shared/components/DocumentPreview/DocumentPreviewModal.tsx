@@ -1,26 +1,18 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Modal } from '../Modal/Modal';
 import { LoadingSpinner } from '../LoadingSpinner/LoadingSpinner';
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../../lib/constants';
+import type { DocumentPreviewModalProps } from '../../types/document.types';
 
-interface DocumentPreviewModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  documentId: number | null;
-  documentName: string;
-  token?: string | null;
-}
-
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-
-const getFileType = (fileName: string): 'pdf' | 'image' | 'other' => {
-  const extension = fileName.toLowerCase().split('.').pop();
-  if (extension === 'pdf') return 'pdf';
-  if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(extension || '')) return 'image';
+const getFileType = (contentType: string): 'pdf' | 'image' | 'other' => {
+  if (contentType.includes('application/pdf')) return 'pdf';
+  if (contentType.startsWith('image/')) return 'image';
   return 'other';
 };
 
 export function DocumentPreviewModal({ isOpen, onClose, documentId, documentName, token }: DocumentPreviewModalProps) {
   const [blobUrl, setBlobUrl] = useState<string | null>(null);
+  const [fileContentType, setFileContentType] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -30,6 +22,7 @@ export function DocumentPreviewModal({ isOpen, onClose, documentId, documentName
       setBlobUrl(null);
     }
     setError(null);
+    setFileContentType('');
   }, [blobUrl]);
 
   useEffect(() => {
@@ -46,6 +39,7 @@ export function DocumentPreviewModal({ isOpen, onClose, documentId, documentName
           method: 'POST',
           headers: {
             Authorization: `Bearer ${token}`,
+            apikey: SUPABASE_ANON_KEY,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({ documentId }),
@@ -64,6 +58,7 @@ export function DocumentPreviewModal({ isOpen, onClose, documentId, documentName
 
         const blob = await response.blob();
         if (!cancelled) {
+          setFileContentType(contentType);
           setBlobUrl(URL.createObjectURL(blob));
         }
       } catch (err) {
@@ -92,7 +87,7 @@ export function DocumentPreviewModal({ isOpen, onClose, documentId, documentName
   const renderPreview = () => {
     if (!blobUrl) return null;
 
-    const fileType = getFileType(documentName);
+    const fileType = getFileType(fileContentType);
 
     switch (fileType) {
       case 'pdf':

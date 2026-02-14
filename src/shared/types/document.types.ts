@@ -64,5 +64,5 @@ export interface DocumentPreviewModalProps {
   onClose: () => void;
   documentId: number | null;
   documentName: string;
-  endpoint?: 'admin' | 'client';
+  token: string;
 }
