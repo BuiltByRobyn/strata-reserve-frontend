@@ -8,6 +8,7 @@ import StrataDetailPage from '../pages/StrataDetail';
 import UsersPage from '../pages/Users';
 import AppointmentsPage from '../pages/Appointments';
 import DocumentsPage from '../pages/Documents';
+import QuestionsPage from '../pages/Questions';
 
 export const adminRoutes = [
   <Route key="admin-dashboard" path="/admin/dashboard" element={
@@ -76,6 +77,16 @@ export const adminRoutes = [
         <AdminNavbar />
         <main className="app-main">
           <DocumentsPage />
+        </main>
+      </div>
+    </ProtectedRoute>
+  } />,
+  <Route key="admin-questions" path="/admin/questions" element={
+    <ProtectedRoute requireAdmin>
+      <div className="app">
+        <AdminNavbar />
+        <main className="app-main">
+          <QuestionsPage />
         </main>
       </div>
     </ProtectedRoute>

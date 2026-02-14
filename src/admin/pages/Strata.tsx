@@ -7,24 +7,26 @@ import { useMediaQuery } from "../../shared/hooks/useMediaQuery";
 import {
   DataTable,
   type Column,
-} from "../../shared/components/DataTable/DataTable";
-import { LoadingSpinner } from "../../shared/components/LoadingSpinner/LoadingSpinner";
-import { Modal } from "../../shared/components/Modal/Modal";
+} from "../../shared/components/DataTable";
+import { LoadingSpinner } from "../../shared/components/LoadingSpinner";
+import { Modal } from "../../shared/components/Modal";
 import {
   InputField,
   SelectField,
   FormRow,
-} from "../../shared/components/FormField/FormField";
+} from "../../shared/components/FormField";
+import { MultiSelectDropdown } from "../../shared/components/MultiSelectDropdown";
 import type {
   Strata,
   CreateStrataInput,
   UpdateStrataInput,
 } from "../../shared/types/entities.types";
+import { formatStrataId, validateStrataId } from "../../shared/utils/strataUtils";
 
 export default function StrataPage() {
   const { stratas, loading, error, createStrata, updateStrata, deleteStrata } =
     useStrata();
-  const { legalTypes, propertyTypes } = useLookups();
+  const { legalTypes, propertyTypes, sections } = useLookups();
   const { companies } = useCompanies();
   const navigate = useNavigate();
 
@@ -103,7 +105,7 @@ export default function StrataPage() {
 
   const openCreateModal = () => {
     setEditingStrata(null);
-    setFormData({ country: "Canada" });
+    setFormData({ country: "Canada", sectionIds: [] });
     setFormError(null);
     setIsModalOpen(true);
   };
@@ -123,6 +125,7 @@ export default function StrataPage() {
       legalTypeId: strata.legalTypeId || undefined,
       propertyTypeId: strata.propertyTypeId || undefined,
       companyId: strata.companyId || undefined,
+      sectionIds: strata.strataSections?.map(ss => ss.section.sectionId) || [],
     });
     setFormError(null);
     setIsModalOpen(true);
@@ -130,6 +133,11 @@ export default function StrataPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!validateStrataId(formData.strataPlan || '')) {
+      setFormError('Strata Plan must be in format: ABC 12345 (3 letters, space, 5 digits)');
+      return;
+    }
 
     setIsSubmitting(true);
     setFormError(null);
@@ -342,8 +350,9 @@ export default function StrataPage() {
             <InputField
               label="Strata Plan"
               value={formData.strataPlan || ""}
-              onChange={(e) => updateField("strataPlan", e.target.value)}
-              placeholder="e.g., VIS 2345"
+              onChange={(e) => updateField("strataPlan", formatStrataId(e.target.value))}
+              placeholder="e.g., VIS 23456"
+              maxLength={9}
               required
             />
             <InputField
@@ -445,6 +454,15 @@ export default function StrataPage() {
               required
             />
           </FormRow>
+
+          <MultiSelectDropdown
+            label="Sections"
+            options={sections.map(s => ({ value: s.sectionId, label: s.sectionName }))}
+            selectedValues={formData.sectionIds || []}
+            onChange={(values) => setFormData(prev => ({ ...prev, sectionIds: values }))}
+            placeholder="Select sections"
+            required
+          />
 
           <SelectField
             label="Company"

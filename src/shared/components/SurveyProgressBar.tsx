@@ -1,4 +1,4 @@
-import type { SurveyProgressBarProps } from '../../types/component.types';
+import type { SurveyProgressBarProps } from '../types/component.types';
 
 export function SurveyProgressBar({ answered, total }: SurveyProgressBarProps) {
   const percentage = total > 0 ? Math.round((answered / total) * 100) : 0;

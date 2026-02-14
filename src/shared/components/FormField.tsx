@@ -1,4 +1,4 @@
-import type { InputFieldProps, SelectFieldProps, TextareaFieldProps, FormRowProps } from '../../types/component.types';
+import type { InputFieldProps, SelectFieldProps, TextareaFieldProps, FormRowProps } from '../types/component.types';
 
 export function InputField({
   label,
@@ -9,7 +9,7 @@ export function InputField({
   ...props
 }: InputFieldProps) {
   const fieldId = id || `field-${label.toLowerCase().replace(/\s+/g, '-')}`;
-  
+
   return (
     <div className={`form-field ${error ? 'has-error' : ''}`}>
       <label htmlFor={fieldId}>
@@ -34,7 +34,7 @@ export function SelectField({
   ...props
 }: SelectFieldProps) {
   const fieldId = id || `field-${label.toLowerCase().replace(/\s+/g, '-')}`;
-  
+
   return (
     <div className={`form-field ${error ? 'has-error' : ''}`}>
       <label htmlFor={fieldId}>
@@ -67,7 +67,7 @@ export function TextareaField({
   ...props
 }: TextareaFieldProps) {
   const fieldId = id || `field-${label.toLowerCase().replace(/\s+/g, '-')}`;
-  
+
   return (
     <div className={`form-field ${error ? 'has-error' : ''}`}>
       <label htmlFor={fieldId}>

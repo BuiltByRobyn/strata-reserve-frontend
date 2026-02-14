@@ -85,3 +85,11 @@ export interface SurveyCategoryNavProps {
   onSelect: (sectionKey: string) => void;
   completionMap?: Record<string, boolean>;
 }
+
+export interface MultiSelectDropdownProps extends BaseFieldProps {
+  options: { value: number; label: string }[];
+  selectedValues: number[];
+  onChange: (values: number[]) => void;
+  placeholder?: string;
+  disabled?: boolean;
+}

@@ -1,4 +1,4 @@
-import type { SurveyCategoryNavProps } from '../../types/component.types';
+import type { SurveyCategoryNavProps } from '../types/component.types';
 
 export function SurveyCategoryNav({
   sections,

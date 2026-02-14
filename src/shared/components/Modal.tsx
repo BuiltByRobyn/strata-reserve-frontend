@@ -1,4 +1,4 @@
-import type { ModalProps } from '../../types/component.types';
+import type { ModalProps } from '../types/component.types';
 
 export const Modal = ({ isOpen, onClose, title, size = 'medium', footer, children }: ModalProps) => {
   if (!isOpen) return null;

@@ -2,9 +2,9 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useSurvey } from '../../shared/hooks/useSurvey';
 import { useClientServiceRequest } from '../../shared/hooks/useClientServiceRequest';
-import { SurveyProgressBar } from '../../shared/components/SurveyProgressBar/SurveyProgressBar';
-import { SurveyCategoryNav } from '../../shared/components/SurveyCategoryNav/SurveyCategoryNav';
-import { LoadingSpinner } from '../../shared/components/LoadingSpinner/LoadingSpinner';
+import { SurveyProgressBar } from '../../shared/components/SurveyProgressBar';
+import { SurveyCategoryNav } from '../../shared/components/SurveyCategoryNav';
+import { LoadingSpinner } from '../../shared/components/LoadingSpinner';
 import {
   SURVEY_SECTIONS,
   SECTION_QUESTION_RANGES,

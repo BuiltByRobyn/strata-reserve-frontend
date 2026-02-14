@@ -1,9 +1,9 @@
 // Companies Page - Admin management of companies
 import { useState } from 'react';
 import { useCompanies } from '../../shared/hooks/useCompanies';
-import { DataTable, type Column } from '../../shared/components/DataTable/DataTable';
-import { Modal } from '../../shared/components/Modal/Modal';
-import { InputField } from '../../shared/components/FormField/FormField';
+import { DataTable, type Column } from '../../shared/components/DataTable';
+import { Modal } from '../../shared/components/Modal';
+import { InputField } from '../../shared/components/FormField';
 import type { Company, CreateCompanyInput, UpdateCompanyInput } from '../../shared/types/entities.types';
 
 export default function CompaniesPage() {

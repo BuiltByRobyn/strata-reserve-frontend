@@ -1,0 +1,171 @@
+@use '../../../shared/styles/variables' as *;
+
+.questions-page {
+  .page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: $spacing-lg;
+  }
+
+  .filters-row {
+    display: flex;
+    gap: $spacing-md;
+    margin-bottom: $spacing-lg;
+    flex-wrap: wrap;
+
+    .search-field {
+      flex: 1;
+      min-width: 200px;
+    }
+
+    .form-field {
+      min-width: 180px;
+    }
+
+    @include respond-below(sm) {
+      flex-direction: column;
+
+      .form-field {
+        min-width: 100%;
+      }
+    }
+  }
+
+  .create-question-button-desktop {
+    @include respond-below(md) {
+      display: none;
+    }
+  }
+
+  .create-question-button {
+    display: none;
+    margin: $spacing-md 0;
+
+    @include respond-below(md) {
+      display: block;
+    }
+  }
+
+  .mc-options-list {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-sm;
+    margin-top: $spacing-sm;
+
+    .mc-option-row {
+      display: flex;
+      gap: $spacing-sm;
+      align-items: center;
+
+      input {
+        flex: 1;
+        padding: $spacing-xs $spacing-sm;
+        border: 1px solid $color-border-light;
+        border-radius: $border-radius-sm;
+        font-size: 0.875rem;
+      }
+
+      .mc-sort-input {
+        width: 60px;
+      }
+
+      .btn-remove-option {
+        padding: $spacing-xs $spacing-sm;
+        background: none;
+        border: 1px solid $color-error;
+        border-radius: $border-radius-sm;
+        color: $color-error;
+        cursor: pointer;
+        font-size: 0.75rem;
+        white-space: nowrap;
+
+        &:hover {
+          background: rgba($color-error, 0.05);
+        }
+      }
+    }
+  }
+
+  .btn-add-option {
+    margin-top: $spacing-sm;
+    padding: $spacing-xs $spacing-md;
+    background: none;
+    border: 1px dashed $color-primary;
+    border-radius: $border-radius-sm;
+    color: $color-primary;
+    cursor: pointer;
+    font-size: 0.875rem;
+
+    &:hover {
+      background: rgba($color-primary, 0.05);
+    }
+  }
+
+  .service-entry-row {
+    display: flex;
+    gap: $spacing-sm;
+    align-items: flex-end;
+    margin-bottom: $spacing-sm;
+
+    .form-field {
+      flex: 1;
+      margin-bottom: 0;
+    }
+
+    .sort-field {
+      width: 80px;
+    }
+
+    .btn-remove-service {
+      padding: $spacing-sm;
+      background: none;
+      border: 1px solid $color-error;
+      border-radius: $border-radius-sm;
+      color: $color-error;
+      cursor: pointer;
+      font-size: 0.75rem;
+      margin-bottom: 0;
+      height: fit-content;
+
+      &:hover {
+        background: rgba($color-error, 0.05);
+      }
+    }
+  }
+
+  .btn-add-service {
+    margin-bottom: $spacing-md;
+    padding: $spacing-xs $spacing-md;
+    background: none;
+    border: 1px dashed $color-primary;
+    border-radius: $border-radius-sm;
+    color: $color-primary;
+    cursor: pointer;
+    font-size: 0.875rem;
+
+    &:hover {
+      background: rgba($color-primary, 0.05);
+    }
+  }
+
+  .checkbox-field {
+    display: flex;
+    align-items: center;
+    gap: $spacing-sm;
+    margin-bottom: $spacing-md;
+
+    input[type="checkbox"] {
+      accent-color: $color-primary;
+      width: 18px;
+      height: 18px;
+    }
+
+    label {
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: $color-text-dark;
+      cursor: pointer;
+    }
+  }
+}

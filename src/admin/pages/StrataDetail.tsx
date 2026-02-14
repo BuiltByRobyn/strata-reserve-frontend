@@ -5,16 +5,16 @@ import { useServiceRequests } from "../../shared/hooks/useServiceRequests";
 import { useLookups } from "../../shared/hooks/useLookups";
 import { useAuth } from "../../shared/contexts/AuthContext";
 import { useSurvey } from "../../shared/hooks/useSurvey";
-import { LoadingSpinner } from "../../shared/components/LoadingSpinner/LoadingSpinner";
-import { Modal } from "../../shared/components/Modal/Modal";
-import { Tabs } from "../../shared/components/Tabs/Tabs";
-import { SurveyCategoryNav } from "../../shared/components/SurveyCategoryNav/SurveyCategoryNav";
-import { SurveyProgressBar } from "../../shared/components/SurveyProgressBar/SurveyProgressBar";
+import { LoadingSpinner } from "../../shared/components/LoadingSpinner";
+import { Modal } from "../../shared/components/Modal";
+import { Tabs } from "../../shared/components/Tabs";
+import { SurveyCategoryNav } from "../../shared/components/SurveyCategoryNav";
+import { SurveyProgressBar } from "../../shared/components/SurveyProgressBar";
 import {
   InputField,
   SelectField,
   FormRow,
-} from "../../shared/components/FormField/FormField";
+} from "../../shared/components/FormField";
 import {
   SURVEY_SECTIONS,
   SECTION_QUESTION_RANGES,

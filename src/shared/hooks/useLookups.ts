@@ -5,6 +5,8 @@ import type {
   LegalType,
   PropertyType,
   Service,
+  Section,
+  QuestionType,
   ApiListResponse
 } from '../types/entities.types';
 import type { DocumentType, ReviewStatus } from '../types/document.types';
@@ -20,6 +22,8 @@ export const useLookups = () => {
     services: [],
     documentTypes: [],
     reviewStatuses: [],
+    sections: [],
+    questionTypes: [],
     loading: true,
     error: null
   });
@@ -28,29 +32,35 @@ export const useLookups = () => {
     setState(prev => ({ ...prev, loading: true, error: null }));
 
     try {
-      const [userTypesRes, legalTypesRes, propertyTypesRes, servicesRes, documentTypesRes, reviewStatusesRes] = await Promise.all([
+      const [userTypesRes, legalTypesRes, propertyTypesRes, servicesRes, documentTypesRes, reviewStatusesRes, sectionsRes, questionTypesRes] = await Promise.all([
         authFetch(`${API_BASE}/api/lookups/user-types`),
         authFetch(`${API_BASE}/api/lookups/legal-types`),
         authFetch(`${API_BASE}/api/lookups/property-types`),
         authFetch(`${API_BASE}/api/lookups/services`),
         authFetch(`${API_BASE}/api/lookups/document-types`),
-        authFetch(`${API_BASE}/api/lookups/review-statuses`)
+        authFetch(`${API_BASE}/api/lookups/review-statuses`),
+        authFetch(`${API_BASE}/api/lookups/sections`),
+        authFetch(`${API_BASE}/api/lookups/question-types`)
       ]);
 
-      const [userTypesData, legalTypesData, propertyTypesData, servicesData, documentTypesData, reviewStatusesData]: [
+      const [userTypesData, legalTypesData, propertyTypesData, servicesData, documentTypesData, reviewStatusesData, sectionsData, questionTypesData]: [
         ApiListResponse<UserType>,
         ApiListResponse<LegalType>,
         ApiListResponse<PropertyType>,
         ApiListResponse<Service>,
         ApiListResponse<DocumentType>,
-        ApiListResponse<ReviewStatus>
+        ApiListResponse<ReviewStatus>,
+        ApiListResponse<Section>,
+        ApiListResponse<QuestionType>
       ] = await Promise.all([
         userTypesRes.json(),
         legalTypesRes.json(),
         propertyTypesRes.json(),
         servicesRes.json(),
         documentTypesRes.json(),
-        reviewStatusesRes.json()
+        reviewStatusesRes.json(),
+        sectionsRes.json(),
+        questionTypesRes.json()
       ]);
 
       setState({
@@ -60,6 +70,8 @@ export const useLookups = () => {
         services: servicesData.data || [],
         documentTypes: documentTypesData.data || [],
         reviewStatuses: reviewStatusesData.data || [],
+        sections: sectionsData.data || [],
+        questionTypes: questionTypesData.data || [],
         loading: false,
         error: null
       });
