@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useDocuments } from '../../shared/hooks/useDocuments';
+import { useStrata } from '../../shared/hooks/useStrata';
 import { useLookups } from '../../shared/hooks/useLookups';
 import { useAuth } from '../../shared/contexts/AuthContext';
 import { useAuthFetch } from '../../shared/hooks/useAuthFetch';
@@ -17,6 +18,7 @@ import { formatTypeName, formatDate, getStatusBadgeClass } from '../../shared/li
 
 export default function DocumentsPage() {
   const { documents, loading, error, refetch, updateDocumentStatus, deleteDocument, syncDocuments } = useDocuments();
+  const { stratas } = useStrata();
   const { documentTypes, reviewStatuses } = useLookups();
   const { session, user } = useAuth();
   const authFetch = useAuthFetch();
@@ -24,7 +26,8 @@ export default function DocumentsPage() {
   const [filteredDocuments, setFilteredDocuments] = useState<DocumentWithDetails[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterDocType, setFilterDocType] = useState('');
-  const [filterStrata, setFilterStrata] = useState('');
+  const [filterStrataName, setFilterStrataName] = useState('');
+  const [filterStrataPlan, setFilterStrataPlan] = useState('');
   const [showArchived, setShowArchived] = useState(false);
 
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
@@ -48,6 +51,7 @@ export default function DocumentsPage() {
   const [previewModalOpen, setPreviewModalOpen] = useState(false);
   const [previewDocumentId, setPreviewDocumentId] = useState<number | null>(null);
   const [previewDocumentName, setPreviewDocumentName] = useState('');
+  const [previewDocument, setPreviewDocument] = useState<DocumentWithDetails | null>(null);
 
   const isDesktop = useMediaQuery('(min-width: 600px)');
 
@@ -100,15 +104,16 @@ export default function DocumentsPage() {
       result = result.filter(d => d.documentType.documentTypeId === parseInt(filterDocType));
     }
 
-    if (filterStrata) {
-      result = result.filter(d =>
-        d.serviceRequest.strata.strataPlan?.toLowerCase().includes(filterStrata.toLowerCase()) ||
-        d.serviceRequest.strata.complexName?.toLowerCase().includes(filterStrata.toLowerCase())
-      );
+    if (filterStrataName) {
+      result = result.filter(d => d.serviceRequest.strata.strataId === parseInt(filterStrataName));
+    }
+
+    if (filterStrataPlan) {
+      result = result.filter(d => d.serviceRequest.strata.strataId === parseInt(filterStrataPlan));
     }
 
     setFilteredDocuments(result);
-  }, [documents, searchQuery, filterDocType, filterStrata, showArchived]);
+  }, [documents, searchQuery, filterDocType, filterStrataName, filterStrataPlan, showArchived]);
 
   const columns: Column<DocumentWithDetails>[] = [
     {
@@ -210,6 +215,7 @@ export default function DocumentsPage() {
   const handlePreview = (doc: DocumentWithDetails) => {
     setPreviewDocumentId(doc.serviceRequestDocumentId);
     setPreviewDocumentName(doc.fileName);
+    setPreviewDocument(doc);
     setPreviewModalOpen(true);
   };
 
@@ -217,6 +223,7 @@ export default function DocumentsPage() {
     setPreviewModalOpen(false);
     setPreviewDocumentId(null);
     setPreviewDocumentName('');
+    setPreviewDocument(null);
   };
 
   const openUploadModal = () => {
@@ -329,20 +336,29 @@ export default function DocumentsPage() {
             options={documentTypes.map(dt => ({ value: dt.documentTypeId, label: formatTypeName(dt.typeName) }))}
             placeholder="All Types"
           />
-          <InputField
-            label="Strata"
-            value={filterStrata}
-            onChange={(e) => setFilterStrata(e.target.value)}
-            placeholder="Filter by strata..."
+          <SelectField
+            label="Strata Name"
+            value={filterStrataName}
+            onChange={(e) => setFilterStrataName(e.target.value)}
+            options={stratas.filter(s => s.complexName).map(s => ({ value: s.strataId, label: s.complexName! }))}
+            placeholder="All Strata"
           />
-          <div className="form-field">
-            <label>&nbsp;</label>
-            <button
-              className={showArchived ? 'btn-primary' : 'btn-secondary'}
-              onClick={() => setShowArchived(prev => !prev)}
-            >
-              {showArchived ? 'Hide Archived' : 'Show Archived'}
-            </button>
+          <SelectField
+            label="Strata Plan"
+            value={filterStrataPlan}
+            onChange={(e) => setFilterStrataPlan(e.target.value)}
+            options={stratas.filter(s => s.strataPlan).map(s => ({ value: s.strataId, label: s.strataPlan! }))}
+            placeholder="All Plans"
+          />
+          <div className="form-field archived-toggle">
+            <label>
+              <input
+                type="checkbox"
+                checked={showArchived}
+                onChange={() => setShowArchived(prev => !prev)}
+              />
+              Show Archived
+            </label>
           </div>
         </div>
 
@@ -368,10 +384,10 @@ export default function DocumentsPage() {
           loading={loading}
           emptyMessage="No documents found."
           onRowClick={(doc) => handlePreview(doc)}
+          actionsColumnHeader="Action"
           actions={(doc) => (
             <>
               <button className="btn-edit" onClick={() => openStatusModal(doc)}>Review</button>
-              <button className="btn-delete" onClick={() => handleDelete(doc)}>Delete</button>
             </>
           )}
         />
@@ -426,7 +442,6 @@ export default function DocumentsPage() {
                         <td className="mobile-label-col">Actions</td>
                         <td className="mobile-value-col actions-cell">
                           <button className="btn-edit" onClick={() => openStatusModal(doc)}>Review</button>
-                          <button className="btn-delete" onClick={() => handleDelete(doc)}>Delete</button>
                         </td>
                       </tr>
                     </tbody>
@@ -561,6 +576,7 @@ export default function DocumentsPage() {
         documentId={previewDocumentId}
         documentName={previewDocumentName}
         token={session!.access_token}
+        onDelete={previewDocument ? () => handleDelete(previewDocument) : undefined}
       />
     </div>
   );

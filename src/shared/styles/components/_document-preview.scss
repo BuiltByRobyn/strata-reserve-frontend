@@ -67,6 +67,8 @@
   display: flex;
   gap: $spacing-md;
   justify-content: flex-end;
+  align-items: center;
+  width: 100%;
 
   .btn {
     padding: $spacing-sm $spacing-lg;
@@ -76,11 +78,18 @@
     cursor: pointer;
     transition: all 0.2s ease;
     text-decoration: none;
+    min-width: 120px;
+    text-align: center;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1.4;
+    box-sizing: border-box;
 
     &.btn-primary {
       background-color: $color-primary;
       color: $color-white;
-      border: none;
+      border: 1px solid $color-primary;
 
       &:hover {
         background-color: $color-primary-hover;
@@ -94,6 +103,17 @@
 
       &:hover {
         background-color: $color-background-off-white;
+      }
+    }
+
+    &.btn-delete {
+      background-color: $color-error;
+      color: $color-white;
+      border: 1px solid $color-error;
+      margin-right: auto;
+
+      &:hover {
+        background-color: $color-error-dark;
       }
     }
   }
