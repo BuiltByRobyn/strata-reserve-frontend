@@ -9,8 +9,7 @@ import type {
   StrataMemberInfo,
   UpdateProfileInput,
 } from '../../shared/types/entities.types';
-
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+import { API_BASE } from '../../shared/lib/api';
 
 const STRATA_ROLES = ['Property Manager', 'Councillor'];
 

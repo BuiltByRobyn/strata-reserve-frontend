@@ -1,98 +1,108 @@
-// DocumentPreviewModal - Display document preview with download option
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Modal } from '../Modal/Modal';
 import { LoadingSpinner } from '../LoadingSpinner/LoadingSpinner';
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../../lib/constants';
+import type { DocumentPreviewModalProps } from '../../types/document.types';
 
-interface DocumentPreviewModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  documentId: number | null;
-  documentName: string;
-  endpoint?: 'admin' | 'client';
-}
+const getFileType = (contentType: string): 'pdf' | 'image' | 'other' => {
+  if (contentType.includes('application/pdf')) return 'pdf';
+  if (contentType.startsWith('image/')) return 'image';
+  return 'other';
+};
 
-interface PreviewData {
-  documentId: number;
-  fileName: string;
-  documentType: string;
-  signedUrl: string;
-  expiresIn: number;
-}
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-
-export function DocumentPreviewModal({ isOpen, onClose, documentId, documentName, endpoint = 'admin' }: DocumentPreviewModalProps) {
-  const [previewData, setPreviewData] = useState<PreviewData | null>(null);
+export function DocumentPreviewModal({ isOpen, onClose, documentId, documentName, token }: DocumentPreviewModalProps) {
+  const [blobUrl, setBlobUrl] = useState<string | null>(null);
+  const [fileContentType, setFileContentType] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (isOpen && documentId) {
-      fetchPreviewUrl();
+  const cleanup = useCallback(() => {
+    if (blobUrl) {
+      URL.revokeObjectURL(blobUrl);
+      setBlobUrl(null);
     }
-  }, [isOpen, documentId, endpoint]);
+    setError(null);
+    setFileContentType('');
+  }, [blobUrl]);
 
-  const fetchPreviewUrl = async () => {
-    if (!documentId) return;
-    
-    try {
+  useEffect(() => {
+    if (!isOpen || !documentId || !token) return;
+
+    let cancelled = false;
+
+    const fetchPreview = async () => {
       setLoading(true);
       setError(null);
-      
-      const token = localStorage.getItem('token');
-      
-      const response = await fetch(`${API_URL}/${endpoint}/documents/${documentId}/preview`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch preview');
-      }
-      
-      const data = await response.json();
-      
-      if (data.success) {
-        setPreviewData(data.data);
-      } else {
-        throw new Error(data.error || 'Failed to load preview');
-      }
-    } catch (err) {
-      console.error('Error fetching preview:', err);
-      setError('Failed to load document preview. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
 
-  const getFileType = (fileName: string): 'pdf' | 'image' | 'other' => {
-    const extension = fileName.toLowerCase().split('.').pop();
-    if (extension === 'pdf') return 'pdf';
-    if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(extension || '')) return 'image';
-    return 'other';
+      try {
+        const response = await fetch(`${SUPABASE_URL}/functions/v1/preview-document`, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            apikey: SUPABASE_ANON_KEY,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ documentId }),
+        });
+
+        const contentType = response.headers.get('Content-Type') || '';
+
+        if (contentType.includes('application/json')) {
+          const data = await response.json();
+          throw new Error(data.error || 'Failed to load preview');
+        }
+
+        if (!response.ok) {
+          throw new Error('Failed to load preview');
+        }
+
+        const blob = await response.blob();
+        if (!cancelled) {
+          setFileContentType(contentType);
+          setBlobUrl(URL.createObjectURL(blob));
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : 'Failed to load document preview.');
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    };
+
+    fetchPreview();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, documentId, token]);
+
+  const handleClose = () => {
+    cleanup();
+    onClose();
   };
 
   const renderPreview = () => {
-    if (!previewData) return null;
-    
-    const fileType = getFileType(previewData.fileName);
-    
+    if (!blobUrl) return null;
+
+    const fileType = getFileType(fileContentType);
+
     switch (fileType) {
       case 'pdf':
         return (
           <iframe
-            src={previewData.signedUrl}
-            title={previewData.fileName}
+            src={blobUrl}
+            title={documentName}
             className="document-preview-iframe"
-            frameBorder="0"
           />
         );
       case 'image':
         return (
           <img
-            src={previewData.signedUrl}
-            alt={previewData.fileName}
+            src={blobUrl}
+            alt={documentName}
             className="document-preview-image"
           />
         );
@@ -100,11 +110,7 @@ export function DocumentPreviewModal({ isOpen, onClose, documentId, documentName
         return (
           <div className="document-preview-other">
             <p>Preview not available for this file type.</p>
-            <a
-              href={previewData.signedUrl}
-              download={previewData.fileName}
-              className="btn btn-primary"
-            >
+            <a href={blobUrl} download={documentName} className="btn btn-primary">
               Download File
             </a>
           </div>
@@ -115,24 +121,16 @@ export function DocumentPreviewModal({ isOpen, onClose, documentId, documentName
   return (
     <Modal
       isOpen={isOpen}
-      onClose={onClose}
+      onClose={handleClose}
       title={documentName || 'Document Preview'}
       size="large"
       footer={
-        previewData && (
+        blobUrl && (
           <div className="modal-footer-actions">
-            <a
-              href={previewData.signedUrl}
-              download={previewData.fileName}
-              className="btn btn-primary"
-            >
+            <a href={blobUrl} download={documentName} className="btn btn-primary">
               Download
             </a>
-            <button
-              type="button"
-              className="btn btn-secondary"
-              onClick={onClose}
-            >
+            <button type="button" className="btn btn-secondary" onClick={handleClose}>
               Close
             </button>
           </div>
@@ -146,14 +144,14 @@ export function DocumentPreviewModal({ isOpen, onClose, documentId, documentName
             <p>Loading preview...</p>
           </div>
         )}
-        
+
         {error && (
           <div className="alert alert-error">
             {error}
           </div>
         )}
-        
-        {!loading && !error && previewData && (
+
+        {!loading && !error && blobUrl && (
           <div className="document-preview-content">
             {renderPreview()}
           </div>

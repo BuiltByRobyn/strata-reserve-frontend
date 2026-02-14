@@ -1,11 +1,4 @@
-import type { SurveySection } from '../../types/survey.types';
-
-interface SurveyCategoryNavProps {
-  sections: SurveySection[];
-  activeSection: string;
-  onSelect: (sectionKey: string) => void;
-  completionMap?: Record<string, boolean>;
-}
+import type { SurveyCategoryNavProps } from '../../types/component.types';
 
 export function SurveyCategoryNav({
   sections,

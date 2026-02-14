@@ -6,23 +6,9 @@ import { Modal } from '../../shared/components/Modal/Modal';
 import { InputField, FormRow } from '../../shared/components/FormField/FormField';
 import { useAuthFetch } from '../../shared/hooks/useAuthFetch';
 import type { ClientUser } from '../../shared/types/auth.types';
+import type { ClientProfileFormData as ProfileData } from '../../shared/types/entities.types';
+import { API_BASE } from '../../shared/lib/api';
 import '../../client/styles/pages/_profile.scss';
-
-const API_URL = 'http://localhost:3000';
-
-interface ProfileData {
-  companyName: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  cellNumber: string;
-  officeNumber: string;
-  address: string;
-  city: string;
-  province: string;
-  postalCode: string;
-  role: string;
-}
 
 export function Profile() {
   const { user } = useAuth();
@@ -63,7 +49,7 @@ export function Profile() {
       setLoading(true);
       setError(null);
       
-      const response = await authFetch(`${API_URL}/client/profile`);
+      const response = await authFetch(`${API_BASE}/client/profile`);
       
       if (!response.ok) {
         throw new Error('Failed to fetch profile');
@@ -140,7 +126,7 @@ export function Profile() {
       setSaving(true);
       setError(null);
       
-      const response = await authFetch(`${API_URL}/client/profile`, {
+      const response = await authFetch(`${API_BASE}/client/profile`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json'

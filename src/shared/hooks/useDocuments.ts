@@ -5,7 +5,7 @@ import type { DocumentWithDetails } from '../types/document.types';
 import type { ApiListResponse, ApiSingleResponse } from '../types/entities.types';
 import type { DocumentsState } from '../types/hooks.types';
 import { API_BASE } from '../lib/api';
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../lib/constants';
 
 export const useDocuments = () => {
   const authFetch = useAuthFetch();
@@ -82,6 +82,7 @@ export const useDocuments = () => {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
+          apikey: SUPABASE_ANON_KEY,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ documentId: id }),
@@ -99,60 +100,36 @@ export const useDocuments = () => {
     }
   }, [session, fetchDocuments]);
 
-  const [previewLoading, setPreviewLoading] = useState(false);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [previewFileName, setPreviewFileName] = useState<string | null>(null);
-
-  const previewDocument = useCallback(async (documentId: number, fileName?: string): Promise<void> => {
+  const syncDocuments = useCallback(async (): Promise<{ total: number; removed: number } | null> => {
     const token = session?.access_token;
-    if (!token) {
-      setState(prev => ({ ...prev, error: 'Not authenticated' }));
-      return;
-    }
-
-    setPreviewLoading(true);
-    setPreviewUrl(null);
-    setPreviewFileName(fileName || null);
+    if (!token) throw new Error('Not authenticated');
 
     try {
-      const response = await fetch(
-        `${SUPABASE_URL}/functions/v1/preview-document`,
-        {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ documentId }),
-        }
-      );
-
+      const response = await fetch(`${SUPABASE_URL}/functions/v1/sync-documents`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          apikey: SUPABASE_ANON_KEY,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({}),
+      });
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to get preview link');
+        throw new Error(data.error || 'Sync failed');
       }
 
-      setPreviewUrl(data.url);
-      if (data.fileName) {
-        setPreviewFileName(data.fileName);
+      if (data.removed > 0) {
+        await fetchDocuments();
       }
-    } catch (err) {
-      console.error('Preview error:', err);
-      setState(prev => ({
-        ...prev,
-        error: err instanceof Error ? err.message : 'Failed to preview document'
-      }));
-      setPreviewFileName(null);
-    } finally {
-      setPreviewLoading(false);
+
+      return { total: data.total, removed: data.removed };
+    } catch (error) {
+      console.error('Error syncing documents:', error);
+      throw error;
     }
-  }, [session]);
-
-  const closePreview = useCallback(() => {
-    setPreviewUrl(null);
-    setPreviewFileName(null);
-  }, []);
+  }, [session, fetchDocuments]);
 
   const searchDocuments = useCallback(async (query: string): Promise<DocumentWithDetails[]> => {
     try {
@@ -179,11 +156,7 @@ export const useDocuments = () => {
     getDocumentById,
     updateDocumentStatus,
     deleteDocument,
-    searchDocuments,
-    previewDocument,
-    previewLoading,
-    previewUrl,
-    previewFileName,
-    closePreview
+    syncDocuments,
+    searchDocuments
   };
 };
