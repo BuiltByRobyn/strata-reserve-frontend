@@ -45,10 +45,18 @@ export const useQuestions = () => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(input),
     });
-    const data: ApiSingleResponse<AdminQuestion> = await response.json();
+    let data: ApiSingleResponse<AdminQuestion>;
+    try {
+      data = await response.json();
+    } catch {
+      throw new Error(response.statusText || `Request failed: ${response.status}`);
+    }
+    if (!response.ok) {
+      throw new Error(data?.error || `Request failed: ${response.status}`);
+    }
     if (data.success) {
       await fetchQuestions();
-      return data.data;
+      return data.data!;
     }
     throw new Error(data.error || 'Failed to create question');
   }, [authFetch, fetchQuestions]);

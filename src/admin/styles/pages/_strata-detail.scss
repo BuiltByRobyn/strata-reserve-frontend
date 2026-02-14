@@ -163,6 +163,17 @@
 
       .btn-delete-survey {
         padding: $spacing-sm $spacing-lg;
+        padding: $spacing-xs $spacing-sm;
+        background: $color-error;
+        color: $color-white;
+        border: none;
+        border-radius: $border-radius-sm;
+        cursor: pointer;
+        transition: background 0.2s ease;
+
+        &:hover {
+          background: $color-error-dark;
+        }
       }
     }
   }

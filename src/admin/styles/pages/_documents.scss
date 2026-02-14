@@ -254,7 +254,6 @@
         .btn-edit,
         .btn-delete {
           padding: $spacing-xs $spacing-sm;
-          font-size: 0.8125rem;
         }
       }
     }
@@ -285,10 +284,6 @@
     }
   }
 
-
-  @include respond-to(desktop) {
-    margin-left: $spacing-xl;
-  }
 }
 
 .btn-link {

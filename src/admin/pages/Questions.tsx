@@ -49,6 +49,8 @@ export default function QuestionsPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState('');
+  const [viewingQuestion, setViewingQuestion] = useState<AdminQuestion | null>(null);
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
 
   const filteredQuestions = useMemo(() => {
     return questions.filter(q => {
@@ -67,15 +69,50 @@ export default function QuestionsPage() {
       key: 'questionText', header: 'Question',
       render: (q) => q.questionText.length > 60 ? q.questionText.slice(0, 60) + '...' : q.questionText,
     },
-    { key: 'questionCategory', header: 'Category' },
-    { key: 'questionType', header: 'Type', render: (q) => q.questionType.questionTypeName },
-    { key: 'isRequired', header: 'Required', render: (q) => q.isRequired ? 'Yes' : 'No' },
   ];
 
   const showMcOptions = () => {
     if (!formData.questionTypeId) return false;
     const typeName = questionTypes.find(qt => qt.questionTypeId === formData.questionTypeId)?.questionTypeName?.toLowerCase() || '';
     return typeName.includes('multiple') || typeName.includes('checkbox');
+  };
+
+  const getViewQuestionRows = (q: AdminQuestion): { label: string; value: string }[] => {
+    const services = q.questionServices?.length
+      ? q.questionServices
+          .map(qs => qs.service?.serviceName)
+          .filter(Boolean)
+          .join(', ') || '—'
+      : '—';
+    const propertyTypes = q.questionPropertyTypes?.length
+      ? q.questionPropertyTypes.map(qpt => qpt.propertyType?.propertyTypeName).filter(Boolean).join(', ') || '—'
+      : '—';
+    const legalTypes = q.questionLegalTypes?.length
+      ? q.questionLegalTypes.map(qlt => qlt.legalType?.legalTypeName).filter(Boolean).join(', ') || '—'
+      : '—';
+    const sectionList = q.questionSections?.length
+      ? q.questionSections.map(qs => qs.section?.sectionName).filter(Boolean).join(', ') || '—'
+      : '—';
+    const mcOptions = q.multipleChoiceOptions?.length
+      ? q.multipleChoiceOptions
+          .sort((a, b) => a.sortOrder - b.sortOrder)
+          .map(o => o.optionText)
+          .join(', ') || '—'
+      : '—';
+
+    return [
+      { label: 'ID', value: String(q.questionId) },
+      { label: 'Question Text', value: q.questionText },
+      { label: 'Category', value: q.questionCategory },
+      { label: 'Question Type', value: q.questionType?.questionTypeName ?? '—' },
+      { label: 'Required', value: q.isRequired ? 'Yes' : 'No' },
+      { label: 'Information Text', value: q.informationText ?? '—' },
+      { label: 'Legal Types', value: legalTypes },
+      { label: 'Property Types', value: propertyTypes },
+      { label: 'Sections', value: sectionList },
+      { label: 'Services', value: services },
+      { label: 'Multiple Choice Options', value: mcOptions },
+    ];
   };
 
   const openCreateModal = () => {
@@ -147,12 +184,14 @@ export default function QuestionsPage() {
     }
   };
 
-  const handleDelete = async (q: AdminQuestion) => {
-    if (!window.confirm(`Delete question #${q.questionId}? This cannot be undone.`)) return;
+  const handleDelete = async (q: AdminQuestion): Promise<boolean> => {
+    if (!window.confirm('Are you sure you want to delete this question? This cannot be undone.')) return false;
     try {
       await deleteQuestion(q.questionId);
+      return true;
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Failed to delete question');
+      return false;
     }
   };
 
@@ -213,6 +252,9 @@ export default function QuestionsPage() {
       {error && <div className="error-banner">{error}</div>}
 
       <div className="filters-row">
+        <div className="filter-title">
+          <label>Search</label>
+        </div>
         <div className="search-field">
           <InputField
             label="Search"
@@ -240,12 +282,12 @@ export default function QuestionsPage() {
         keyExtractor={(q) => q.questionId}
         loading={loading}
         emptyMessage="No questions found."
-        onRowClick={openEditModal}
+        onRowClick={(q) => {
+          setViewingQuestion(q);
+          setIsViewModalOpen(true);
+        }}
         actions={(q) => (
-          <>
-            <button className="btn-edit" onClick={(e) => { e.stopPropagation(); openEditModal(q); }}>Edit</button>
-            <button className="btn-delete" onClick={(e) => { e.stopPropagation(); handleDelete(q); }}>Delete</button>
-          </>
+          <button className="btn-edit" onClick={(e) => { e.stopPropagation(); openEditModal(q); }}>Edit</button>
         )}
       />
 
@@ -258,7 +300,7 @@ export default function QuestionsPage() {
           <>
             <button className="btn-secondary" onClick={() => setIsModalOpen(false)}>Cancel</button>
             {editingQuestion && (
-              <button className="btn-delete" onClick={() => { handleDelete(editingQuestion); setIsModalOpen(false); }} disabled={isSubmitting}>Delete</button>
+              <button className="btn-delete" onClick={async () => { const deleted = await handleDelete(editingQuestion!); if (deleted) setIsModalOpen(false); }} disabled={isSubmitting}>Delete</button>
             )}
             <button className="btn-primary" onClick={handleSubmit} disabled={isSubmitting}>
               {isSubmitting ? 'Saving...' : 'Save'}
@@ -397,6 +439,40 @@ export default function QuestionsPage() {
             </div>
           )}
         </form>
+      </Modal>
+
+      <Modal
+        isOpen={isViewModalOpen}
+        onClose={() => {
+          setIsViewModalOpen(false);
+          setViewingQuestion(null);
+        }}
+        title="View Question"
+        size="medium"
+        footer={
+          <button
+            className="btn-primary"
+            onClick={() => {
+              setIsViewModalOpen(false);
+              setViewingQuestion(null);
+            }}
+          >
+            Close
+          </button>
+        }
+      >
+        {viewingQuestion && (
+          <table className="view-question-table">
+            <tbody>
+              {getViewQuestionRows(viewingQuestion).map((row) => (
+                <tr key={row.label}>
+                  <th scope="row">{row.label}</th>
+                  <td>{row.value}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </Modal>
     </div>
   );

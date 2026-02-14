@@ -22,12 +22,11 @@
       font-size: 1.75rem;
       font-weight: 600;
       color: $color-text-dark;
-    }
-  }
 
-  @include respond-to(desktop) {
-    margin-left: $spacing-lg;
-    padding-top: 5rem;
+      @include respond-to(desktop) {
+        font-size: $font-size-lg;
+      }
+    }
   }
 
   .error-banner {
