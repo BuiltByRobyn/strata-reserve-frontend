@@ -34,10 +34,6 @@
     }
   }
 
-  @include respond-to(desktop) {
-    margin-left: $spacing-xl;
-  }
-
   .page-content {
     border: 3px solid $color-border-light;
     border-radius: $border-radius-lg;
@@ -95,6 +91,10 @@
       font-size: 1.75rem;
       font-weight: 600;
       color: $color-text-dark;
+
+      @include respond-to(desktop) {
+        font-size: $font-size-lg;
+      }
     }
 
     .add-strata-button-desktop {
