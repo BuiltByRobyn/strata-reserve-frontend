@@ -99,68 +99,6 @@ export const useDocuments = () => {
     }
   }, [session, fetchDocuments]);
 
-  const [previewLoading, setPreviewLoading] = useState(false);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [previewFileName, setPreviewFileName] = useState<string | null>(null);
-
-  const previewDocument = useCallback(async (documentId: number, fileName?: string): Promise<void> => {
-    const token = session?.access_token;
-    if (!token) {
-      setState(prev => ({ ...prev, error: 'Not authenticated' }));
-      return;
-    }
-
-    setPreviewLoading(true);
-    setPreviewUrl(null);
-    setPreviewFileName(fileName || null);
-
-    try {
-      const response = await fetch(
-        `${SUPABASE_URL}/functions/v1/preview-document`,
-        {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ documentId }),
-        }
-      );
-
-      const responseType = response.headers.get('Content-Type') || '';
-
-      if (responseType.includes('application/json')) {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to get preview');
-      }
-
-      if (!response.ok) {
-        throw new Error('Failed to get preview');
-      }
-
-      const blob = await response.blob();
-      const blobUrl = URL.createObjectURL(blob);
-      setPreviewUrl(blobUrl);
-    } catch (err) {
-      console.error('Preview error:', err);
-      setState(prev => ({
-        ...prev,
-        error: err instanceof Error ? err.message : 'Failed to preview document'
-      }));
-      setPreviewFileName(null);
-    } finally {
-      setPreviewLoading(false);
-    }
-  }, [session]);
-
-  const closePreview = useCallback(() => {
-    if (previewUrl) {
-      URL.revokeObjectURL(previewUrl);
-    }
-    setPreviewUrl(null);
-    setPreviewFileName(null);
-  }, [previewUrl]);
-
   const syncDocuments = useCallback(async (): Promise<{ total: number; removed: number } | null> => {
     const token = session?.access_token;
     if (!token) throw new Error('Not authenticated');
@@ -217,11 +155,6 @@ export const useDocuments = () => {
     updateDocumentStatus,
     deleteDocument,
     syncDocuments,
-    searchDocuments,
-    previewDocument,
-    previewLoading,
-    previewUrl,
-    previewFileName,
-    closePreview
+    searchDocuments
   };
 };

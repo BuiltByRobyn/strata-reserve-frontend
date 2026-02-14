@@ -1,15 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
 import { useClientDocuments } from '../../shared/hooks/useClientDocuments';
 import { useClientServiceRequest } from '../../shared/hooks/useClientServiceRequest';
+import { useAuth } from '../../shared/contexts/AuthContext';
 import { LoadingSpinner } from '../../shared/components/LoadingSpinner/LoadingSpinner';
-import { Modal } from '../../shared/components/Modal/Modal';
+import { DocumentPreviewModal } from '../../shared/components/DocumentPreview/DocumentPreviewModal';
 import type { RequiredDocumentChecklist } from '../../shared/types/document.types';
 
 const formatTypeName = (name: string): string =>
   name.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-
-const getFileExtension = (fileName: string): string =>
-  fileName.split('.').pop()?.toLowerCase() || '';
 
 export default function ClientDocumentsPage() {
   const {
@@ -19,17 +17,17 @@ export default function ClientDocumentsPage() {
     uploading,
     fetchRequiredDocuments,
     uploadDocument,
-    previewDocument,
-    previewLoading,
-    previewUrl,
-    previewFileName,
-    closePreview
   } = useClientDocuments();
 
+  const { session } = useAuth();
   const { serviceRequestId, loading: srLoading } = useClientServiceRequest();
   const [uploadingDocTypeId, setUploadingDocTypeId] = useState<number | null>(null);
   const [uploadSuccess, setUploadSuccess] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [previewModalOpen, setPreviewModalOpen] = useState(false);
+  const [previewDocumentId, setPreviewDocumentId] = useState<number | null>(null);
+  const [previewDocumentName, setPreviewDocumentName] = useState('');
 
   useEffect(() => {
     if (serviceRequestId) {
@@ -82,6 +80,20 @@ export default function ClientDocumentsPage() {
 
     setUploadingDocTypeId(null);
     e.target.value = '';
+  };
+
+  const handlePreview = (doc: RequiredDocumentChecklist) => {
+    if (doc.uploadedDocument) {
+      setPreviewDocumentId(doc.uploadedDocument.serviceRequestDocumentId);
+      setPreviewDocumentName(doc.uploadedDocument.fileName);
+      setPreviewModalOpen(true);
+    }
+  };
+
+  const handleClosePreview = () => {
+    setPreviewModalOpen(false);
+    setPreviewDocumentId(null);
+    setPreviewDocumentName('');
   };
 
   const isDocumentUploaded = (doc: RequiredDocumentChecklist): boolean => {
@@ -141,11 +153,7 @@ export default function ClientDocumentsPage() {
                   <div
                     key={doc.requiredDocumentId}
                     className={`document-item ${isDocumentUploaded(doc) ? 'uploaded' : ''}`}
-                    onClick={() => {
-                      if (doc.uploadedDocument) {
-                        previewDocument(doc.uploadedDocument.serviceRequestDocumentId, doc.uploadedDocument.fileName);
-                      }
-                    }}
+                    onClick={() => handlePreview(doc)}
                     style={{ cursor: isDocumentUploaded(doc) ? 'pointer' : 'default' }}
                   >
                     <div className="document-info">
@@ -173,7 +181,9 @@ export default function ClientDocumentsPage() {
                         </>
                       )}
                       {isDocumentUploaded(doc) && (
-                        <span className="check-icon">&#10003;</span>
+                        <>
+                          <span className="check-icon">&#10003;</span>
+                        </>
                       )}
                     </div>
                   </div>
@@ -184,35 +194,13 @@ export default function ClientDocumentsPage() {
         </div>
       )}
 
-      {/* Document Preview Modal */}
-      <Modal
-        isOpen={previewLoading || !!previewUrl}
-        onClose={closePreview}
-        title={previewFileName || 'Document Preview'}
-        size="preview"
-      >
-        {previewLoading ? (
-          <LoadingSpinner />
-        ) : previewUrl ? (
-          (() => {
-            const ext = getFileExtension(previewFileName || '');
-            if (ext === 'pdf') {
-              return <iframe src={previewUrl} title="Document Preview" />;
-            }
-            if (['jpg', 'jpeg', 'png'].includes(ext)) {
-              return <img src={previewUrl} alt={previewFileName || 'Document'} />;
-            }
-            return (
-              <div style={{ padding: '2rem', textAlign: 'center' }}>
-                <p>Preview not available for this file type.</p>
-                <a href={previewUrl} target="_blank" rel="noopener noreferrer" className="btn-primary" style={{ display: 'inline-block', marginTop: '1rem', padding: '0.5rem 1rem', textDecoration: 'none', borderRadius: '4px' }}>
-                  Download File
-                </a>
-              </div>
-            );
-          })()
-        ) : null}
-      </Modal>
+      <DocumentPreviewModal
+        isOpen={previewModalOpen}
+        onClose={handleClosePreview}
+        documentId={previewDocumentId}
+        documentName={previewDocumentName}
+        token={session?.access_token}
+      />
     </div>
   );
 }

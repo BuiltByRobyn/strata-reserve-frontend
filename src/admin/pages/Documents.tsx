@@ -7,6 +7,7 @@ import { useMediaQuery } from '../../shared/hooks/useMediaQuery';
 import { DataTable, type Column } from '../../shared/components/DataTable/DataTable';
 import { LoadingSpinner } from '../../shared/components/LoadingSpinner/LoadingSpinner';
 import { Modal } from '../../shared/components/Modal/Modal';
+import { DocumentPreviewModal } from '../../shared/components/DocumentPreview/DocumentPreviewModal';
 import { InputField, SelectField, TextareaField, FormRow } from '../../shared/components/FormField/FormField';
 import type { DocumentWithDetails, DocumentUploadData } from '../../shared/types/document.types';
 import { STRATA_ID_PATTERN, formatStrataId } from '../../shared/utils/strataUtils';
@@ -16,11 +17,8 @@ const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const formatTypeName = (name: string): string =>
   name.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 
-const getFileExtension = (fileName: string): string =>
-  fileName.split('.').pop()?.toLowerCase() || '';
-
 export default function DocumentsPage() {
-  const { documents, loading, error, refetch, updateDocumentStatus, deleteDocument, syncDocuments, previewDocument, previewLoading, previewUrl, previewFileName, closePreview } = useDocuments();
+  const { documents, loading, error, refetch, updateDocumentStatus, deleteDocument, syncDocuments } = useDocuments();
   const { documentTypes, reviewStatuses } = useLookups();
   const { session, user } = useAuth();
   const authFetch = useAuthFetch();
@@ -48,6 +46,10 @@ export default function DocumentsPage() {
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
   const [syncMessage, setSyncMessage] = useState<string | null>(null);
+
+  const [previewModalOpen, setPreviewModalOpen] = useState(false);
+  const [previewDocumentId, setPreviewDocumentId] = useState<number | null>(null);
+  const [previewDocumentName, setPreviewDocumentName] = useState('');
 
   const isDesktop = useMediaQuery('(min-width: 600px)');
 
@@ -132,7 +134,11 @@ export default function DocumentsPage() {
     {
       key: 'fileName',
       header: 'File Name',
-      render: (doc) => doc.fileName
+      render: (doc) => (
+        <button className="btn-link" onClick={() => handlePreview(doc)} title="View document">
+          {doc.fileName}
+        </button>
+      )
     },
     {
       key: 'strata',
@@ -219,6 +225,18 @@ export default function DocumentsPage() {
       setSyncing(false);
       setTimeout(() => setSyncMessage(null), 5000);
     }
+  };
+
+  const handlePreview = (doc: DocumentWithDetails) => {
+    setPreviewDocumentId(doc.serviceRequestDocumentId);
+    setPreviewDocumentName(doc.fileName);
+    setPreviewModalOpen(true);
+  };
+
+  const handleClosePreview = () => {
+    setPreviewModalOpen(false);
+    setPreviewDocumentId(null);
+    setPreviewDocumentName('');
   };
 
   const openUploadModal = () => {
@@ -369,7 +387,7 @@ export default function DocumentsPage() {
           keyExtractor={(d) => d.serviceRequestDocumentId}
           loading={loading}
           emptyMessage="No documents found."
-          onRowClick={(doc) => previewDocument(doc.serviceRequestDocumentId, doc.fileName)}
+          onRowClick={(doc) => handlePreview(doc)}
           actions={(doc) => (
             <>
               <button className="btn-edit" onClick={() => openStatusModal(doc)}>Review</button>
@@ -390,9 +408,7 @@ export default function DocumentsPage() {
               {filteredDocuments.map((doc) => (
                 <div
                   key={doc.serviceRequestDocumentId}
-                  className="documents-mobile-table-wrap clickable"
-                  onClick={() => previewDocument(doc.serviceRequestDocumentId, doc.fileName)}
-                  style={{ cursor: 'pointer' }}
+                  className="documents-mobile-table-wrap"
                 >
                   <table className="data-table documents-table-mobile">
                     <tbody>
@@ -559,34 +575,13 @@ export default function DocumentsPage() {
       </Modal>
 
       {/* Document Preview Modal */}
-      <Modal
-        isOpen={previewLoading || !!previewUrl}
-        onClose={closePreview}
-        title={previewFileName || 'Document Preview'}
-        size="preview"
-      >
-        {previewLoading ? (
-          <LoadingSpinner />
-        ) : previewUrl ? (
-          (() => {
-            const ext = getFileExtension(previewFileName || '');
-            if (ext === 'pdf') {
-              return <iframe src={previewUrl} title="Document Preview" />;
-            }
-            if (['jpg', 'jpeg', 'png'].includes(ext)) {
-              return <img src={previewUrl} alt={previewFileName || 'Document'} />;
-            }
-            return (
-              <div style={{ padding: '2rem', textAlign: 'center' }}>
-                <p>Preview not available for this file type.</p>
-                <a href={previewUrl} target="_blank" rel="noopener noreferrer" className="btn-primary" style={{ display: 'inline-block', marginTop: '1rem', padding: '0.5rem 1rem', textDecoration: 'none', borderRadius: '4px' }}>
-                  Download File
-                </a>
-              </div>
-            );
-          })()
-        ) : null}
-      </Modal>
+      <DocumentPreviewModal
+        isOpen={previewModalOpen}
+        onClose={handleClosePreview}
+        documentId={previewDocumentId}
+        documentName={previewDocumentName}
+        token={session?.access_token}
+      />
     </div>
   );
 }

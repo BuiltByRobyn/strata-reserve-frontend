@@ -123,6 +123,7 @@
 
 .modal-footer {
   padding: $spacing-md $spacing-lg;
+  border-top: 1px solid $color-border-light;
   display: flex;
   justify-content: center;
   gap: $spacing-sm;
