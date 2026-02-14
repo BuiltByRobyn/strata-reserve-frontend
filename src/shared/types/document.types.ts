@@ -65,4 +65,5 @@ export interface DocumentPreviewModalProps {
   documentId: number | null;
   documentName: string;
   token: string;
+  onDelete?: () => void;
 }

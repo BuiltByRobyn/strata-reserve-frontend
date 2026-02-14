@@ -10,7 +10,7 @@ const getFileType = (contentType: string): 'pdf' | 'image' | 'other' => {
   return 'other';
 };
 
-export function DocumentPreviewModal({ isOpen, onClose, documentId, documentName, token }: DocumentPreviewModalProps) {
+export function DocumentPreviewModal({ isOpen, onClose, documentId, documentName, token, onDelete }: DocumentPreviewModalProps) {
   const [blobUrl, setBlobUrl] = useState<string | null>(null);
   const [fileContentType, setFileContentType] = useState<string>('');
   const [loading, setLoading] = useState(false);
@@ -127,6 +127,11 @@ export function DocumentPreviewModal({ isOpen, onClose, documentId, documentName
       footer={
         blobUrl && (
           <div className="modal-footer-actions">
+            {onDelete && (
+              <button type="button" className="btn btn-delete" onClick={() => { onDelete(); handleClose(); }}>
+                Delete
+              </button>
+            )}
             <a href={blobUrl} download={documentName} className="btn btn-primary">
               Download
             </a>

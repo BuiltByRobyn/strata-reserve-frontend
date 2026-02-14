@@ -84,7 +84,7 @@
 /* Profile Grid */
 .profile-grid {
   display: grid;
-  gap: $spacing-lg;
+  gap: $spacing-xl;
   margin-bottom: $spacing-lg;
 
   &.three-columns {
@@ -291,7 +291,7 @@
   }
 
   .profile-grid {
-    gap: $spacing-md;
+    gap: $spacing-lg;
   }
 }
 
