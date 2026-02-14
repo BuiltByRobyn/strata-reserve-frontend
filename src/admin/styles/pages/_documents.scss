@@ -240,8 +240,7 @@
   }
 
   .data-table-container {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
+    overflow-x: hidden;
   }
 
   .documents-mobile-list {
@@ -339,6 +338,10 @@
 
     .form-field {
       margin-top: $spacing-md;
+
+      textarea {
+        width: 95%;
+      }
     }
   }
 

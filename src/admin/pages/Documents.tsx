@@ -458,7 +458,7 @@ export default function DocumentsPage() {
         isOpen={isStatusModalOpen}
         onClose={() => setIsStatusModalOpen(false)}
         title="Review Document"
-        size="small"
+        size="medium"
         footer={
           <>
             <button className="btn-secondary" onClick={() => setIsStatusModalOpen(false)}>Cancel</button>
