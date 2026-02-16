@@ -153,33 +153,6 @@
   justify-content: flex-end;
 
   .btn {
-    padding: $spacing-sm $spacing-lg;
-    border-radius: $border-radius-md;
-    font-size: $font-size-base;
-    font-weight: $font-weight-medium;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    border: none;
-
-    &.btn-secondary {
-      background-color: $color-white;
-      color: $color-text-primary;
-      border: 1px solid $color-border-light;
-
-      &:hover:not(:disabled) {
-        background-color: $color-background-off-white;
-      }
-    }
-
-    &.btn-primary {
-      background-color: $color-primary;
-      color: $color-white;
-
-      &:hover:not(:disabled) {
-        background-color: $color-primary-hover;
-      }
-    }
-
     &:disabled {
       opacity: 0.6;
       cursor: not-allowed;

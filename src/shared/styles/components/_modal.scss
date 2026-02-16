@@ -136,31 +136,6 @@
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s ease;
-
-    &.btn-primary {
-      background: $color-primary;
-      color: $color-white;
-      border: none;
-
-      &:hover {
-        background: $color-primary-hover;
-      }
-
-      &:disabled {
-        background: $color-gray-light;
-        cursor: not-allowed;
-      }
-    }
-
-    &.btn-secondary {
-      background: transparent;
-      color: $color-text-primary;
-      border: 1px solid $color-border-medium;
-
-      &:hover {
-        background: $color-background-light;
-      }
-    }
   }
 }
 

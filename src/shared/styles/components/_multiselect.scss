@@ -18,7 +18,13 @@
     background-repeat: no-repeat;
     background-position: right $spacing-sm center;
     background-size: 1rem;
+    background-size: 1rem;
     transition: all 0.2s ease;
+    line-height: 1.5;
+    height: 2.75rem;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
 
     &--placeholder {
       color: $color-text-light;
@@ -73,6 +79,7 @@
 
     input[type="checkbox"] {
       accent-color: $color-primary;
+      margin-right: $spacing-sm;
     }
   }
 
