@@ -41,7 +41,7 @@ export function SelectField({
         {label}
         {required && <span className="required">*</span>}
       </label>
-      <select id={fieldId} {...props}>
+      <select id={fieldId} className={!props.value ? 'select--placeholder' : ''} {...props}>
         {placeholder && (
           <option value="">{placeholder}</option>
         )}

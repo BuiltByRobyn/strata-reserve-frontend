@@ -2,7 +2,6 @@ import { Route } from 'react-router-dom';
 import { ProtectedRoute } from '../../shared/routes/ProtectedRoute';
 import { ClientNavbar } from '../components/ClientNavbar';
 import { Dashboard } from '../pages/Dashboard';
-import { Profile } from '../pages/Profile';
 import DocumentsPage from '../pages/Documents';
 import SurveyPage from '../pages/Survey';
 import SurveySectionPage from '../pages/SurveySection';
@@ -15,14 +14,6 @@ export const clientRoutes = [
       <div className="app">
         <ClientNavbar />
         <Dashboard />
-      </div>
-    </ProtectedRoute>
-  } />,
-  <Route key="client-profile" path="/client/profile" element={
-    <ProtectedRoute requireClient>
-      <div className="app">
-        <ClientNavbar />
-        <Profile />
       </div>
     </ProtectedRoute>
   } />,

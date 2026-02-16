@@ -54,13 +54,16 @@
       }
     }
 
-    .search-field {
-      flex: 1;
-      min-width: 200px;
+    label {
+      font-weight: $font-weight-bold;
+      color: $color-text-muted;
+      text-align: left;
     }
 
     .form-field {
-      min-width: 180px;
+      flex: 1;
+      min-width: 200px;
+      margin-bottom: 0;
     }
 
     @include respond-below(sm) {
