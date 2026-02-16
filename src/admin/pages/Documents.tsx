@@ -439,7 +439,7 @@ export default function DocumentsPage() {
                         </td>
                       </tr>
                       <tr onClick={(e) => e.stopPropagation()}>
-                        <td className="mobile-label-col">Actions</td>
+                        <td className="mobile-label-col">Action</td>
                         <td className="mobile-value-col actions-cell">
                           <button className="btn-edit" onClick={() => openStatusModal(doc)}>Review</button>
                         </td>

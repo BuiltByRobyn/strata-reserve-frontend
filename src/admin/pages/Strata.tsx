@@ -36,7 +36,8 @@ export default function StrataPage() {
   const [formError, setFormError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const [searchQuery, setSearchQuery] = useState("");
+  const [filterStrataName, setFilterStrataName] = useState("");
+  const [filterStrataPlan, setFilterStrataPlan] = useState("");
   const [filterPropertyTypeId, setFilterPropertyTypeId] = useState("");
   const [filterCity, setFilterCity] = useState("");
   const [filterSectionIds, setFilterSectionIds] = useState<number[]>([]);
@@ -54,22 +55,12 @@ export default function StrataPage() {
   useEffect(() => {
     let result = stratas;
 
-    if (searchQuery.trim()) {
-      const search = searchQuery.toLowerCase().trim();
-      result = result.filter((s) => {
-        const strataPlan = (s.strataPlan || "").toLowerCase();
-        const complexName = (s.complexName || "").toLowerCase();
-        const streetName = (s.streetName || "").toLowerCase();
-        const town = (s.town || "").toLowerCase();
-        const companyName = (s.company?.companyName || "").toLowerCase();
-        return (
-          strataPlan.includes(search) ||
-          complexName.includes(search) ||
-          streetName.includes(search) ||
-          town.includes(search) ||
-          companyName.includes(search)
-        );
-      });
+    if (filterStrataName) {
+      result = result.filter((s) => s.strataId === parseInt(filterStrataName));
+    }
+
+    if (filterStrataPlan) {
+      result = result.filter((s) => s.strataId === parseInt(filterStrataPlan));
     }
 
     if (filterPropertyTypeId) {
@@ -91,7 +82,7 @@ export default function StrataPage() {
     }
 
     setFilteredStratas(result);
-  }, [stratas, searchQuery, filterPropertyTypeId, filterCity, filterSectionIds]);
+  }, [stratas, filterStrataName, filterStrataPlan, filterPropertyTypeId, filterCity, filterSectionIds]);
 
   const columns: Column<Strata>[] = [
     { key: "strataPlan", header: "Strata Plan" },
@@ -201,14 +192,20 @@ export default function StrataPage() {
       <div className="page-content">
         <h1 className="filter-title">Search</h1>
         <div className="filters-row">
-          <div className="search-field">
-            <InputField
-              label="Search"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search strata..."
-            />
-          </div>
+          <SelectField
+            label="Strata Name"
+            value={filterStrataName}
+            onChange={(e) => setFilterStrataName(e.target.value)}
+            options={stratas.filter(s => s.complexName).map(s => ({ value: s.strataId, label: s.complexName! }))}
+            placeholder="All Strata"
+          />
+          <SelectField
+            label="Strata Plan"
+            value={filterStrataPlan}
+            onChange={(e) => setFilterStrataPlan(e.target.value)}
+            options={stratas.filter(s => s.strataPlan).map(s => ({ value: s.strataId, label: s.strataPlan! }))}
+            placeholder="All Plans"
+          />
           <SelectField
             label="Property Type"
             value={filterPropertyTypeId}

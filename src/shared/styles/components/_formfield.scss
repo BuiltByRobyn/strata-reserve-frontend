@@ -64,6 +64,10 @@
     background-position: right $spacing-sm center;
     background-size: 1rem;
     padding-right: $spacing-xl;
+
+    &.select--placeholder {
+      color: $color-text-light;
+    }
   }
 
   textarea {

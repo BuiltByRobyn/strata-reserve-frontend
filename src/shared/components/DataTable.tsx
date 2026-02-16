@@ -12,7 +12,7 @@ export function DataTable<T>({
   loading = false,
   emptyMessage = 'No data available',
   actions,
-  actionsColumnHeader = 'Edit'
+  actionsColumnHeader = 'Action'
 }: DataTableProps<T>) {
   if (loading) {
     return <LoadingSpinner />;

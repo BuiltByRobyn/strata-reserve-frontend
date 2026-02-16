@@ -252,17 +252,12 @@ export default function QuestionsPage() {
       {error && <div className="error-banner">{error}</div>}
 
       <div className="filters-row">
-        <div className="filter-title">
-          <label>Search</label>
-        </div>
-        <div className="search-field">
-          <InputField
-            label="Search"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search questions..."
-          />
-        </div>
+        <InputField
+          label="Search"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          placeholder="Search questions..."
+        />
         <SelectField
           label="Category"
           value={filterCategory}

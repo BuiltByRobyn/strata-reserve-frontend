@@ -111,13 +111,6 @@ export const ClientNavbar = () => {
         >
           Inspection Date
         </NavLink>
-        <NavLink
-          to="/client/profile"
-          className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
-          onClick={closeMobileMenu}
-        >
-          {clientUser?.firstName ? `${clientUser.firstName} ${clientUser.lastName}` : 'Profile'}
-        </NavLink>
         <button
           onClick={() => {
             handleLogout();
