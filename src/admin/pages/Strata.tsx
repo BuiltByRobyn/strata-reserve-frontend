@@ -39,6 +39,7 @@ export default function StrataPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterPropertyTypeId, setFilterPropertyTypeId] = useState("");
   const [filterCity, setFilterCity] = useState("");
+  const [filterSectionIds, setFilterSectionIds] = useState<number[]>([]);
 
   const isDesktop = useMediaQuery("(min-width: 600px)");
 
@@ -83,8 +84,14 @@ export default function StrataPage() {
       );
     }
 
+    if (filterSectionIds.length > 0) {
+      result = result.filter((s) =>
+        s.strataSections?.some((ss) => filterSectionIds.includes(ss.sectionId))
+      );
+    }
+
     setFilteredStratas(result);
-  }, [stratas, searchQuery, filterPropertyTypeId, filterCity]);
+  }, [stratas, searchQuery, filterPropertyTypeId, filterCity, filterSectionIds]);
 
   const columns: Column<Strata>[] = [
     { key: "strataPlan", header: "Strata Plan" },
@@ -219,6 +226,13 @@ export default function StrataPage() {
             options={cities.map((c) => ({ value: c, label: c }))}
             placeholder="All Cities"
           />
+          <MultiSelectDropdown
+            label="Section"
+            options={sections.map((s) => ({ value: s.sectionId, label: s.sectionName }))}
+            selectedValues={filterSectionIds}
+            onChange={setFilterSectionIds}
+            placeholder="All Sections"
+          />
         </div>
       </div>
 
@@ -248,15 +262,6 @@ export default function StrataPage() {
                 }}
               >
                 Edit
-              </button>
-              <button
-                className="btn-delete"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleDelete(strata);
-                }}
-              >
-                Delete
               </button>
             </>
           )}
@@ -300,15 +305,6 @@ export default function StrataPage() {
                           >
                             Edit
                           </button>
-                          <button
-                            className="btn-delete"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDelete(strata);
-                            }}
-                          >
-                            Delete
-                          </button>
                         </div>
                       </td>
                     </tr>
@@ -333,12 +329,24 @@ export default function StrataPage() {
             >
               Cancel
             </button>
+            {editingStrata && (
+              <button
+                className="btn-delete"
+                onClick={() => {
+                  handleDelete(editingStrata);
+                  setIsModalOpen(false);
+                }}
+                disabled={isSubmitting}
+              >
+                Delete Strata
+              </button>
+            )}
             <button
               className="btn-primary"
               onClick={handleSubmit}
               disabled={isSubmitting}
             >
-              {isSubmitting ? "Saving..." : "Save"}
+              {isSubmitting ? "Saving..." : editingStrata ? "Update Strata" : "Create Strata"}
             </button>
           </>
         }

@@ -23,7 +23,7 @@ const initialFormData: UserFormData = {
 export default function UsersPage() {
   const { users, loading, error, createUser, updateUser, deleteUser } = useUsers();
   const { stratas } = useStrata();
-  const { userTypes } = useLookups();
+  const { userTypes, sections } = useLookups();
 
   // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -38,6 +38,7 @@ export default function UsersPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStrataId, setFilterStrataId] = useState<string>('');
   const [filterUserTypeId, setFilterUserTypeId] = useState<string>('');
+  const [filterSectionId, setFilterSectionId] = useState<number[]>([]);
 
   // Filtered users
   const filteredUsers = useMemo(() => {
@@ -67,9 +68,19 @@ export default function UsersPage() {
         }
       }
 
+      // Section filter
+      if (filterSectionId.length > 0) {
+        const hasSection = user.strataProfiles?.some(
+          se => se.strataProfileSections?.some(
+            sps => filterSectionId.includes(sps.sectionId)
+          )
+        );
+        if (!hasSection) return false;
+      }
+
       return true;
     });
-  }, [users, searchTerm, filterStrataId, filterUserTypeId]);
+  }, [users, searchTerm, filterStrataId, filterUserTypeId, filterSectionId]);
 
   const isDesktop = useMediaQuery('(min-width: 600px)');
 
@@ -353,6 +364,15 @@ export default function UsersPage() {
             ))}
           </select>
         </div>
+        <div className="filter-group">
+          <MultiSelectDropdown
+            label="Section"
+            options={sections.map(s => ({ value: s.sectionId, label: s.sectionName }))}
+            selectedValues={filterSectionId}
+            onChange={setFilterSectionId}
+            placeholder="Filter by section..."
+          />
+        </div>
       </div>
 
       <DataTable
@@ -478,45 +498,44 @@ export default function UsersPage() {
           {/* Strata Associations */}
           {formData.strataAssociations.map((association, index) => {
             const selectedStrata = stratas.find(s => s.strataId === association.strataId);
-            const availableSections = selectedStrata?.strataSections?.map(ss => ({
-              value: ss.section.sectionId,
-              label: ss.section.sectionName
-            })) || [];
+            const otherSelectedIds = formData.strataAssociations
+              .filter((_, i) => i !== index)
+              .map(a => a.strataId)
+              .filter(id => id > 0);
+            const availableStratas = stratas.filter(s => !otherSelectedIds.includes(s.strataId));
 
             return (
               <div key={index} className="strata-association-row">
                 <FormRow>
                   <SelectField
-                    label={`Associated Strata${index === 0 ? '' : ` ${index + 1}`}`}
+                    label={`Strata Plan${index === 0 ? '' : ` ${index + 1}`}`}
                     required
                     value={association.strataId?.toString() || ''}
                     onChange={(e) => {
                       updateStrataAssociation(index, 'strataId', e.target.value);
                       updateStrataAssociationSections(index, []);
                     }}
-                    options={stratas.map(s => ({
+                    options={availableStratas.map(s => ({
                       value: s.strataId,
-                      label: s.complexName || s.strataPlan || `Strata ${s.strataId}`
+                      label: s.strataPlan || s.complexName || `Strata ${s.strataId}`
                     }))}
-                    placeholder="Enter strata name"
+                    placeholder="Select Strata Plan"
                   />
                   <InputField
-                    label={`Strata ID${index === 0 ? '' : ` ${index + 1}`}`}
+                    label={`Associated Strata${index === 0 ? '' : ` ${index + 1}`}`}
                     required
-                    value={selectedStrata?.strataPlan || ''}
+                    value={selectedStrata?.complexName || ''}
                     disabled
-                    placeholder="Enter Strata ID"
+                    placeholder="Strata name"
                   />
                 </FormRow>
-                {association.strataId > 0 && availableSections.length > 0 && (
-                  <MultiSelectDropdown
-                    label={`Sections${index === 0 ? '' : ` ${index + 1}`}`}
-                    options={availableSections}
-                    selectedValues={association.sectionIds || []}
-                    onChange={(values) => updateStrataAssociationSections(index, values)}
-                    placeholder="Select sections"
-                  />
-                )}
+                <MultiSelectDropdown
+                  label={`Sections${index === 0 ? '' : ` ${index + 1}`}`}
+                  options={sections.map(s => ({ value: s.sectionId, label: s.sectionName }))}
+                  selectedValues={association.sectionIds || []}
+                  onChange={(values) => updateStrataAssociationSections(index, values)}
+                  placeholder="Select sections"
+                />
                 {index > 0 && (
                   <button
                     type="button"

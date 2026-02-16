@@ -1,0 +1,100 @@
+@use '../variables' as *;
+
+// ============================================
+// Shared Button Styles
+// ============================================
+
+// Base button reset
+.btn,
+.btn-primary,
+.btn-secondary,
+.btn-delete,
+.btn-edit {
+  padding: $spacing-sm $spacing-lg;
+  border-radius: $border-radius-sm;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  line-height: 1.4;
+  box-sizing: border-box;
+}
+
+// Primary — green fill
+.btn-primary {
+  background: $color-primary;
+  color: $color-white;
+  border: none;
+
+  &:hover {
+    background: $color-primary-hover;
+  }
+
+  &:disabled {
+    background: $color-gray-light;
+    cursor: not-allowed;
+  }
+}
+
+// Secondary — white with border
+.btn-secondary {
+  background: $color-white;
+  color: $color-text-primary;
+  border: 1px solid $color-border-medium;
+
+  &:hover {
+    background: $color-background-off-white;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+// Delete — red fill (destructive)
+.btn-delete {
+  background: $color-error;
+  color: $color-white;
+  border: none;
+
+  &:hover {
+    background: $color-error-dark;
+  }
+
+  &:disabled {
+    background: rgba($color-error, 0.5);
+    cursor: not-allowed;
+  }
+}
+
+// Edit — underlined text link style
+.btn-edit {
+  background: none;
+  color: $color-text-muted;
+  border: none;
+  text-decoration: underline;
+  padding: $spacing-xs $spacing-sm;
+  font-size: 0.8125rem;
+}
+
+// ============================================
+// Size Modifiers
+// ============================================
+
+.btn-sm {
+  padding: $spacing-xs $spacing-sm;
+  font-size: 0.8125rem;
+}
+
+// ============================================
+// Layout Modifiers
+// ============================================
+
+.btn-full-width {
+  width: 100%;
+}

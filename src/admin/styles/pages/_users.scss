@@ -53,6 +53,7 @@
     gap: $spacing-lg;
     margin-bottom: $spacing-lg;
     flex-wrap: wrap;
+    align-items: flex-end;
     border: 2px solid $color-gray-lightest;
     border-radius: $border-radius-lg;
     padding: $spacing-lg;
@@ -96,6 +97,10 @@
         font-size: 0.9375rem;
         background: $color-white;
         transition: border-color 0.2s ease;
+        height: 2.75rem;
+        line-height: 1.5;
+        box-sizing: border-box;
+        width: 100%;
 
         &:focus {
           outline: none;
@@ -105,6 +110,17 @@
         &::placeholder {
           color: $color-text-light;
         }
+      }
+    }
+
+    .form-field {
+      margin-bottom: 0;
+      flex: 1;
+      min-width: 200px;
+
+      label {
+        font-weight: $font-weight-bold;
+        color: $color-text-muted;
       }
     }
   }
@@ -185,35 +201,7 @@
     gap: $spacing-sm;
   }
 
-  .btn-edit {
-    padding: $spacing-xs $spacing-sm;
-    background: $color-primary;
-    color: $color-white;
-    border: none;
-    border-radius: $border-radius-sm;
-    font-size: 0.75rem;
-    cursor: pointer;
-    transition: background 0.2s ease;
 
-    &:hover {
-      background: $color-primary-hover;
-    }
-  }
-
-  .btn-delete {
-    padding: $spacing-xs $spacing-sm;
-    background: $color-error;
-    color: $color-white;
-    border: none;
-    border-radius: $border-radius-sm;
-    font-size: 0.75rem;
-    cursor: pointer;
-    transition: background 0.2s ease;
-
-    &:hover {
-      background: $color-error-dark;
-    }
-  }
 
   .create-user-button-desktop {
     display: none;
@@ -221,47 +209,13 @@
     @include respond-to(desktop) {
       display: block;
 
-      .btn-primary {
-        padding: $spacing-sm $spacing-lg;
-        background: $color-primary;
-        color: $color-white;
-        border: none;
-        border-radius: $border-radius-sm;
-        font-size: $font-size-base;
-        font-weight: 500;
-        cursor: pointer;
-        transition: background 0.2s ease;
 
-        &:hover {
-          background: $color-primary-hover;
-        }
-      }
     }
   }
 
   .create-user-button {
     @include respond-to(desktop) {
       display: none;
-    }
-
-    .btn-primary {
-      width: 100%;
-      padding: $spacing-sm $spacing-lg;
-      background: $color-primary;
-      color: $color-white;
-      border: none;
-      border-radius: $border-radius-sm;
-      font-size: 0.9375rem;
-      font-weight: 500;
-      cursor: pointer;
-      transition: background 0.2s ease;
-      margin-left: 0;
-      margin-right: 0;
-      margin-top: 1.5rem;
-
-      &:hover {
-        background: $color-primary-hover;
-      }
     }
   }
 }
