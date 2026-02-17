@@ -47,80 +47,66 @@
     font-size: 0.875rem;
   }
 
-  // Filters Row
-  .filters-row {
-    display: flex;
-    gap: $spacing-lg;
-    margin-bottom: $spacing-lg;
-    flex-wrap: wrap;
-    align-items: flex-end;
-    border: 2px solid $color-gray-lightest;
+  .page-content {
+    border: 3px solid $color-border-light;
     border-radius: $border-radius-lg;
     padding: $spacing-lg;
-    text-align: left;
+    background: $color-white;
+    margin-bottom: $spacing-lg;
 
-    @include respond-to(desktop) {
-      border: none;
-      padding: 0;
-    }
-
-    .filter-title {
-      font-size: $font-size-xl;
-      color: $color-primary-dark;
-      text-decoration: underline;
-      font-weight: $font-weight-bold;
-
+    h1 {
       @include respond-to(desktop) {
         display: none;
       }
     }
 
-    .filter-group {
+    @include respond-to(desktop) {
+      border: none !important;
+      padding: 0;
+    }
+
+    @include respond-below(desktop) {
+      padding: $spacing-md;
+    }
+
+    .filter-title {
+      font-size: 2.5rem;
+      font-weight: 600;
+      color: $color-primary-dark;
+      text-decoration: underline;
+      text-align: left;
+      margin-top: 0;
+
+      @include respond-to(desktop) {
+        text-decoration: none;
+        font-size: $font-size-lg;
+        color: $color-text-dark;
+      }
+    }
+  }
+
+  .filters-row {
+    @include respond-to(desktop) {
       display: flex;
-      flex-direction: column;
-      gap: $spacing-xs;
-      min-width: 200px;
-      flex: 1;
+      gap: $spacing-lg;
+      align-items: flex-end;
+      flex-wrap: wrap;
+    }
 
-      label {
-        font-size: 0.875rem;
-        font-weight: 500;
-        color: $color-text-muted;
-        font-weight: $font-weight-bold;
-      }
-
-      .filter-input,
-      .filter-select {
-        padding: $spacing-sm $spacing-md;
-        border: 1px solid $color-border-light;
-        border-radius: $border-radius-sm;
-        font-size: 0.9375rem;
-        background: $color-white;
-        transition: border-color 0.2s ease;
-        height: 2.75rem;
-        line-height: 1.5;
-        box-sizing: border-box;
-        width: 100%;
-
-        &:focus {
-          outline: none;
-          border-color: $color-primary;
-        }
-
-        &::placeholder {
-          color: $color-text-light;
-        }
-      }
+    label {
+      font-weight: $font-weight-bold;
+      color: $color-text-muted;
+      text-align: left;
     }
 
     .form-field {
-      margin-bottom: 0;
+      margin-bottom: $spacing-md;
       flex: 1;
       min-width: 200px;
+      width: 100%;
 
-      label {
-        font-weight: $font-weight-bold;
-        color: $color-text-muted;
+      @include respond-to(desktop) {
+        margin-bottom: 0;
       }
     }
   }
@@ -214,8 +200,14 @@
   }
 
   .create-user-button {
+    margin-bottom: $spacing-lg;
+
     @include respond-to(desktop) {
       display: none;
+    }
+
+    .btn-primary {
+      width: 100%;
     }
   }
 }

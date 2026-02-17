@@ -1,27 +1,42 @@
 @use '../../../shared/styles/variables' as *;
 
-/* Admin Profile Page Styles - Figma Design */
 .profile-container {
   max-width: 900px;
   margin: 0 auto;
+  padding: $spacing-lg;
   padding-bottom: $spacing-xl;
 }
 
-/* Page Header */
 .profile-page-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding-bottom: $spacing-md;
   margin-bottom: $spacing-lg;
+  border-bottom: 2px solid $color-border-light;
+
+  @include respond-to(desktop) {
+    align-items: flex-start;
+    border-bottom: none;
+    padding-bottom: 0;
+  }
 
   h1 {
+    margin: 0;
     font-size: 1.75rem;
-    font-weight: $font-weight-bold;
-    color: $color-text-primary;
-    margin-bottom: $spacing-xs;
+    font-weight: 600;
+    color: $color-text-dark;
+
+    @include respond-to(desktop) {
+      font-size: $font-size-lg;
+    }
   }
 
   .profile-subtitle {
     color: $color-text-secondary;
     font-size: $font-size-base;
-    margin: 0;
+    margin-top: $spacing-md;
   }
 }
 
@@ -54,13 +69,17 @@
   }
 }
 
-/* Profile Content */
 .profile-content {
   background: $color-white;
   border-radius: $border-radius-lg;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  padding: $spacing-xl;
+  padding: $spacing-md;
   margin-bottom: $spacing-xl;
+  overflow: hidden;
+
+  @include respond-to(desktop) {
+    padding: $spacing-xl;
+  }
 }
 
 /* Profile Sections */
@@ -143,6 +162,7 @@
     color: $color-text-primary;
     background: $color-white;
     transition: all 0.2s ease;
+    box-sizing: border-box;
 
     &:focus {
       outline: none;
@@ -270,37 +290,8 @@
   }
 }
 
-/* Responsive Adjustments */
 @media (max-width: 768px) {
-  .profile-page-header h1 {
-    font-size: 1.5rem;
-  }
-
-  .profile-tabs {
-    overflow-x: auto;
-    
-    .tab {
-      white-space: nowrap;
-      padding: $spacing-sm $spacing-md;
-      font-size: 0.875rem;
-    }
-  }
-
-  .profile-content {
-    padding: $spacing-lg;
-  }
-
   .profile-grid {
     gap: $spacing-lg;
-  }
-}
-
-@media (max-width: 480px) {
-  .profile-content {
-    padding: $spacing-md;
-  }
-
-  .profile-section h2 {
-    font-size: 1rem;
   }
 }

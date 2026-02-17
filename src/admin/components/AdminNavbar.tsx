@@ -24,7 +24,12 @@ export const AdminNavbar = () => {
   const adminUser = user?.role === 'admin' ? user : null;
 
   return (
-    <nav className="navbar admin-navbar">
+    <>
+    <div
+      className={`sidebar-overlay${isMobileMenuOpen ? ' active' : ''}`}
+      onClick={closeMobileMenu}
+    />
+    <nav className={`navbar admin-navbar${isMobileMenuOpen ? ' sidebar-open' : ''}`}>
       <div className="navbar-brand">
         <img src="/logonobg.svg" alt="Building Icon" />
         <div className="navbar-brand-titles">
@@ -122,5 +127,6 @@ export const AdminNavbar = () => {
         </button>
       </div>
     </nav>
+    </>
   );
 };

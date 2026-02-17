@@ -28,30 +28,50 @@
     padding: $spacing-md;
   }
 
-  .filters-row {
-    display: flex;
-    gap: $spacing-lg;
-    margin-bottom: $spacing-lg;
-    flex-wrap: wrap;
-    border: 2px solid $color-gray-lightest;
+  .page-content {
+    border: 3px solid $color-border-light;
     border-radius: $border-radius-lg;
     padding: $spacing-lg;
-    text-align: left;
+    background: $color-white;
+    margin-bottom: $spacing-lg;
 
-    @include respond-to(desktop) {
-      border: none;
-      padding: 0;
-    }
-
-    .filter-title {
-      font-size: $font-size-xl;
-      color: $color-primary-dark;
-      text-decoration: underline;
-      font-weight: $font-weight-bold;
-
+    h1 {
       @include respond-to(desktop) {
         display: none;
       }
+    }
+
+    @include respond-to(desktop) {
+      border: none !important;
+      padding: 0;
+    }
+
+    @include respond-below(desktop) {
+      padding: $spacing-md;
+    }
+
+    .filter-title {
+      font-size: 2.5rem;
+      font-weight: 600;
+      color: $color-primary-dark;
+      text-decoration: underline;
+      text-align: left;
+      margin-top: 0;
+
+      @include respond-to(desktop) {
+        text-decoration: none;
+        font-size: $font-size-lg;
+        color: $color-text-dark;
+      }
+    }
+  }
+
+  .filters-row {
+    @include respond-to(desktop) {
+      display: flex;
+      gap: $spacing-lg;
+      align-items: flex-end;
+      flex-wrap: wrap;
     }
 
     label {
@@ -61,16 +81,13 @@
     }
 
     .form-field {
+      margin-bottom: $spacing-md;
       flex: 1;
       min-width: 200px;
-      margin-bottom: 0;
-    }
+      width: 100%;
 
-    @include respond-below(sm) {
-      flex-direction: column;
-
-      .form-field {
-        min-width: 100%;
+      @include respond-to(desktop) {
+        margin-bottom: 0;
       }
     }
   }
@@ -195,6 +212,30 @@
 
     &:hover {
       background: rgba($color-primary, 0.05);
+    }
+  }
+
+  .view-question-table {
+    width: 100%;
+    border-collapse: collapse;
+
+    th,
+    td {
+      padding: $spacing-lg $spacing-md;
+      border-bottom: 1px solid $color-border-light;
+      vertical-align: top;
+    }
+
+    th {
+      text-align: left;
+      font-weight: $font-weight-bold;
+      color: $color-text-muted;
+      width: 40%;
+    }
+
+    td {
+      text-align: right;
+      color: $color-text-dark;
     }
   }
 

@@ -5,7 +5,8 @@ import { useStrata } from '../../shared/hooks/useStrata';
 import { useLookups } from '../../shared/hooks/useLookups';
 import { DataTable, type Column } from '../../shared/components/DataTable';
 import { Modal } from '../../shared/components/Modal';
-import { InputField, SelectField, FormRow } from '../../shared/components/FormField';
+import { InputField, FormRow } from '../../shared/components/FormField';
+import { SingleSelectDropdown } from '../../shared/components/SingleSelectDropdown';
 import { MultiSelectDropdown } from '../../shared/components/MultiSelectDropdown';
 import { useMediaQuery } from '../../shared/hooks/useMediaQuery';
 import type { UserWithStratas, CreateUserInput, UserFormData } from '../../shared/types/entities.types';
@@ -92,7 +93,7 @@ export default function UsersPage() {
     });
   }, [users, searchTerm, filterStrataName, filterStrataPlan, filterUserTypeId, filterSectionId]);
 
-  const isDesktop = useMediaQuery('(min-width: 600px)');
+  const isDesktop = useMediaQuery('(min-width: 750px)');
 
   const mobileColumns: Column<UserWithStratas>[] = [
     {
@@ -339,7 +340,6 @@ export default function UsersPage() {
       {error && <div className="error-banner">{error}</div>}
 
       <div className="page-content">
-        {/* <h1 className="filter-title">Search</h1> */}
         <div className="filters-row">
           <InputField
             label="Search"
@@ -347,24 +347,24 @@ export default function UsersPage() {
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Search name or email..."
           />
-          <SelectField
+          <SingleSelectDropdown
             label="Strata Name"
             value={filterStrataName}
-            onChange={(e) => setFilterStrataName(e.target.value)}
+            onChange={(val) => setFilterStrataName(val)}
             options={stratas.filter(s => s.complexName).map(s => ({ value: s.strataId, label: s.complexName! }))}
             placeholder="All Strata"
           />
-          <SelectField
+          <SingleSelectDropdown
             label="Strata Plan"
             value={filterStrataPlan}
-            onChange={(e) => setFilterStrataPlan(e.target.value)}
+            onChange={(val) => setFilterStrataPlan(val)}
             options={stratas.filter(s => s.strataPlan).map(s => ({ value: s.strataId, label: s.strataPlan! }))}
             placeholder="All Plans"
           />
-          <SelectField
+          <SingleSelectDropdown
             label="Role"
             value={filterUserTypeId}
-            onChange={(e) => setFilterUserTypeId(e.target.value)}
+            onChange={(val) => setFilterUserTypeId(val)}
             options={userTypes.map(ut => ({ value: ut.userTypeId, label: ut.userTypeName }))}
             placeholder="All Roles"
           />
@@ -376,6 +376,12 @@ export default function UsersPage() {
             placeholder="All Sections"
           />
         </div>
+      </div>
+
+      <div className="create-user-button">
+        <button className="btn-primary" onClick={openCreateModal}>
+          + Create New Users
+        </button>
       </div>
 
       <DataTable
@@ -396,11 +402,6 @@ export default function UsersPage() {
         )}
         actionsColumnHeader="Action"
       />
-      <div className="create-user-button">
-        <button className="btn-primary" onClick={openCreateModal}>
-          + Create New Users
-        </button>
-      </div>
 
       <Modal
         isOpen={isModalOpen}
@@ -475,11 +476,11 @@ export default function UsersPage() {
           </FormRow>
 
           <FormRow>
-            <SelectField
+            <SingleSelectDropdown
               label="User Type"
               required
               value={formData.userTypeId?.toString() || ''}
-              onChange={(e) => updateField('userTypeId', e.target.value ? parseInt(e.target.value) : undefined)}
+              onChange={(val) => updateField('userTypeId', val ? parseInt(val) : undefined)}
               options={userTypes.map(ut => ({
                 value: ut.userTypeId,
                 label: ut.userTypeName
@@ -506,12 +507,12 @@ export default function UsersPage() {
             return (
               <div key={index} className="strata-association-row">
                 <FormRow>
-                  <SelectField
+                  <SingleSelectDropdown
                     label={`Strata Plan${index === 0 ? '' : ` ${index + 1}`}`}
                     required
                     value={association.strataId?.toString() || ''}
-                    onChange={(e) => {
-                      updateStrataAssociation(index, 'strataId', e.target.value);
+                    onChange={(val) => {
+                      updateStrataAssociation(index, 'strataId', val);
                       updateStrataAssociationSections(index, []);
                     }}
                     options={availableStratas.map(s => ({

@@ -7,6 +7,8 @@ import SurveyPage from '../pages/Survey';
 import SurveySectionPage from '../pages/SurveySection';
 import StrataInformation from '../pages/StrataInformation';
 import StrataMembers from '../pages/StrataMembers';
+import Timelines from '../pages/Timelines';
+import InspectionDate from '../pages/InspectionDate';
 
 export const clientRoutes = [
   <Route key="client-dashboard" path="/client/dashboard" element={
@@ -61,6 +63,26 @@ export const clientRoutes = [
         <ClientNavbar />
         <main className="app-main">
           <SurveyPage />
+        </main>
+      </div>
+    </ProtectedRoute>
+  } />,
+  <Route key="client-timelines" path="/client/timelines" element={
+    <ProtectedRoute requireClient>
+      <div className="app">
+        <ClientNavbar />
+        <main className="app-main">
+          <Timelines />
+        </main>
+      </div>
+    </ProtectedRoute>
+  } />,
+  <Route key="client-inspection-date" path="/client/inspection-date" element={
+    <ProtectedRoute requireClient>
+      <div className="app">
+        <ClientNavbar />
+        <main className="app-main">
+          <InspectionDate />
         </main>
       </div>
     </ProtectedRoute>

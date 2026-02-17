@@ -3,22 +3,10 @@ import { useQuestions } from '../../shared/hooks/useQuestions';
 import { useLookups } from '../../shared/hooks/useLookups';
 import { DataTable, type Column } from '../../shared/components/DataTable';
 import { Modal } from '../../shared/components/Modal';
-import { InputField, SelectField, TextareaField, FormRow } from '../../shared/components/FormField';
+import { InputField, TextareaField, FormRow } from '../../shared/components/FormField';
 import { MultiSelectDropdown } from '../../shared/components/MultiSelectDropdown';
-import type { AdminQuestion, CreateQuestionInput } from '../../shared/types/survey.types';
-
-interface QuestionFormData {
-  questionText: string;
-  questionCategory: string;
-  questionTypeId: number | undefined;
-  isRequired: boolean;
-  informationText: string;
-  serviceIds: { serviceId: number; sortOrder: number }[];
-  propertyTypeIds: number[];
-  legalTypeIds: number[];
-  sectionIds: number[];
-  multipleChoiceOptions: { optionText: string; sortOrder: number }[];
-}
+import { SingleSelectDropdown } from '../../shared/components/SingleSelectDropdown';
+import type { AdminQuestion, CreateQuestionInput, QuestionFormData } from '../../shared/types/survey.types';
 
 const initialFormData: QuestionFormData = {
   questionText: '',
@@ -37,6 +25,9 @@ const CATEGORIES = [
   'Exterior', 'Interior', 'Services', 'Clubhouse',
   'Amenity Room', 'Legal', 'Council Concerns',
 ];
+
+const formatTypeName = (name: string) =>
+  name.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 
 export default function QuestionsPage() {
   const { questions, loading, error, createQuestion, updateQuestion, deleteQuestion } = useQuestions();
@@ -64,7 +55,7 @@ export default function QuestionsPage() {
   }, [questions, searchTerm, filterCategory]);
 
   const columns: Column<AdminQuestion>[] = [
-    { key: 'questionId', header: 'ID', render: (q) => q.questionId },
+    { key: 'questionId', header: 'ID', width: '25px', render: (q) => q.questionId },
     {
       key: 'questionText', header: 'Question',
       render: (q) => q.questionText.length > 60 ? q.questionText.slice(0, 60) + '...' : q.questionText,
@@ -104,7 +95,7 @@ export default function QuestionsPage() {
       { label: 'ID', value: String(q.questionId) },
       { label: 'Question Text', value: q.questionText },
       { label: 'Category', value: q.questionCategory },
-      { label: 'Question Type', value: q.questionType?.questionTypeName ?? '—' },
+      { label: 'Question Type', value: q.questionType?.questionTypeName ? formatTypeName(q.questionType.questionTypeName) : '—' },
       { label: 'Required', value: q.isRequired ? 'Yes' : 'No' },
       { label: 'Information Text', value: q.informationText ?? '—' },
       { label: 'Legal Types', value: legalTypes },
@@ -251,20 +242,24 @@ export default function QuestionsPage() {
 
       {error && <div className="error-banner">{error}</div>}
 
-      <div className="filters-row">
-        <InputField
-          label="Search"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          placeholder="Search questions..."
-        />
-        <SelectField
-          label="Category"
-          value={filterCategory}
-          onChange={(e) => setFilterCategory(e.target.value)}
-          options={CATEGORIES.map(c => ({ value: c, label: c }))}
-          placeholder="All Categories"
-        />
+      <div className="page-content">
+        <div className="filters-row">
+          <div className="search-field">
+            <InputField
+              label="Search"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search questions..."
+            />
+          </div>
+          <SingleSelectDropdown
+            label="Category"
+            value={filterCategory}
+            onChange={(val) => setFilterCategory(val)}
+            options={CATEGORIES.map(c => ({ value: c, label: c }))}
+            placeholder="All Categories"
+          />
+        </div>
       </div>
 
       <div className="create-question-button">
@@ -316,20 +311,20 @@ export default function QuestionsPage() {
           />
 
           <FormRow>
-            <SelectField
+            <SingleSelectDropdown
               label="Category"
               required
               value={formData.questionCategory}
-              onChange={(e) => setFormData(prev => ({ ...prev, questionCategory: e.target.value }))}
+              onChange={(val) => setFormData(prev => ({ ...prev, questionCategory: val }))}
               options={CATEGORIES.map(c => ({ value: c, label: c }))}
               placeholder="Select category"
             />
-            <SelectField
+            <SingleSelectDropdown
               label="Question Type"
               required
               value={formData.questionTypeId?.toString() || ''}
-              onChange={(e) => setFormData(prev => ({ ...prev, questionTypeId: e.target.value ? parseInt(e.target.value) : undefined }))}
-              options={questionTypes.map(qt => ({ value: qt.questionTypeId, label: qt.questionTypeName }))}
+              onChange={(val) => setFormData(prev => ({ ...prev, questionTypeId: val ? parseInt(val) : undefined }))}
+              options={questionTypes.map(qt => ({ value: qt.questionTypeId, label: formatTypeName(qt.questionTypeName) }))}
               placeholder="Select type"
             />
           </FormRow>
@@ -383,10 +378,10 @@ export default function QuestionsPage() {
             <label>Services <span className="required">*</span></label>
             {formData.serviceIds.map((entry, index) => (
               <div key={index} className="service-entry-row">
-                <SelectField
+                <SingleSelectDropdown
                   label=""
                   value={entry.serviceId?.toString() || ''}
-                  onChange={(e) => updateServiceEntry(index, 'serviceId', parseInt(e.target.value) || 0)}
+                  onChange={(val) => updateServiceEntry(index, 'serviceId', parseInt(val) || 0)}
                   options={services.map(s => ({ value: s.serviceId, label: s.serviceName }))}
                   placeholder="Select service"
                 />

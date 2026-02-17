@@ -71,7 +71,6 @@
   width: 100%;
 
   .btn {
-    min-width: 120px;
 
     &.btn-delete {
       margin-right: auto;
@@ -83,4 +82,17 @@
   .document-preview-image {
     max-height: 400px;
   }
+  .modal-footer-actions {
+  width: 100vw;
+
+  .btn {
+    min-width: 100px;
+    margin: auto;
+
+    &.btn-delete {
+      margin-right: 0;
+    }
+  }
+  }
+
 }

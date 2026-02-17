@@ -9,7 +9,8 @@ import { DataTable, type Column } from '../../shared/components/DataTable';
 import { LoadingSpinner } from '../../shared/components/LoadingSpinner';
 import { Modal } from '../../shared/components/Modal';
 import { DocumentPreviewModal } from '../../shared/components/DocumentPreviewModal';
-import { InputField, SelectField, TextareaField, FormRow } from '../../shared/components/FormField';
+import { InputField, TextareaField, FormRow } from '../../shared/components/FormField';
+import { SingleSelectDropdown } from '../../shared/components/SingleSelectDropdown';
 import type { DocumentWithDetails, DocumentUploadData } from '../../shared/types/document.types';
 import { STRATA_ID_PATTERN, formatStrataId } from '../../shared/utils/strataUtils';
 import { API_BASE } from '../../shared/lib/api';
@@ -53,7 +54,7 @@ export default function DocumentsPage() {
   const [previewDocumentName, setPreviewDocumentName] = useState('');
   const [previewDocument, setPreviewDocument] = useState<DocumentWithDetails | null>(null);
 
-  const isDesktop = useMediaQuery('(min-width: 600px)');
+  const isDesktop = useMediaQuery('(min-width: 750px)');
 
   useEffect(() => {
     if (!STRATA_ID_PATTERN.test(uploadForm.strataId)) return;
@@ -329,24 +330,24 @@ export default function DocumentsPage() {
               placeholder="Search documents..."
             />
           </div>
-          <SelectField
+          <SingleSelectDropdown
             label="Document Type"
             value={filterDocType}
-            onChange={(e) => setFilterDocType(e.target.value)}
+            onChange={(val) => setFilterDocType(val)}
             options={documentTypes.map(dt => ({ value: dt.documentTypeId, label: formatTypeName(dt.typeName) }))}
             placeholder="All Types"
           />
-          <SelectField
+          <SingleSelectDropdown
             label="Strata Name"
             value={filterStrataName}
-            onChange={(e) => setFilterStrataName(e.target.value)}
+            onChange={(val) => setFilterStrataName(val)}
             options={stratas.filter(s => s.complexName).map(s => ({ value: s.strataId, label: s.complexName! }))}
             placeholder="All Strata"
           />
-          <SelectField
+          <SingleSelectDropdown
             label="Strata Plan"
             value={filterStrataPlan}
-            onChange={(e) => setFilterStrataPlan(e.target.value)}
+            onChange={(val) => setFilterStrataPlan(val)}
             options={stratas.filter(s => s.strataPlan).map(s => ({ value: s.strataId, label: s.strataPlan! }))}
             placeholder="All Plans"
           />
@@ -404,7 +405,8 @@ export default function DocumentsPage() {
               {filteredDocuments.map((doc) => (
                 <div
                   key={doc.serviceRequestDocumentId}
-                  className="documents-mobile-table-wrap"
+                  className="documents-mobile-table-wrap clickable"
+                  onClick={() => handlePreview(doc)}
                 >
                   <table className="data-table documents-table-mobile">
                     <tbody>
@@ -474,11 +476,11 @@ export default function DocumentsPage() {
             <p><strong>Type:</strong> {formatTypeName(selectedDocument.documentType.typeName)}</p>
             <p><strong>Strata:</strong> {selectedDocument.serviceRequest.strata.complexName || selectedDocument.serviceRequest.strata.strataPlan}</p>
 
-            <SelectField
+            <SingleSelectDropdown
               label="Status"
               required
               value={statusForm.reviewStatusId}
-              onChange={(e) => setStatusForm(prev => ({ ...prev, reviewStatusId: e.target.value }))}
+              onChange={(val) => setStatusForm(prev => ({ ...prev, reviewStatusId: val }))}
               options={reviewStatuses.map(rs => ({ value: rs.reviewStatusId, label: rs.statusName }))}
               placeholder="Select status"
             />
@@ -534,11 +536,11 @@ export default function DocumentsPage() {
             />
           </div>
 
-          <SelectField
+          <SingleSelectDropdown
             label="Document Type"
             required
             value={uploadForm.documentTypeId?.toString() || ''}
-            onChange={(e) => setUploadForm(prev => ({ ...prev, documentTypeId: e.target.value ? parseInt(e.target.value) : null }))}
+            onChange={(val) => setUploadForm(prev => ({ ...prev, documentTypeId: val ? parseInt(val) : null }))}
             options={documentTypes.map(dt => ({ value: dt.documentTypeId, label: formatTypeName(dt.typeName) }))}
             placeholder="Select document type"
           />

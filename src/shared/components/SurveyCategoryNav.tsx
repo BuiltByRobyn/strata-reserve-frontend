@@ -1,3 +1,5 @@
+import { useMediaQuery } from '../hooks/useMediaQuery';
+import { MobileDropdown } from './MobileDropdown';
 import type { SurveyCategoryNavProps } from '../types/component.types';
 
 export function SurveyCategoryNav({
@@ -6,6 +8,22 @@ export function SurveyCategoryNav({
   onSelect,
   completionMap,
 }: SurveyCategoryNavProps) {
+  const isDesktop = useMediaQuery('(min-width: 750px)');
+
+  if (!isDesktop) {
+    return (
+      <MobileDropdown
+        label="Survey Type"
+        value={activeSection}
+        options={sections.map(s => ({
+          key: s.key,
+          label: `${s.label}${completionMap?.[s.key] ? ' ✓' : ''}`,
+        }))}
+        onChange={onSelect}
+      />
+    );
+  }
+
   return (
     <div className="survey-category-nav">
       {sections.map((section) => {
