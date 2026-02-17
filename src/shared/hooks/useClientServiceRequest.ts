@@ -10,27 +10,28 @@ export const useClientServiceRequest = () => {
   const [activeRequest, setActiveRequest] = useState<ServiceRequest | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const strataId = user?.role === 'client' ? user.strataId : null;
-
   const fetchActiveRequest = useCallback(async () => {
-    if (!strataId) {
+    if (!user || user.role !== 'client') {
+      setActiveRequest(null);
       setLoading(false);
       return;
     }
 
     setLoading(true);
     try {
-      const response = await authFetch(`${API_BASE}/client/service-requests/active?strataId=${strataId}`);
+      const response = await authFetch(`${API_BASE}/client/service-requests/active`);
       const data: ApiSingleResponse<ServiceRequest> = await response.json();
       if (data.success) {
         setActiveRequest(data.data || null);
+      } else {
+        setActiveRequest(null);
       }
     } catch {
       setActiveRequest(null);
     } finally {
       setLoading(false);
     }
-  }, [authFetch, strataId]);
+  }, [authFetch, user]);
 
   useEffect(() => {
     fetchActiveRequest();
