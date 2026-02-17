@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../../shared/contexts/AuthContext';
 import { LoadingSpinner } from '../../shared/components/LoadingSpinner';
 import { useAuthFetch } from '../../shared/hooks/useAuthFetch';
+import { useMediaQuery } from '../../shared/hooks/useMediaQuery';
 import { supabase } from '../../shared/lib/supabaseClient';
 import type { AdminUser } from '../../shared/types/auth.types';
 import type { AdminProfileFormData as ProfileData } from '../../shared/types/entities.types';
@@ -31,6 +32,7 @@ export default function ProfilePage() {
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('profile');
+  const isDesktop = useMediaQuery('(min-width: 600px)');
 
   // Fetch profile on mount
   useEffect(() => {
@@ -173,58 +175,78 @@ export default function ProfilePage() {
         <p className="profile-subtitle">Please verify and update your user information</p>
       </div>
 
-      {/* Tabs */}
-      <div className="profile-tabs">
-        <button 
-          className={`tab ${activeTab === 'holidays' ? 'active' : ''}`}
-          onClick={() => setActiveTab('holidays')}
-        >
-          Company Holidays
-        </button>
-        <button 
-          className={`tab ${activeTab === 'availability' ? 'active' : ''}`}
-          onClick={() => setActiveTab('availability')}
-        >
-          Inspector Availability
-        </button>
-        <button 
-          className={`tab ${activeTab === 'profile' ? 'active' : ''}`}
-          onClick={() => setActiveTab('profile')}
-        >
-          Profile
-        </button>
-      </div>
+      {/* Tabs - desktop only */}
+      {isDesktop && (
+        <div className="profile-tabs">
+          <button
+            className={`tab ${activeTab === 'holidays' ? 'active' : ''}`}
+            onClick={() => setActiveTab('holidays')}
+          >
+            Company Holidays
+          </button>
+          <button
+            className={`tab ${activeTab === 'availability' ? 'active' : ''}`}
+            onClick={() => setActiveTab('availability')}
+          >
+            Inspector Availability
+          </button>
+          <button
+            className={`tab ${activeTab === 'profile' ? 'active' : ''}`}
+            onClick={() => setActiveTab('profile')}
+          >
+            Profile
+          </button>
+        </div>
+      )}
 
-      {activeTab === 'profile' && (
+      {/* Company Holidays */}
+      {(!isDesktop || activeTab === 'holidays') && (
         <div className="profile-content">
-          {/* Error Message */}
+          <section className="profile-section">
+            <h2>Company Holidays</h2>
+            <p className="placeholder-text">Company holidays management coming soon...</p>
+          </section>
+        </div>
+      )}
+
+      {/* Inspector Availability */}
+      {(!isDesktop || activeTab === 'availability') && (
+        <div className="profile-content">
+          <section className="profile-section">
+            <h2>Inspector Availability</h2>
+            <p className="placeholder-text">Inspector availability management coming soon...</p>
+          </section>
+        </div>
+      )}
+
+      {/* Profile */}
+      {(!isDesktop || activeTab === 'profile') && (
+        <div className="profile-content">
           {error && (
             <div className="alert alert-error">
               {error}
             </div>
           )}
 
-          {/* Success Message */}
           {successMessage && (
             <div className="alert alert-success">
               {successMessage}
             </div>
           )}
 
-          {/* Basic Information Section */}
           <section className="profile-section">
-            <h2>Basic Information</h2>
-            
+            <h2>Administrator Profile</h2>
+
             <div className="profile-grid three-columns">
-              <ProfileField 
-                label="Company Name" 
-                field="companyName" 
+              <ProfileField
+                label="Company Name"
+                field="companyName"
                 value={profileData.companyName}
                 placeholder="Enter company name"
               />
-              <ProfileField 
-                label="Contact Name" 
-                field="contactName" 
+              <ProfileField
+                label="Contact Name"
+                field="contactName"
                 value={profileData.contactName}
                 placeholder="Enter contact name"
               />
@@ -237,40 +259,39 @@ export default function ProfilePage() {
             </div>
 
             <div className="profile-grid one-column">
-              <ProfileField 
-                label="Address" 
-                field="address" 
+              <ProfileField
+                label="Address"
+                field="address"
                 value={profileData.address}
                 placeholder="Enter address"
               />
             </div>
 
             <div className="profile-grid three-columns">
-              <ProfileField 
-                label="City" 
-                field="city" 
+              <ProfileField
+                label="City"
+                field="city"
                 value={profileData.city}
                 placeholder="Enter city"
               />
-              <ProfileField 
-                label="Province" 
-                field="province" 
+              <ProfileField
+                label="Province"
+                field="province"
                 value={profileData.province}
                 placeholder="Enter province"
               />
-              <ProfileField 
-                label="Postal Code" 
-                field="postalCode" 
+              <ProfileField
+                label="Postal Code"
+                field="postalCode"
                 value={profileData.postalCode}
                 placeholder="Enter postal code"
               />
             </div>
           </section>
 
-          {/* Login Details Section */}
           <section className="profile-section">
             <h2>Login Details</h2>
-            
+
             <div className="login-details-row">
               <ProfileField
                 label="Email"
@@ -297,7 +318,6 @@ export default function ProfilePage() {
             </div>
           </section>
 
-          {/* Confirm Button */}
           <div className="profile-actions">
             <button
               type="button"
@@ -315,24 +335,6 @@ export default function ProfilePage() {
               )}
             </button>
           </div>
-        </div>
-      )}
-
-      {activeTab === 'holidays' && (
-        <div className="profile-content">
-          <section className="profile-section">
-            <h2>Company Holidays</h2>
-            <p className="placeholder-text">Company holidays management coming soon...</p>
-          </section>
-        </div>
-      )}
-
-      {activeTab === 'availability' && (
-        <div className="profile-content">
-          <section className="profile-section">
-            <h2>Inspector Availability</h2>
-            <p className="placeholder-text">Inspector availability management coming soon...</p>
-          </section>
         </div>
       )}
 

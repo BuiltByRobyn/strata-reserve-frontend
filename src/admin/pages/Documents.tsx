@@ -404,7 +404,8 @@ export default function DocumentsPage() {
               {filteredDocuments.map((doc) => (
                 <div
                   key={doc.serviceRequestDocumentId}
-                  className="documents-mobile-table-wrap"
+                  className="documents-mobile-table-wrap clickable"
+                  onClick={() => handlePreview(doc)}
                 >
                   <table className="data-table documents-table-mobile">
                     <tbody>

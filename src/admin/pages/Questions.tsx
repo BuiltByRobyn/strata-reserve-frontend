@@ -5,20 +5,7 @@ import { DataTable, type Column } from '../../shared/components/DataTable';
 import { Modal } from '../../shared/components/Modal';
 import { InputField, SelectField, TextareaField, FormRow } from '../../shared/components/FormField';
 import { MultiSelectDropdown } from '../../shared/components/MultiSelectDropdown';
-import type { AdminQuestion, CreateQuestionInput } from '../../shared/types/survey.types';
-
-interface QuestionFormData {
-  questionText: string;
-  questionCategory: string;
-  questionTypeId: number | undefined;
-  isRequired: boolean;
-  informationText: string;
-  serviceIds: { serviceId: number; sortOrder: number }[];
-  propertyTypeIds: number[];
-  legalTypeIds: number[];
-  sectionIds: number[];
-  multipleChoiceOptions: { optionText: string; sortOrder: number }[];
-}
+import type { AdminQuestion, CreateQuestionInput, QuestionFormData } from '../../shared/types/survey.types';
 
 const initialFormData: QuestionFormData = {
   questionText: '',
@@ -64,7 +51,7 @@ export default function QuestionsPage() {
   }, [questions, searchTerm, filterCategory]);
 
   const columns: Column<AdminQuestion>[] = [
-    { key: 'questionId', header: 'ID', render: (q) => q.questionId },
+    { key: 'questionId', header: 'ID', width: '25px', render: (q) => q.questionId },
     {
       key: 'questionText', header: 'Question',
       render: (q) => q.questionText.length > 60 ? q.questionText.slice(0, 60) + '...' : q.questionText,
@@ -251,20 +238,24 @@ export default function QuestionsPage() {
 
       {error && <div className="error-banner">{error}</div>}
 
-      <div className="filters-row">
-        <InputField
-          label="Search"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          placeholder="Search questions..."
-        />
-        <SelectField
-          label="Category"
-          value={filterCategory}
-          onChange={(e) => setFilterCategory(e.target.value)}
-          options={CATEGORIES.map(c => ({ value: c, label: c }))}
-          placeholder="All Categories"
-        />
+      <div className="page-content">
+        <div className="filters-row">
+          <div className="search-field">
+            <InputField
+              label="Search"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search questions..."
+            />
+          </div>
+          <SelectField
+            label="Category"
+            value={filterCategory}
+            onChange={(e) => setFilterCategory(e.target.value)}
+            options={CATEGORIES.map(c => ({ value: c, label: c }))}
+            placeholder="All Categories"
+          />
+        </div>
       </div>
 
       <div className="create-question-button">

@@ -92,3 +92,16 @@ export interface CreateQuestionInput {
 }
 
 export interface UpdateQuestionInput extends Partial<CreateQuestionInput> {}
+
+export interface QuestionFormData {
+  questionText: string;
+  questionCategory: string;
+  questionTypeId: number | undefined;
+  isRequired: boolean;
+  informationText: string;
+  serviceIds: { serviceId: number; sortOrder: number }[];
+  propertyTypeIds: number[];
+  legalTypeIds: number[];
+  sectionIds: number[];
+  multipleChoiceOptions: { optionText: string; sortOrder: number }[];
+}

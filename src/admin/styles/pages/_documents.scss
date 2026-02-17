@@ -23,22 +23,25 @@
   .page-header {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: center;
+    padding-bottom: $spacing-md;
     margin-bottom: $spacing-lg;
-    flex-wrap: wrap;
-    gap: $spacing-md;
+    border-bottom: 2px solid $color-border-light;
+
+    @include respond-to(desktop) {
+      justify-content: space-between;
+      border-bottom: none;
+      padding-bottom: 0;
+    }
 
     h1 {
       margin: 0;
-      font-size: 2.5rem;
+      font-size: 1.75rem;
       font-weight: 600;
-      color: $color-primary-dark;
-      text-decoration: underline;
+      color: $color-text-dark;
 
       @include respond-to(desktop) {
-        text-decoration: none;
         font-size: $font-size-lg;
-        color: $color-text-dark;
       }
     }
 
@@ -46,10 +49,9 @@
       display: none;
 
       @include respond-to(desktop) {
-        display: block;
+        display: flex;
+        gap: $spacing-sm;
       }
-
-
     }
   }
 
@@ -193,7 +195,8 @@
   }
 
   .data-table-container {
-    overflow-x: hidden;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
   }
 
   .documents-mobile-list {

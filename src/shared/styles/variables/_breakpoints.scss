@@ -2,7 +2,7 @@
 $breakpoint-sm: 480px;   // Mobile
 $breakpoint-md: 750px;   // Tablet
 $breakpoint-lg: 1000px;   // Desktop
-$breakpoint-desktop: 600px;   // Nav layout: mobile vs desktop
+$breakpoint-desktop: 750px;   // Nav layout: mobile vs desktop
 
 @mixin respond-to($breakpoint) {
   @if $breakpoint == sm {

@@ -339,7 +339,6 @@ export default function UsersPage() {
       {error && <div className="error-banner">{error}</div>}
 
       <div className="page-content">
-        {/* <h1 className="filter-title">Search</h1> */}
         <div className="filters-row">
           <InputField
             label="Search"
@@ -378,6 +377,12 @@ export default function UsersPage() {
         </div>
       </div>
 
+      <div className="create-user-button">
+        <button className="btn-primary" onClick={openCreateModal}>
+          + Create New Users
+        </button>
+      </div>
+
       <DataTable
         title={isDesktop ? undefined : 'Users'}
         columns={isDesktop ? desktopColumns : mobileColumns}
@@ -396,11 +401,6 @@ export default function UsersPage() {
         )}
         actionsColumnHeader="Action"
       />
-      <div className="create-user-button">
-        <button className="btn-primary" onClick={openCreateModal}>
-          + Create New Users
-        </button>
-      </div>
 
       <Modal
         isOpen={isModalOpen}

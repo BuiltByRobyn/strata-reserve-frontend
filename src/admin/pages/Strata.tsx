@@ -190,7 +190,6 @@ export default function StrataPage() {
       </div>
 
       <div className="page-content">
-        <h1 className="filter-title">Search</h1>
         <div className="filters-row">
           <SelectField
             label="Strata Name"

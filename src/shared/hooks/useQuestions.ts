@@ -2,13 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { useAuthFetch } from './useAuthFetch';
 import type { ApiListResponse, ApiSingleResponse } from '../types/entities.types';
 import type { AdminQuestion, CreateQuestionInput, UpdateQuestionInput } from '../types/survey.types';
+import type { QuestionsState } from '../types/hooks.types';
 import { API_BASE } from '../lib/api';
-
-interface QuestionsState {
-  questions: AdminQuestion[];
-  loading: boolean;
-  error: string | null;
-}
 
 export const useQuestions = () => {
   const authFetch = useAuthFetch();

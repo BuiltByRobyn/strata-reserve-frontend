@@ -28,17 +28,13 @@
   max-width: $max-width-page;
   text-align: left;
 
-  // // Tablet responsive
-  // @include respond-below(md) {
-  //   padding: $spacing-lg;
-  //   max-width: 100%;
-  // }
-
-  // // Mobile responsive
-  // @include respond-below(sm) {
-  //   padding: $spacing-md;
-  // }
-
+  > h1 {
+    @include respond-below(desktop) {
+      text-align: center;
+      border-bottom: 2px solid $color-border-light;
+      padding-bottom: $spacing-md;
+    }
+  }
 }
 
 h1 {

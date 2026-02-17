@@ -14,6 +14,7 @@ import type {
   QuestionType
 } from './entities.types';
 import type { DocumentWithDetails, DocumentType, ReviewStatus } from './document.types';
+import type { AdminQuestion } from './survey.types';
 
 export interface AppointmentsState {
   appointments: AppointmentWithDetails[];
@@ -72,6 +73,12 @@ export interface UsersState {
 
 export interface ServiceRequestsState {
   serviceRequests: ServiceRequest[];
+  loading: boolean;
+  error: string | null;
+}
+
+export interface QuestionsState {
+  questions: AdminQuestion[];
   loading: boolean;
   error: string | null;
 }

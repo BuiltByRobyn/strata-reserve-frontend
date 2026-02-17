@@ -63,6 +63,10 @@
   .actions-column {
     width: 120px;
     text-align: center;
+
+    @include respond-below(desktop) {
+      width: 60px;
+    }
   }
 
   .actions-cell {

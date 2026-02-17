@@ -11,6 +11,12 @@
       font-size: 1.75rem;
       font-weight: 600;
       color: $color-text-dark;
+
+      @include respond-below(desktop) {
+        text-align: center;
+        border-bottom: 2px solid $color-border-light;
+        padding-bottom: $spacing-md;
+      }
     }
 
     .page-subtitle {

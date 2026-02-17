@@ -32,6 +32,78 @@
     }
   }
 
+  &-mobile {
+    margin-bottom: $spacing-lg;
+    position: relative;
+
+    &__label {
+      display: block;
+      font-size: $font-size-sm;
+      font-weight: $font-weight-bold;
+      color: $color-text-muted;
+      margin-bottom: $spacing-xs;
+    }
+
+    &__trigger {
+      width: 100%;
+      height: 2.75rem;
+      padding: $spacing-sm $spacing-md;
+      padding-right: 2rem;
+      border: 1px solid $color-border-light;
+      border-radius: $border-radius-sm;
+      font-size: $font-size-base;
+      color: $color-text-dark;
+      background: $color-white;
+      cursor: pointer;
+      text-align: left;
+      background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+      background-repeat: no-repeat;
+      background-position: right $spacing-sm center;
+      background-size: 1rem;
+
+      &--open {
+        border-color: $color-primary;
+        background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 15 12 9 18 15'%3e%3c/polyline%3e%3c/svg%3e");
+      }
+    }
+
+    &__options {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      background: $color-white;
+      border: 1px solid $color-border-light;
+      border-top: none;
+      border-radius: 0 0 $border-radius-sm $border-radius-sm;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    &__option {
+      width: 100%;
+      padding: $spacing-sm $spacing-md;
+      border: none;
+      background: none;
+      font-size: $font-size-base;
+      color: $color-text-dark;
+      text-align: left;
+      cursor: pointer;
+
+      &:hover {
+        background: $color-gray-lightest;
+      }
+
+      &--active {
+        font-weight: $font-weight-bold;
+        color: $color-primary-dark;
+      }
+    }
+  }
+
   &--pill {
     flex-wrap: wrap;
 
