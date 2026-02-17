@@ -100,3 +100,11 @@ export interface MultiSelectDropdownProps extends BaseFieldProps {
   placeholder?: string;
   disabled?: boolean;
 }
+
+export interface SingleSelectDropdownProps extends BaseFieldProps {
+  options: { value: string | number; label: string }[];
+  value: string | number;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  disabled?: boolean;
+}

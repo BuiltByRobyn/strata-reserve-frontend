@@ -12,9 +12,9 @@ import { SurveyCategoryNav } from "../../shared/components/SurveyCategoryNav";
 import { SurveyProgressBar } from "../../shared/components/SurveyProgressBar";
 import {
   InputField,
-  SelectField,
   FormRow,
 } from "../../shared/components/FormField";
+import { SingleSelectDropdown } from "../../shared/components/SingleSelectDropdown";
 import {
   SURVEY_SECTIONS,
   SECTION_QUESTION_RANGES,
@@ -595,10 +595,10 @@ export default function StrataDetailPage() {
           </FormRow>
 
           <FormRow>
-            <SelectField
+            <SingleSelectDropdown
               label="Request Type"
               value={srFormData.serviceId}
-              onChange={(e) => updateSrField("serviceId", e.target.value)}
+              onChange={(val) => updateSrField("serviceId", val)}
               options={services.map((s) => ({
                 value: s.serviceId,
                 label: s.serviceName,

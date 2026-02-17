@@ -10,14 +10,18 @@
 
 /* Wrapper for protected pages with navbar */
 .app {
-  @include respond-to(desktop) {
+  @include respond-to(lg) {
     display: flex;
   }
 }
 
 /* Main content area - sits beside the navbar in flex layout (desktop) */
 .app-main {
-  @include respond-to(desktop) {
+  @include respond-between(md, lg) {
+    margin-top: 3.5rem;
+  }
+
+  @include respond-to(lg) {
     flex: 1;
     min-width: 0;
   }
@@ -29,7 +33,7 @@
   text-align: left;
 
   > h1 {
-    @include respond-below(desktop) {
+    @include respond-below(lg) {
       text-align: center;
       border-bottom: 2px solid $color-border-light;
       padding-bottom: $spacing-md;

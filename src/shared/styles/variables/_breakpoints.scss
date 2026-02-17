@@ -43,9 +43,9 @@ $breakpoint-desktop: 750px;   // Nav layout: mobile vs desktop
   @if $min-breakpoint == md { $min: $breakpoint-md; }
   @if $min-breakpoint == lg { $min: $breakpoint-lg; }
   
-  @if $max-breakpoint == sm { $max: ($breakpoint-sm - 1px); }
-  @if $max-breakpoint == md { $max: ($breakpoint-md - 1px); }
-  @if $max-breakpoint == lg { $max: ($breakpoint-lg - 1px); }
+  @if $max-breakpoint == sm { $max: ($breakpoint-sm - 0.02px); }
+  @if $max-breakpoint == md { $max: ($breakpoint-md - 0.02px); }
+  @if $max-breakpoint == lg { $max: ($breakpoint-lg - 0.02px); }
   
   @media (min-width: $min) and (max-width: $max) { @content; }
 }

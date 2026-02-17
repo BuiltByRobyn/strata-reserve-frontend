@@ -12,9 +12,9 @@ import { LoadingSpinner } from "../../shared/components/LoadingSpinner";
 import { Modal } from "../../shared/components/Modal";
 import {
   InputField,
-  SelectField,
   FormRow,
 } from "../../shared/components/FormField";
+import { SingleSelectDropdown } from "../../shared/components/SingleSelectDropdown";
 import { MultiSelectDropdown } from "../../shared/components/MultiSelectDropdown";
 import type {
   Strata,
@@ -42,7 +42,7 @@ export default function StrataPage() {
   const [filterCity, setFilterCity] = useState("");
   const [filterSectionIds, setFilterSectionIds] = useState<number[]>([]);
 
-  const isDesktop = useMediaQuery("(min-width: 600px)");
+  const isDesktop = useMediaQuery("(min-width: 750px)");
 
   const cities = useMemo(
     () =>
@@ -191,34 +191,34 @@ export default function StrataPage() {
 
       <div className="page-content">
         <div className="filters-row">
-          <SelectField
+          <SingleSelectDropdown
             label="Strata Name"
             value={filterStrataName}
-            onChange={(e) => setFilterStrataName(e.target.value)}
+            onChange={(val) => setFilterStrataName(val)}
             options={stratas.filter(s => s.complexName).map(s => ({ value: s.strataId, label: s.complexName! }))}
             placeholder="All Strata"
           />
-          <SelectField
+          <SingleSelectDropdown
             label="Strata Plan"
             value={filterStrataPlan}
-            onChange={(e) => setFilterStrataPlan(e.target.value)}
+            onChange={(val) => setFilterStrataPlan(val)}
             options={stratas.filter(s => s.strataPlan).map(s => ({ value: s.strataId, label: s.strataPlan! }))}
             placeholder="All Plans"
           />
-          <SelectField
+          <SingleSelectDropdown
             label="Property Type"
             value={filterPropertyTypeId}
-            onChange={(e) => setFilterPropertyTypeId(e.target.value)}
+            onChange={(val) => setFilterPropertyTypeId(val)}
             options={propertyTypes.map((pt) => ({
               value: pt.propertyTypeId,
               label: pt.propertyTypeName,
             }))}
             placeholder="All Types"
           />
-          <SelectField
+          <SingleSelectDropdown
             label="City"
             value={filterCity}
-            onChange={(e) => setFilterCity(e.target.value)}
+            onChange={(val) => setFilterCity(val)}
             options={cities.map((c) => ({ value: c, label: c }))}
             placeholder="All Cities"
           />
@@ -425,13 +425,13 @@ export default function StrataPage() {
           />
 
           <FormRow>
-            <SelectField
+            <SingleSelectDropdown
               label="Legal Type"
               value={formData.legalTypeId?.toString() || ""}
-              onChange={(e) =>
+              onChange={(val) =>
                 updateField(
                   "legalTypeId",
-                  e.target.value ? parseInt(e.target.value) : undefined,
+                  val ? parseInt(val) : undefined,
                 )
               }
               options={legalTypes.map((lt) => ({
@@ -441,13 +441,13 @@ export default function StrataPage() {
               placeholder="Select legal type"
               required
             />
-            <SelectField
+            <SingleSelectDropdown
               label="Property Type"
               value={formData.propertyTypeId?.toString() || ""}
-              onChange={(e) =>
+              onChange={(val) =>
                 updateField(
                   "propertyTypeId",
-                  e.target.value ? parseInt(e.target.value) : undefined,
+                  val ? parseInt(val) : undefined,
                 )
               }
               options={propertyTypes.map((pt) => ({
@@ -468,13 +468,13 @@ export default function StrataPage() {
             required
           />
 
-          <SelectField
+          <SingleSelectDropdown
             label="Company"
             value={formData.companyId?.toString() || ""}
-            onChange={(e) =>
+            onChange={(val) =>
               updateField(
                 "companyId",
-                e.target.value ? parseInt(e.target.value) : undefined,
+                val ? parseInt(val) : undefined,
               )
             }
             options={companies.map((c) => ({

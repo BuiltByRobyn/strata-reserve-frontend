@@ -12,7 +12,7 @@
       font-weight: 600;
       color: $color-text-dark;
 
-      @include respond-below(desktop) {
+      @include respond-below(lg) {
         text-align: center;
         border-bottom: 2px solid $color-border-light;
         padding-bottom: $spacing-md;
