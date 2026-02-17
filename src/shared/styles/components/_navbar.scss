@@ -28,6 +28,7 @@
     z-index: 1100;
     transition: left 0.3s ease;
     overflow-y: auto;
+    overflow-x: hidden;
 
     &::before {
       content: '';
@@ -36,7 +37,6 @@
       height: 3.5rem;
       background: $color-primary;
       box-shadow: 0 0.4rem 0 0 $color-primary;
-      border-right: 1px solid $color-primary;
       flex-shrink: 0;
     }
 
@@ -75,6 +75,9 @@
     @include respond-to(desktop) {
       border-bottom: 1px solid $color-gray-lightest;
       padding-bottom: $spacing-md;
+    }
+
+    @include respond-to(lg) {
       border-right: 1px solid $color-primary;
     }
 
@@ -271,6 +274,7 @@
       flex-direction: column;
       align-items: stretch;
       gap: $spacing-xs;
+      flex: 1;
     }
 
     // Mobile responsive
@@ -377,20 +381,13 @@
 .logout-btn {
   color: $color-error-light;
   background: none;
-  border: $border-width-thin solid $color-text-white;
-  border-top: 1px solid $color-gray-lightest;
+  border: none;
   font-family: inherit;
   font-size: inherit;
   cursor: pointer;
-  // margin-left: 1rem;
   gap: $spacing-sm;
 
-  // &:hover {
-  //   background-color: rgba(255, 255, 255, 0.1);
-  // }
-
-  // Mobile responsive
-  // @include respond-below(desktop) {
-  //   margin-top: 20px;
-  // }
+  @include respond-to(desktop) {
+    margin-top: auto;
+  }
 }

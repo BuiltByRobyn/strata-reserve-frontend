@@ -12,6 +12,7 @@
 .app {
   @include respond-to(lg) {
     display: flex;
+    min-height: 100vh;
   }
 }
 
