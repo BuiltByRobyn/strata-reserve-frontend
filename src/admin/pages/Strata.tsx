@@ -2,7 +2,6 @@ import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useStrata } from "../../shared/hooks/useStrata";
 import { useLookups } from "../../shared/hooks/useLookups";
-import { useCompanies } from "../../shared/hooks/useCompanies";
 import { useMediaQuery } from "../../shared/hooks/useMediaQuery";
 import {
   DataTable,
@@ -27,7 +26,6 @@ export default function StrataPage() {
   const { stratas, loading, error, createStrata, updateStrata, deleteStrata } =
     useStrata();
   const { legalTypes, propertyTypes, sections } = useLookups();
-  const { companies } = useCompanies();
   const navigate = useNavigate();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -223,7 +221,7 @@ export default function StrataPage() {
             placeholder="All Cities"
           />
           <MultiSelectDropdown
-            label="Section"
+            label="Sections"
             options={sections.map((s) => ({ value: s.sectionId, label: s.sectionName }))}
             selectedValues={filterSectionIds}
             onChange={setFilterSectionIds}
@@ -459,30 +457,69 @@ export default function StrataPage() {
             />
           </FormRow>
 
-          <MultiSelectDropdown
-            label="Sections"
-            options={sections.map(s => ({ value: s.sectionId, label: s.sectionName }))}
-            selectedValues={formData.sectionIds || []}
-            onChange={(values) => setFormData(prev => ({ ...prev, sectionIds: values }))}
-            placeholder="Select sections"
-            required
-          />
+            <div className="form-row-custom" style={{ display: "flex", gap: "1rem" }}>
+              <div style={{ flex: "1" }}>
+                <MultiSelectDropdown
+                  label="Sections"
+                  options={sections.map(s => ({ value: s.sectionId, label: s.sectionName }))}
+                  selectedValues={formData.sectionIds || []}
+                  onChange={(values) => setFormData(prev => ({ ...prev, sectionIds: values }))}
+                  placeholder="Select sections"
+                  required
+                />
+              </div>
+              <div style={{ flex: "1", display: "flex", gap: "1rem" }}>
+                 <div className="form-field" style={{ flex: "1", marginBottom: 0 }}>
+                   <label>Fiscal Year</label>
+                   <div style={{ display: "flex", gap: "0.5rem", marginTop: "-0.25rem" }}>
+                     <div style={{ flex: "1" }}>
+                       <SingleSelectDropdown
+                         label="" 
+                         value={formData.fiscalYearMonth?.toString() || ""}
+                         onChange={(val) => updateField("fiscalYearMonth", val ? parseInt(val) : undefined)}
+                         options={[
+                           { value: 1, label: "January" },
+                           { value: 2, label: "February" },
+                           { value: 3, label: "March" },
+                           { value: 4, label: "April" },
+                           { value: 5, label: "May" },
+                           { value: 6, label: "June" },
+                           { value: 7, label: "July" },
+                           { value: 8, label: "August" },
+                           { value: 9, label: "September" },
+                           { value: 10, label: "October" },
+                           { value: 11, label: "November" },
+                           { value: 12, label: "December" },
+                         ]}
+                         placeholder="Month"
+                         style={{ marginBottom: 0 }}
+                       />
+                     </div>
+                     <div style={{ flex: "1" }}>
+                        <SingleSelectDropdown
+                          label=""
+                          value={formData.fiscalYear?.toString() || ""}
+                          onChange={(val) => updateField("fiscalYear", val ? parseInt(val) : undefined)}
+                          options={[
+                            { value: new Date().getFullYear() - 1, label: (new Date().getFullYear() - 1).toString() },
+                            { value: new Date().getFullYear(), label: new Date().getFullYear().toString() },
+                            { value: new Date().getFullYear() + 1, label: (new Date().getFullYear() + 1).toString() },
+                          ]}
+                          placeholder="Year"
+                          style={{ marginBottom: 0 }}
+                        />
+                     </div>
+                   </div>
+                 </div>
+              </div>
+            </div>
 
-          <SingleSelectDropdown
-            label="Company"
-            value={formData.companyId?.toString() || ""}
-            onChange={(val) =>
-              updateField(
-                "companyId",
-                val ? parseInt(val) : undefined,
-              )
-            }
-            options={companies.map((c) => ({
-              value: c.companyId,
-              label: c.companyName,
-            }))}
-            placeholder="Select company"
-          />
+            <InputField
+              label="Company"
+              value={formData.companyName || ""}
+              onChange={(e) => updateField("companyName", e.target.value)}
+              placeholder="Enter company name"
+            />
         </form>
       </Modal>
     </div>

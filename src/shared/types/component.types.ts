@@ -107,4 +107,6 @@ export interface SingleSelectDropdownProps extends BaseFieldProps {
   onChange: (value: string) => void;
   placeholder?: string;
   disabled?: boolean;
+  className?: string;
+  style?: import('react').CSSProperties;
 }
