@@ -76,6 +76,7 @@ export const Login = () => {
               placeholder="Enter your email"
               required
               disabled={loading}
+              autoFocus
             />
           </div>
 

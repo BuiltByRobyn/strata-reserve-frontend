@@ -133,6 +133,9 @@ export interface CreateStrataInput {
   propertyTypeId?: number;
   companyId?: number;
   sectionIds?: number[];
+  fiscalYear?: number;
+  fiscalYearMonth?: number;
+  companyName?: string;
 }
 
 export interface UpdateStrataInput extends Partial<CreateStrataInput> {}

@@ -7,6 +7,7 @@ export interface SurveyQuestion {
   questionType: string;
   sortOrder: number;
   multipleChoiceOptions: MultipleChoiceOption[];
+  questionSections?: { sectionId: number; section: { sectionName: string } }[];
 }
 
 export interface MultipleChoiceOption {

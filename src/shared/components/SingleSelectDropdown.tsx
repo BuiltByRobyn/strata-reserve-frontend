@@ -11,6 +11,8 @@ export function SingleSelectDropdown({
   onChange,
   placeholder = 'Select...',
   disabled = false,
+  className = '',
+  style,
 }: SingleSelectDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -33,7 +35,7 @@ export function SingleSelectDropdown({
   const triggerClass = `multiselect__trigger${!hasValue ? ' multiselect__trigger--placeholder' : ''}`;
 
   return (
-    <div className={`form-field ${error ? 'has-error' : ''}`} ref={containerRef}>
+    <div className={`form-field ${error ? 'has-error' : ''} ${className}`} style={style} ref={containerRef}>
       {label && (
         <label htmlFor={fieldId}>
           {label}

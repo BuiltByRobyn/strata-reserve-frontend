@@ -369,7 +369,7 @@ export default function UsersPage() {
             placeholder="All Roles"
           />
           <MultiSelectDropdown
-            label="Section"
+            label="Sections"
             options={sections.map(s => ({ value: s.sectionId, label: s.sectionName }))}
             selectedValues={filterSectionId}
             onChange={setFilterSectionId}
