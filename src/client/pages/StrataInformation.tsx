@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../shared/contexts/AuthContext';
 import { supabase } from '../../shared/lib/supabaseClient';
-import { LoadingSpinner } from '../../shared/components/LoadingSpinner/LoadingSpinner';
+import { LoadingSpinner } from '../../shared/components/LoadingSpinner';
 import type { StrataInfo } from '../../shared/types/entities.types';
 
 const StrataInformation = () => {
@@ -79,7 +79,7 @@ const StrataInformation = () => {
   return (
     <div className="page-container">
       <h1>Property Profile</h1>
-      <p className="strata-info__subtitle">Please verify your strata information</p>
+      <p className="page-subtitle">Please verify your strata information</p>
 
       <div className="strata-info__card">
         <h2 className="strata-info__section-title">Basic Information</h2>

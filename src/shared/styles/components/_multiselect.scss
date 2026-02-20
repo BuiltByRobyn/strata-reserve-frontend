@@ -1,0 +1,114 @@
+@use '../variables' as *;
+
+.multiselect {
+  position: relative;
+
+  &__trigger {
+    width: 100%;
+    padding: $spacing-sm $spacing-xl $spacing-sm $spacing-md;
+    border: 1px solid $color-border-light;
+    border-radius: $border-radius-sm;
+    background-color: $color-background;
+    font-size: 1rem;
+    text-align: left;
+    cursor: pointer;
+    color: $color-text-primary;
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right $spacing-sm center;
+    background-size: 1rem;
+    transition: all 0.2s ease;
+    line-height: 1.5;
+    height: 2.75rem;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+
+    @include respond-below(lg) {
+      height: 3rem;
+      font-size: 1rem;
+    }
+
+    &--placeholder {
+      color: $color-text-light;
+    }
+
+    &:focus {
+      outline: none;
+      border-color: $color-primary;
+      box-shadow: 0 0 0 3px rgba($color-primary, 0.15);
+    }
+
+    &:disabled {
+      background: $color-background-off-white;
+      cursor: not-allowed;
+    }
+  }
+
+  &__dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: 50;
+    max-height: 200px;
+    overflow-y: auto;
+    background-color: $color-background;
+    border: 1px solid $color-border-light;
+    border-radius: $border-radius-sm;
+    margin-top: 2px;
+    box-shadow: $shadow-md;
+
+    @include respond-below(lg) {
+      max-height: 60vh;
+    }
+  }
+
+  &__option {
+    display: flex;
+    align-items: center;
+    padding: $spacing-sm $spacing-md;
+    cursor: pointer;
+    font-size: 0.875rem;
+    gap: $spacing-sm;
+
+    @include respond-below(lg) {
+      padding: 0.75rem $spacing-md;
+      font-size: 1rem;
+      min-height: 2.75rem;
+    }
+
+    &:hover {
+      background-color: $color-background-off-white;
+    }
+
+    &--selected {
+      background-color: rgba($color-primary, 0.08);
+
+      &:hover {
+        background-color: rgba($color-primary, 0.14);
+      }
+    }
+
+    input[type="checkbox"] {
+      accent-color: $color-primary;
+      margin-right: $spacing-sm;
+    }
+  }
+
+  &__tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: $spacing-xs;
+    margin-top: $spacing-xs;
+  }
+
+  &__tag {
+    font-size: 0.75rem;
+    padding: 0.125rem $spacing-sm;
+    background-color: rgba($color-primary, 0.12);
+    border-radius: 9999px;
+    color: $color-primary-dark;
+  }
+}

@@ -7,6 +7,7 @@ export interface SurveyQuestion {
   questionType: string;
   sortOrder: number;
   multipleChoiceOptions: MultipleChoiceOption[];
+  questionSections?: { sectionId: number; section: { sectionName: string } }[];
 }
 
 export interface MultipleChoiceOption {
@@ -61,3 +62,47 @@ export const SECTION_QUESTION_RANGES: Record<string, { start: number; end: numbe
   legal: { start: 17, end: 20 },
   council: { start: 21, end: 22 },
 };
+
+export interface AdminQuestion {
+  questionId: number;
+  questionText: string;
+  isRequired: boolean;
+  informationText: string | null;
+  questionCategory: string;
+  questionTypeId: number;
+  questionType: { questionTypeId: number; questionTypeName: string };
+  questionServices: { questionServiceId: number; serviceId: number; sortOrder: number; service: { serviceId: number; serviceName: string } }[];
+  questionPropertyTypes: { questionPropertyTypeId: number; propertyTypeId: number; propertyType: { propertyTypeId: number; propertyTypeName: string } }[];
+  questionLegalTypes: { questionLegalTypeId: number; legalTypeId: number; legalType: { legalTypeId: number; legalTypeName: string } }[];
+  questionSections: { questionSectionId: number; sectionId: number; section: { sectionId: number; sectionName: string } }[];
+  multipleChoiceOptions: { multipleChoiceOptionId: number; optionText: string; sortOrder: number }[];
+  createdAt: string;
+}
+
+export interface CreateQuestionInput {
+  questionText: string;
+  isRequired: boolean;
+  informationText?: string | null;
+  questionCategory: string;
+  questionTypeId: number;
+  serviceIds: { serviceId: number; sortOrder: number }[];
+  propertyTypeIds: number[];
+  legalTypeIds: number[];
+  sectionIds: number[];
+  multipleChoiceOptions?: { optionText: string; sortOrder: number }[];
+}
+
+export interface UpdateQuestionInput extends Partial<CreateQuestionInput> {}
+
+export interface QuestionFormData {
+  questionText: string;
+  questionCategory: string;
+  questionTypeId: number | undefined;
+  isRequired: boolean;
+  informationText: string;
+  serviceIds: { serviceId: number; sortOrder: number }[];
+  propertyTypeIds: number[];
+  legalTypeIds: number[];
+  sectionIds: number[];
+  multipleChoiceOptions: { optionText: string; sortOrder: number }[];
+}

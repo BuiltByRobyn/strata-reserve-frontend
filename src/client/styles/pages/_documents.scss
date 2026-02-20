@@ -11,13 +11,14 @@
       font-size: 1.75rem;
       font-weight: 600;
       color: $color-text-dark;
+      padding-bottom: $spacing-md;
+
+      @include respond-below(lg) {
+        text-align: center;
+        border-bottom: 2px solid $color-border-light;
+      }
     }
 
-    .page-subtitle {
-      margin: 0;
-      color: $color-text-light;
-      font-size: 0.9375rem;
-    }
   }
 
   .warning-banner {
@@ -27,7 +28,7 @@
     border: 1px solid $color-warning;
     border-radius: $border-radius-sm;
     color: $color-accent-brown;
-    font-weight: 500;
+    font-weight: $font-weight-medium;
   }
 
   .error-banner {
@@ -70,7 +71,7 @@
   .document-category {
     .category-title {
       font-size: 1.125rem;
-      font-weight: 600;
+      font-weight: $font-weight-bold;
       color: $color-text-dark;
       margin: 0 0 $spacing-sm;
       padding-bottom: $spacing-xs;
@@ -81,25 +82,30 @@
   .document-list {
     display: flex;
     flex-direction: column;
-    gap: $spacing-xs;
+    border: 1px solid $color-border-light;
+    border-radius: $border-radius-lg;
+    overflow: hidden;
+    background: $color-white;
   }
 
   .document-item {
-    display: flex;
+    display: grid;
+    grid-template-columns: 1fr auto auto;
     align-items: center;
-    justify-content: space-between;
-    padding: $spacing-sm $spacing-md;
-    background: $color-white;
-    border: 1px solid $color-border-light;
-    border-radius: $border-radius-sm;
+    gap: $spacing-sm $spacing-md;
+    padding: $spacing-md $spacing-lg;
+    border-bottom: 1px solid $color-border-light;
     transition: background 0.2s ease;
 
+    &:last-child {
+      border-bottom: none;
+    }
+
     &:hover {
-      background: $color-background-light;
+      background: $color-background-off-white;
     }
 
     &.uploaded {
-      border-color: $color-success;
       background: rgba($color-success, 0.03);
     }
   }
@@ -108,41 +114,36 @@
     display: flex;
     align-items: center;
     gap: $spacing-sm;
-    flex: 1;
+    min-width: 0;
 
     .document-name {
-      font-weight: 500;
+      font-weight: $font-weight-medium;
       color: $color-text-dark;
     }
+  }
 
-    .mandatory-badge {
-      padding: 2px 8px;
-      border-radius: 4px;
-      font-size: 0.6875rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      background: rgba($color-error, 0.1);
-      color: $color-error;
-    }
+  .uploaded-badge {
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.6875rem;
+    font-weight: $font-weight-bold;
+    text-transform: uppercase;
+    background: rgba($color-success, 0.1);
+    color: $color-success;
+    justify-self: end;
+    white-space: nowrap;
+  }
 
-    .uploaded-badge {
-      padding: 2px 8px;
-      border-radius: 4px;
-      font-size: 0.6875rem;
-      font-weight: 600;
-      background: rgba($color-success, 0.1);
-      color: $color-success;
-    }
-
-    .success-badge {
-      padding: 2px 8px;
-      border-radius: 4px;
-      font-size: 0.6875rem;
-      font-weight: 600;
-      background: $color-success;
-      color: $color-white;
-      animation: fadeIn 0.3s ease;
-    }
+  .mandatory-badge {
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.6875rem;
+    font-weight: $font-weight-bold;
+    text-transform: uppercase;
+    background: rgba($color-error, 0.1);
+    color: $color-error;
+    justify-self: end;
+    white-space: nowrap;
   }
 
   .document-actions {
@@ -156,7 +157,7 @@
       color: $color-white;
       border: none;
       border-radius: $border-radius-sm;
-      font-size: 0.8125rem;
+      font-size: $font-size-sm;
       cursor: pointer;
       transition: background 0.2s ease;
 
@@ -176,7 +177,7 @@
       background: transparent;
       border: 1px solid $color-border-light;
       border-radius: $border-radius-sm;
-      font-size: 0.8125rem;
+      font-size: $font-size-sm;
       color: $color-text-light;
       cursor: pointer;
       transition: all 0.2s ease;
@@ -187,12 +188,151 @@
       }
     }
 
-    .check-icon {
-      font-size: 1.25rem;
+    .btn-view {
+      padding: $spacing-xs $spacing-md;
+      background: $color-white;
       color: $color-success;
-      font-weight: bold;
+      border: 1px solid $color-success;
+      border-radius: $border-radius-sm;
+      font-size: $font-size-sm;
+      cursor: pointer;
+      transition: all 0.2s ease;
+
+      &:hover {
+        background: rgba($color-success, 0.08);
+      }
+    }
+
+    .btn-replace {
+      padding: $spacing-xs $spacing-md;
+      background: $color-primary;
+      color: $color-white;
+      border: none;
+      border-radius: $border-radius-sm;
+      font-size: $font-size-sm;
+      cursor: pointer;
+      transition: background 0.2s ease;
+
+      &:hover {
+        background: $color-primary-hover;
+      }
+
+      &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+    }
+
+    .na-status {
+      font-size: $font-size-sm;
+      color: $color-text-light;
+      font-style: italic;
     }
   }
+
+  .document-number {
+    font-weight: $font-weight-bold;
+    color: $color-text-dark;
+    min-width: 1.5rem;
+  }
+
+  .documents-pagination {
+    display: flex;
+    justify-content: center;
+    gap: $spacing-md;
+    padding: $spacing-lg 0;
+    border-top: 1px solid $color-border-light;
+    margin-top: $spacing-md;
+
+    .btn-nav {
+      padding: $spacing-sm $spacing-xl;
+      min-width: 160px;
+      font-size: $font-size-sm;
+      border-radius: $border-radius-sm;
+      cursor: pointer;
+      transition: all 0.2s ease;
+
+      &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+    }
+
+    @include respond-below(lg) {
+      flex-direction: column;
+
+      .btn-nav {
+        width: 100%;
+        min-width: unset;
+        padding: 14px $spacing-md;
+        font-size: $font-size-base;
+      }
+    }
+  }
+
+  .thank-you-content {
+    text-align: center;
+    padding: $spacing-md 0;
+
+    p {
+      color: $color-text-dark;
+      font-size: 1rem;
+      line-height: 1.5;
+    }
+  }
+
+  @include respond-below(lg) {
+    .document-item {
+      grid-template-columns: 1fr auto;
+      grid-template-rows: auto auto;
+      padding: $spacing-lg $spacing-md;
+      gap: $spacing-md $spacing-sm;
+    }
+
+    .document-info {
+      grid-column: 1;
+      grid-row: 1;
+      flex-wrap: wrap;
+      font-size: $font-size-md;
+    }
+
+    .mandatory-badge,
+    .uploaded-badge {
+      grid-column: 2;
+      grid-row: 1;
+    }
+
+    .document-actions {
+      grid-column: 1 / -1;
+      grid-row: 2;
+      width: 100%;
+      flex-wrap: wrap;
+
+      .btn-upload {
+        width: 100%;
+        padding: 14px $spacing-md;
+        font-size: $font-size-base;
+        text-align: center;
+      }
+
+      .btn-view,
+      .btn-replace {
+        width: 100%;
+        padding: 14px $spacing-md;
+        font-size: $font-size-base;
+        text-align: center;
+      }
+
+      .btn-not-available,
+      .btn-not-applicable {
+        flex: 1;
+        padding: 12px $spacing-sm;
+        font-size: $font-size-sm;
+        text-align: center;
+      }
+    }
+  }
+
 }
 
 @keyframes spin {

@@ -1,13 +1,4 @@
-import type { ReactNode } from 'react';
-
-interface ModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  title: string;
-  size?: 'small' | 'medium' | 'large' | 'preview';
-  footer?: ReactNode;
-  children: ReactNode;
-}
+import type { ModalProps } from '../types/component.types';
 
 export const Modal = ({ isOpen, onClose, title, size = 'medium', footer, children }: ModalProps) => {
   if (!isOpen) return null;

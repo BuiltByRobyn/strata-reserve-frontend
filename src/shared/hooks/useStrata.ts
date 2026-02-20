@@ -15,8 +15,7 @@ import type {
   ApiSingleResponse
 } from '../types/entities.types';
 import type { StrataState } from '../types/hooks.types';
-
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+import { API_BASE } from '../lib/api';
 
 export const useStrata = () => {
   const authFetch = useAuthFetch();

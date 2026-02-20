@@ -2,12 +2,13 @@ import { Route } from 'react-router-dom';
 import { ProtectedRoute } from '../../shared/routes/ProtectedRoute';
 import { ClientNavbar } from '../components/ClientNavbar';
 import { Dashboard } from '../pages/Dashboard';
-import { Profile } from '../pages/Profile';
 import DocumentsPage from '../pages/Documents';
 import SurveyPage from '../pages/Survey';
 import SurveySectionPage from '../pages/SurveySection';
 import StrataInformation from '../pages/StrataInformation';
 import StrataMembers from '../pages/StrataMembers';
+import Timelines from '../pages/Timelines';
+import InspectionDate from '../pages/InspectionDate';
 
 export const clientRoutes = [
   <Route key="client-dashboard" path="/client/dashboard" element={
@@ -15,14 +16,6 @@ export const clientRoutes = [
       <div className="app">
         <ClientNavbar />
         <Dashboard />
-      </div>
-    </ProtectedRoute>
-  } />,
-  <Route key="client-profile" path="/client/profile" element={
-    <ProtectedRoute requireClient>
-      <div className="app">
-        <ClientNavbar />
-        <Profile />
       </div>
     </ProtectedRoute>
   } />,
@@ -50,7 +43,9 @@ export const clientRoutes = [
     <ProtectedRoute requireClient>
       <div className="app">
         <ClientNavbar />
-        <DocumentsPage />
+        <main className="app-main">
+          <DocumentsPage />
+        </main>
       </div>
     </ProtectedRoute>
   } />,
@@ -70,6 +65,26 @@ export const clientRoutes = [
         <ClientNavbar />
         <main className="app-main">
           <SurveyPage />
+        </main>
+      </div>
+    </ProtectedRoute>
+  } />,
+  <Route key="client-timelines" path="/client/timelines" element={
+    <ProtectedRoute requireClient>
+      <div className="app">
+        <ClientNavbar />
+        <main className="app-main">
+          <Timelines />
+        </main>
+      </div>
+    </ProtectedRoute>
+  } />,
+  <Route key="client-inspection-date" path="/client/inspection-date" element={
+    <ProtectedRoute requireClient>
+      <div className="app">
+        <ClientNavbar />
+        <main className="app-main">
+          <InspectionDate />
         </main>
       </div>
     </ProtectedRoute>

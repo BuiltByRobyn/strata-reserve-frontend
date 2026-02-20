@@ -1,10 +1,5 @@
 @use '../../../shared/styles/variables' as *;
 
-.strata-members__subtitle {
-  color: $color-text-secondary;
-  margin-bottom: $spacing-lg;
-}
-
 .strata-members__card {
   max-width: $max-width-page;
   background: $color-white;
@@ -18,7 +13,8 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: $spacing-md;
+  margin: $spacing-lg auto;
+
 
   h2 {
     margin: 0;
@@ -37,6 +33,7 @@
   font-weight: 500;
   color: $color-accent-brown;
   background: rgba($color-accent-yellow, 0.1);
+  text-align: center;
 }
 
 .strata-members__table {
@@ -47,7 +44,7 @@
 .strata-members__table-header,
 .strata-members__table-row {
   display: grid;
-  grid-template-columns: 1fr 1.5fr 1fr 1fr;
+  grid-template-columns: 1fr 1.5fr 1fr;
   gap: $spacing-sm;
   padding: $spacing-sm 0;
 

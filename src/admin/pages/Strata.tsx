@@ -2,30 +2,30 @@ import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useStrata } from "../../shared/hooks/useStrata";
 import { useLookups } from "../../shared/hooks/useLookups";
-import { useCompanies } from "../../shared/hooks/useCompanies";
 import { useMediaQuery } from "../../shared/hooks/useMediaQuery";
 import {
   DataTable,
   type Column,
-} from "../../shared/components/DataTable/DataTable";
-import { LoadingSpinner } from "../../shared/components/LoadingSpinner/LoadingSpinner";
-import { Modal } from "../../shared/components/Modal/Modal";
+} from "../../shared/components/DataTable";
+import { LoadingSpinner } from "../../shared/components/LoadingSpinner";
+import { Modal } from "../../shared/components/Modal";
 import {
   InputField,
-  SelectField,
   FormRow,
-} from "../../shared/components/FormField/FormField";
+} from "../../shared/components/FormField";
+import { SingleSelectDropdown } from "../../shared/components/SingleSelectDropdown";
+import { MultiSelectDropdown } from "../../shared/components/MultiSelectDropdown";
 import type {
   Strata,
   CreateStrataInput,
   UpdateStrataInput,
 } from "../../shared/types/entities.types";
+import { formatStrataId, validateStrataId } from "../../shared/utils/strataUtils";
 
 export default function StrataPage() {
   const { stratas, loading, error, createStrata, updateStrata, deleteStrata } =
     useStrata();
-  const { legalTypes, propertyTypes } = useLookups();
-  const { companies } = useCompanies();
+  const { legalTypes, propertyTypes, sections } = useLookups();
   const navigate = useNavigate();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -34,11 +34,13 @@ export default function StrataPage() {
   const [formError, setFormError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const [searchQuery, setSearchQuery] = useState("");
+  const [filterStrataName, setFilterStrataName] = useState("");
+  const [filterStrataPlan, setFilterStrataPlan] = useState("");
   const [filterPropertyTypeId, setFilterPropertyTypeId] = useState("");
   const [filterCity, setFilterCity] = useState("");
+  const [filterSectionIds, setFilterSectionIds] = useState<number[]>([]);
 
-  const isDesktop = useMediaQuery("(min-width: 600px)");
+  const isDesktop = useMediaQuery("(min-width: 750px)");
 
   const cities = useMemo(
     () =>
@@ -51,22 +53,12 @@ export default function StrataPage() {
   useEffect(() => {
     let result = stratas;
 
-    if (searchQuery.trim()) {
-      const search = searchQuery.toLowerCase().trim();
-      result = result.filter((s) => {
-        const strataPlan = (s.strataPlan || "").toLowerCase();
-        const complexName = (s.complexName || "").toLowerCase();
-        const streetName = (s.streetName || "").toLowerCase();
-        const town = (s.town || "").toLowerCase();
-        const companyName = (s.company?.companyName || "").toLowerCase();
-        return (
-          strataPlan.includes(search) ||
-          complexName.includes(search) ||
-          streetName.includes(search) ||
-          town.includes(search) ||
-          companyName.includes(search)
-        );
-      });
+    if (filterStrataName) {
+      result = result.filter((s) => s.strataId === parseInt(filterStrataName));
+    }
+
+    if (filterStrataPlan) {
+      result = result.filter((s) => s.strataId === parseInt(filterStrataPlan));
     }
 
     if (filterPropertyTypeId) {
@@ -81,8 +73,14 @@ export default function StrataPage() {
       );
     }
 
+    if (filterSectionIds.length > 0) {
+      result = result.filter((s) =>
+        s.strataSections?.some((ss) => filterSectionIds.includes(ss.sectionId))
+      );
+    }
+
     setFilteredStratas(result);
-  }, [stratas, searchQuery, filterPropertyTypeId, filterCity]);
+  }, [stratas, filterStrataName, filterStrataPlan, filterPropertyTypeId, filterCity, filterSectionIds]);
 
   const columns: Column<Strata>[] = [
     { key: "strataPlan", header: "Strata Plan" },
@@ -103,7 +101,7 @@ export default function StrataPage() {
 
   const openCreateModal = () => {
     setEditingStrata(null);
-    setFormData({ country: "Canada" });
+    setFormData({ country: "Canada", sectionIds: [] });
     setFormError(null);
     setIsModalOpen(true);
   };
@@ -123,6 +121,7 @@ export default function StrataPage() {
       legalTypeId: strata.legalTypeId || undefined,
       propertyTypeId: strata.propertyTypeId || undefined,
       companyId: strata.companyId || undefined,
+      sectionIds: strata.strataSections?.map(ss => ss.section.sectionId) || [],
     });
     setFormError(null);
     setIsModalOpen(true);
@@ -130,6 +129,11 @@ export default function StrataPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!validateStrataId(formData.strataPlan || '')) {
+      setFormError('Strata Plan must be in format: ABC 12345 (3 letters, space, 5 digits)');
+      return;
+    }
 
     setIsSubmitting(true);
     setFormError(null);
@@ -184,32 +188,44 @@ export default function StrataPage() {
       </div>
 
       <div className="page-content">
-        <h1 className="filter-title">Search</h1>
         <div className="filters-row">
-          <div className="search-field">
-            <InputField
-              label="Search"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search strata..."
-            />
-          </div>
-          <SelectField
+          <SingleSelectDropdown
+            label="Strata Name"
+            value={filterStrataName}
+            onChange={(val) => setFilterStrataName(val)}
+            options={stratas.filter(s => s.complexName).map(s => ({ value: s.strataId, label: s.complexName! }))}
+            placeholder="All Strata"
+          />
+          <SingleSelectDropdown
+            label="Strata Plan"
+            value={filterStrataPlan}
+            onChange={(val) => setFilterStrataPlan(val)}
+            options={stratas.filter(s => s.strataPlan).map(s => ({ value: s.strataId, label: s.strataPlan! }))}
+            placeholder="All Plans"
+          />
+          <SingleSelectDropdown
             label="Property Type"
             value={filterPropertyTypeId}
-            onChange={(e) => setFilterPropertyTypeId(e.target.value)}
+            onChange={(val) => setFilterPropertyTypeId(val)}
             options={propertyTypes.map((pt) => ({
               value: pt.propertyTypeId,
               label: pt.propertyTypeName,
             }))}
             placeholder="All Types"
           />
-          <SelectField
+          <SingleSelectDropdown
             label="City"
             value={filterCity}
-            onChange={(e) => setFilterCity(e.target.value)}
+            onChange={(val) => setFilterCity(val)}
             options={cities.map((c) => ({ value: c, label: c }))}
             placeholder="All Cities"
+          />
+          <MultiSelectDropdown
+            label="Sections"
+            options={sections.map((s) => ({ value: s.sectionId, label: s.sectionName }))}
+            selectedValues={filterSectionIds}
+            onChange={setFilterSectionIds}
+            placeholder="All Sections"
           />
         </div>
       </div>
@@ -240,15 +256,6 @@ export default function StrataPage() {
                 }}
               >
                 Edit
-              </button>
-              <button
-                className="btn-delete"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleDelete(strata);
-                }}
-              >
-                Delete
               </button>
             </>
           )}
@@ -292,15 +299,6 @@ export default function StrataPage() {
                           >
                             Edit
                           </button>
-                          <button
-                            className="btn-delete"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDelete(strata);
-                            }}
-                          >
-                            Delete
-                          </button>
                         </div>
                       </td>
                     </tr>
@@ -325,12 +323,24 @@ export default function StrataPage() {
             >
               Cancel
             </button>
+            {editingStrata && (
+              <button
+                className="btn-delete"
+                onClick={() => {
+                  handleDelete(editingStrata);
+                  setIsModalOpen(false);
+                }}
+                disabled={isSubmitting}
+              >
+                Delete Strata
+              </button>
+            )}
             <button
               className="btn-primary"
               onClick={handleSubmit}
               disabled={isSubmitting}
             >
-              {isSubmitting ? "Saving..." : "Save"}
+              {isSubmitting ? "Saving..." : editingStrata ? "Update Strata" : "Create Strata"}
             </button>
           </>
         }
@@ -342,8 +352,9 @@ export default function StrataPage() {
             <InputField
               label="Strata Plan"
               value={formData.strataPlan || ""}
-              onChange={(e) => updateField("strataPlan", e.target.value)}
-              placeholder="e.g., VIS 2345"
+              onChange={(e) => updateField("strataPlan", formatStrataId(e.target.value))}
+              placeholder="e.g., VIS 23456"
+              maxLength={9}
               required
             />
             <InputField
@@ -412,13 +423,13 @@ export default function StrataPage() {
           />
 
           <FormRow>
-            <SelectField
+            <SingleSelectDropdown
               label="Legal Type"
               value={formData.legalTypeId?.toString() || ""}
-              onChange={(e) =>
+              onChange={(val) =>
                 updateField(
                   "legalTypeId",
-                  e.target.value ? parseInt(e.target.value) : undefined,
+                  val ? parseInt(val) : undefined,
                 )
               }
               options={legalTypes.map((lt) => ({
@@ -428,13 +439,13 @@ export default function StrataPage() {
               placeholder="Select legal type"
               required
             />
-            <SelectField
+            <SingleSelectDropdown
               label="Property Type"
               value={formData.propertyTypeId?.toString() || ""}
-              onChange={(e) =>
+              onChange={(val) =>
                 updateField(
                   "propertyTypeId",
-                  e.target.value ? parseInt(e.target.value) : undefined,
+                  val ? parseInt(val) : undefined,
                 )
               }
               options={propertyTypes.map((pt) => ({
@@ -446,21 +457,69 @@ export default function StrataPage() {
             />
           </FormRow>
 
-          <SelectField
-            label="Company"
-            value={formData.companyId?.toString() || ""}
-            onChange={(e) =>
-              updateField(
-                "companyId",
-                e.target.value ? parseInt(e.target.value) : undefined,
-              )
-            }
-            options={companies.map((c) => ({
-              value: c.companyId,
-              label: c.companyName,
-            }))}
-            placeholder="Select company"
-          />
+            <div className="form-row-custom" style={{ display: "flex", gap: "1rem" }}>
+              <div style={{ flex: "1" }}>
+                <MultiSelectDropdown
+                  label="Sections"
+                  options={sections.map(s => ({ value: s.sectionId, label: s.sectionName }))}
+                  selectedValues={formData.sectionIds || []}
+                  onChange={(values) => setFormData(prev => ({ ...prev, sectionIds: values }))}
+                  placeholder="Select sections"
+                  required
+                />
+              </div>
+              <div style={{ flex: "1", display: "flex", gap: "1rem" }}>
+                 <div className="form-field" style={{ flex: "1", marginBottom: 0 }}>
+                   <label>Fiscal Year</label>
+                   <div style={{ display: "flex", gap: "0.5rem", marginTop: "-0.25rem" }}>
+                     <div style={{ flex: "1" }}>
+                       <SingleSelectDropdown
+                         label="" 
+                         value={formData.fiscalYearMonth?.toString() || ""}
+                         onChange={(val) => updateField("fiscalYearMonth", val ? parseInt(val) : undefined)}
+                         options={[
+                           { value: 1, label: "January" },
+                           { value: 2, label: "February" },
+                           { value: 3, label: "March" },
+                           { value: 4, label: "April" },
+                           { value: 5, label: "May" },
+                           { value: 6, label: "June" },
+                           { value: 7, label: "July" },
+                           { value: 8, label: "August" },
+                           { value: 9, label: "September" },
+                           { value: 10, label: "October" },
+                           { value: 11, label: "November" },
+                           { value: 12, label: "December" },
+                         ]}
+                         placeholder="Month"
+                         style={{ marginBottom: 0 }}
+                       />
+                     </div>
+                     <div style={{ flex: "1" }}>
+                        <SingleSelectDropdown
+                          label=""
+                          value={formData.fiscalYear?.toString() || ""}
+                          onChange={(val) => updateField("fiscalYear", val ? parseInt(val) : undefined)}
+                          options={[
+                            { value: new Date().getFullYear() - 1, label: (new Date().getFullYear() - 1).toString() },
+                            { value: new Date().getFullYear(), label: new Date().getFullYear().toString() },
+                            { value: new Date().getFullYear() + 1, label: (new Date().getFullYear() + 1).toString() },
+                          ]}
+                          placeholder="Year"
+                          style={{ marginBottom: 0 }}
+                        />
+                     </div>
+                   </div>
+                 </div>
+              </div>
+            </div>
+
+            <InputField
+              label="Company"
+              value={formData.companyName || ""}
+              onChange={(e) => updateField("companyName", e.target.value)}
+              placeholder="Enter company name"
+            />
         </form>
       </Modal>
     </div>

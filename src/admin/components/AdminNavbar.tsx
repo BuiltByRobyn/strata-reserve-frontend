@@ -24,7 +24,12 @@ export const AdminNavbar = () => {
   const adminUser = user?.role === 'admin' ? user : null;
 
   return (
-    <nav className="navbar admin-navbar">
+    <>
+    <div
+      className={`sidebar-overlay${isMobileMenuOpen ? ' active' : ''}`}
+      onClick={closeMobileMenu}
+    />
+    <nav className={`navbar admin-navbar${isMobileMenuOpen ? ' sidebar-open' : ''}`}>
       <div className="navbar-brand">
         <img src="/logonobg.svg" alt="Building Icon" />
         <div className="navbar-brand-titles">
@@ -83,15 +88,22 @@ export const AdminNavbar = () => {
         >
           Users
         </NavLink>
-        <NavLink 
-          to="/admin/documents" 
+        <NavLink
+          to="/admin/documents"
           className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
           onClick={closeMobileMenu}
         >
           Documents
         </NavLink>
-        <NavLink 
-          to="/admin/appointments" 
+        <NavLink
+          to="/admin/questions"
+          className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+          onClick={closeMobileMenu}
+        >
+          Questions
+        </NavLink>
+        <NavLink
+          to="/admin/appointments"
           className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
           onClick={closeMobileMenu}
         >
@@ -102,7 +114,7 @@ export const AdminNavbar = () => {
           className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
           onClick={closeMobileMenu}
         >
-          {adminUser?.fullName || 'Profile'}
+          System Settings
         </NavLink>
         <button 
           onClick={() => {
@@ -115,5 +127,6 @@ export const AdminNavbar = () => {
         </button>
       </div>
     </nav>
+    </>
   );
 };

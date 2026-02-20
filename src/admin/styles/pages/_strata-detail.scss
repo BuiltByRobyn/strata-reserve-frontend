@@ -24,14 +24,16 @@
 
   .detail-header {
     display: flex;
-    flex-direction: column;
-    gap: $spacing-md;
+    align-items: center;
+    justify-content: center;
+    padding-bottom: $spacing-md;
     margin-bottom: $spacing-lg;
+    border-bottom: 2px solid $color-border-light;
 
     @include respond-to(desktop) {
-      flex-direction: row;
-      align-items: center;
       justify-content: space-between;
+      border-bottom: none;
+      padding-bottom: 0;
     }
 
     h1 {
@@ -39,16 +41,104 @@
       font-size: 1.75rem;
       font-weight: 600;
       color: $color-text-dark;
+
+      @include respond-to(desktop) {
+        font-size: $font-size-lg;
+      }
     }
 
-    .action-buttons {
-      display: flex;
-      gap: $spacing-sm;
-      flex-wrap: wrap;
+    .action-buttons-desktop {
+      display: none;
 
-      .btn-primary {
-        padding: $spacing-xs $spacing-md;
-        font-size: $font-size-sm;
+      @include respond-to(desktop) {
+        display: flex;
+        gap: $spacing-sm;
+
+        .btn-primary {
+          padding: $spacing-xs $spacing-md;
+          font-size: $font-size-sm;
+        }
+      }
+    }
+  }
+
+  .strata-action-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-sm;
+    margin-bottom: $spacing-lg;
+
+    .btn-primary {
+      width: 100%;
+    }
+
+    @include respond-to(desktop) {
+      display: none;
+    }
+  }
+
+  .tabs-row {
+    position: relative;
+    margin-bottom: $spacing-lg;
+    
+    @include respond-to(desktop) {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 2px solid $color-border-light;
+      gap: $spacing-md;
+
+      /* Remove the default border from the Tabs component so we don't have double borders */
+      .tabs--default {
+        border-bottom: none;
+        margin-bottom: -2px; /* Pull tabs down to overlap the container border */
+      }
+    }
+
+    .section-filter-container {
+      min-width: 250px;
+
+      // Target the inner form-field of MultiSelectDropdown
+      .form-field {
+        @include respond-to(desktop) {
+          display: flex;
+          align-items: center;
+          gap: $spacing-sm;
+          margin-bottom: 0;
+
+          label {
+            margin-bottom: 0;
+            white-space: nowrap;
+            font-weight: $font-weight-bold;
+            color: $color-text-dark;
+          }
+
+          .multiselect {
+            flex: 1;
+          }
+        }
+
+        @include respond-below(desktop) {
+          label {
+            // Match .tabs-mobile__label style from _tabs.scss
+            display: block;
+            font-size: $font-size-sm;
+            font-weight: $font-weight-bold;
+            color: $color-text-muted;
+            margin-bottom: $spacing-xs;
+          }
+        }
+      }
+    }
+
+    @include respond-below(desktop) {
+      display: flex;
+      flex-direction: column;
+      gap: $spacing-sm;
+      margin-bottom: $spacing-sm;
+
+      .tabs-mobile {
+        margin-bottom: 0;
       }
     }
   }
@@ -84,6 +174,18 @@
       display: flex;
       flex-direction: column;
       gap: $spacing-xs;
+
+      @include respond-below(desktop) {
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: baseline;
+        padding: $spacing-sm 0;
+        border-bottom: 1px solid $color-border-light;
+
+        &:last-child {
+          border-bottom: none;
+        }
+      }
     }
 
     .info-label {
@@ -97,6 +199,10 @@
     .info-value {
       font-size: $font-size-base;
       color: $color-text-dark;
+
+      @include respond-below(desktop) {
+        text-align: right;
+      }
     }
   }
 
@@ -134,6 +240,10 @@
     .survey-header {
       margin-bottom: $spacing-lg;
 
+      @include respond-below(desktop) {
+        text-align: center;
+      }
+
       h2 {
         font-size: 1.25rem;
         font-weight: 600;
@@ -148,6 +258,11 @@
         font-size: $font-size-sm;
         color: $color-text-muted;
 
+        @include respond-below(desktop) {
+          flex-direction: column;
+          gap: $spacing-xs;
+        }
+
         strong {
           color: $color-text-dark;
         }
@@ -161,9 +276,14 @@
       display: flex;
       justify-content: flex-end;
 
-      .btn-delete-survey {
-        padding: $spacing-sm $spacing-lg;
+      @include respond-below(desktop) {
+        justify-content: stretch;
+
+        .btn-delete {
+          width: 100%;
+        }
       }
+
     }
   }
 

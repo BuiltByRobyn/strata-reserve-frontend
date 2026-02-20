@@ -24,7 +24,12 @@ export const ClientNavbar = () => {
   const clientUser = user?.role === 'client' ? user : null;
 
   return (
-    <nav className="navbar client-navbar">
+    <>
+    <div
+      className={`sidebar-overlay${isMobileMenuOpen ? ' active' : ''}`}
+      onClick={closeMobileMenu}
+    />
+    <nav className={`navbar client-navbar${isMobileMenuOpen ? ' sidebar-open' : ''}`}>
       <div className="navbar-brand">
         <img src="/logonobg.svg" alt="Building Icon" />
         <div className="navbar-brand-titles">
@@ -111,13 +116,6 @@ export const ClientNavbar = () => {
         >
           Inspection Date
         </NavLink>
-        <NavLink
-          to="/client/profile"
-          className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
-          onClick={closeMobileMenu}
-        >
-          {clientUser?.firstName ? `${clientUser.firstName} ${clientUser.lastName}` : 'Profile'}
-        </NavLink>
         <button
           onClick={() => {
             handleLogout();
@@ -129,5 +127,6 @@ export const ClientNavbar = () => {
         </button>
       </div>
     </nav>
+    </>
   );
 };

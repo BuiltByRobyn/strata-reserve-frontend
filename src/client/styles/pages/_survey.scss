@@ -63,13 +63,12 @@
     font-size: 1.75rem;
     font-weight: 600;
     color: $color-text-dark;
-  }
 
-  .survey-subtitle {
-    margin: 0 0 $spacing-lg;
-    text-align: left;
-    color: $color-text-muted;
-    font-size: $font-size-sm;
+    @include respond-below(lg) {
+      text-align: center;
+      border-bottom: 2px solid $color-border-light;
+      padding-bottom: $spacing-md;
+    }
   }
 
   .survey-section-list {
@@ -154,7 +153,7 @@
   padding: $spacing-lg;
   text-align: left;
 
-  @include respond-to(desktop) {
+  @include respond-to(lg) {
     margin-left: $spacing-xl;
   }
 
@@ -163,6 +162,12 @@
     font-size: 1.5rem;
     font-weight: 600;
     color: $color-text-dark;
+
+    @include respond-below(lg) {
+      text-align: center;
+      border-bottom: 2px solid $color-border-light;
+      padding-bottom: $spacing-md;
+    }
   }
 
   .survey-questions-container {
@@ -294,20 +299,12 @@
     }
 
     .btn-secondary {
-      background: $color-white;
-      border: 1px solid $color-border-light;
-      color: $color-text-dark;
-
       &:hover:not(:disabled) {
         border-color: $color-text-muted;
       }
     }
 
     .btn-primary {
-      background: $color-primary;
-      border: none;
-      color: $color-white;
-
       &:hover:not(:disabled) {
         background: $color-primary-hover;
       }

@@ -1,6 +1,6 @@
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { LoadingSpinner } from '../components/LoadingSpinner/LoadingSpinner';
+import { LoadingSpinner } from '../components/LoadingSpinner';
 
 export const DashboardRouter = () => {
   const { user, loading } = useAuth();

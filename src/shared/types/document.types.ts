@@ -6,9 +6,9 @@ export interface DocumentUploadData {
   documentName: string;
   file: File | null;
   documentTypeId: number | null;
-  strataName: string;
-  strataId: string;
-  adminNotes?: string;
+  strataName?: string;
+  strataId?: string;
+  notes?: string;
 }
 
 export interface DocumentType {
@@ -64,5 +64,15 @@ export interface DocumentPreviewModalProps {
   onClose: () => void;
   documentId: number | null;
   documentName: string;
-  endpoint?: 'admin' | 'client';
+  token: string;
+  onDelete?: () => void;
+}
+
+export interface UploadDocumentParams {
+  token: string;
+  file: File;
+  documentTypeId: number;
+  strataId: string;
+  strataName?: string;
+  notes?: string;
 }

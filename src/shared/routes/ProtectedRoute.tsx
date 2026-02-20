@@ -1,6 +1,7 @@
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { LoadingSpinner } from '../components/LoadingSpinner/LoadingSpinner';
+import { LoadingSpinner } from '../components/LoadingSpinner';
+import { Unauthorized } from '../pages/Unauthorized';
 import type { ProtectedRouteProps } from '../types/component.types';
 
 export const ProtectedRoute = ({ children, requireAdmin, requireClient }: ProtectedRouteProps) => {
@@ -15,11 +16,11 @@ export const ProtectedRoute = ({ children, requireAdmin, requireClient }: Protec
   }
 
   if (requireAdmin && !isAdmin) {
-    return <Navigate to="/dashboard" replace />;
+    return <Unauthorized />;
   }
 
   if (requireClient && !isClient) {
-    return <Navigate to="/dashboard" replace />;
+    return <Unauthorized />;
   }
 
   return <>{children}</>;

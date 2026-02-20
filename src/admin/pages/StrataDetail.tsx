@@ -2,18 +2,21 @@ import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useStrata } from "../../shared/hooks/useStrata";
 import { useServiceRequests } from "../../shared/hooks/useServiceRequests";
+import { useLookups } from "../../shared/hooks/useLookups";
 import { useAuth } from "../../shared/contexts/AuthContext";
 import { useSurvey } from "../../shared/hooks/useSurvey";
-import { LoadingSpinner } from "../../shared/components/LoadingSpinner/LoadingSpinner";
-import { Modal } from "../../shared/components/Modal/Modal";
-import { Tabs } from "../../shared/components/Tabs/Tabs";
-import { SurveyCategoryNav } from "../../shared/components/SurveyCategoryNav/SurveyCategoryNav";
-import { SurveyProgressBar } from "../../shared/components/SurveyProgressBar/SurveyProgressBar";
+import { useQuestions } from "../../shared/hooks/useQuestions";
+import { MultiSelectDropdown } from "../../shared/components/MultiSelectDropdown";
+import { LoadingSpinner } from "../../shared/components/LoadingSpinner";
+import { Modal } from "../../shared/components/Modal";
+import { Tabs } from "../../shared/components/Tabs";
+import { SurveyCategoryNav } from "../../shared/components/SurveyCategoryNav";
+import { SurveyProgressBar } from "../../shared/components/SurveyProgressBar";
 import {
   InputField,
-  SelectField,
   FormRow,
-} from "../../shared/components/FormField/FormField";
+} from "../../shared/components/FormField";
+import { SingleSelectDropdown } from "../../shared/components/SingleSelectDropdown";
 import {
   SURVEY_SECTIONS,
   SECTION_QUESTION_RANGES,
@@ -22,6 +25,7 @@ import type { SurveyQuestion } from "../../shared/types/survey.types";
 import type {
   StrataWithDetails,
   ServiceRequest,
+  CreateSRFormData,
 } from "../../shared/types/entities.types";
 
 const MAIN_TABS = [
@@ -30,15 +34,6 @@ const MAIN_TABS = [
   { key: "documents", label: "Documents" },
   { key: "notes", label: "Notes" },
 ];
-
-interface CreateSRFormData {
-  serviceId: string;
-  requestedByFirstName: string;
-  requestedByLastName: string;
-  associatedCompany: string;
-  contactEmail: string;
-  contactPhone: string;
-}
 
 const INITIAL_SR_FORM: CreateSRFormData = {
   serviceId: "",
@@ -64,6 +59,12 @@ export default function StrataDetailPage() {
 
   const activeSurvey = useSurvey("admin");
   const archivedSurvey = useSurvey("admin");
+  
+  // Fetch all question definitions to get section metadata for filtering
+  const { questions: allQuestions } = useQuestions();
+  const { services, sections } = useLookups();
+
+  const [filterSectionIds, setFilterSectionIds] = useState<number[]>([]);
 
   const [strata, setStrata] = useState<StrataWithDetails | null>(null);
   const [loading, setLoading] = useState(true);
@@ -194,7 +195,25 @@ export default function StrataDetailPage() {
   const getFilteredQuestions = (questions: SurveyQuestion[], sectionKey: string) => {
     const range = SECTION_QUESTION_RANGES[sectionKey];
     if (!range) return [];
-    return questions.filter(q => q.sortOrder >= range.start && q.sortOrder <= range.end);
+    
+    let filtered = questions.filter(q => q.sortOrder >= range.start && q.sortOrder <= range.end);
+
+    // Apply Section Filter
+    if (filterSectionIds.length > 0) {
+      filtered = filtered.filter(q => {
+        // Find the corresponding AdminQuestion to check its sections
+        const adminQ = allQuestions.find(aq => aq.questionId === q.questionId);
+        if (!adminQ || !adminQ.questionSections || adminQ.questionSections.length === 0) {
+           // If no sections assigned to question, maybe show it? Or hide it? 
+           // Usually if a filter is applied, we only show matches.
+           // Let's assume if no sections are assigned to the question, it doesn't match the filter.
+           return false; 
+        }
+        return adminQ.questionSections.some(qs => filterSectionIds.includes(qs.sectionId));
+      });
+    }
+
+    return filtered;
   };
 
   const buildCompletionMap = (questions: SurveyQuestion[], responseIds: Set<number>) => {
@@ -264,23 +283,13 @@ export default function StrataDetailPage() {
     questions: SurveyQuestion[],
     responses: { questionId: number }[],
     sectionKey: string,
-    onSectionChange: (key: string) => void,
     getResponse: (id: number) => ReturnType<typeof activeSurvey.getResponseForQuestion>,
     surveyLoading: boolean,
   ) => {
-    const responseIds = new Set(responses.map(r => r.questionId));
-    const completionMap = buildCompletionMap(questions, responseIds);
     const sectionQuestions = getFilteredQuestions(questions, sectionKey);
 
     return (
       <>
-        <SurveyCategoryNav
-          sections={SURVEY_SECTIONS}
-          activeSection={sectionKey}
-          onSelect={onSectionChange}
-          completionMap={completionMap}
-        />
-
         <SurveyProgressBar answered={responses.length} total={questions.length} />
 
         {surveyLoading ? (
@@ -302,6 +311,32 @@ export default function StrataDetailPage() {
       </>
     );
   };
+
+  const getCurrentSurveySection = () => {
+    if (activeTab === "active") return activeSurveySection;
+    if (activeTab === "archived" && selectedArchivedId) return archivedSurveySection;
+    return null;
+  };
+
+  const getCurrentSurveyOnSectionChange = () => {
+    if (activeTab === "active") return setActiveSurveySection;
+    if (activeTab === "archived" && selectedArchivedId) return setArchivedSurveySection;
+    return null;
+  };
+
+  const getCurrentCompletionMap = () => {
+    if (activeTab === "active" && activeRequest) {
+      const responseIds = new Set(activeSurvey.responses.map(r => r.questionId));
+      return buildCompletionMap(activeSurvey.questions, responseIds);
+    }
+    if (activeTab === "archived" && selectedArchivedId) {
+      const responseIds = new Set(archivedSurvey.responses.map(r => r.questionId));
+      return buildCompletionMap(archivedSurvey.questions, responseIds);
+    }
+    return undefined;
+  };
+
+  const showSurveyNav = (activeTab === "active" && activeRequest) || (activeTab === "archived" && selectedArchivedId);
 
   if (loading) return <LoadingSpinner />;
 
@@ -327,7 +362,7 @@ export default function StrataDetailPage() {
       <div className="detail-header">
         <h1>{strata.complexName || strata.strataPlan || "Strata Detail"}</h1>
         {activeRequest && (
-          <div className="action-buttons">
+          <div className="action-buttons-desktop">
             <button className="btn-primary">Download Documents</button>
             <button className="btn-primary">Download Survey Answers</button>
             <button className="btn-primary">Offer Appointment</button>
@@ -366,7 +401,37 @@ export default function StrataDetailPage() {
         </div>
       </div>
 
-      <Tabs tabs={MAIN_TABS} activeTab={activeTab} onChange={setActiveTab} />
+      {activeRequest && (
+        <div className="strata-action-buttons">
+          <button className="btn-primary">Download Documents</button>
+          <button className="btn-primary">Download Survey Answers</button>
+          <button className="btn-primary">Offer Appointment</button>
+        </div>
+      )}
+
+      <div className="tabs-row">
+        <Tabs tabs={MAIN_TABS} activeTab={activeTab} onChange={setActiveTab} />
+        {(activeTab === "active" || activeTab === "archived") && (
+          <div className="section-filter-container">
+            <MultiSelectDropdown
+              label="Sections"
+              options={sections.map(s => ({ value: s.sectionId, label: s.sectionName }))}
+              selectedValues={filterSectionIds}
+              onChange={setFilterSectionIds}
+              placeholder="All Sections"
+            />
+          </div>
+        )}
+      </div>
+
+      {showSurveyNav && (
+        <SurveyCategoryNav
+          sections={SURVEY_SECTIONS}
+          activeSection={getCurrentSurveySection()!}
+          onSelect={getCurrentSurveyOnSectionChange()!}
+          completionMap={getCurrentCompletionMap()}
+        />
+      )}
 
       <div className="tab-content">
         {activeTab === "active" && (
@@ -404,7 +469,6 @@ export default function StrataDetailPage() {
                   activeSurvey.questions,
                   activeSurvey.responses,
                   activeSurveySection,
-                  setActiveSurveySection,
                   activeSurvey.getResponseForQuestion,
                   activeSurvey.loading,
                 )}
@@ -445,7 +509,6 @@ export default function StrataDetailPage() {
                   archivedSurvey.questions,
                   archivedSurvey.responses,
                   archivedSurveySection,
-                  setArchivedSurveySection,
                   archivedSurvey.getResponseForQuestion,
                   archivedSurvey.loading,
                 )}
@@ -569,13 +632,13 @@ export default function StrataDetailPage() {
           </FormRow>
 
           <FormRow>
-            <SelectField
+            <SingleSelectDropdown
               label="Request Type"
               value={srFormData.serviceId}
-              onChange={(e) => updateSrField("serviceId", e.target.value)}
-              options={(strata.strataServices || []).map((ss) => ({
-                value: ss.service.serviceId,
-                label: ss.service.serviceName,
+              onChange={(val) => updateSrField("serviceId", val)}
+              options={services.map((s) => ({
+                value: s.serviceId,
+                label: s.serviceName,
               }))}
               placeholder="-- Select Request Type --"
               required

@@ -10,14 +10,19 @@
 
 /* Wrapper for protected pages with navbar */
 .app {
-  @include respond-to(desktop) {
+  @include respond-to(lg) {
     display: flex;
+    min-height: 100vh;
   }
 }
 
 /* Main content area - sits beside the navbar in flex layout (desktop) */
 .app-main {
-  @include respond-to(desktop) {
+  @include respond-between(md, lg) {
+    margin-top: 3.5rem;
+  }
+
+  @include respond-to(lg) {
     flex: 1;
     min-width: 0;
   }
@@ -28,17 +33,25 @@
   max-width: $max-width-page;
   text-align: left;
 
-  // // Tablet responsive
-  // @include respond-below(md) {
-  //   padding: $spacing-lg;
-  //   max-width: 100%;
-  // }
+  > h1 {
+    @include respond-below(lg) {
+      text-align: center;
+      border-bottom: 2px solid $color-border-light;
+      padding-bottom: $spacing-md;
+    }
+  }
+}
 
-  // // Mobile responsive
-  // @include respond-below(sm) {
-  //   padding: $spacing-md;
-  // }
+.page-subtitle {
+  margin: $spacing-xs 0 $spacing-xl;
+  color: $color-text-light;
+  font-size: 0.9375rem;
+  text-align: left;
 
+  @include respond-below(lg) {
+    text-align: center;
+    margin: $spacing-lg;
+  }
 }
 
 h1 {

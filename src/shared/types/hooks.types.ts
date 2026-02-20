@@ -9,9 +9,12 @@ import type {
   UserType,
   LegalType,
   PropertyType,
-  Service
+  Service,
+  Section,
+  QuestionType
 } from './entities.types';
 import type { DocumentWithDetails, DocumentType, ReviewStatus } from './document.types';
+import type { AdminQuestion } from './survey.types';
 
 export interface AppointmentsState {
   appointments: AppointmentWithDetails[];
@@ -50,6 +53,8 @@ export interface LookupState {
   services: Service[];
   documentTypes: DocumentType[];
   reviewStatuses: ReviewStatus[];
+  sections: Section[];
+  questionTypes: QuestionType[];
   loading: boolean;
   error: string | null;
 }
@@ -68,6 +73,12 @@ export interface UsersState {
 
 export interface ServiceRequestsState {
   serviceRequests: ServiceRequest[];
+  loading: boolean;
+  error: string | null;
+}
+
+export interface QuestionsState {
+  questions: AdminQuestion[];
   loading: boolean;
   error: string | null;
 }

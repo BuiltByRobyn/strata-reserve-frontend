@@ -1,5 +1,5 @@
-import { LoadingSpinner } from '../LoadingSpinner/LoadingSpinner';
-import type { Column, DataTableProps } from '../../types/component.types';
+import { LoadingSpinner } from './LoadingSpinner';
+import type { Column, DataTableProps } from '../types/component.types';
 
 export type { Column };
 
@@ -12,7 +12,7 @@ export function DataTable<T>({
   loading = false,
   emptyMessage = 'No data available',
   actions,
-  actionsColumnHeader = 'Edit'
+  actionsColumnHeader = 'Action'
 }: DataTableProps<T>) {
   if (loading) {
     return <LoadingSpinner />;

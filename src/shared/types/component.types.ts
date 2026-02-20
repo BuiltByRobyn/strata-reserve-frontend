@@ -1,4 +1,5 @@
 import type { ReactNode, InputHTMLAttributes, SelectHTMLAttributes, TextareaHTMLAttributes } from 'react';
+import type { SurveySection } from './survey.types';
 
 export interface Column<T> {
   key: string;
@@ -52,8 +53,60 @@ export interface ProtectedRouteProps {
   requireClient?: boolean;
 }
 
-export interface DocumentUploadComponentProps {
-  serviceRequestId: number;
-  documentTypeId: number;
-  onUploadComplete?: () => void;
+export interface ModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  title: string;
+  size?: 'small' | 'medium' | 'large' | 'preview';
+  footer?: ReactNode;
+  children: ReactNode;
+}
+
+export interface Tab {
+  key: string;
+  label: string;
+}
+
+export interface TabsProps {
+  tabs: Tab[];
+  activeTab: string;
+  onChange: (key: string) => void;
+  variant?: 'default' | 'pill';
+}
+
+export interface SurveyProgressBarProps {
+  answered: number;
+  total: number;
+}
+
+export interface SurveyCategoryNavProps {
+  sections: SurveySection[];
+  activeSection: string;
+  onSelect: (sectionKey: string) => void;
+  completionMap?: Record<string, boolean>;
+}
+
+export interface MobileDropdownProps {
+  label: string;
+  value: string;
+  options: { key: string; label: string }[];
+  onChange: (value: string) => void;
+}
+
+export interface MultiSelectDropdownProps extends BaseFieldProps {
+  options: { value: number; label: string }[];
+  selectedValues: number[];
+  onChange: (values: number[]) => void;
+  placeholder?: string;
+  disabled?: boolean;
+}
+
+export interface SingleSelectDropdownProps extends BaseFieldProps {
+  options: { value: string | number; label: string }[];
+  value: string | number;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  disabled?: boolean;
+  className?: string;
+  style?: import('react').CSSProperties;
 }

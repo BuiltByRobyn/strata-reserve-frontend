@@ -63,6 +63,10 @@
   .actions-column {
     width: 120px;
     text-align: center;
+
+    @include respond-below(desktop) {
+      width: 60px;
+    }
   }
 
   .actions-cell {
@@ -79,17 +83,6 @@
 
       &.btn-edit {
         background: none;
-        color: $color-text-muted;
-        text-decoration: underline;
-      }
-
-      &.btn-delete {
-        background: $color-error;
-        color: $color-white;
-
-        &:hover {
-          background: $color-error-dark;
-        }
       }
     }
   }

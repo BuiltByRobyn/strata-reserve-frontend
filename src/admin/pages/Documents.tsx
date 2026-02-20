@@ -1,27 +1,24 @@
 import { useState, useEffect } from 'react';
 import { useDocuments } from '../../shared/hooks/useDocuments';
+import { useStrata } from '../../shared/hooks/useStrata';
 import { useLookups } from '../../shared/hooks/useLookups';
 import { useAuth } from '../../shared/contexts/AuthContext';
 import { useAuthFetch } from '../../shared/hooks/useAuthFetch';
 import { useMediaQuery } from '../../shared/hooks/useMediaQuery';
-import { DataTable, type Column } from '../../shared/components/DataTable/DataTable';
-import { LoadingSpinner } from '../../shared/components/LoadingSpinner/LoadingSpinner';
-import { Modal } from '../../shared/components/Modal/Modal';
-import { InputField, SelectField, TextareaField, FormRow } from '../../shared/components/FormField/FormField';
+import { DataTable, type Column } from '../../shared/components/DataTable';
+import { LoadingSpinner } from '../../shared/components/LoadingSpinner';
+import { Modal } from '../../shared/components/Modal';
+import { DocumentPreviewModal } from '../../shared/components/DocumentPreviewModal';
+import { InputField, TextareaField, FormRow } from '../../shared/components/FormField';
+import { SingleSelectDropdown } from '../../shared/components/SingleSelectDropdown';
 import type { DocumentWithDetails, DocumentUploadData } from '../../shared/types/document.types';
 import { STRATA_ID_PATTERN, formatStrataId } from '../../shared/utils/strataUtils';
-
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-
-const formatTypeName = (name: string): string =>
-  name.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-
-const getFileExtension = (fileName: string): string =>
-  fileName.split('.').pop()?.toLowerCase() || '';
+import { API_BASE } from '../../shared/lib/api';
+import { formatTypeName, formatDate, getStatusBadgeClass } from '../../shared/lib/formatters';
 
 export default function DocumentsPage() {
-  const { documents, loading, error, refetch, updateDocumentStatus, deleteDocument, previewDocument, previewLoading, previewUrl, previewFileName, closePreview } = useDocuments();
+  const { documents, loading, error, updateDocumentStatus, uploadDocument, uploading, deleteDocument, syncDocuments } = useDocuments();
+  const { stratas } = useStrata();
   const { documentTypes, reviewStatuses } = useLookups();
   const { session, user } = useAuth();
   const authFetch = useAuthFetch();
@@ -29,7 +26,8 @@ export default function DocumentsPage() {
   const [filteredDocuments, setFilteredDocuments] = useState<DocumentWithDetails[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterDocType, setFilterDocType] = useState('');
-  const [filterStrata, setFilterStrata] = useState('');
+  const [filterStrataName, setFilterStrataName] = useState('');
+  const [filterStrataPlan, setFilterStrataPlan] = useState('');
   const [showArchived, setShowArchived] = useState(false);
 
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
@@ -43,23 +41,29 @@ export default function DocumentsPage() {
     documentTypeId: null,
     strataName: '',
     strataId: '',
-    adminNotes: ''
+    notes: ''
   });
-  const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [syncing, setSyncing] = useState(false);
+  const [syncMessage, setSyncMessage] = useState<string | null>(null);
 
-  const isDesktop = useMediaQuery('(min-width: 600px)');
+  const [previewModalOpen, setPreviewModalOpen] = useState(false);
+  const [previewDocumentId, setPreviewDocumentId] = useState<number | null>(null);
+  const [previewDocumentName, setPreviewDocumentName] = useState('');
+  const [previewDocument, setPreviewDocument] = useState<DocumentWithDetails | null>(null);
+
+  const isDesktop = useMediaQuery('(min-width: 750px)');
 
   useEffect(() => {
-    if (!STRATA_ID_PATTERN.test(uploadForm.strataId)) return;
+    if (!uploadForm.strataId || !STRATA_ID_PATTERN.test(uploadForm.strataId)) return;
 
     const lookup = async () => {
       try {
-        const res = await authFetch(`${API_BASE}/admin/strata/search?q=${encodeURIComponent(uploadForm.strataId)}`);
+        const res = await authFetch(`${API_BASE}/admin/strata/search?q=${encodeURIComponent(uploadForm.strataId!)}`);
         const data = await res.json();
         if (data.success && data.data?.length > 0) {
           const match = data.data.find((s: { strataPlan: string }) =>
-            s.strataPlan?.toUpperCase() === uploadForm.strataId.toUpperCase()
+            s.strataPlan?.toUpperCase() === uploadForm.strataId!.toUpperCase()
           );
           if (match?.complexName) {
             setUploadForm(prev => ({ ...prev, strataName: match.complexName }));
@@ -99,39 +103,26 @@ export default function DocumentsPage() {
       result = result.filter(d => d.documentType.documentTypeId === parseInt(filterDocType));
     }
 
-    if (filterStrata) {
-      result = result.filter(d =>
-        d.serviceRequest.strata.strataPlan?.toLowerCase().includes(filterStrata.toLowerCase()) ||
-        d.serviceRequest.strata.complexName?.toLowerCase().includes(filterStrata.toLowerCase())
-      );
+    if (filterStrataName) {
+      result = result.filter(d => d.serviceRequest.strata.strataId === parseInt(filterStrataName));
+    }
+
+    if (filterStrataPlan) {
+      result = result.filter(d => d.serviceRequest.strata.strataId === parseInt(filterStrataPlan));
     }
 
     setFilteredDocuments(result);
-  }, [documents, searchQuery, filterDocType, filterStrata, showArchived]);
-
-  const getStatusBadgeClass = (statusName?: string): string => {
-    if (!statusName) return 'status-badge pending';
-    switch (statusName.toLowerCase()) {
-      case 'approved': return 'status-badge approved';
-      case 'rejected': return 'status-badge rejected';
-      case 'needs revision': return 'status-badge needs-revision';
-      default: return 'status-badge pending';
-    }
-  };
-
-  const formatDate = (dateString: string): string => {
-    return new Date(dateString).toLocaleDateString('en-AU', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
-    });
-  };
+  }, [documents, searchQuery, filterDocType, filterStrataName, filterStrataPlan, showArchived]);
 
   const columns: Column<DocumentWithDetails>[] = [
     {
       key: 'fileName',
       header: 'File Name',
-      render: (doc) => doc.fileName
+      render: (doc) => (
+        <button className="btn-link" onClick={() => handlePreview(doc)} title="View document">
+          {doc.fileName}
+        </button>
+      )
     },
     {
       key: 'strata',
@@ -199,6 +190,41 @@ export default function DocumentsPage() {
     }
   };
 
+  const handleSync = async () => {
+    setSyncing(true);
+    setSyncMessage(null);
+
+    try {
+      const result = await syncDocuments();
+      if (result) {
+        if (result.removed > 0) {
+          setSyncMessage(`Sync complete: ${result.removed} orphaned record${result.removed === 1 ? '' : 's'} removed out of ${result.total} checked.`);
+        } else {
+          setSyncMessage(`Sync complete: All ${result.total} documents verified.`);
+        }
+      }
+    } catch (err) {
+      setSyncMessage(err instanceof Error ? err.message : 'Sync failed');
+    } finally {
+      setSyncing(false);
+      setTimeout(() => setSyncMessage(null), 5000);
+    }
+  };
+
+  const handlePreview = (doc: DocumentWithDetails) => {
+    setPreviewDocumentId(doc.serviceRequestDocumentId);
+    setPreviewDocumentName(doc.fileName);
+    setPreviewDocument(doc);
+    setPreviewModalOpen(true);
+  };
+
+  const handleClosePreview = () => {
+    setPreviewModalOpen(false);
+    setPreviewDocumentId(null);
+    setPreviewDocumentName('');
+    setPreviewDocument(null);
+  };
+
   const openUploadModal = () => {
     setUploadForm({
       documentName: '',
@@ -206,7 +232,7 @@ export default function DocumentsPage() {
       documentTypeId: null,
       strataName: '',
       strataId: '',
-      adminNotes: ''
+      notes: ''
     });
     setUploadError(null);
     setIsUploadModalOpen(true);
@@ -230,49 +256,19 @@ export default function DocumentsPage() {
       return;
     }
 
-    const token = session?.access_token;
-    if (!token) {
-      setUploadError('Not authenticated');
-      return;
-    }
-
-    setUploading(true);
     setUploadError(null);
 
     try {
-      const formData = new FormData();
-      formData.append('file', uploadForm.file);
-      formData.append('document_type_id', uploadForm.documentTypeId.toString());
-      formData.append('strata_id', uploadForm.strataId);
-      if (uploadForm.strataName) {
-        formData.append('strata_name', uploadForm.strataName);
-      }
-      if (uploadForm.adminNotes) {
-        formData.append('notes', uploadForm.adminNotes);
-      }
-
-      const response = await fetch(
-        `${SUPABASE_URL}/functions/v1/upload-document`,
-        {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${token}` },
-          body: formData
-        }
+      await uploadDocument(
+        uploadForm.file,
+        uploadForm.documentTypeId,
+        uploadForm.strataId,
+        uploadForm.strataName || undefined,
+        uploadForm.notes || undefined
       );
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Upload failed');
-      }
-
       setIsUploadModalOpen(false);
-      setUploadError(null);
-      refetch();
     } catch (err) {
       setUploadError(err instanceof Error ? err.message : 'Upload failed');
-    } finally {
-      setUploading(false);
     }
   };
 
@@ -283,6 +279,9 @@ export default function DocumentsPage() {
         <div className="page-header">
           <h1>Documents</h1>
           <div className="add-document-button-desktop">
+            <button className="btn-secondary" onClick={handleSync} disabled={syncing}>
+              {syncing ? 'Syncing...' : 'Sync with Dropbox'}
+            </button>
             <button className="btn-primary" onClick={openUploadModal}>
               + Add New Document
             </button>
@@ -299,38 +298,51 @@ export default function DocumentsPage() {
               placeholder="Search documents..."
             />
           </div>
-          <SelectField
+          <SingleSelectDropdown
             label="Document Type"
             value={filterDocType}
-            onChange={(e) => setFilterDocType(e.target.value)}
+            onChange={(val) => setFilterDocType(val)}
             options={documentTypes.map(dt => ({ value: dt.documentTypeId, label: formatTypeName(dt.typeName) }))}
             placeholder="All Types"
           />
-          <InputField
-            label="Strata"
-            value={filterStrata}
-            onChange={(e) => setFilterStrata(e.target.value)}
-            placeholder="Filter by strata..."
+          <SingleSelectDropdown
+            label="Strata Name"
+            value={filterStrataName}
+            onChange={(val) => setFilterStrataName(val)}
+            options={stratas.filter(s => s.complexName).map(s => ({ value: s.strataId, label: s.complexName! }))}
+            placeholder="All Strata"
           />
-          <div className="form-field">
-            <label>&nbsp;</label>
-            <button
-              className={showArchived ? 'btn-primary' : 'btn-secondary'}
-              onClick={() => setShowArchived(prev => !prev)}
-            >
-              {showArchived ? 'Hide Archived' : 'Show Archived'}
-            </button>
+          <SingleSelectDropdown
+            label="Strata Plan"
+            value={filterStrataPlan}
+            onChange={(val) => setFilterStrataPlan(val)}
+            options={stratas.filter(s => s.strataPlan).map(s => ({ value: s.strataId, label: s.strataPlan! }))}
+            placeholder="All Plans"
+          />
+          <div className="form-field archived-toggle">
+            <label>
+              <input
+                type="checkbox"
+                checked={showArchived}
+                onChange={() => setShowArchived(prev => !prev)}
+              />
+              Show Archived
+            </label>
           </div>
         </div>
 
       </div>
 
       <div className="add-document-button">
+        <button className="btn-secondary" onClick={handleSync} disabled={syncing}>
+          {syncing ? 'Syncing...' : 'Sync with Dropbox'}
+        </button>
         <button className="btn-primary" onClick={openUploadModal}>
           + Add New Document
         </button>
       </div>
 
+      {syncMessage && <div className="info-banner">{syncMessage}</div>}
       {error && <div className="error-banner">{error}</div>}
 
       {isDesktop ? (
@@ -340,11 +352,11 @@ export default function DocumentsPage() {
           keyExtractor={(d) => d.serviceRequestDocumentId}
           loading={loading}
           emptyMessage="No documents found."
-          onRowClick={(doc) => previewDocument(doc.serviceRequestDocumentId, doc.fileName)}
+          onRowClick={(doc) => handlePreview(doc)}
+          actionsColumnHeader="Action"
           actions={(doc) => (
             <>
               <button className="btn-edit" onClick={() => openStatusModal(doc)}>Review</button>
-              <button className="btn-delete" onClick={() => handleDelete(doc)}>Delete</button>
             </>
           )}
         />
@@ -362,8 +374,7 @@ export default function DocumentsPage() {
                 <div
                   key={doc.serviceRequestDocumentId}
                   className="documents-mobile-table-wrap clickable"
-                  onClick={() => previewDocument(doc.serviceRequestDocumentId, doc.fileName)}
-                  style={{ cursor: 'pointer' }}
+                  onClick={() => handlePreview(doc)}
                 >
                   <table className="data-table documents-table-mobile">
                     <tbody>
@@ -398,10 +409,9 @@ export default function DocumentsPage() {
                         </td>
                       </tr>
                       <tr onClick={(e) => e.stopPropagation()}>
-                        <td className="mobile-label-col">Actions</td>
+                        <td className="mobile-label-col">Action</td>
                         <td className="mobile-value-col actions-cell">
                           <button className="btn-edit" onClick={() => openStatusModal(doc)}>Review</button>
-                          <button className="btn-delete" onClick={() => handleDelete(doc)}>Delete</button>
                         </td>
                       </tr>
                     </tbody>
@@ -418,7 +428,7 @@ export default function DocumentsPage() {
         isOpen={isStatusModalOpen}
         onClose={() => setIsStatusModalOpen(false)}
         title="Review Document"
-        size="small"
+        size="medium"
         footer={
           <>
             <button className="btn-secondary" onClick={() => setIsStatusModalOpen(false)}>Cancel</button>
@@ -434,11 +444,11 @@ export default function DocumentsPage() {
             <p><strong>Type:</strong> {formatTypeName(selectedDocument.documentType.typeName)}</p>
             <p><strong>Strata:</strong> {selectedDocument.serviceRequest.strata.complexName || selectedDocument.serviceRequest.strata.strataPlan}</p>
 
-            <SelectField
+            <SingleSelectDropdown
               label="Status"
               required
               value={statusForm.reviewStatusId}
-              onChange={(e) => setStatusForm(prev => ({ ...prev, reviewStatusId: e.target.value }))}
+              onChange={(val) => setStatusForm(prev => ({ ...prev, reviewStatusId: val }))}
               options={reviewStatuses.map(rs => ({ value: rs.reviewStatusId, label: rs.statusName }))}
               placeholder="Select status"
             />
@@ -494,11 +504,11 @@ export default function DocumentsPage() {
             />
           </div>
 
-          <SelectField
+          <SingleSelectDropdown
             label="Document Type"
             required
             value={uploadForm.documentTypeId?.toString() || ''}
-            onChange={(e) => setUploadForm(prev => ({ ...prev, documentTypeId: e.target.value ? parseInt(e.target.value) : null }))}
+            onChange={(val) => setUploadForm(prev => ({ ...prev, documentTypeId: val ? parseInt(val) : null }))}
             options={documentTypes.map(dt => ({ value: dt.documentTypeId, label: formatTypeName(dt.typeName) }))}
             placeholder="Select document type"
           />
@@ -520,9 +530,9 @@ export default function DocumentsPage() {
           </FormRow>
 
           <TextareaField
-            label="Admin Notes"
-            value={uploadForm.adminNotes || ''}
-            onChange={(e) => setUploadForm(prev => ({ ...prev, adminNotes: e.target.value }))}
+            label="Notes"
+            value={uploadForm.notes || ''}
+            onChange={(e) => setUploadForm(prev => ({ ...prev, notes: e.target.value }))}
             placeholder="Add any notes..."
             rows={3}
           />
@@ -530,34 +540,14 @@ export default function DocumentsPage() {
       </Modal>
 
       {/* Document Preview Modal */}
-      <Modal
-        isOpen={previewLoading || !!previewUrl}
-        onClose={closePreview}
-        title={previewFileName || 'Document Preview'}
-        size="preview"
-      >
-        {previewLoading ? (
-          <LoadingSpinner />
-        ) : previewUrl ? (
-          (() => {
-            const ext = getFileExtension(previewFileName || '');
-            if (ext === 'pdf') {
-              return <iframe src={previewUrl} title="Document Preview" />;
-            }
-            if (['jpg', 'jpeg', 'png'].includes(ext)) {
-              return <img src={previewUrl} alt={previewFileName || 'Document'} />;
-            }
-            return (
-              <div style={{ padding: '2rem', textAlign: 'center' }}>
-                <p>Preview not available for this file type.</p>
-                <a href={previewUrl} target="_blank" rel="noopener noreferrer" className="btn-primary" style={{ display: 'inline-block', marginTop: '1rem', padding: '0.5rem 1rem', textDecoration: 'none', borderRadius: '4px' }}>
-                  Download File
-                </a>
-              </div>
-            );
-          })()
-        ) : null}
-      </Modal>
+      <DocumentPreviewModal
+        isOpen={previewModalOpen}
+        onClose={handleClosePreview}
+        documentId={previewDocumentId}
+        documentName={previewDocumentName}
+        token={session!.access_token}
+        onDelete={previewDocument ? () => handleDelete(previewDocument) : undefined}
+      />
     </div>
   );
 }

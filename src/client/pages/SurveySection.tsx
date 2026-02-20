@@ -1,21 +1,22 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useSurvey } from '../../shared/hooks/useSurvey';
-import { SurveyProgressBar } from '../../shared/components/SurveyProgressBar/SurveyProgressBar';
-import { SurveyCategoryNav } from '../../shared/components/SurveyCategoryNav/SurveyCategoryNav';
-import { LoadingSpinner } from '../../shared/components/LoadingSpinner/LoadingSpinner';
+import { useClientServiceRequest } from '../../shared/hooks/useClientServiceRequest';
+import { SurveyProgressBar } from '../../shared/components/SurveyProgressBar';
+import { SurveyCategoryNav } from '../../shared/components/SurveyCategoryNav';
+import { LoadingSpinner } from '../../shared/components/LoadingSpinner';
 import {
   SURVEY_SECTIONS,
   SECTION_QUESTION_RANGES,
 } from '../../shared/types/survey.types';
 import type { SurveyQuestion, SaveResponsePayload } from '../../shared/types/survey.types';
 
-const SERVICE_REQUEST_ID = 1;
 const QUESTIONS_PER_PAGE = 5;
 
 export default function SurveySectionPage() {
   const { section } = useParams<{ section: string }>();
   const navigate = useNavigate();
+  const { activeRequest, serviceRequestId, loading: srLoading, submitForReview } = useClientServiceRequest();
   const {
     questions: allQuestions,
     responses,
@@ -29,13 +30,16 @@ export default function SurveySectionPage() {
 
   const [page, setPage] = useState(0);
   const [localAnswers, setLocalAnswers] = useState<Record<number, SaveResponsePayload>>({});
+  const [submitting, setSubmitting] = useState(false);
   const prevPageRef = useRef(page);
   const prevSectionRef = useRef(section);
 
   useEffect(() => {
-    fetchQuestions(SERVICE_REQUEST_ID);
-    fetchResponses(SERVICE_REQUEST_ID);
-  }, [fetchQuestions, fetchResponses]);
+    if (serviceRequestId) {
+      fetchQuestions(serviceRequestId);
+      fetchResponses(serviceRequestId);
+    }
+  }, [serviceRequestId, fetchQuestions, fetchResponses]);
 
   const sectionConfig = SURVEY_SECTIONS.find(s => s.key === section);
   const range = section ? SECTION_QUESTION_RANGES[section] : null;
@@ -50,6 +54,10 @@ export default function SurveySectionPage() {
     (page + 1) * QUESTIONS_PER_PAGE
   );
 
+  const isLastPage = page >= totalPages - 1;
+  const currentSectionIdx = SURVEY_SECTIONS.findIndex(s => s.key === section);
+  const isLastSection = currentSectionIdx >= SURVEY_SECTIONS.length - 1;
+
   const totalAnswered = responses.length;
   const totalQuestions = allQuestions.length;
 
@@ -60,12 +68,13 @@ export default function SurveySectionPage() {
   }, [localAnswers]);
 
   const saveCurrent = useCallback(async () => {
+    if (!serviceRequestId) return;
     const payloads = buildPendingPayloads();
     if (payloads.length > 0) {
-      await saveResponses(SERVICE_REQUEST_ID, payloads);
+      await saveResponses(serviceRequestId, payloads);
       setLocalAnswers({});
     }
-  }, [buildPendingPayloads, saveResponses]);
+  }, [serviceRequestId, buildPendingPayloads, saveResponses]);
 
   useEffect(() => {
     if (prevPageRef.current !== page || prevSectionRef.current !== section) {
@@ -84,6 +93,21 @@ export default function SurveySectionPage() {
     await saveCurrent();
     setPage(0);
     navigate(`/client/survey/${sectionKey}`);
+  };
+
+  const handleSave = async () => {
+    await saveCurrent();
+    navigate('/client/dashboard');
+  };
+
+  const handleSaveAndSubmit = async () => {
+    await saveCurrent();
+    setSubmitting(true);
+    const success = await submitForReview();
+    setSubmitting(false);
+    if (success) {
+      navigate('/client/survey');
+    }
   };
 
   const updateAnswer = (questionId: number, field: keyof SaveResponsePayload, value: unknown) => {
@@ -265,7 +289,15 @@ export default function SurveySectionPage() {
     );
   };
 
-  if (loading) return <LoadingSpinner />;
+  if (srLoading || loading) return <LoadingSpinner />;
+
+  if (!serviceRequestId) {
+    return (
+      <div className="survey-section-page">
+        <p>No active service request found. Please contact your administrator.</p>
+      </div>
+    );
+  }
 
   const hasQuestions = sectionQuestions.length > 0;
 
@@ -295,38 +327,59 @@ export default function SurveySectionPage() {
       </div>
 
       <div className="survey-pagination">
-        <button
-          className="btn-secondary btn-nav"
-          onClick={() => handlePageChange(page - 1)}
-          disabled={page === 0 || saving}
-        >
-          Previous Step
-        </button>
-        <button
-          className="btn-primary btn-nav"
-          onClick={async () => {
-            if (page < totalPages - 1) {
-              await handlePageChange(page + 1);
-            } else {
-              await saveCurrent();
-              const currentIdx = SURVEY_SECTIONS.findIndex(s => s.key === section);
-              if (currentIdx < SURVEY_SECTIONS.length - 1) {
-                navigate(`/client/survey/${SURVEY_SECTIONS[currentIdx + 1].key}`);
-              } else {
-                navigate('/client/survey');
+        {(page > 0 || currentSectionIdx > 0) && (
+          <button
+            className="btn-secondary btn-nav"
+            onClick={async () => {
+              if (page > 0) {
+                await handlePageChange(page - 1);
+              } else if (currentSectionIdx > 0) {
+                await saveCurrent();
+                navigate(`/client/survey/${SURVEY_SECTIONS[currentSectionIdx - 1].key}`);
               }
-            }
-          }}
-          disabled={saving}
-        >
-          {saving
-            ? 'Saving...'
-            : page < totalPages - 1
-              ? 'Next Step'
-              : SURVEY_SECTIONS.findIndex(s => s.key === section) < SURVEY_SECTIONS.length - 1
-                ? 'Next Section'
-                : 'Finalize Answers'}
-        </button>
+            }}
+            disabled={saving}
+          >
+            Previous Step
+          </button>
+        )}
+
+        {isLastPage && isLastSection ? (
+          <>
+            <button
+              className="btn-secondary btn-nav"
+              onClick={handleSave}
+              disabled={saving || submitting}
+            >
+              Save
+            </button>
+            <button
+              className="btn-primary btn-nav"
+              onClick={handleSaveAndSubmit}
+              disabled={saving || submitting}
+            >
+              {submitting ? 'Submitting...' : activeRequest?.submittedForReviewDate ? 'Resubmit' : 'Save and Submit'}
+            </button>
+          </>
+        ) : (
+          <button
+            className="btn-primary btn-nav"
+            onClick={async () => {
+              if (page < totalPages - 1) {
+                await handlePageChange(page + 1);
+              } else {
+                await saveCurrent();
+                const currentIdx = SURVEY_SECTIONS.findIndex(s => s.key === section);
+                if (currentIdx < SURVEY_SECTIONS.length - 1) {
+                  navigate(`/client/survey/${SURVEY_SECTIONS[currentIdx + 1].key}`);
+                }
+              }
+            }}
+            disabled={saving}
+          >
+            {saving ? 'Saving...' : 'Next Step'}
+          </button>
+        )}
       </div>
     </div>
   );

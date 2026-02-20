@@ -1,23 +1,35 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSurvey } from '../../shared/hooks/useSurvey';
-import { SurveyProgressBar } from '../../shared/components/SurveyProgressBar/SurveyProgressBar';
-import { LoadingSpinner } from '../../shared/components/LoadingSpinner/LoadingSpinner';
+import { useClientServiceRequest } from '../../shared/hooks/useClientServiceRequest';
+import { SurveyProgressBar } from '../../shared/components/SurveyProgressBar';
+import { LoadingSpinner } from '../../shared/components/LoadingSpinner';
+import { Modal } from '../../shared/components/Modal';
 import {
   SURVEY_SECTIONS,
   SECTION_QUESTION_RANGES,
 } from '../../shared/types/survey.types';
 
-const SERVICE_REQUEST_ID = 1;
-
 export default function SurveyPage() {
   const navigate = useNavigate();
+  const { activeRequest, serviceRequestId, loading: srLoading } = useClientServiceRequest();
   const { questions, responses, loading, fetchQuestions, fetchResponses } = useSurvey();
 
+  const [showThankYou, setShowThankYou] = useState(false);
+  const isSubmitted = !!activeRequest?.submittedForReviewDate;
+
   useEffect(() => {
-    fetchQuestions(SERVICE_REQUEST_ID);
-    fetchResponses(SERVICE_REQUEST_ID);
-  }, [fetchQuestions, fetchResponses]);
+    if (isSubmitted) {
+      setShowThankYou(true);
+    }
+  }, [isSubmitted]);
+
+  useEffect(() => {
+    if (serviceRequestId) {
+      fetchQuestions(serviceRequestId);
+      fetchResponses(serviceRequestId);
+    }
+  }, [serviceRequestId, fetchQuestions, fetchResponses]);
 
   const getSectionQuestionCount = (sectionKey: string) => {
     const range = SECTION_QUESTION_RANGES[sectionKey];
@@ -40,12 +52,21 @@ export default function SurveyPage() {
     return total > 0 && answered >= total;
   };
 
-  if (loading) return <LoadingSpinner />;
+  if (srLoading || loading) return <LoadingSpinner />;
+
+  if (!serviceRequestId) {
+    return (
+      <div className="survey-page">
+        <h1>Surveys</h1>
+        <p>No active service request found. Please contact your administrator.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="survey-page">
       <h1>Surveys</h1>
-      <p className="survey-subtitle">
+      <p className="page-subtitle">
         Based on your input information, you will need to complete the following survey sections
       </p>
 
@@ -76,6 +97,22 @@ export default function SurveyPage() {
           );
         })}
       </div>
+
+      <Modal
+        isOpen={showThankYou}
+        onClose={() => setShowThankYou(false)}
+        title="Thank You"
+        size="medium"
+        footer={
+          <button className="btn-primary" onClick={() => setShowThankYou(false)}>
+            Close
+          </button>
+        }
+      >
+        <div className="thank-you-content">
+          <p>Thank you for submitting your survey answers. Please submit your documents to finalize your report.</p>
+        </div>
+      </Modal>
     </div>
   );
 }

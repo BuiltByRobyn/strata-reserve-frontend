@@ -3,9 +3,11 @@ import { useState, useMemo } from 'react';
 import { useUsers } from '../../shared/hooks/useUsers';
 import { useStrata } from '../../shared/hooks/useStrata';
 import { useLookups } from '../../shared/hooks/useLookups';
-import { DataTable, type Column } from '../../shared/components/DataTable/DataTable';
-import { Modal } from '../../shared/components/Modal/Modal';
-import { InputField, SelectField, FormRow } from '../../shared/components/FormField/FormField';
+import { DataTable, type Column } from '../../shared/components/DataTable';
+import { Modal } from '../../shared/components/Modal';
+import { InputField, FormRow } from '../../shared/components/FormField';
+import { SingleSelectDropdown } from '../../shared/components/SingleSelectDropdown';
+import { MultiSelectDropdown } from '../../shared/components/MultiSelectDropdown';
 import { useMediaQuery } from '../../shared/hooks/useMediaQuery';
 import type { UserWithStratas, CreateUserInput, UserFormData } from '../../shared/types/entities.types';
 
@@ -16,17 +18,20 @@ const initialFormData: UserFormData = {
   phoneNumber: '',
   userTypeId: undefined,
   companyName: '',
-  strataAssociations: [{ strataId: 0, strataPosition: '' }]
+  strataAssociations: [{ strataId: 0, strataPosition: '', sectionIds: [] }]
 };
 
 export default function UsersPage() {
   const { users, loading, error, createUser, updateUser, deleteUser } = useUsers();
   const { stratas } = useStrata();
-  const { userTypes } = useLookups();
+  const { userTypes, sections } = useLookups();
 
   // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<UserWithStratas | null>(null);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<UserWithStratas | null>(null);
+  const [deleteSubmitting, setDeleteSubmitting] = useState(false);
   const [formData, setFormData] = useState<UserFormData>(initialFormData);
   const [formError, setFormError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -35,8 +40,10 @@ export default function UsersPage() {
 
   // Filter state
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterStrataId, setFilterStrataId] = useState<string>('');
+  const [filterStrataName, setFilterStrataName] = useState<string>('');
+  const [filterStrataPlan, setFilterStrataPlan] = useState<string>('');
   const [filterUserTypeId, setFilterUserTypeId] = useState<string>('');
+  const [filterSectionId, setFilterSectionId] = useState<number[]>([]);
 
   // Filtered users
   const filteredUsers = useMemo(() => {
@@ -51,10 +58,16 @@ export default function UsersPage() {
         }
       }
 
-      // Strata filter
-      if (filterStrataId) {
+      if (filterStrataName) {
         const hasStrata = user.strataProfiles?.some(
-          se => se.strata.strataId === parseInt(filterStrataId)
+          se => se.strata.strataId === parseInt(filterStrataName)
+        );
+        if (!hasStrata) return false;
+      }
+
+      if (filterStrataPlan) {
+        const hasStrata = user.strataProfiles?.some(
+          se => se.strata.strataId === parseInt(filterStrataPlan)
         );
         if (!hasStrata) return false;
       }
@@ -66,11 +79,21 @@ export default function UsersPage() {
         }
       }
 
+      // Section filter
+      if (filterSectionId.length > 0) {
+        const hasSection = user.strataProfiles?.some(
+          se => se.strataProfileSections?.some(
+            sps => filterSectionId.includes(sps.sectionId)
+          )
+        );
+        if (!hasSection) return false;
+      }
+
       return true;
     });
-  }, [users, searchTerm, filterStrataId, filterUserTypeId]);
+  }, [users, searchTerm, filterStrataName, filterStrataPlan, filterUserTypeId, filterSectionId]);
 
-  const isDesktop = useMediaQuery('(min-width: 600px)');
+  const isDesktop = useMediaQuery('(min-width: 750px)');
 
   const mobileColumns: Column<UserWithStratas>[] = [
     {
@@ -177,9 +200,10 @@ export default function UsersPage() {
       strataAssociations: user.strataProfiles?.length
         ? user.strataProfiles.map(se => ({
             strataId: se.strata.strataId,
-            strataPosition: se.strataPosition || ''
+            strataPosition: se.strataPosition || '',
+            sectionIds: se.strataProfileSections?.map(sps => sps.sectionId) || []
           }))
-        : [{ strataId: 0, strataPosition: '' }]
+        : [{ strataId: 0, strataPosition: '', sectionIds: [] as number[] }]
     });
     setFormError(null);
     setIsModalOpen(true);
@@ -261,8 +285,16 @@ export default function UsersPage() {
   const addStrataAssociation = () => {
     setFormData(prev => ({
       ...prev,
-      strataAssociations: [...prev.strataAssociations, { strataId: 0, strataPosition: '' }]
+      strataAssociations: [...prev.strataAssociations, { strataId: 0, strataPosition: '', sectionIds: [] }]
     }));
+  };
+
+  const updateStrataAssociationSections = (index: number, sectionIds: number[]) => {
+    setFormData(prev => {
+      const newAssociations = [...prev.strataAssociations];
+      newAssociations[index] = { ...newAssociations[index], sectionIds };
+      return { ...prev, strataAssociations: newAssociations };
+    });
   };
 
   const removeStrataAssociation = (index: number) => {
@@ -273,15 +305,24 @@ export default function UsersPage() {
     }));
   };
 
-  const handleDelete = async (user: UserWithStratas) => {
-    const userName = `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email;
-    if (!window.confirm(`Are you sure you want to delete user "${userName}"? This action cannot be undone.`)) {
-      return;
-    }
+  const openDeleteModal = (user: UserWithStratas) => {
+    setUserToDelete(user);
+    setDeleteModalOpen(true);
+  };
+
+  const handleDelete = async () => {
+    if (!userToDelete) return;
+    setDeleteSubmitting(true);
     try {
-      await deleteUser(user.id);
+      await deleteUser(userToDelete.id);
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to delete user');
+      // error is logged in the hook
+    } finally {
+      setDeleteSubmitting(false);
+      setDeleteModalOpen(false);
+      setIsModalOpen(false);
+      setEditingUser(null);
+      setUserToDelete(null);
     }
   };
 
@@ -298,51 +339,49 @@ export default function UsersPage() {
 
       {error && <div className="error-banner">{error}</div>}
 
-      {/* Filters */}
-      <div className="filters-row">
-        <div className="filter-title">
-          <label>Search</label>
-        </div>
-        <div className="filter-group">
-          <label>Search</label>
-          <input
-            type="text"
-            placeholder="Search name or email..."
+      <div className="page-content">
+        <div className="filters-row">
+          <InputField
+            label="Search"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="filter-input"
+            placeholder="Search name or email..."
+          />
+          <SingleSelectDropdown
+            label="Strata Name"
+            value={filterStrataName}
+            onChange={(val) => setFilterStrataName(val)}
+            options={stratas.filter(s => s.complexName).map(s => ({ value: s.strataId, label: s.complexName! }))}
+            placeholder="All Strata"
+          />
+          <SingleSelectDropdown
+            label="Strata Plan"
+            value={filterStrataPlan}
+            onChange={(val) => setFilterStrataPlan(val)}
+            options={stratas.filter(s => s.strataPlan).map(s => ({ value: s.strataId, label: s.strataPlan! }))}
+            placeholder="All Plans"
+          />
+          <SingleSelectDropdown
+            label="Role"
+            value={filterUserTypeId}
+            onChange={(val) => setFilterUserTypeId(val)}
+            options={userTypes.map(ut => ({ value: ut.userTypeId, label: ut.userTypeName }))}
+            placeholder="All Roles"
+          />
+          <MultiSelectDropdown
+            label="Sections"
+            options={sections.map(s => ({ value: s.sectionId, label: s.sectionName }))}
+            selectedValues={filterSectionId}
+            onChange={setFilterSectionId}
+            placeholder="All Sections"
           />
         </div>
-        <div className="filter-group">
-          <label>Strata</label>
-          <select
-            value={filterStrataId}
-            onChange={(e) => setFilterStrataId(e.target.value)}
-            className="filter-select"
-          >
-            <option value="">Filter by strata...</option>
-            {stratas.map(s => (
-              <option key={s.strataId} value={s.strataId}>
-                {s.strataPlan || s.complexName || `Strata ${s.strataId}`}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="filter-group">
-          <label>Role</label>
-          <select
-            value={filterUserTypeId}
-            onChange={(e) => setFilterUserTypeId(e.target.value)}
-            className="filter-select"
-          >
-            <option value="">Filter by role...</option>
-            {userTypes.map(ut => (
-              <option key={ut.userTypeId} value={ut.userTypeId}>
-                {ut.userTypeName}
-              </option>
-            ))}
-          </select>
-        </div>
+      </div>
+
+      <div className="create-user-button">
+        <button className="btn-primary" onClick={openCreateModal}>
+          + Create New Users
+        </button>
       </div>
 
       <DataTable
@@ -361,13 +400,8 @@ export default function UsersPage() {
             Edit
           </button>
         )}
-        actionsColumnHeader={isDesktop ? 'Actions' : undefined}
+        actionsColumnHeader="Action"
       />
-      <div className="create-user-button">
-        <button className="btn-primary" onClick={openCreateModal}>
-          + Create New Users
-        </button>
-      </div>
 
       <Modal
         isOpen={isModalOpen}
@@ -385,10 +419,7 @@ export default function UsersPage() {
             {editingUser && (
               <button
                 className="btn-delete"
-                onClick={() => {
-                  handleDelete(editingUser);
-                  setIsModalOpen(false);
-                }}
+                onClick={() => openDeleteModal(editingUser)}
                 disabled={isSubmitting}
               >
                 Delete User
@@ -445,11 +476,11 @@ export default function UsersPage() {
           </FormRow>
 
           <FormRow>
-            <SelectField
+            <SingleSelectDropdown
               label="User Type"
               required
               value={formData.userTypeId?.toString() || ''}
-              onChange={(e) => updateField('userTypeId', e.target.value ? parseInt(e.target.value) : undefined)}
+              onChange={(val) => updateField('userTypeId', val ? parseInt(val) : undefined)}
               options={userTypes.map(ut => ({
                 value: ut.userTypeId,
                 label: ut.userTypeName
@@ -461,44 +492,62 @@ export default function UsersPage() {
               value={formData.companyName}
               onChange={(e) => updateField('companyName', e.target.value)}
               placeholder="Enter company name"
-              required
             />
           </FormRow>
 
           {/* Strata Associations */}
-          {formData.strataAssociations.map((association, index) => (
-            <div key={index} className="strata-association-row">
-              <FormRow>
-                <SelectField
-                  label={`Associated Strata${index === 0 ? '' : ` ${index + 1}`}`}
-                  required
-                  value={association.strataId?.toString() || ''}
-                  onChange={(e) => updateStrataAssociation(index, 'strataId', e.target.value)}
-                  options={stratas.map(s => ({
-                    value: s.strataId,
-                    label: s.complexName || s.strataPlan || `Strata ${s.strataId}`
-                  }))}
-                  placeholder="Enter strata name"
+          {formData.strataAssociations.map((association, index) => {
+            const selectedStrata = stratas.find(s => s.strataId === association.strataId);
+            const otherSelectedIds = formData.strataAssociations
+              .filter((_, i) => i !== index)
+              .map(a => a.strataId)
+              .filter(id => id > 0);
+            const availableStratas = stratas.filter(s => !otherSelectedIds.includes(s.strataId));
+
+            return (
+              <div key={index} className="strata-association-row">
+                <FormRow>
+                  <SingleSelectDropdown
+                    label={`Strata Plan${index === 0 ? '' : ` ${index + 1}`}`}
+                    required
+                    value={association.strataId?.toString() || ''}
+                    onChange={(val) => {
+                      updateStrataAssociation(index, 'strataId', val);
+                      updateStrataAssociationSections(index, []);
+                    }}
+                    options={availableStratas.map(s => ({
+                      value: s.strataId,
+                      label: s.strataPlan || s.complexName || `Strata ${s.strataId}`
+                    }))}
+                    placeholder="Select Strata Plan"
+                  />
+                  <InputField
+                    label={`Associated Strata${index === 0 ? '' : ` ${index + 1}`}`}
+                    required
+                    value={selectedStrata?.complexName || ''}
+                    disabled
+                    placeholder="Strata name"
+                  />
+                </FormRow>
+                <MultiSelectDropdown
+                  label={`Sections${index === 0 ? '' : ` ${index + 1}`}`}
+                  options={sections.map(s => ({ value: s.sectionId, label: s.sectionName }))}
+                  selectedValues={association.sectionIds || []}
+                  onChange={(values) => updateStrataAssociationSections(index, values)}
+                  placeholder="Select sections"
                 />
-                <InputField
-                  label={`Strata ID${index === 0 ? '' : ` ${index + 1}`}`}
-                  required
-                  value={stratas.find(s => s.strataId === association.strataId)?.strataPlan || ''}
-                  disabled
-                  placeholder="Enter Strata ID"
-                />
-              </FormRow>
-              {index > 0 && (
-                <button
-                  type="button"
-                  className="btn-remove-strata"
-                  onClick={() => removeStrataAssociation(index)}
-                >
-                  Remove
-                </button>
-              )}
-            </div>
-          ))}
+                {index > 0 && (
+                  <button
+                    type="button"
+                    className="btn-remove-strata"
+                    onClick={() => removeStrataAssociation(index)}
+                  >
+                    Remove
+                  </button>
+                )}
+              </div>
+            );
+          })}
 
           <div className="add-strata-checkbox">
             <label className="checkbox-label">
@@ -517,7 +566,6 @@ export default function UsersPage() {
                 }}
               />
               <span>Add Another Strata Association?</span>
-              <span className="required">*</span>
             </label>
           </div>
 
@@ -565,6 +613,32 @@ export default function UsersPage() {
             </tbody>
           </table>
         )}
+      </Modal>
+
+      <Modal
+        isOpen={deleteModalOpen}
+        onClose={() => { setDeleteModalOpen(false); setUserToDelete(null); }}
+        title="Delete User"
+        size="small"
+        footer={
+          <>
+            <button className="btn-secondary" onClick={() => { setDeleteModalOpen(false); setUserToDelete(null); }}>
+              Cancel
+            </button>
+            <button
+              className="btn-delete"
+              onClick={handleDelete}
+              disabled={deleteSubmitting}
+            >
+              {deleteSubmitting ? 'Deleting...' : 'Delete User'}
+            </button>
+          </>
+        }
+      >
+        <div className="delete-confirmation">
+          <p>Are you sure you want to delete user "{userToDelete ? `${userToDelete.firstName || ''} ${userToDelete.lastName || ''}`.trim() || userToDelete.email : ''}"?</p>
+          <p className="delete-warning">This action cannot be undone.</p>
+        </div>
       </Modal>
     </div>
   );

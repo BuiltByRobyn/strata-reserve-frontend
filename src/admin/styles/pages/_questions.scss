@@ -1,0 +1,261 @@
+@use '../../../shared/styles/variables' as *;
+
+.questions-page {
+  padding: $spacing-lg;
+  .page-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding-bottom: $spacing-md;
+    margin-bottom: $spacing-lg;
+    border-bottom: 2px solid $color-border-light;
+
+
+    @include respond-to(desktop) {
+    display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: $spacing-lg;
+    }
+  }
+
+
+
+  @include respond-to(desktop) {
+    h1 {
+      font-size: $font-size-lg;
+    }
+    padding: $spacing-md;
+  }
+
+  .page-content {
+    border: 3px solid $color-border-light;
+    border-radius: $border-radius-lg;
+    padding: $spacing-lg;
+    background: $color-white;
+    margin-bottom: $spacing-lg;
+
+    h1 {
+      @include respond-to(desktop) {
+        display: none;
+      }
+    }
+
+    @include respond-to(desktop) {
+      border: none !important;
+      padding: 0;
+    }
+
+    @include respond-below(desktop) {
+      padding: $spacing-md;
+    }
+
+    .filter-title {
+      font-size: 2.5rem;
+      font-weight: 600;
+      color: $color-primary-dark;
+      text-decoration: underline;
+      text-align: left;
+      margin-top: 0;
+
+      @include respond-to(desktop) {
+        text-decoration: none;
+        font-size: $font-size-lg;
+        color: $color-text-dark;
+      }
+    }
+  }
+
+  .filters-row {
+    @include respond-to(desktop) {
+      display: flex;
+      gap: $spacing-lg;
+      align-items: flex-end;
+      flex-wrap: wrap;
+    }
+
+    label {
+      font-weight: $font-weight-bold;
+      color: $color-text-muted;
+      text-align: left;
+    }
+
+    .form-field {
+      margin-bottom: $spacing-md;
+      flex: 1;
+      min-width: 200px;
+      width: 100%;
+
+      @include respond-to(desktop) {
+        margin-bottom: 0;
+      }
+    }
+  }
+
+  .create-question-button-desktop {
+    display: none;
+
+    @include respond-to(desktop) {
+      display: block;
+
+
+    }
+  }
+
+  .create-question-button {
+    @include respond-to(desktop) {
+      display: none;
+    }
+
+    .btn-primary {
+      width: 100%;
+      margin-bottom: $spacing-lg;
+    }
+  }
+
+  .mc-options-list {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-sm;
+    margin-top: $spacing-sm;
+
+    .mc-option-row {
+      display: flex;
+      gap: $spacing-sm;
+      align-items: center;
+
+      input {
+        flex: 1;
+        padding: $spacing-xs $spacing-sm;
+        border: 1px solid $color-border-light;
+        border-radius: $border-radius-sm;
+        font-size: 0.875rem;
+      }
+
+      .mc-sort-input {
+        width: 60px;
+      }
+
+      .btn-remove-option {
+        padding: $spacing-xs $spacing-sm;
+        background: none;
+        border: 1px solid $color-error;
+        border-radius: $border-radius-sm;
+        color: $color-error;
+        cursor: pointer;
+        font-size: 0.75rem;
+        white-space: nowrap;
+
+        &:hover {
+          background: rgba($color-error, 0.05);
+        }
+      }
+    }
+  }
+
+  .btn-add-option {
+    margin-top: $spacing-sm;
+    padding: $spacing-xs $spacing-md;
+    background: none;
+    border: 1px dashed $color-primary;
+    border-radius: $border-radius-sm;
+    color: $color-primary;
+    cursor: pointer;
+    font-size: 0.875rem;
+
+    &:hover {
+      background: rgba($color-primary, 0.05);
+    }
+  }
+
+  .service-entry-row {
+    display: flex;
+    gap: $spacing-sm;
+    align-items: flex-end;
+    margin-bottom: $spacing-sm;
+
+    .form-field {
+      flex: 1;
+      margin-bottom: 0;
+    }
+
+    .sort-field {
+      width: 80px;
+    }
+
+    .btn-remove-service {
+      padding: $spacing-sm;
+      background: none;
+      border: 1px solid $color-error;
+      border-radius: $border-radius-sm;
+      color: $color-error;
+      cursor: pointer;
+      font-size: 0.75rem;
+      margin-bottom: 0;
+      height: fit-content;
+
+      &:hover {
+        background: rgba($color-error, 0.05);
+      }
+    }
+  }
+
+  .btn-add-service {
+    margin-bottom: $spacing-md;
+    padding: $spacing-xs $spacing-md;
+    background: none;
+    border: 1px dashed $color-primary;
+    border-radius: $border-radius-sm;
+    color: $color-primary;
+    cursor: pointer;
+    font-size: 0.875rem;
+
+    &:hover {
+      background: rgba($color-primary, 0.05);
+    }
+  }
+
+  .view-question-table {
+    width: 100%;
+    border-collapse: collapse;
+
+    th,
+    td {
+      padding: $spacing-lg $spacing-md;
+      border-bottom: 1px solid $color-border-light;
+      vertical-align: top;
+    }
+
+    th {
+      text-align: left;
+      font-weight: $font-weight-bold;
+      color: $color-text-muted;
+      width: 40%;
+    }
+
+    td {
+      text-align: right;
+      color: $color-text-dark;
+    }
+  }
+
+  .checkbox-field {
+    display: flex;
+    align-items: center;
+    gap: $spacing-sm;
+    margin-bottom: $spacing-md;
+
+    input[type="checkbox"] {
+      accent-color: $color-primary;
+      width: 18px;
+      height: 18px;
+    }
+
+    label {
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: $color-text-dark;
+      cursor: pointer;
+    }
+  }
+}
