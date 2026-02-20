@@ -1,44 +1,77 @@
-import { useState, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuthFetch } from './useAuthFetch';
 import { useAuth } from '../contexts/AuthContext';
 import type { DocumentWithDetails, RequiredDocumentChecklist } from '../types/document.types';
-import type { ApiListResponse } from '../types/entities.types';
+import type { ApiListResponse, ApiSingleResponse } from '../types/entities.types';
 import { API_BASE } from '../lib/api';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../lib/constants';
+import type { DocumentsState } from '../types/hooks.types';
 
 export const useClientDocuments = () => {
   const authFetch = useAuthFetch();
   const { session } = useAuth();
-  const [documents, setDocuments] = useState<DocumentWithDetails[]>([]);
+  const [state, setState] = useState<DocumentsState>({
+    documents: [],
+    loading: true,
+    error: null
+  });
   const [requiredDocuments, setRequiredDocuments] = useState<RequiredDocumentChecklist[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
 
   const fetchMyDocuments = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+    setState(prev => ({ ...prev, loading: true, error: null }));
 
     try {
       const response = await authFetch(`${API_BASE}/client/documents`);
       const data: ApiListResponse<DocumentWithDetails> = await response.json();
 
       if (data.success) {
-        setDocuments(data.data || []);
+        setState({ documents: data.data || [], loading: false, error: null });
       } else {
         throw new Error(data.error || 'Failed to fetch documents');
       }
     } catch (err) {
       console.error('Error fetching documents:', err);
-      setError(err instanceof Error ? err.message : 'Failed to load documents');
-    } finally {
-      setLoading(false);
+      setState(prev => ({
+        ...prev,
+        loading: false,
+        error: err instanceof Error ? err.message : 'Failed to load documents'
+      }));
+    }
+  }, [authFetch]);
+
+  const getDocumentById = useCallback(async (id: number): Promise<DocumentWithDetails | null> => {
+    try {
+      const response = await authFetch(`${API_BASE}/client/documents/${id}`);
+      const data: ApiSingleResponse<DocumentWithDetails> = await response.json();
+
+      if (data.success && data.data) {
+        return data.data;
+      }
+      return null;
+    } catch (error) {
+      console.error('Error fetching document:', error);
+      return null;
+    }
+  }, [authFetch]);
+
+  const searchDocuments = useCallback(async (query: string): Promise<DocumentWithDetails[]> => {
+    try {
+      const response = await authFetch(`${API_BASE}/client/documents/search?q=${encodeURIComponent(query)}`);
+      const data: ApiListResponse<DocumentWithDetails> = await response.json();
+
+      if (data.success) {
+        return data.data || [];
+      }
+      return [];
+    } catch (error) {
+      console.error('Error searching documents:', error);
+      return [];
     }
   }, [authFetch]);
 
   const fetchRequiredDocuments = useCallback(async (serviceRequestId: number) => {
-    setLoading(true);
-    setError(null);
+    setState(prev => ({ ...prev, loading: true, error: null }));
 
     try {
       const response = await authFetch(`${API_BASE}/client/service-requests/${serviceRequestId}/required-documents`);
@@ -51,9 +84,12 @@ export const useClientDocuments = () => {
       }
     } catch (err) {
       console.error('Error fetching required documents:', err);
-      setError(err instanceof Error ? err.message : 'Failed to load required documents');
+      setState(prev => ({
+        ...prev,
+        error: err instanceof Error ? err.message : 'Failed to load required documents'
+      }));
     } finally {
-      setLoading(false);
+      setState(prev => ({ ...prev, loading: false }));
     }
   }, [authFetch]);
 
@@ -65,12 +101,12 @@ export const useClientDocuments = () => {
   ): Promise<boolean> => {
     const token = session?.access_token;
     if (!token) {
-      setError('Not authenticated');
+      setState(prev => ({ ...prev, error: 'Not authenticated' }));
       return false;
     }
 
     setUploading(true);
-    setError(null);
+    setState(prev => ({ ...prev, error: null }));
 
     try {
       const formData = new FormData();
@@ -99,7 +135,10 @@ export const useClientDocuments = () => {
       return true;
     } catch (err) {
       console.error('Upload error:', err);
-      setError(err instanceof Error ? err.message : 'Upload failed');
+      setState(prev => ({
+        ...prev,
+        error: err instanceof Error ? err.message : 'Upload failed'
+      }));
       return false;
     } finally {
       setUploading(false);
@@ -121,15 +160,48 @@ export const useClientDocuments = () => {
     }
   }, [authFetch]);
 
+  const deleteDocument = useCallback(async (id: number): Promise<boolean> => {
+    const token = session?.access_token;
+    if (!token) throw new Error('Not authenticated');
+
+    try {
+      const response = await fetch(`${SUPABASE_URL}/functions/v1/delete-document`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          apikey: SUPABASE_ANON_KEY,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ documentId: id }),
+      });
+      const data = await response.json();
+
+      if (data.success) {
+        await fetchMyDocuments();
+        return true;
+      }
+      throw new Error(data.error || 'Failed to delete document');
+    } catch (error) {
+      console.error('Error deleting document:', error);
+      throw error;
+    }
+  }, [session, fetchMyDocuments]);
+
+  useEffect(() => {
+    fetchMyDocuments();
+  }, [fetchMyDocuments]);
+
   return {
-    documents,
+    ...state,
     requiredDocuments,
-    loading,
-    error,
     uploading,
+    refetch: fetchMyDocuments,
     fetchMyDocuments,
+    getDocumentById,
+    searchDocuments,
     fetchRequiredDocuments,
     uploadDocument,
-    getDocumentsByServiceRequest
+    getDocumentsByServiceRequest,
+    deleteDocument
   };
 };
