@@ -47,7 +47,7 @@ const INITIAL_SR_FORM: CreateSRFormData = {
 export default function StrataDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { getStrataById } = useStrata();
+  const { getStrataById, addNote, deleteNote } = useStrata();
   const {
     getActiveByStrata,
     createServiceRequest,
@@ -82,6 +82,10 @@ export default function StrataDetailPage() {
 
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [deleteSubmitting, setDeleteSubmitting] = useState(false);
+
+  const [noteInput, setNoteInput] = useState('');
+  const [noteSubmitting, setNoteSubmitting] = useState(false);
+  const [noteError, setNoteError] = useState<string | null>(null);
 
   const strataId = id ? parseInt(id) : null;
 
@@ -176,6 +180,36 @@ export default function StrataDetailPage() {
       // Error is handled by the hook
     } finally {
       setDeleteSubmitting(false);
+    }
+  };
+
+  const handleAddNote = async () => {
+    if (!strataId || !noteInput.trim()) return;
+    setNoteSubmitting(true);
+    setNoteError(null);
+    try {
+      await addNote(strataId, {
+        noteMessage: noteInput.trim(),
+        createdByProfileId: user?.id,
+      });
+      setNoteInput('');
+      const updated = await getStrataById(strataId);
+      if (updated) setStrata(updated);
+    } catch {
+      setNoteError('Failed to add note');
+    } finally {
+      setNoteSubmitting(false);
+    }
+  };
+
+  const handleDeleteNote = async (noteId: number) => {
+    if (!strataId) return;
+    try {
+      await deleteNote(strataId, noteId);
+      const updated = await getStrataById(strataId);
+      if (updated) setStrata(updated);
+    } catch {
+      // silently fail
     }
   };
 
@@ -551,6 +585,24 @@ export default function StrataDetailPage() {
 
         {activeTab === "notes" && (
           <div className="tab-panel">
+            <div className="note-form">
+              {noteError && <div className="form-error">{noteError}</div>}
+              <textarea
+                className="note-input"
+                value={noteInput}
+                onChange={(e) => setNoteInput(e.target.value)}
+                placeholder="Write a note..."
+                rows={3}
+              />
+              <button
+                className="btn-primary"
+                onClick={handleAddNote}
+                disabled={noteSubmitting || !noteInput.trim()}
+              >
+                {noteSubmitting ? "Saving..." : "Add Note"}
+              </button>
+            </div>
+
             {strata.strataNotes.length === 0 ? (
               <div className="empty-state">
                 <h2>No Notes</h2>
@@ -567,6 +619,12 @@ export default function StrataDetailPage() {
                           : note.createdByUser || "Unknown"}
                       </span>
                       <span>{new Date(note.createdAt).toLocaleDateString()}</span>
+                      <button
+                        className="btn-delete btn-delete-note"
+                        onClick={() => handleDeleteNote(note.noteId)}
+                      >
+                        Delete
+                      </button>
                     </div>
                   </div>
                 ))}
