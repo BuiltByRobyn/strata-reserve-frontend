@@ -47,7 +47,7 @@ const INITIAL_SR_FORM: CreateSRFormData = {
 export default function StrataDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { getStrataById } = useStrata();
+  const { getStrataById, addNote, deleteNote } = useStrata();
   const {
     getActiveByStrata,
     createServiceRequest,
@@ -82,6 +82,10 @@ export default function StrataDetailPage() {
 
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [deleteSubmitting, setDeleteSubmitting] = useState(false);
+
+  const [noteInput, setNoteInput] = useState('');
+  const [noteSubmitting, setNoteSubmitting] = useState(false);
+  const [noteError, setNoteError] = useState<string | null>(null);
 
   const strataId = id ? parseInt(id) : null;
 
@@ -176,6 +180,36 @@ export default function StrataDetailPage() {
       // Error is handled by the hook
     } finally {
       setDeleteSubmitting(false);
+    }
+  };
+
+  const handleAddNote = async () => {
+    if (!strataId || !noteInput.trim()) return;
+    setNoteSubmitting(true);
+    setNoteError(null);
+    try {
+      await addNote(strataId, {
+        noteMessage: noteInput.trim(),
+        createdByProfileId: user?.id,
+      });
+      setNoteInput('');
+      const updated = await getStrataById(strataId);
+      if (updated) setStrata(updated);
+    } catch {
+      setNoteError('Failed to add note');
+    } finally {
+      setNoteSubmitting(false);
+    }
+  };
+
+  const handleDeleteNote = async (noteId: number) => {
+    if (!strataId) return;
+    try {
+      await deleteNote(strataId, noteId);
+      const updated = await getStrataById(strataId);
+      if (updated) setStrata(updated);
+    } catch {
+      // silently fail
     }
   };
 
@@ -551,27 +585,71 @@ export default function StrataDetailPage() {
 
         {activeTab === "notes" && (
           <div className="tab-panel">
-            {strata.strataNotes.length === 0 ? (
-              <div className="empty-state">
-                <h2>No Notes</h2>
-              </div>
-            ) : (
-              <div className="notes-list">
-                {strata.strataNotes.map((note) => (
-                  <div key={note.noteId} className="note-item">
-                    <p className="note-message">{note.noteMessage}</p>
-                    <div className="note-meta">
-                      <span>
-                        {note.createdBy
-                          ? `${note.createdBy.firstName || ""} ${note.createdBy.lastName || ""}`.trim()
-                          : note.createdByUser || "Unknown"}
-                      </span>
-                      <span>{new Date(note.createdAt).toLocaleDateString()}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+            <div className="notes-header">
+              <h2>Notes For {strata.complexName || strata.strataPlan || "Strata"}</h2>
+              <button
+                className="btn-primary"
+                onClick={handleAddNote}
+                disabled={noteSubmitting}
+              >
+                {noteSubmitting ? "Saving..." : "Add Note"}
+              </button>
+            </div>
+
+            {noteError && <div className="form-error">{noteError}</div>}
+            <textarea
+              className="note-input"
+              value={noteInput}
+              onChange={(e) => setNoteInput(e.target.value)}
+              placeholder="Write a note..."
+              rows={3}
+            />
+
+            <div className="notes-table-wrapper">
+              <table className="notes-table">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Time</th>
+                    <th>User</th>
+                    <th>Message</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {strata.strataNotes.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="notes-empty">No notes yet.</td>
+                    </tr>
+                  ) : (
+                    strata.strataNotes.map((note) => {
+                      const date = new Date(note.createdAt);
+                      const dateStr = date.toLocaleDateString("en-GB", { day: "2-digit", month: "long", year: "numeric" });
+                      const timeStr = date.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+                      const userName = note.createdBy
+                        ? `${note.createdBy.firstName || ""} ${note.createdBy.lastName || ""}`.trim()
+                        : note.createdByUser || "Unknown";
+                      return (
+                        <tr key={note.noteId}>
+                          <td>{dateStr}</td>
+                          <td>{timeStr}</td>
+                          <td>{userName}</td>
+                          <td className="note-message-cell">{note.noteMessage}</td>
+                          <td className="note-actions-cell">
+                            <button
+                              className="btn-delete-link"
+                              onClick={() => handleDeleteNote(note.noteId)}
+                            >
+                              Delete
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
       </div>

@@ -314,28 +314,91 @@
     }
   }
 
-  .notes-list {
+  .notes-header {
     display: flex;
-    flex-direction: column;
-    gap: $spacing-md;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: $spacing-md;
 
-    .note-item {
-      padding: $spacing-md;
-      border: 1px solid $color-border-light;
-      border-radius: $border-radius-sm;
-      background: $color-white;
+    h2 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: $color-text-dark;
+      margin: 0;
+    }
 
-      .note-message {
-        margin: 0 0 $spacing-sm;
-        color: $color-text-dark;
-      }
+  }
 
-      .note-meta {
-        display: flex;
-        gap: $spacing-lg;
-        font-size: $font-size-sm;
-        color: $color-text-muted;
-      }
+  .note-input {
+    width: 100%;
+    padding: $spacing-sm;
+    border: 1px solid $color-border-light;
+    border-radius: $border-radius-sm;
+    font-size: $font-size-base;
+    resize: vertical;
+    box-sizing: border-box;
+    margin-bottom: $spacing-md;
+    font-family: inherit;
+  }
+
+  .notes-table-wrapper {
+    border: 1px solid $color-border-light;
+    border-radius: $border-radius-sm;
+    overflow: hidden;
+    background: $color-white;
+  }
+
+  .notes-table {
+    width: 100%;
+    border-collapse: collapse;
+
+    th {
+      font-weight: $font-weight-bold;
+      color: $color-text-dark;
+      text-align: left;
+      padding: $spacing-md $spacing-lg;
+      border-bottom: 1px solid $color-border-light;
+      font-size: $font-size-sm;
+    }
+
+    td {
+      padding: $spacing-md $spacing-lg;
+      color: $color-text-dark;
+      font-size: $font-size-sm;
+      border-bottom: 1px solid $color-border-light;
+      vertical-align: middle;
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    .note-message-cell {
+      text-align: center;
+    }
+
+    .note-actions-cell {
+      text-align: center;
+    }
+
+    .notes-empty {
+      text-align: center;
+      color: $color-text-muted;
+      padding: $spacing-xl;
+    }
+  }
+
+  .btn-delete-link {
+    background: none;
+    border: none;
+    color: $color-error;
+    text-decoration: underline;
+    cursor: pointer;
+    font-size: $font-size-sm;
+    padding: 0;
+
+    &:hover {
+      color: $color-error-dark;
     }
   }
 
