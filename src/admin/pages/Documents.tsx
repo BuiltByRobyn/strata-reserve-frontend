@@ -14,11 +14,10 @@ import { SingleSelectDropdown } from '../../shared/components/SingleSelectDropdo
 import type { DocumentWithDetails, DocumentUploadData } from '../../shared/types/document.types';
 import { STRATA_ID_PATTERN, formatStrataId } from '../../shared/utils/strataUtils';
 import { API_BASE } from '../../shared/lib/api';
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../../shared/lib/constants';
 import { formatTypeName, formatDate, getStatusBadgeClass } from '../../shared/lib/formatters';
 
 export default function DocumentsPage() {
-  const { documents, loading, error, refetch, updateDocumentStatus, deleteDocument, syncDocuments } = useDocuments();
+  const { documents, loading, error, updateDocumentStatus, uploadDocument, uploading, deleteDocument, syncDocuments } = useDocuments();
   const { stratas } = useStrata();
   const { documentTypes, reviewStatuses } = useLookups();
   const { session, user } = useAuth();
@@ -42,9 +41,8 @@ export default function DocumentsPage() {
     documentTypeId: null,
     strataName: '',
     strataId: '',
-    adminNotes: ''
+    notes: ''
   });
-  const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
   const [syncMessage, setSyncMessage] = useState<string | null>(null);
@@ -57,15 +55,15 @@ export default function DocumentsPage() {
   const isDesktop = useMediaQuery('(min-width: 750px)');
 
   useEffect(() => {
-    if (!STRATA_ID_PATTERN.test(uploadForm.strataId)) return;
+    if (!uploadForm.strataId || !STRATA_ID_PATTERN.test(uploadForm.strataId)) return;
 
     const lookup = async () => {
       try {
-        const res = await authFetch(`${API_BASE}/admin/strata/search?q=${encodeURIComponent(uploadForm.strataId)}`);
+        const res = await authFetch(`${API_BASE}/admin/strata/search?q=${encodeURIComponent(uploadForm.strataId!)}`);
         const data = await res.json();
         if (data.success && data.data?.length > 0) {
           const match = data.data.find((s: { strataPlan: string }) =>
-            s.strataPlan?.toUpperCase() === uploadForm.strataId.toUpperCase()
+            s.strataPlan?.toUpperCase() === uploadForm.strataId!.toUpperCase()
           );
           if (match?.complexName) {
             setUploadForm(prev => ({ ...prev, strataName: match.complexName }));
@@ -234,7 +232,7 @@ export default function DocumentsPage() {
       documentTypeId: null,
       strataName: '',
       strataId: '',
-      adminNotes: ''
+      notes: ''
     });
     setUploadError(null);
     setIsUploadModalOpen(true);
@@ -258,49 +256,19 @@ export default function DocumentsPage() {
       return;
     }
 
-    const token = session?.access_token;
-    if (!token) {
-      setUploadError('Not authenticated');
-      return;
-    }
-
-    setUploading(true);
     setUploadError(null);
 
     try {
-      const formData = new FormData();
-      formData.append('file', uploadForm.file);
-      formData.append('document_type_id', uploadForm.documentTypeId.toString());
-      formData.append('strata_id', uploadForm.strataId);
-      if (uploadForm.strataName) {
-        formData.append('strata_name', uploadForm.strataName);
-      }
-      if (uploadForm.adminNotes) {
-        formData.append('notes', uploadForm.adminNotes);
-      }
-
-      const response = await fetch(
-        `${SUPABASE_URL}/functions/v1/upload-document`,
-        {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${token}`, apikey: SUPABASE_ANON_KEY },
-          body: formData
-        }
+      await uploadDocument(
+        uploadForm.file,
+        uploadForm.documentTypeId,
+        uploadForm.strataId,
+        uploadForm.strataName || undefined,
+        uploadForm.notes || undefined
       );
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Upload failed');
-      }
-
       setIsUploadModalOpen(false);
-      setUploadError(null);
-      refetch();
     } catch (err) {
       setUploadError(err instanceof Error ? err.message : 'Upload failed');
-    } finally {
-      setUploading(false);
     }
   };
 
@@ -562,9 +530,9 @@ export default function DocumentsPage() {
           </FormRow>
 
           <TextareaField
-            label="Admin Notes"
-            value={uploadForm.adminNotes || ''}
-            onChange={(e) => setUploadForm(prev => ({ ...prev, adminNotes: e.target.value }))}
+            label="Notes"
+            value={uploadForm.notes || ''}
+            onChange={(e) => setUploadForm(prev => ({ ...prev, notes: e.target.value }))}
             placeholder="Add any notes..."
             rows={3}
           />

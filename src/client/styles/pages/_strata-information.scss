@@ -1,10 +1,5 @@
 @use '../../../shared/styles/variables' as *;
 
-.strata-info__subtitle {
-  color: $color-text-secondary;
-  margin-bottom: $spacing-lg;
-}
-
 .strata-info__card {
   max-width: $max-width-page;
   background: $color-white;

@@ -16,7 +16,7 @@ const QUESTIONS_PER_PAGE = 5;
 export default function SurveySectionPage() {
   const { section } = useParams<{ section: string }>();
   const navigate = useNavigate();
-  const { serviceRequestId, loading: srLoading } = useClientServiceRequest();
+  const { activeRequest, serviceRequestId, loading: srLoading, submitForReview } = useClientServiceRequest();
   const {
     questions: allQuestions,
     responses,
@@ -30,6 +30,7 @@ export default function SurveySectionPage() {
 
   const [page, setPage] = useState(0);
   const [localAnswers, setLocalAnswers] = useState<Record<number, SaveResponsePayload>>({});
+  const [submitting, setSubmitting] = useState(false);
   const prevPageRef = useRef(page);
   const prevSectionRef = useRef(section);
 
@@ -52,6 +53,10 @@ export default function SurveySectionPage() {
     page * QUESTIONS_PER_PAGE,
     (page + 1) * QUESTIONS_PER_PAGE
   );
+
+  const isLastPage = page >= totalPages - 1;
+  const currentSectionIdx = SURVEY_SECTIONS.findIndex(s => s.key === section);
+  const isLastSection = currentSectionIdx >= SURVEY_SECTIONS.length - 1;
 
   const totalAnswered = responses.length;
   const totalQuestions = allQuestions.length;
@@ -88,6 +93,21 @@ export default function SurveySectionPage() {
     await saveCurrent();
     setPage(0);
     navigate(`/client/survey/${sectionKey}`);
+  };
+
+  const handleSave = async () => {
+    await saveCurrent();
+    navigate('/client/dashboard');
+  };
+
+  const handleSaveAndSubmit = async () => {
+    await saveCurrent();
+    setSubmitting(true);
+    const success = await submitForReview();
+    setSubmitting(false);
+    if (success) {
+      navigate('/client/survey');
+    }
   };
 
   const updateAnswer = (questionId: number, field: keyof SaveResponsePayload, value: unknown) => {
@@ -307,38 +327,59 @@ export default function SurveySectionPage() {
       </div>
 
       <div className="survey-pagination">
-        <button
-          className="btn-secondary btn-nav"
-          onClick={() => handlePageChange(page - 1)}
-          disabled={page === 0 || saving}
-        >
-          Previous Step
-        </button>
-        <button
-          className="btn-primary btn-nav"
-          onClick={async () => {
-            if (page < totalPages - 1) {
-              await handlePageChange(page + 1);
-            } else {
-              await saveCurrent();
-              const currentIdx = SURVEY_SECTIONS.findIndex(s => s.key === section);
-              if (currentIdx < SURVEY_SECTIONS.length - 1) {
-                navigate(`/client/survey/${SURVEY_SECTIONS[currentIdx + 1].key}`);
-              } else {
-                navigate('/client/survey');
+        {(page > 0 || currentSectionIdx > 0) && (
+          <button
+            className="btn-secondary btn-nav"
+            onClick={async () => {
+              if (page > 0) {
+                await handlePageChange(page - 1);
+              } else if (currentSectionIdx > 0) {
+                await saveCurrent();
+                navigate(`/client/survey/${SURVEY_SECTIONS[currentSectionIdx - 1].key}`);
               }
-            }
-          }}
-          disabled={saving}
-        >
-          {saving
-            ? 'Saving...'
-            : page < totalPages - 1
-              ? 'Next Step'
-              : SURVEY_SECTIONS.findIndex(s => s.key === section) < SURVEY_SECTIONS.length - 1
-                ? 'Next Section'
-                : 'Finalize Answers'}
-        </button>
+            }}
+            disabled={saving}
+          >
+            Previous Step
+          </button>
+        )}
+
+        {isLastPage && isLastSection ? (
+          <>
+            <button
+              className="btn-secondary btn-nav"
+              onClick={handleSave}
+              disabled={saving || submitting}
+            >
+              Save
+            </button>
+            <button
+              className="btn-primary btn-nav"
+              onClick={handleSaveAndSubmit}
+              disabled={saving || submitting}
+            >
+              {submitting ? 'Submitting...' : activeRequest?.submittedForReviewDate ? 'Resubmit' : 'Save and Submit'}
+            </button>
+          </>
+        ) : (
+          <button
+            className="btn-primary btn-nav"
+            onClick={async () => {
+              if (page < totalPages - 1) {
+                await handlePageChange(page + 1);
+              } else {
+                await saveCurrent();
+                const currentIdx = SURVEY_SECTIONS.findIndex(s => s.key === section);
+                if (currentIdx < SURVEY_SECTIONS.length - 1) {
+                  navigate(`/client/survey/${SURVEY_SECTIONS[currentIdx + 1].key}`);
+                }
+              }
+            }}
+            disabled={saving}
+          >
+            {saving ? 'Saving...' : 'Next Step'}
+          </button>
+        )}
       </div>
     </div>
   );

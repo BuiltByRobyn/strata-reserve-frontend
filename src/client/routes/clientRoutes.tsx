@@ -43,7 +43,9 @@ export const clientRoutes = [
     <ProtectedRoute requireClient>
       <div className="app">
         <ClientNavbar />
-        <DocumentsPage />
+        <main className="app-main">
+          <DocumentsPage />
+        </main>
       </div>
     </ProtectedRoute>
   } />,

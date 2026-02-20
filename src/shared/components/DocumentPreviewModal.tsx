@@ -93,7 +93,7 @@ export function DocumentPreviewModal({ isOpen, onClose, documentId, documentName
       case 'pdf':
         return (
           <iframe
-            src={blobUrl}
+            src={`${blobUrl}#navpanes=0`}
             title={documentName}
             className="document-preview-iframe"
           />

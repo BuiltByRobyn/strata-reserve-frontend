@@ -181,7 +181,7 @@ const StrataMembers = () => {
   return (
     <div className="page-container">
       <h1>Strata Members</h1>
-      <p className="strata-members__subtitle">
+      <p className="page-subtitle">
         The following members are associated with your strata
       </p>
 

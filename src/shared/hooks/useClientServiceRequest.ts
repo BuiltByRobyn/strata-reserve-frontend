@@ -37,10 +37,28 @@ export const useClientServiceRequest = () => {
     fetchActiveRequest();
   }, [fetchActiveRequest]);
 
+  const submitForReview = useCallback(async (): Promise<boolean> => {
+    if (!activeRequest) return false;
+    try {
+      const response = await authFetch(`${API_BASE}/client/service-requests/${activeRequest.serviceRequestId}/submit`, {
+        method: 'POST',
+      });
+      const data = await response.json();
+      if (data.success) {
+        await fetchActiveRequest();
+        return true;
+      }
+      return false;
+    } catch {
+      return false;
+    }
+  }, [activeRequest, authFetch, fetchActiveRequest]);
+
   return {
     activeRequest,
     serviceRequestId: activeRequest?.serviceRequestId ?? null,
     loading,
     refetch: fetchActiveRequest,
+    submitForReview,
   };
 };

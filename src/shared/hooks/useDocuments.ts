@@ -6,6 +6,7 @@ import type { ApiListResponse, ApiSingleResponse } from '../types/entities.types
 import type { DocumentsState } from '../types/hooks.types';
 import { API_BASE } from '../lib/api';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../lib/constants';
+import { supabaseUploadDocument, supabaseDeleteDocument } from '../lib/documentService';
 
 export const useDocuments = () => {
   const authFetch = useAuthFetch();
@@ -15,6 +16,7 @@ export const useDocuments = () => {
     loading: true,
     error: null
   });
+  const [uploading, setUploading] = useState(false);
 
   const fetchDocuments = useCallback(async () => {
     setState(prev => ({ ...prev, loading: true, error: null }));
@@ -78,25 +80,35 @@ export const useDocuments = () => {
     if (!token) throw new Error('Not authenticated');
 
     try {
-      const response = await fetch(`${SUPABASE_URL}/functions/v1/delete-document`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          apikey: SUPABASE_ANON_KEY,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ documentId: id }),
-      });
-      const data = await response.json();
-
-      if (data.success) {
-        await fetchDocuments();
-        return true;
-      }
-      throw new Error(data.error || 'Failed to delete document');
+      await supabaseDeleteDocument(token, id);
+      await fetchDocuments();
+      return true;
     } catch (error) {
       console.error('Error deleting document:', error);
       throw error;
+    }
+  }, [session, fetchDocuments]);
+
+  const uploadDocument = useCallback(async (
+    file: File,
+    documentTypeId: number,
+    strataId: string,
+    strataName?: string,
+    notes?: string
+  ): Promise<boolean> => {
+    const token = session?.access_token;
+    if (!token) throw new Error('Not authenticated');
+
+    setUploading(true);
+    try {
+      await supabaseUploadDocument({ token, file, documentTypeId, strataId, strataName, notes });
+      await fetchDocuments();
+      return true;
+    } catch (error) {
+      console.error('Upload error:', error);
+      throw error;
+    } finally {
+      setUploading(false);
     }
   }, [session, fetchDocuments]);
 
@@ -152,9 +164,11 @@ export const useDocuments = () => {
 
   return {
     ...state,
+    uploading,
     refetch: fetchDocuments,
     getDocumentById,
     updateDocumentStatus,
+    uploadDocument,
     deleteDocument,
     syncDocuments,
     searchDocuments
