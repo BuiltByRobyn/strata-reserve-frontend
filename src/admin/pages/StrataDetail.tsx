@@ -585,51 +585,71 @@ export default function StrataDetailPage() {
 
         {activeTab === "notes" && (
           <div className="tab-panel">
-            <div className="note-form">
-              {noteError && <div className="form-error">{noteError}</div>}
-              <textarea
-                className="note-input"
-                value={noteInput}
-                onChange={(e) => setNoteInput(e.target.value)}
-                placeholder="Write a note..."
-                rows={3}
-              />
+            <div className="notes-header">
+              <h2>Notes For {strata.complexName || strata.strataPlan || "Strata"}</h2>
               <button
                 className="btn-primary"
                 onClick={handleAddNote}
-                disabled={noteSubmitting || !noteInput.trim()}
+                disabled={noteSubmitting}
               >
                 {noteSubmitting ? "Saving..." : "Add Note"}
               </button>
             </div>
 
-            {strata.strataNotes.length === 0 ? (
-              <div className="empty-state">
-                <h2>No Notes</h2>
-              </div>
-            ) : (
-              <div className="notes-list">
-                {strata.strataNotes.map((note) => (
-                  <div key={note.noteId} className="note-item">
-                    <p className="note-message">{note.noteMessage}</p>
-                    <div className="note-meta">
-                      <span>
-                        {note.createdBy
-                          ? `${note.createdBy.firstName || ""} ${note.createdBy.lastName || ""}`.trim()
-                          : note.createdByUser || "Unknown"}
-                      </span>
-                      <span>{new Date(note.createdAt).toLocaleDateString()}</span>
-                      <button
-                        className="btn-delete btn-delete-note"
-                        onClick={() => handleDeleteNote(note.noteId)}
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+            {noteError && <div className="form-error">{noteError}</div>}
+            <textarea
+              className="note-input"
+              value={noteInput}
+              onChange={(e) => setNoteInput(e.target.value)}
+              placeholder="Write a note..."
+              rows={3}
+            />
+
+            <div className="notes-table-wrapper">
+              <table className="notes-table">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Time</th>
+                    <th>User</th>
+                    <th>Message</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {strata.strataNotes.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="notes-empty">No notes yet.</td>
+                    </tr>
+                  ) : (
+                    strata.strataNotes.map((note) => {
+                      const date = new Date(note.createdAt);
+                      const dateStr = date.toLocaleDateString("en-GB", { day: "2-digit", month: "long", year: "numeric" });
+                      const timeStr = date.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+                      const userName = note.createdBy
+                        ? `${note.createdBy.firstName || ""} ${note.createdBy.lastName || ""}`.trim()
+                        : note.createdByUser || "Unknown";
+                      return (
+                        <tr key={note.noteId}>
+                          <td>{dateStr}</td>
+                          <td>{timeStr}</td>
+                          <td>{userName}</td>
+                          <td className="note-message-cell">{note.noteMessage}</td>
+                          <td className="note-actions-cell">
+                            <button
+                              className="btn-delete-link"
+                              onClick={() => handleDeleteNote(note.noteId)}
+                            >
+                              Delete
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
       </div>
