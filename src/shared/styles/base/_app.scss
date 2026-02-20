@@ -42,6 +42,18 @@
   }
 }
 
+.page-subtitle {
+  margin: $spacing-xs 0 $spacing-xl;
+  color: $color-text-light;
+  font-size: 0.9375rem;
+  text-align: left;
+
+  @include respond-below(lg) {
+    text-align: center;
+    margin: $spacing-lg;
+  }
+}
+
 h1 {
   font-size: $font-size-xl;
   margin-bottom: $spacing-md;

@@ -2,7 +2,7 @@ const Timelines = () => {
   return (
     <div className="page-container">
       <h1>Timelines</h1>
-      <p>View your project timelines (Coming Soon)</p>
+      <p className="page-subtitle">View your project timelines (Coming Soon)</p>
     </div>
   );
 };

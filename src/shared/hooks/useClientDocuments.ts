@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import type { DocumentWithDetails, RequiredDocumentChecklist } from '../types/document.types';
 import type { ApiListResponse, ApiSingleResponse } from '../types/entities.types';
 import { API_BASE } from '../lib/api';
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../lib/constants';
+import { supabaseUploadDocument, supabaseDeleteDocument } from '../lib/documentService';
 import type { DocumentsState } from '../types/hooks.types';
 
 export const useClientDocuments = () => {
@@ -95,8 +95,8 @@ export const useClientDocuments = () => {
 
   const uploadDocument = useCallback(async (
     file: File,
-    serviceRequestId: number,
     documentTypeId: number,
+    strataId: string,
     notes?: string
   ): Promise<boolean> => {
     const token = session?.access_token;
@@ -109,29 +109,8 @@ export const useClientDocuments = () => {
     setState(prev => ({ ...prev, error: null }));
 
     try {
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('service_request_id', serviceRequestId.toString());
-      formData.append('document_type_id', documentTypeId.toString());
-      if (notes) {
-        formData.append('notes', notes);
-      }
-
-      const response = await fetch(
-        `${SUPABASE_URL}/functions/v1/upload-document`,
-        {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${token}`, apikey: SUPABASE_ANON_KEY },
-          body: formData
-        }
-      );
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Upload failed');
-      }
-
+      await supabaseUploadDocument({ token, file, documentTypeId, strataId, notes });
+      await fetchMyDocuments();
       return true;
     } catch (err) {
       console.error('Upload error:', err);
@@ -143,7 +122,7 @@ export const useClientDocuments = () => {
     } finally {
       setUploading(false);
     }
-  }, [session]);
+  }, [session, fetchMyDocuments]);
 
   const getDocumentsByServiceRequest = useCallback(async (serviceRequestId: number) => {
     try {
@@ -165,22 +144,9 @@ export const useClientDocuments = () => {
     if (!token) throw new Error('Not authenticated');
 
     try {
-      const response = await fetch(`${SUPABASE_URL}/functions/v1/delete-document`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          apikey: SUPABASE_ANON_KEY,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ documentId: id }),
-      });
-      const data = await response.json();
-
-      if (data.success) {
-        await fetchMyDocuments();
-        return true;
-      }
-      throw new Error(data.error || 'Failed to delete document');
+      await supabaseDeleteDocument(token, id);
+      await fetchMyDocuments();
+      return true;
     } catch (error) {
       console.error('Error deleting document:', error);
       throw error;
