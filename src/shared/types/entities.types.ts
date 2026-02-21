@@ -202,6 +202,7 @@ export interface StrataProfileWithProfile extends StrataEmployee {
 export interface StrataProfileWithStrata extends StrataEmployee {
   strata: StrataBasic & {
     company?: { companyName: string } | null;
+    strataPropertyTypes?: StrataPropertyType[];
   };
   strataProfileSections?: StrataProfileSection[];
 }
