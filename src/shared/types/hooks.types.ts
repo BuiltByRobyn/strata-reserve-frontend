@@ -88,3 +88,9 @@ export interface FetchUsersParams {
   strataId?: number;
   userTypeId?: number;
 }
+
+export interface PropertyTypeContextType {
+  propertyTypes: PropertyType[];
+  loading: boolean;
+  refetch: () => Promise<void>;
+}

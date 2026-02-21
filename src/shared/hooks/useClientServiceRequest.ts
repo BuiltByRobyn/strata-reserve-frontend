@@ -37,8 +37,8 @@ export const useClientServiceRequest = () => {
     fetchActiveRequest();
   }, [fetchActiveRequest]);
 
-  const submitForReview = useCallback(async (): Promise<boolean> => {
-    if (!activeRequest) return false;
+  const submitForReview = useCallback(async (): Promise<{ success: boolean; error?: string }> => {
+    if (!activeRequest) return { success: false, error: 'No active request' };
     try {
       const response = await authFetch(`${API_BASE}/client/service-requests/${activeRequest.serviceRequestId}/submit`, {
         method: 'POST',
@@ -46,11 +46,11 @@ export const useClientServiceRequest = () => {
       const data = await response.json();
       if (data.success) {
         await fetchActiveRequest();
-        return true;
+        return { success: true };
       }
-      return false;
+      return { success: false, error: data.error || 'Submission failed' };
     } catch {
-      return false;
+      return { success: false, error: 'Network error' };
     }
   }, [activeRequest, authFetch, fetchActiveRequest]);
 

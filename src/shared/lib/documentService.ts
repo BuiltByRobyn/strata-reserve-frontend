@@ -8,6 +8,8 @@ export async function supabaseUploadDocument(params: UploadDocumentParams): Prom
   formData.append('strata_id', params.strataId);
   if (params.strataName) formData.append('strata_name', params.strataName);
   if (params.notes) formData.append('notes', params.notes);
+  if (params.propertyTypeId) formData.append('property_type_id', params.propertyTypeId.toString());
+  if (params.propertyTypeName) formData.append('property_type_name', params.propertyTypeName);
 
   const response = await fetch(`${SUPABASE_URL}/functions/v1/upload-document`, {
     method: 'POST',

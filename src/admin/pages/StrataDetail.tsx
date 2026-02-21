@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useStrata } from "../../shared/hooks/useStrata";
+import { useAuthFetch } from "../../shared/hooks/useAuthFetch";
 import { useServiceRequests } from "../../shared/hooks/useServiceRequests";
 import { useLookups } from "../../shared/hooks/useLookups";
 import { useAuth } from "../../shared/contexts/AuthContext";
@@ -9,24 +10,28 @@ import { useQuestions } from "../../shared/hooks/useQuestions";
 import { MultiSelectDropdown } from "../../shared/components/MultiSelectDropdown";
 import { LoadingSpinner } from "../../shared/components/LoadingSpinner";
 import { Modal } from "../../shared/components/Modal";
+import { DocumentPreviewModal } from "../../shared/components/DocumentPreviewModal";
 import { Tabs } from "../../shared/components/Tabs";
 import { SurveyCategoryNav } from "../../shared/components/SurveyCategoryNav";
 import { SurveyProgressBar } from "../../shared/components/SurveyProgressBar";
 import {
   InputField,
+  TextareaField,
   FormRow,
 } from "../../shared/components/FormField";
 import { SingleSelectDropdown } from "../../shared/components/SingleSelectDropdown";
 import {
   SURVEY_SECTIONS,
-  SECTION_QUESTION_RANGES,
 } from "../../shared/types/survey.types";
-import type { SurveyQuestion } from "../../shared/types/survey.types";
+import type { SurveyQuestion, ArchivedSurveyResponse } from "../../shared/types/survey.types";
 import type {
   StrataWithDetails,
   ServiceRequest,
   CreateSRFormData,
 } from "../../shared/types/entities.types";
+import type { SRDocRequirement, SRUploadedDocument } from "../../shared/types/document.types";
+import { API_BASE } from "../../shared/lib/api";
+import { formatTypeName, formatDate, getStatusBadgeClass } from "../../shared/lib/formatters";
 
 const MAIN_TABS = [
   { key: "active", label: "Active" },
@@ -52,19 +57,15 @@ export default function StrataDetailPage() {
     getActiveByStrata,
     createServiceRequest,
     deleteServiceRequest,
-    serviceRequests: archivedRequests,
-    refetch: fetchServiceRequests,
   } = useServiceRequests();
-  const { user } = useAuth();
+  const { user, session } = useAuth();
+  const authFetch = useAuthFetch();
 
   const activeSurvey = useSurvey("admin");
-  const archivedSurvey = useSurvey("admin");
-  
-  // Fetch all question definitions to get section metadata for filtering
   const { questions: allQuestions } = useQuestions();
-  const { services, sections } = useLookups();
+  const { services, documentTypes, reviewStatuses } = useLookups();
 
-  const [filterSectionIds, setFilterSectionIds] = useState<number[]>([]);
+  const [filterPropertyTypeIds, setFilterPropertyTypeIds] = useState<number[]>([]);
 
   const [strata, setStrata] = useState<StrataWithDetails | null>(null);
   const [loading, setLoading] = useState(true);
@@ -73,7 +74,6 @@ export default function StrataDetailPage() {
 
   const [activeSurveySection, setActiveSurveySection] = useState("exterior");
   const [archivedSurveySection, setArchivedSurveySection] = useState("exterior");
-  const [selectedArchivedId, setSelectedArchivedId] = useState<number | null>(null);
 
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [srFormData, setSrFormData] = useState<CreateSRFormData>(INITIAL_SR_FORM);
@@ -86,6 +86,23 @@ export default function StrataDetailPage() {
   const [noteInput, setNoteInput] = useState('');
   const [noteSubmitting, setNoteSubmitting] = useState(false);
   const [noteError, setNoteError] = useState<string | null>(null);
+  const [deleteNoteModal, setDeleteNoteModal] = useState<{ type: 'strata' | 'doc'; id: number; message: string } | null>(null);
+  const [deleteNoteSubmitting, setDeleteNoteSubmitting] = useState(false);
+  const [addNoteModalOpen, setAddNoteModalOpen] = useState(false);
+  const [viewNoteModal, setViewNoteModal] = useState<{ date: Date; userName: string; source: string; message: string; deleteType: 'strata' | 'doc'; deleteId: number } | null>(null);
+
+  const [docRequirements, setDocRequirements] = useState<SRDocRequirement[]>([]);
+  const [docReqModalOpen, setDocReqModalOpen] = useState(false);
+  const [docReqSaving, setDocReqSaving] = useState(false);
+  const [docReqFormData, setDocReqFormData] = useState<Record<number, number[]>>({});
+
+  const [uploadedDocs, setUploadedDocs] = useState<SRUploadedDocument[]>([]);
+  const [previewModalOpen, setPreviewModalOpen] = useState(false);
+  const [previewDocId, setPreviewDocId] = useState<number | null>(null);
+  const [previewDocName, setPreviewDocName] = useState('');
+  const [statusModalOpen, setStatusModalOpen] = useState(false);
+  const [statusDoc, setStatusDoc] = useState<SRUploadedDocument | null>(null);
+  const [statusForm, setStatusForm] = useState({ reviewStatusId: '', notes: '' });
 
   const strataId = id ? parseInt(id) : null;
 
@@ -99,33 +116,52 @@ export default function StrataDetailPage() {
       ]);
       setStrata(strataData);
       setActiveRequest(activeReq);
-      fetchServiceRequests({ strataId, archived: true });
     } catch {
       setStrata(null);
     } finally {
       setLoading(false);
     }
-  }, [strataId, getStrataById, getActiveByStrata, fetchServiceRequests]);
+  }, [strataId, getStrataById, getActiveByStrata]);
 
   useEffect(() => {
     loadData();
   }, [loadData]);
 
+  const fetchDocRequirements = useCallback(async (serviceRequestId: number) => {
+    try {
+      const res = await authFetch(`${API_BASE}/admin/service-requests/${serviceRequestId}/document-requirements`);
+      const data = await res.json();
+      if (data.success && data.data) {
+        setDocRequirements(data.data);
+      }
+    } catch {
+      // silently fail
+    }
+  }, [authFetch]);
+
+  const fetchUploadedDocs = useCallback(async (serviceRequestId: number) => {
+    try {
+      const res = await authFetch(`${API_BASE}/admin/service-requests/${serviceRequestId}/documents`);
+      const data = await res.json();
+      if (data.success && data.data) {
+        setUploadedDocs(data.data);
+      }
+    } catch {
+      // silently fail
+    }
+  }, [authFetch]);
+
   useEffect(() => {
     if (activeRequest) {
       activeSurvey.fetchQuestions(activeRequest.serviceRequestId);
       activeSurvey.fetchResponses(activeRequest.serviceRequestId);
+      activeSurvey.fetchArchivedResponses(activeRequest.serviceRequestId);
+      fetchDocRequirements(activeRequest.serviceRequestId);
+      fetchUploadedDocs(activeRequest.serviceRequestId);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeRequest?.serviceRequestId]);
 
-  useEffect(() => {
-    if (selectedArchivedId) {
-      archivedSurvey.fetchQuestions(selectedArchivedId);
-      archivedSurvey.fetchResponses(selectedArchivedId);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedArchivedId]);
 
   const handleOpenCreateModal = () => {
     setSrFormData({
@@ -193,6 +229,7 @@ export default function StrataDetailPage() {
         createdByProfileId: user?.id,
       });
       setNoteInput('');
+      setAddNoteModalOpen(false);
       const updated = await getStrataById(strataId);
       if (updated) setStrata(updated);
     } catch {
@@ -202,14 +239,111 @@ export default function StrataDetailPage() {
     }
   };
 
-  const handleDeleteNote = async (noteId: number) => {
-    if (!strataId) return;
+  const handleConfirmDeleteNote = async () => {
+    if (!strataId || !deleteNoteModal) return;
+    setDeleteNoteSubmitting(true);
     try {
-      await deleteNote(strataId, noteId);
+      if (deleteNoteModal.type === 'strata') {
+        await deleteNote(strataId, deleteNoteModal.id);
+      } else {
+        await authFetch(`${API_BASE}/admin/documents/${deleteNoteModal.id}/notes`, { method: 'DELETE' });
+      }
       const updated = await getStrataById(strataId);
       if (updated) setStrata(updated);
+      setDeleteNoteModal(null);
     } catch {
       // silently fail
+    } finally {
+      setDeleteNoteSubmitting(false);
+    }
+  };
+
+  const openDocReqModal = () => {
+    const formData: Record<number, number[]> = {};
+    for (const spt of strata?.strataPropertyTypes ?? []) {
+      const ptId = spt.propertyType.propertyTypeId;
+      const existing = docRequirements
+        .filter(r => r.propertyTypeId === ptId)
+        .map(r => r.documentTypeId);
+      formData[ptId] = existing;
+    }
+    setDocReqFormData(formData);
+    setDocReqModalOpen(true);
+  };
+
+  const handleDocPreview = (doc: SRUploadedDocument) => {
+    setPreviewDocId(doc.serviceRequestDocumentId);
+    setPreviewDocName(doc.fileName);
+    setPreviewModalOpen(true);
+  };
+
+  const handleClosePreview = () => {
+    setPreviewModalOpen(false);
+    setPreviewDocId(null);
+    setPreviewDocName('');
+  };
+
+  const openStatusModal = (doc: SRUploadedDocument) => {
+    setStatusDoc(doc);
+    setStatusForm({
+      reviewStatusId: doc.reviewStatus?.reviewStatusId?.toString() || '',
+      notes: doc.notes || '',
+    });
+    setStatusModalOpen(true);
+  };
+
+  const handleStatusUpdate = async () => {
+    if (!statusDoc || !statusForm.reviewStatusId) return;
+    try {
+      await authFetch(`${API_BASE}/admin/documents/${statusDoc.serviceRequestDocumentId}/status`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reviewStatusId: parseInt(statusForm.reviewStatusId), notes: statusForm.notes || undefined }),
+      });
+      setStatusModalOpen(false);
+      setStatusDoc(null);
+      if (activeRequest) fetchUploadedDocs(activeRequest.serviceRequestId);
+    } catch {
+      // silently fail
+    }
+  };
+
+  const handleDeleteDoc = async (docId: number) => {
+    try {
+      await authFetch(`${API_BASE}/admin/documents/${docId}`, { method: 'DELETE' });
+      if (activeRequest) fetchUploadedDocs(activeRequest.serviceRequestId);
+    } catch {
+      // silently fail
+    }
+  };
+
+  const handleSaveDocRequirements = async () => {
+    if (!activeRequest) return;
+    setDocReqSaving(true);
+    try {
+      const requirements: Array<{ documentTypeId: number; propertyTypeId: number }> = [];
+      for (const [propertyTypeId, docTypeIds] of Object.entries(docReqFormData)) {
+        for (const documentTypeId of docTypeIds) {
+          requirements.push({ documentTypeId, propertyTypeId: parseInt(propertyTypeId) });
+        }
+      }
+      const res = await authFetch(
+        `${API_BASE}/admin/service-requests/${activeRequest.serviceRequestId}/document-requirements`,
+        {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ requirements }),
+        }
+      );
+      const data = await res.json();
+      if (data.success && data.data) {
+        setDocRequirements(data.data);
+      }
+      setDocReqModalOpen(false);
+    } catch {
+      // silently fail
+    } finally {
+      setDocReqSaving(false);
     }
   };
 
@@ -227,23 +361,18 @@ export default function StrataDetailPage() {
   };
 
   const getFilteredQuestions = (questions: SurveyQuestion[], sectionKey: string) => {
-    const range = SECTION_QUESTION_RANGES[sectionKey];
-    if (!range) return [];
-    
-    let filtered = questions.filter(q => q.sortOrder >= range.start && q.sortOrder <= range.end);
+    const sectionConfig = SURVEY_SECTIONS.find(s => s.key === sectionKey);
+    if (!sectionConfig) return [];
 
-    // Apply Section Filter
-    if (filterSectionIds.length > 0) {
+    let filtered = questions.filter(q => q.questionCategory === sectionConfig.label);
+
+    if (filterPropertyTypeIds.length > 0) {
       filtered = filtered.filter(q => {
-        // Find the corresponding AdminQuestion to check its sections
         const adminQ = allQuestions.find(aq => aq.questionId === q.questionId);
-        if (!adminQ || !adminQ.questionSections || adminQ.questionSections.length === 0) {
-           // If no sections assigned to question, maybe show it? Or hide it? 
-           // Usually if a filter is applied, we only show matches.
-           // Let's assume if no sections are assigned to the question, it doesn't match the filter.
-           return false; 
+        if (!adminQ || !adminQ.questionPropertyTypes || adminQ.questionPropertyTypes.length === 0) {
+          return false;
         }
-        return adminQ.questionSections.some(qs => filterSectionIds.includes(qs.sectionId));
+        return adminQ.questionPropertyTypes.some(qpt => filterPropertyTypeIds.includes(qpt.propertyTypeId));
       });
     }
 
@@ -253,12 +382,65 @@ export default function StrataDetailPage() {
   const buildCompletionMap = (questions: SurveyQuestion[], responseIds: Set<number>) => {
     const map: Record<string, boolean> = {};
     for (const s of SURVEY_SECTIONS) {
-      const range = SECTION_QUESTION_RANGES[s.key];
-      if (!range) continue;
-      const sq = questions.filter(q => q.sortOrder >= range.start && q.sortOrder <= range.end);
+      const sq = questions.filter(q => q.questionCategory === s.label);
       map[s.key] = sq.length > 0 && sq.every(q => responseIds.has(q.questionId));
     }
     return map;
+  };
+
+  const getArchivedQuestionGroups = () => {
+    const sectionConfig = SURVEY_SECTIONS.find(s => s.key === archivedSurveySection);
+    if (!sectionConfig) return [];
+
+    const grouped = new Map<number, ArchivedSurveyResponse[]>();
+    for (const resp of activeSurvey.archivedResponses) {
+      if (resp.question?.questionCategory !== sectionConfig.label) continue;
+
+      if (filterPropertyTypeIds.length > 0) {
+        const adminQ = allQuestions.find(aq => aq.questionId === resp.questionId);
+        if (!adminQ || !adminQ.questionPropertyTypes?.length) continue;
+        if (!adminQ.questionPropertyTypes.some(qpt => filterPropertyTypeIds.includes(qpt.propertyTypeId))) continue;
+      }
+
+      const list = grouped.get(resp.questionId) || [];
+      list.push(resp);
+      grouped.set(resp.questionId, list);
+    }
+    return Array.from(grouped.entries());
+  };
+
+  const renderArchivedValue = (resp: ArchivedSurveyResponse) => {
+    const q = resp.question;
+    const typeName = q.questionType.questionTypeName;
+
+    if (typeName === "boolean") {
+      if (resp.responseBoolean === true) return "Yes";
+      if (resp.responseBoolean === false) return "No";
+      return "No answer";
+    }
+    if (typeName === "multiple_choice") {
+      return resp.multipleChoiceOption?.optionText || "No answer";
+    }
+    if (typeName === "checkbox" && resp.responseText) {
+      const ids = resp.responseText.split(",").filter(Boolean);
+      return ids.map(id => {
+        const opt = q.multipleChoiceOptions.find(o => o.multipleChoiceOptionId === parseInt(id));
+        return opt?.optionText || id;
+      }).join(", ");
+    }
+    if (typeName === "number") {
+      return resp.responseNumber !== null ? String(resp.responseNumber) : "No answer";
+    }
+    if (typeName === "date") {
+      return resp.responseDate ? new Date(resp.responseDate).toLocaleDateString("en-GB", { day: "2-digit", month: "long", year: "numeric" }) : "No answer";
+    }
+    return resp.responseText || "No answer";
+  };
+
+  const formatArchivedDate = (dateStr: string) => {
+    const d = new Date(dateStr);
+    return d.toLocaleDateString("en-GB", { day: "2-digit", month: "long", year: "numeric" }) +
+      " at " + d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
   };
 
   const renderAnswerValue = (
@@ -348,13 +530,13 @@ export default function StrataDetailPage() {
 
   const getCurrentSurveySection = () => {
     if (activeTab === "active") return activeSurveySection;
-    if (activeTab === "archived" && selectedArchivedId) return archivedSurveySection;
+    if (activeTab === "archived") return archivedSurveySection;
     return null;
   };
 
   const getCurrentSurveyOnSectionChange = () => {
     if (activeTab === "active") return setActiveSurveySection;
-    if (activeTab === "archived" && selectedArchivedId) return setArchivedSurveySection;
+    if (activeTab === "archived") return setArchivedSurveySection;
     return null;
   };
 
@@ -363,14 +545,18 @@ export default function StrataDetailPage() {
       const responseIds = new Set(activeSurvey.responses.map(r => r.questionId));
       return buildCompletionMap(activeSurvey.questions, responseIds);
     }
-    if (activeTab === "archived" && selectedArchivedId) {
-      const responseIds = new Set(archivedSurvey.responses.map(r => r.questionId));
-      return buildCompletionMap(archivedSurvey.questions, responseIds);
+    if (activeTab === "archived") {
+      const map: Record<string, boolean> = {};
+      for (const s of SURVEY_SECTIONS) {
+        const hasResponses = activeSurvey.archivedResponses.some(r => r.question?.questionCategory === s.label);
+        map[s.key] = hasResponses;
+      }
+      return map;
     }
     return undefined;
   };
 
-  const showSurveyNav = (activeTab === "active" && activeRequest) || (activeTab === "archived" && selectedArchivedId);
+  const showSurveyNav = (activeTab === "active" && activeRequest) || (activeTab === "archived" && activeSurvey.archivedResponses.length > 0);
 
   if (loading) return <LoadingSpinner />;
 
@@ -429,8 +615,8 @@ export default function StrataDetailPage() {
             <span className="info-value">{strata.company?.companyName || "N/A"}</span>
           </div>
           <div className="info-item">
-            <span className="info-label">TOTAL UNITS</span>
-            <span className="info-value">N/A</span>
+            <span className="info-label">FISCAL YEAR START</span>
+            <span className="info-value">{strata.fiscalYearEnd ? new Date(strata.fiscalYearEnd).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : "N/A"}</span>
           </div>
         </div>
       </div>
@@ -446,13 +632,13 @@ export default function StrataDetailPage() {
       <div className="tabs-row">
         <Tabs tabs={MAIN_TABS} activeTab={activeTab} onChange={setActiveTab} />
         {(activeTab === "active" || activeTab === "archived") && (
-          <div className="section-filter-container">
+          <div className="filters-row">
             <MultiSelectDropdown
-              label="Sections"
-              options={sections.map(s => ({ value: s.sectionId, label: s.sectionName }))}
-              selectedValues={filterSectionIds}
-              onChange={setFilterSectionIds}
-              placeholder="All Sections"
+              label="Property Types"
+              options={(strata?.strataPropertyTypes ?? []).map(spt => ({ value: spt.propertyType.propertyTypeId, label: spt.propertyType.propertyTypeName })).sort((a, b) => a.label.localeCompare(b.label))}
+              selectedValues={filterPropertyTypeIds}
+              onChange={setFilterPropertyTypeIds}
+              placeholder="All Types"
             />
           </div>
         )}
@@ -522,53 +708,48 @@ export default function StrataDetailPage() {
 
         {activeTab === "archived" && (
           <div className="tab-panel">
-            {archivedRequests.length === 0 ? (
+            {activeSurvey.archivedResponses.length === 0 ? (
               <div className="empty-state">
-                <h2>No Archived Surveys</h2>
-              </div>
-            ) : selectedArchivedId ? (
-              <div className="archived-survey-detail">
-                <button
-                  className="back-link"
-                  onClick={() => setSelectedArchivedId(null)}
-                >
-                  &larr; Back to Archived List
-                </button>
-                <h2>
-                  Archived Survey Answers —{" "}
-                  {archivedRequests.find(r => r.serviceRequestId === selectedArchivedId)?.service?.serviceName || "Survey"}
-                </h2>
-
-                {renderSurveyAnswers(
-                  archivedSurvey.questions,
-                  archivedSurvey.responses,
-                  archivedSurveySection,
-                  archivedSurvey.getResponseForQuestion,
-                  archivedSurvey.loading,
-                )}
+                <h2>No Archived Answers</h2>
               </div>
             ) : (
-              <div className="archived-list">
-                {archivedRequests.map((sr) => (
-                  <div
-                    key={sr.serviceRequestId}
-                    className="archived-item"
-                    onClick={() => setSelectedArchivedId(sr.serviceRequestId)}
-                    role="button"
-                    tabIndex={0}
-                    onKeyDown={(e) => e.key === "Enter" && setSelectedArchivedId(sr.serviceRequestId)}
-                  >
-                    <span className="archived-service">
-                      {sr.service?.serviceName || "Service Request"}
-                    </span>
-                    <span className="archived-date">
-                      {new Date(sr.requestDate).toLocaleDateString()}
-                    </span>
-                    <span className={`status-badge ${sr.status.toLowerCase().replace(/\s+/g, "-")}`}>
-                      {sr.status}
-                    </span>
+              <div className="archived-survey-detail">
+                <h2>Archived Survey Answers</h2>
+
+                {activeSurvey.loading ? (
+                  <LoadingSpinner />
+                ) : getArchivedQuestionGroups().length === 0 ? (
+                  <div className="survey-coming-soon">
+                    <p>{SURVEY_SECTIONS.find(s => s.key === archivedSurveySection)?.label} — no archived answers.</p>
                   </div>
-                ))}
+                ) : (
+                  <div className="admin-survey-answers">
+                    {getArchivedQuestionGroups().map(([questionId, responses]) => {
+                      const q = responses[0].question;
+                      const sorted = [...responses].sort((a, b) =>
+                        new Date(b.archivedAt!).getTime() - new Date(a.archivedAt!).getTime()
+                      );
+                      return (
+                        <div key={questionId} className="admin-answer-item archived-answer-group">
+                          <div className="answer-question">{q.questionText}</div>
+                          {sorted.map(resp => (
+                            <div key={resp.responseId} className="archived-response-entry">
+                              <div className="archived-response-header">
+                                <span className="status-badge replaced">Replaced</span>
+                              </div>
+                              <div className="answer-response">
+                                Answer: <span className="answer-value">{renderArchivedValue(resp)}</span>
+                              </div>
+                              <div className="archived-meta">
+                                Answered by {resp.answeredBy?.firstName || ""} {resp.answeredBy?.lastName || ""} on {formatArchivedDate(resp.createdAt)}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -576,82 +757,218 @@ export default function StrataDetailPage() {
 
         {activeTab === "documents" && (
           <div className="tab-panel">
-            <div className="empty-state">
-              <h2>Documents</h2>
-              <p>Document management for this strata.</p>
-            </div>
-          </div>
-        )}
+            {!activeRequest ? (
+              <div className="empty-state">
+                <h2>No Active Survey</h2>
+                <p>Create a service request to manage documents.</p>
+              </div>
+            ) : (
+              <>
+                <div className="documents-header">
+                  <h2>Required Documents</h2>
+                  <button className="btn-primary" onClick={openDocReqModal}>
+                    Configure Required Documents
+                  </button>
+                </div>
 
-        {activeTab === "notes" && (
-          <div className="tab-panel">
-            <div className="notes-header">
-              <h2>Notes For {strata.complexName || strata.strataPlan || "Strata"}</h2>
-              <button
-                className="btn-primary"
-                onClick={handleAddNote}
-                disabled={noteSubmitting}
-              >
-                {noteSubmitting ? "Saving..." : "Add Note"}
-              </button>
-            </div>
-
-            {noteError && <div className="form-error">{noteError}</div>}
-            <textarea
-              className="note-input"
-              value={noteInput}
-              onChange={(e) => setNoteInput(e.target.value)}
-              placeholder="Write a note..."
-              rows={3}
-            />
-
-            <div className="notes-table-wrapper">
-              <table className="notes-table">
-                <thead>
-                  <tr>
-                    <th>Date</th>
-                    <th>Time</th>
-                    <th>User</th>
-                    <th>Message</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {strata.strataNotes.length === 0 ? (
-                    <tr>
-                      <td colSpan={5} className="notes-empty">No notes yet.</td>
-                    </tr>
-                  ) : (
-                    strata.strataNotes.map((note) => {
-                      const date = new Date(note.createdAt);
-                      const dateStr = date.toLocaleDateString("en-GB", { day: "2-digit", month: "long", year: "numeric" });
-                      const timeStr = date.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
-                      const userName = note.createdBy
-                        ? `${note.createdBy.firstName || ""} ${note.createdBy.lastName || ""}`.trim()
-                        : note.createdByUser || "Unknown";
+                {docRequirements.length === 0 ? (
+                  <div className="notes-empty">No document requirements configured yet.</div>
+                ) : (
+                  <div className="doc-requirements-summary">
+                    {(strata?.strataPropertyTypes ?? []).map(spt => {
+                      const ptId = spt.propertyType.propertyTypeId;
+                      const reqs = docRequirements.filter(r => r.propertyTypeId === ptId);
+                      if (reqs.length === 0) return null;
                       return (
-                        <tr key={note.noteId}>
-                          <td>{dateStr}</td>
-                          <td>{timeStr}</td>
-                          <td>{userName}</td>
-                          <td className="note-message-cell">{note.noteMessage}</td>
-                          <td className="note-actions-cell">
-                            <button
-                              className="btn-delete-link"
-                              onClick={() => handleDeleteNote(note.noteId)}
-                            >
-                              Delete
-                            </button>
-                          </td>
-                        </tr>
+                        <div key={ptId} className="doc-req-group">
+                          <h3 className="doc-req-group-title">{spt.propertyType.propertyTypeName}</h3>
+                          <div className="doc-req-items">
+                            {reqs.map(r => {
+                              const matchedDocs = uploadedDocs.filter(
+                                d => d.documentType.documentTypeId === r.documentTypeId
+                                  && (d.propertyType?.propertyTypeId === ptId || !d.propertyType)
+                                  && !d.fileName.includes('- Archived')
+                              );
+                              const hasUpload = matchedDocs.length > 0;
+                              return (
+                                <div key={r.srDocRequirementId} className="doc-req-item">
+                                  {hasUpload ? (
+                                    <div className="doc-req-item-header">
+                                      <button
+                                        className="btn-link doc-file-link"
+                                        onClick={() => handleDocPreview(matchedDocs[0])}
+                                        title="Preview document"
+                                      >
+                                        {matchedDocs[0].fileName}
+                                      </button>
+                                      <span className={getStatusBadgeClass(matchedDocs[0].reviewStatus?.statusName)}>
+                                        {matchedDocs[0].reviewStatus?.statusName || 'Pending'}
+                                      </span>
+                                    </div>
+                                  ) : (
+                                    <div className="doc-req-item-header">
+                                      <span className="doc-req-item-name">{formatTypeName(r.documentType.typeName)}</span>
+                                      <span className="status-badge not-received">Not Received</span>
+                                    </div>
+                                  )}
+                                  {hasUpload && (
+                                    <div className="doc-req-item-details">
+                                      <span className="doc-upload-date">
+                                        Uploaded {formatDate(matchedDocs[0].uploadedAt)}
+                                        {matchedDocs[0].uploadedBy && ` by ${matchedDocs[0].uploadedBy.firstName || ''} ${matchedDocs[0].uploadedBy.lastName || ''}`.trim()}
+                                      </span>
+                                      <button
+                                        className="btn-edit btn-review-doc"
+                                        onClick={(e) => { e.stopPropagation(); openStatusModal(matchedDocs[0]); }}
+                                      >
+                                        Review
+                                      </button>
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
                       );
-                    })
-                  )}
-                </tbody>
-              </table>
-            </div>
+                    })}
+                  </div>
+                )}
+              </>
+            )}
           </div>
         )}
+
+        {activeTab === "notes" && (() => {
+          const strataNoteRows = strata.strataNotes.map((note) => ({
+            key: `strata-${note.noteId}`,
+            date: new Date(note.createdAt),
+            userName: note.createdBy
+              ? `${note.createdBy.firstName || ""} ${note.createdBy.lastName || ""}`.trim()
+              : note.createdByUser || "Unknown",
+            source: "Strata",
+            message: note.noteMessage,
+            deleteType: "strata" as const,
+            deleteId: note.noteId,
+          }));
+
+          const docNoteRows = (strata.serviceRequests ?? []).flatMap(sr =>
+            sr.serviceRequestDocuments
+              .filter(doc => doc.notes)
+              .map(doc => ({
+                key: `doc-${doc.serviceRequestDocumentId}`,
+                date: new Date(doc.uploadedAt),
+                userName: doc.uploadedBy
+                  ? `${doc.uploadedBy.firstName || ""} ${doc.uploadedBy.lastName || ""}`.trim()
+                  : "Unknown",
+                source: `Document: ${doc.fileName}`,
+                message: doc.notes!,
+                deleteType: "doc" as const,
+                deleteId: doc.serviceRequestDocumentId,
+              }))
+          );
+
+          const allNotes = [...strataNoteRows, ...docNoteRows].sort(
+            (a, b) => b.date.getTime() - a.date.getTime()
+          );
+
+          return (
+            <div className="tab-panel">
+              <div className="notes-header">
+                <h2>Notes For {strata.complexName || strata.strataPlan || "Strata"}</h2>
+                <button
+                  className="btn-primary"
+                  onClick={() => { setNoteInput(''); setNoteError(null); setAddNoteModalOpen(true); }}
+                >
+                  Add Note
+                </button>
+              </div>
+
+              {allNotes.length === 0 ? (
+                <div className="notes-empty">No notes yet.</div>
+              ) : (
+                <>
+                  <div className="notes-table-wrapper">
+                    <table className="notes-table">
+                      <thead>
+                        <tr>
+                          <th>Date</th>
+                          <th>Time</th>
+                          <th>User</th>
+                          <th>Source</th>
+                          <th>Message</th>
+                          <th>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {allNotes.map((row) => {
+                          const dateStr = row.date.toLocaleDateString("en-GB", { day: "2-digit", month: "long", year: "numeric" });
+                          const timeStr = row.date.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+                          return (
+                            <tr key={row.key}>
+                              <td>{dateStr}</td>
+                              <td>{timeStr}</td>
+                              <td>{row.userName}</td>
+                              <td>{row.source}</td>
+                              <td className="note-message-cell">{row.message}</td>
+                              <td className="note-actions-cell">
+                                <button
+                                  className="btn-delete-link"
+                                  onClick={() => setDeleteNoteModal({ type: row.deleteType, id: row.deleteId, message: row.message })}
+                                >
+                                  Delete
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <div className="notes-cards">
+                    {allNotes.map((row) => {
+                      const dateStr = row.date.toLocaleDateString("en-GB", { day: "2-digit", month: "long", year: "numeric" });
+                      const timeStr = row.date.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+                      return (
+                        <div
+                          key={row.key}
+                          className="note-card"
+                          onClick={() => setViewNoteModal({
+                            date: row.date,
+                            userName: row.userName,
+                            source: row.source,
+                            message: row.message,
+                            deleteType: row.deleteType,
+                            deleteId: row.deleteId,
+                          })}
+                        >
+                          <div className="note-card-date">{dateStr}</div>
+                          <div className="note-card-row">
+                            <span className="note-card-label">Time:</span>
+                            <span>{timeStr}</span>
+                          </div>
+                          <div className="note-card-row">
+                            <span className="note-card-label">User:</span>
+                            <span>{row.userName}</span>
+                          </div>
+                          <div className="note-card-row">
+                            <span className="note-card-label">Source:</span>
+                            <span>{row.source}</span>
+                          </div>
+                          <div className="note-card-row">
+                            <span className="note-card-label">Message:</span>
+                            <span>{row.message}</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
+            </div>
+          );
+        })()}
       </div>
 
       <Modal
@@ -773,6 +1090,209 @@ export default function StrataDetailPage() {
           <p>Are you sure that you would like to delete these survey responses?</p>
           <p className="delete-warning">This action cannot be undone.</p>
         </div>
+      </Modal>
+
+      <Modal
+        isOpen={!!deleteNoteModal}
+        onClose={() => setDeleteNoteModal(null)}
+        title={`Delete Note: ${strata.complexName || strata.strataPlan || ""}`}
+        size="medium"
+        footer={
+          <>
+            <button className="btn-secondary" onClick={() => setDeleteNoteModal(null)}>
+              Cancel
+            </button>
+            <button
+              className="btn-delete"
+              onClick={handleConfirmDeleteNote}
+              disabled={deleteNoteSubmitting}
+            >
+              {deleteNoteSubmitting ? "Deleting..." : "Delete Note"}
+            </button>
+          </>
+        }
+      >
+        <div className="delete-confirmation">
+          <p className="delete-note-label">Message:</p>
+          <p className="delete-note-message">{deleteNoteModal?.message}</p>
+          <p>Are you sure that you would like to delete this note?</p>
+          <p className="delete-warning">This action cannot be undone.</p>
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={addNoteModalOpen}
+        onClose={() => setAddNoteModalOpen(false)}
+        title={`Add Note: ${strata.complexName || strata.strataPlan || ""}`}
+        size="medium"
+        footer={
+          <>
+            <button className="btn-secondary" onClick={() => setAddNoteModalOpen(false)}>
+              Cancel
+            </button>
+            <button
+              className="btn-primary"
+              onClick={handleAddNote}
+              disabled={noteSubmitting || !noteInput.trim()}
+            >
+              {noteSubmitting ? "Saving..." : "Save Note"}
+            </button>
+          </>
+        }
+      >
+        <div className="add-note-form">
+          <label className="add-note-label">Message:</label>
+          {noteError && <div className="form-error">{noteError}</div>}
+          <textarea
+            className="note-input"
+            value={noteInput}
+            onChange={(e) => setNoteInput(e.target.value)}
+            placeholder="Add notes about this strata..."
+            rows={5}
+          />
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={!!viewNoteModal}
+        onClose={() => setViewNoteModal(null)}
+        title={`View Note: ${strata.complexName || strata.strataPlan || ""}`}
+        size="medium"
+        footer={
+          <>
+            <button className="btn-secondary" onClick={() => setViewNoteModal(null)}>
+              Cancel
+            </button>
+            <button
+              className="btn-delete"
+              onClick={() => {
+                if (viewNoteModal) {
+                  setDeleteNoteModal({ type: viewNoteModal.deleteType, id: viewNoteModal.deleteId, message: viewNoteModal.message });
+                  setViewNoteModal(null);
+                }
+              }}
+            >
+              Delete Note
+            </button>
+          </>
+        }
+      >
+        {viewNoteModal && (
+          <div className="view-note-details">
+            <div className="view-note-row">
+              <span className="view-note-label">Date:</span>
+              <span>{viewNoteModal.date.toLocaleDateString("en-GB", { day: "2-digit", month: "long", year: "numeric" })}</span>
+            </div>
+            <div className="view-note-row">
+              <span className="view-note-label">Time:</span>
+              <span>{viewNoteModal.date.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}</span>
+            </div>
+            <div className="view-note-row">
+              <span className="view-note-label">User:</span>
+              <span>{viewNoteModal.userName}</span>
+            </div>
+            <div className="view-note-row">
+              <span className="view-note-label">Source:</span>
+              <span>{viewNoteModal.source}</span>
+            </div>
+            <div className="view-note-row">
+              <span className="view-note-label">Message:</span>
+              <span>{viewNoteModal.message}</span>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      <Modal
+        isOpen={docReqModalOpen}
+        onClose={() => setDocReqModalOpen(false)}
+        title="Configure Required Documents"
+        size="large"
+        footer={
+          <>
+            <button className="btn-secondary" onClick={() => setDocReqModalOpen(false)}>
+              Cancel
+            </button>
+            <button
+              className="btn-primary"
+              onClick={handleSaveDocRequirements}
+              disabled={docReqSaving}
+            >
+              {docReqSaving ? "Saving..." : "Save Requirements"}
+            </button>
+          </>
+        }
+      >
+        <div className="doc-req-modal-body">
+          {(strata?.strataPropertyTypes ?? []).length === 0 ? (
+            <p className="notes-empty">No property types assigned to this strata. Assign property types first.</p>
+          ) : (
+            (strata?.strataPropertyTypes ?? []).map(spt => {
+              const ptId = spt.propertyType.propertyTypeId;
+              return (
+                <div key={ptId} className="doc-req-section">
+                  <h3 className="doc-req-section-title">{spt.propertyType.propertyTypeName}</h3>
+                  <MultiSelectDropdown
+                    label="Required Documents"
+                    options={documentTypes.map(dt => ({ value: dt.documentTypeId, label: dt.typeName })).sort((a, b) => a.label.localeCompare(b.label))}
+                    selectedValues={docReqFormData[ptId] ?? []}
+                    onChange={(values) => setDocReqFormData(prev => ({ ...prev, [ptId]: values }))}
+                    placeholder="Select document types"
+                  />
+                </div>
+              );
+            })
+          )}
+        </div>
+      </Modal>
+
+      {/* Document Preview Modal */}
+      <DocumentPreviewModal
+        isOpen={previewModalOpen}
+        onClose={handleClosePreview}
+        documentId={previewDocId}
+        documentName={previewDocName}
+        token={session?.access_token || ''}
+        onDelete={previewDocId ? () => { handleDeleteDoc(previewDocId); handleClosePreview(); } : undefined}
+      />
+
+      {/* Document Status Review Modal */}
+      <Modal
+        isOpen={statusModalOpen}
+        onClose={() => setStatusModalOpen(false)}
+        title="Review Document"
+        size="medium"
+        footer={
+          <>
+            <button className="btn-secondary" onClick={() => setStatusModalOpen(false)}>Cancel</button>
+            <button className="btn-primary" onClick={handleStatusUpdate} disabled={!statusForm.reviewStatusId}>
+              Update Status
+            </button>
+          </>
+        }
+      >
+        {statusDoc && (
+          <div className="review-form">
+            <p><strong>File:</strong> {statusDoc.fileName}</p>
+            <p><strong>Type:</strong> {formatTypeName(statusDoc.documentType.typeName)}</p>
+
+            <SingleSelectDropdown
+              label="Status"
+              required
+              value={statusForm.reviewStatusId}
+              onChange={(val) => setStatusForm(prev => ({ ...prev, reviewStatusId: val }))}
+              options={reviewStatuses.map(rs => ({ value: rs.reviewStatusId, label: rs.statusName }))}
+              placeholder="Select status"
+            />
+            <TextareaField
+              label="Notes"
+              value={statusForm.notes}
+              onChange={(e) => setStatusForm(prev => ({ ...prev, notes: e.target.value }))}
+              placeholder="Add review notes..."
+              rows={3}
+            />
+          </div>
+        )}
       </Modal>
     </div>
   );

@@ -7,7 +7,6 @@ import { LoadingSpinner } from '../../shared/components/LoadingSpinner';
 import { Modal } from '../../shared/components/Modal';
 import {
   SURVEY_SECTIONS,
-  SECTION_QUESTION_RANGES,
 } from '../../shared/types/survey.types';
 
 export default function SurveyPage() {
@@ -32,12 +31,10 @@ export default function SurveyPage() {
   }, [serviceRequestId, fetchQuestions, fetchResponses]);
 
   const getSectionQuestionCount = (sectionKey: string) => {
-    const range = SECTION_QUESTION_RANGES[sectionKey];
-    if (!range) return { total: 0, answered: 0 };
+    const sectionConfig = SURVEY_SECTIONS.find(s => s.key === sectionKey);
+    if (!sectionConfig) return { total: 0, answered: 0 };
 
-    const sectionQuestions = questions.filter(
-      q => q.sortOrder >= range.start && q.sortOrder <= range.end
-    );
+    const sectionQuestions = questions.filter(q => q.questionCategory === sectionConfig.label);
     const answeredIds = new Set(responses.map(r => r.questionId));
     const answered = sectionQuestions.filter(q => answeredIds.has(q.questionId)).length;
 
@@ -74,8 +71,9 @@ export default function SurveyPage() {
 
       <div className="survey-section-list">
         {SURVEY_SECTIONS.map((section) => {
-          const hasQuestions = !!SECTION_QUESTION_RANGES[section.key];
           const complete = isSectionComplete(section.key);
+          const { total } = getSectionQuestionCount(section.key);
+          const hasQuestions = total > 0;
 
           return (
             <div
@@ -91,7 +89,7 @@ export default function SurveyPage() {
                 <span className="section-description">{section.description}</span>
               </div>
               <span className={`section-status ${complete ? 'complete' : 'incomplete'}`}>
-                {!hasQuestions ? 'Coming Soon' : complete ? 'Complete' : 'Incomplete'}
+                {!hasQuestions ? 'Not Required' : complete ? 'Complete' : 'Incomplete'}
               </span>
             </div>
           );

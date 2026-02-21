@@ -7,7 +7,6 @@ export interface SurveyQuestion {
   questionType: string;
   sortOrder: number;
   multipleChoiceOptions: MultipleChoiceOption[];
-  questionSections?: { sectionId: number; section: { sectionName: string } }[];
 }
 
 export interface MultipleChoiceOption {
@@ -28,6 +27,21 @@ export interface SurveyResponse {
   answeredByProfileId: string;
   createdAt: string;
   updatedAt: string;
+  archivedAt: string | null;
+}
+
+export interface ArchivedSurveyResponse extends SurveyResponse {
+  answeredBy: { id: string; firstName: string | null; lastName: string | null; displayName: string | null } | null;
+  multipleChoiceOption: { multipleChoiceOptionId: number; optionText: string } | null;
+  question: {
+    questionId: number;
+    questionText: string;
+    isRequired: boolean;
+    informationText: string | null;
+    questionCategory: string;
+    questionType: { questionTypeName: string };
+    multipleChoiceOptions: { multipleChoiceOptionId: number; optionText: string; sortOrder: number }[];
+  };
 }
 
 export interface SaveResponsePayload {
@@ -55,13 +69,6 @@ export const SURVEY_SECTIONS: SurveySection[] = [
   { key: 'council', label: 'Council Concerns', description: 'Information relating to specific concerns regarding your property' },
 ];
 
-export const SECTION_QUESTION_RANGES: Record<string, { start: number; end: number }> = {
-  services: { start: 1, end: 10 },
-  clubhouse: { start: 11, end: 15 },
-  amenity: { start: 16, end: 16 },
-  legal: { start: 17, end: 20 },
-  council: { start: 21, end: 22 },
-};
 
 export interface AdminQuestion {
   questionId: number;
@@ -73,8 +80,6 @@ export interface AdminQuestion {
   questionType: { questionTypeId: number; questionTypeName: string };
   questionServices: { questionServiceId: number; serviceId: number; sortOrder: number; service: { serviceId: number; serviceName: string } }[];
   questionPropertyTypes: { questionPropertyTypeId: number; propertyTypeId: number; propertyType: { propertyTypeId: number; propertyTypeName: string } }[];
-  questionLegalTypes: { questionLegalTypeId: number; legalTypeId: number; legalType: { legalTypeId: number; legalTypeName: string } }[];
-  questionSections: { questionSectionId: number; sectionId: number; section: { sectionId: number; sectionName: string } }[];
   multipleChoiceOptions: { multipleChoiceOptionId: number; optionText: string; sortOrder: number }[];
   createdAt: string;
 }
@@ -87,8 +92,6 @@ export interface CreateQuestionInput {
   questionTypeId: number;
   serviceIds: { serviceId: number; sortOrder: number }[];
   propertyTypeIds: number[];
-  legalTypeIds: number[];
-  sectionIds: number[];
   multipleChoiceOptions?: { optionText: string; sortOrder: number }[];
 }
 
@@ -100,9 +103,7 @@ export interface QuestionFormData {
   questionTypeId: number | undefined;
   isRequired: boolean;
   informationText: string;
-  serviceIds: { serviceId: number; sortOrder: number }[];
+  serviceId: number | undefined;
   propertyTypeIds: number[];
-  legalTypeIds: number[];
-  sectionIds: number[];
   multipleChoiceOptions: { optionText: string; sortOrder: number }[];
 }

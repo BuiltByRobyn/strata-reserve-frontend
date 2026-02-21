@@ -8,16 +8,16 @@ import { MultiSelectDropdown } from '../../shared/components/MultiSelectDropdown
 import { SingleSelectDropdown } from '../../shared/components/SingleSelectDropdown';
 import type { AdminQuestion, CreateQuestionInput, QuestionFormData } from '../../shared/types/survey.types';
 
+const QUESTIONS_PER_PAGE = 10;
+
 const initialFormData: QuestionFormData = {
   questionText: '',
   questionCategory: '',
   questionTypeId: undefined,
   isRequired: false,
   informationText: '',
-  serviceIds: [{ serviceId: 0, sortOrder: 1 }],
+  serviceId: undefined,
   propertyTypeIds: [],
-  legalTypeIds: [],
-  sectionIds: [],
   multipleChoiceOptions: [],
 };
 
@@ -26,12 +26,22 @@ const CATEGORIES = [
   'Amenity Room', 'Legal', 'Council Concerns',
 ];
 
+const FRIENDLY_TYPE_NAMES: Record<string, string> = {
+  textarea: 'Long Text',
+  text: 'Short Text',
+  boolean: 'Yes / No',
+  number: 'Number',
+  checkbox: 'Checkboxes',
+  multiple_choice: 'Multiple Choice',
+  none_or_explain: 'N/A or Provide Details',
+};
+
 const formatTypeName = (name: string) =>
-  name.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+  FRIENDLY_TYPE_NAMES[name.toLowerCase()] || name.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 
 export default function QuestionsPage() {
   const { questions, loading, error, createQuestion, updateQuestion, deleteQuestion } = useQuestions();
-  const { questionTypes, services, propertyTypes, legalTypes, sections } = useLookups();
+  const { questionTypes, services, propertyTypes } = useLookups();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState<AdminQuestion | null>(null);
@@ -42,6 +52,7 @@ export default function QuestionsPage() {
   const [filterCategory, setFilterCategory] = useState('');
   const [viewingQuestion, setViewingQuestion] = useState<AdminQuestion | null>(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [page, setPage] = useState(0);
 
   const filteredQuestions = useMemo(() => {
     return questions.filter(q => {
@@ -53,6 +64,9 @@ export default function QuestionsPage() {
       return true;
     });
   }, [questions, searchTerm, filterCategory]);
+
+  const totalPages = Math.ceil(filteredQuestions.length / QUESTIONS_PER_PAGE);
+  const pageQuestions = filteredQuestions.slice(page * QUESTIONS_PER_PAGE, (page + 1) * QUESTIONS_PER_PAGE);
 
   const columns: Column<AdminQuestion>[] = [
     { key: 'questionId', header: 'ID', width: '25px', render: (q) => q.questionId },
@@ -78,12 +92,6 @@ export default function QuestionsPage() {
     const propertyTypes = q.questionPropertyTypes?.length
       ? q.questionPropertyTypes.map(qpt => qpt.propertyType?.propertyTypeName).filter(Boolean).join(', ') || '—'
       : '—';
-    const legalTypes = q.questionLegalTypes?.length
-      ? q.questionLegalTypes.map(qlt => qlt.legalType?.legalTypeName).filter(Boolean).join(', ') || '—'
-      : '—';
-    const sectionList = q.questionSections?.length
-      ? q.questionSections.map(qs => qs.section?.sectionName).filter(Boolean).join(', ') || '—'
-      : '—';
     const mcOptions = q.multipleChoiceOptions?.length
       ? q.multipleChoiceOptions
           .sort((a, b) => a.sortOrder - b.sortOrder)
@@ -98,9 +106,7 @@ export default function QuestionsPage() {
       { label: 'Question Type', value: q.questionType?.questionTypeName ? formatTypeName(q.questionType.questionTypeName) : '—' },
       { label: 'Required', value: q.isRequired ? 'Yes' : 'No' },
       { label: 'Information Text', value: q.informationText ?? '—' },
-      { label: 'Legal Types', value: legalTypes },
       { label: 'Property Types', value: propertyTypes },
-      { label: 'Sections', value: sectionList },
       { label: 'Services', value: services },
       { label: 'Multiple Choice Options', value: mcOptions },
     ];
@@ -121,12 +127,8 @@ export default function QuestionsPage() {
       questionTypeId: q.questionTypeId,
       isRequired: q.isRequired,
       informationText: q.informationText || '',
-      serviceIds: q.questionServices.length
-        ? q.questionServices.map(qs => ({ serviceId: qs.serviceId, sortOrder: qs.sortOrder }))
-        : [{ serviceId: 0, sortOrder: 1 }],
+      serviceId: q.questionServices.length ? q.questionServices[0].serviceId : undefined,
       propertyTypeIds: q.questionPropertyTypes.map(qpt => qpt.propertyTypeId),
-      legalTypeIds: q.questionLegalTypes.map(qlt => qlt.legalTypeId),
-      sectionIds: q.questionSections.map(qs => qs.sectionId),
       multipleChoiceOptions: q.multipleChoiceOptions.map(o => ({
         optionText: o.optionText,
         sortOrder: o.sortOrder,
@@ -142,8 +144,7 @@ export default function QuestionsPage() {
     if (!formData.questionCategory) { setFormError('Category is required'); return; }
     if (!formData.questionTypeId) { setFormError('Question type is required'); return; }
 
-    const validServices = formData.serviceIds.filter(s => s.serviceId > 0);
-    if (validServices.length === 0) { setFormError('At least one service is required'); return; }
+    if (!formData.serviceId) { setFormError('Service is required'); return; }
 
     setIsSubmitting(true);
     setFormError(null);
@@ -155,10 +156,8 @@ export default function QuestionsPage() {
         questionTypeId: formData.questionTypeId,
         isRequired: formData.isRequired,
         informationText: formData.informationText.trim() || null,
-        serviceIds: validServices,
+        serviceIds: [{ serviceId: formData.serviceId, sortOrder: 1 }],
         propertyTypeIds: formData.propertyTypeIds,
-        legalTypeIds: formData.legalTypeIds,
-        sectionIds: formData.sectionIds,
         multipleChoiceOptions: showMcOptions() ? formData.multipleChoiceOptions.filter(o => o.optionText.trim()) : [],
       };
 
@@ -184,29 +183,6 @@ export default function QuestionsPage() {
       alert(err instanceof Error ? err.message : 'Failed to delete question');
       return false;
     }
-  };
-
-  const addServiceEntry = () => {
-    setFormData(prev => ({
-      ...prev,
-      serviceIds: [...prev.serviceIds, { serviceId: 0, sortOrder: prev.serviceIds.length + 1 }],
-    }));
-  };
-
-  const removeServiceEntry = (index: number) => {
-    if (formData.serviceIds.length <= 1) return;
-    setFormData(prev => ({
-      ...prev,
-      serviceIds: prev.serviceIds.filter((_, i) => i !== index),
-    }));
-  };
-
-  const updateServiceEntry = (index: number, field: 'serviceId' | 'sortOrder', value: number) => {
-    setFormData(prev => {
-      const updated = [...prev.serviceIds];
-      updated[index] = { ...updated[index], [field]: value };
-      return { ...prev, serviceIds: updated };
-    });
   };
 
   const addMcOption = () => {
@@ -248,14 +224,14 @@ export default function QuestionsPage() {
             <InputField
               label="Search"
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => { setSearchTerm(e.target.value); setPage(0); }}
               placeholder="Search questions..."
             />
           </div>
           <SingleSelectDropdown
             label="Category"
             value={filterCategory}
-            onChange={(val) => setFilterCategory(val)}
+            onChange={(val) => { setFilterCategory(val); setPage(0); }}
             options={CATEGORIES.map(c => ({ value: c, label: c }))}
             placeholder="All Categories"
           />
@@ -268,7 +244,7 @@ export default function QuestionsPage() {
 
       <DataTable
         columns={columns}
-        data={filteredQuestions}
+        data={pageQuestions}
         keyExtractor={(q) => q.questionId}
         loading={loading}
         emptyMessage="No questions found."
@@ -280,6 +256,28 @@ export default function QuestionsPage() {
           <button className="btn-edit" onClick={(e) => { e.stopPropagation(); openEditModal(q); }}>Edit</button>
         )}
       />
+
+      {totalPages > 1 && (
+        <div className="pagination-controls">
+          <button
+            className="btn-secondary"
+            onClick={() => setPage(p => p - 1)}
+            disabled={page === 0}
+          >
+            Previous
+          </button>
+          <span className="pagination-info">
+            Page {page + 1} of {totalPages}
+          </span>
+          <button
+            className="btn-secondary"
+            onClick={() => setPage(p => p + 1)}
+            disabled={page >= totalPages - 1}
+          >
+            Next
+          </button>
+        </div>
+      )}
 
       <Modal
         isOpen={isModalOpen}
@@ -348,59 +346,22 @@ export default function QuestionsPage() {
           />
 
           <MultiSelectDropdown
-            label="Legal Types"
-            required
-            options={legalTypes.map(lt => ({ value: lt.legalTypeId, label: lt.legalTypeName }))}
-            selectedValues={formData.legalTypeIds}
-            onChange={(values) => setFormData(prev => ({ ...prev, legalTypeIds: values }))}
-            placeholder="Select legal types"
-          />
-
-          <MultiSelectDropdown
             label="Property Types"
-            required
-            options={propertyTypes.map(pt => ({ value: pt.propertyTypeId, label: pt.propertyTypeName }))}
+            options={propertyTypes.map(pt => ({ value: pt.propertyTypeId, label: pt.propertyTypeName })).sort((a, b) => a.label.localeCompare(b.label))}
             selectedValues={formData.propertyTypeIds}
             onChange={(values) => setFormData(prev => ({ ...prev, propertyTypeIds: values }))}
-            placeholder="Select property types"
+            placeholder="All property types"
+            helpText="Which property types should this question be shown to? Leave empty to show to all."
           />
 
-          <MultiSelectDropdown
-            label="Sections"
+          <SingleSelectDropdown
+            label="Service"
             required
-            options={sections.map(s => ({ value: s.sectionId, label: s.sectionName }))}
-            selectedValues={formData.sectionIds}
-            onChange={(values) => setFormData(prev => ({ ...prev, sectionIds: values }))}
-            placeholder="Select sections"
+            value={formData.serviceId?.toString() || ''}
+            onChange={(val) => setFormData(prev => ({ ...prev, serviceId: val ? parseInt(val) : undefined }))}
+            options={services.map(s => ({ value: s.serviceId, label: s.serviceName })).sort((a, b) => a.label.localeCompare(b.label))}
+            placeholder="Select service"
           />
-
-          <div className="form-field">
-            <label>Services <span className="required">*</span></label>
-            {formData.serviceIds.map((entry, index) => (
-              <div key={index} className="service-entry-row">
-                <SingleSelectDropdown
-                  label=""
-                  value={entry.serviceId?.toString() || ''}
-                  onChange={(val) => updateServiceEntry(index, 'serviceId', parseInt(val) || 0)}
-                  options={services.map(s => ({ value: s.serviceId, label: s.serviceName }))}
-                  placeholder="Select service"
-                />
-                <div className="sort-field">
-                  <InputField
-                    label=""
-                    type="number"
-                    value={entry.sortOrder.toString()}
-                    onChange={(e) => updateServiceEntry(index, 'sortOrder', parseInt(e.target.value) || 0)}
-                    placeholder="#"
-                  />
-                </div>
-                {formData.serviceIds.length > 1 && (
-                  <button type="button" className="btn-remove-service" onClick={() => removeServiceEntry(index)}>Remove</button>
-                )}
-              </div>
-            ))}
-            <button type="button" className="btn-add-service" onClick={addServiceEntry}>+ Add Service</button>
-          </div>
 
           {showMcOptions() && (
             <div className="form-field">

@@ -5,6 +5,7 @@
 
   &__trigger {
     width: 100%;
+    margin: 0;
     padding: $spacing-sm $spacing-xl $spacing-sm $spacing-md;
     border: 1px solid $color-border-light;
     border-radius: $border-radius-sm;
@@ -36,6 +37,9 @@
 
     &:focus {
       outline: none;
+    }
+
+    &:focus-visible {
       border-color: $color-primary;
       box-shadow: 0 0 0 3px rgba($color-primary, 0.15);
     }
@@ -70,7 +74,9 @@
     align-items: center;
     padding: $spacing-sm $spacing-md;
     cursor: pointer;
-    font-size: 0.875rem;
+    font-size: 1rem;
+    font-weight: 400;
+    color: $color-text-primary;
     gap: $spacing-sm;
 
     @include respond-below(lg) {
@@ -97,18 +103,4 @@
     }
   }
 
-  &__tags {
-    display: flex;
-    flex-wrap: wrap;
-    gap: $spacing-xs;
-    margin-top: $spacing-xs;
-  }
-
-  &__tag {
-    font-size: 0.75rem;
-    padding: 0.125rem $spacing-sm;
-    background-color: rgba($color-primary, 0.12);
-    border-radius: 9999px;
-    color: $color-primary-dark;
-  }
 }

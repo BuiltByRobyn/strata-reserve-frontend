@@ -6,7 +6,8 @@
   .modal-body {
     text-align: left;
 
-    label {
+    > form > .form-field > label,
+    > form > .form-row > .form-field > label {
       font-size: $font-size-base;
       font-weight: $font-weight-bold;
       color: $color-text-muted;
@@ -15,33 +16,6 @@
 
     .form-row {
       padding-bottom: $spacing-md;
-    }
-  }
-
-  .filters-row {
-    @include respond-to(desktop) {
-      display: flex;
-      gap: $spacing-lg;
-      // margin-bottom: $spacing-lg;
-      align-items: flex-end;
-      flex-wrap: wrap;
-    }
-
-    label {
-      font-weight: $font-weight-bold;
-      color: $color-text-muted;
-      text-align: left;
-    }
-
-    .form-field {
-      margin-bottom: $spacing-md;
-      flex: 1;
-      min-width: 200px;
-      width: 100%;
-
-      @include respond-to(desktop) {
-        margin-bottom: 0;
-      }
     }
   }
 

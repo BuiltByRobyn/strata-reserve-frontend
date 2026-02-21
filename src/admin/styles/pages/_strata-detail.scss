@@ -85,6 +85,7 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
+      padding-bottom: $spacing-xl;
       border-bottom: 2px solid $color-border-light;
       gap: $spacing-md;
 
@@ -95,39 +96,11 @@
       }
     }
 
-    .section-filter-container {
+    .filters-row {
       min-width: 250px;
 
-      // Target the inner form-field of MultiSelectDropdown
       .form-field {
-        @include respond-to(desktop) {
-          display: flex;
-          align-items: center;
-          gap: $spacing-sm;
-          margin-bottom: 0;
-
-          label {
-            margin-bottom: 0;
-            white-space: nowrap;
-            font-weight: $font-weight-bold;
-            color: $color-text-dark;
-          }
-
-          .multiselect {
-            flex: 1;
-          }
-        }
-
-        @include respond-below(desktop) {
-          label {
-            // Match .tabs-mobile__label style from _tabs.scss
-            display: block;
-            font-size: $font-size-sm;
-            font-weight: $font-weight-bold;
-            color: $color-text-muted;
-            margin-bottom: $spacing-xs;
-          }
-        }
+        margin-bottom: 0;
       }
     }
 
@@ -320,6 +293,15 @@
     justify-content: space-between;
     margin-bottom: $spacing-md;
 
+    @include respond-below(lg) {
+      flex-direction: column;
+      gap: $spacing-sm;
+
+      .btn-primary {
+        width: 100%;
+      }
+    }
+
     h2 {
       font-size: 1.25rem;
       font-weight: 600;
@@ -341,11 +323,22 @@
     font-family: inherit;
   }
 
+  .notes-empty {
+    text-align: center;
+    color: $color-text-muted;
+    padding: $spacing-xl;
+  }
+
   .notes-table-wrapper {
-    border: 1px solid $color-border-light;
-    border-radius: $border-radius-sm;
-    overflow: hidden;
-    background: $color-white;
+    display: none;
+
+    @include respond-to(lg) {
+      display: block;
+      border: 1px solid $color-border-light;
+      border-radius: $border-radius-sm;
+      overflow: hidden;
+      background: $color-white;
+    }
   }
 
   .notes-table {
@@ -374,17 +367,61 @@
     }
 
     .note-message-cell {
-      text-align: center;
+      text-align: left;
     }
 
     .note-actions-cell {
       text-align: center;
     }
+  }
 
-    .notes-empty {
+  .notes-cards {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-md;
+
+    @include respond-to(lg) {
+      display: none;
+    }
+  }
+
+  .note-card {
+    border: 1px solid $color-border-light;
+    border-radius: $border-radius-sm;
+    background: $color-white;
+    overflow: hidden;
+    cursor: pointer;
+    transition: border-color 0.2s ease;
+
+    &:hover {
+      border-color: $color-primary;
+    }
+
+    .note-card-date {
       text-align: center;
+      padding: $spacing-sm $spacing-md;
+      font-weight: $font-weight-bold;
+      color: $color-text-dark;
+      border-bottom: 1px solid $color-border-light;
+    }
+
+    .note-card-row {
+      display: flex;
+      justify-content: space-between;
+      padding: $spacing-sm $spacing-md;
+      border-bottom: 1px solid $color-border-light;
+      font-size: $font-size-sm;
+      color: $color-text-dark;
+    }
+
+    .note-card-label {
+      font-weight: $font-weight-bold;
       color: $color-text-muted;
-      padding: $spacing-xl;
+    }
+
+    .note-card-delete {
+      width: 100%;
+      border-radius: 0;
     }
   }
 
@@ -400,6 +437,12 @@
     &:hover {
       color: $color-error-dark;
     }
+  }
+
+  .delete-note-message {
+    font-style: italic;
+    color: $color-text-muted;
+    margin-bottom: $spacing-md;
   }
 
   .delete-confirmation {
@@ -439,6 +482,317 @@
 
     .form-row {
       padding-bottom: $spacing-md;
+    }
+  }
+
+  .admin-survey-answers {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-md;
+  }
+
+  .admin-answer-item {
+    border: 1px solid $color-border-light;
+    border-radius: $border-radius-sm;
+    background: $color-white;
+    padding: $spacing-lg;
+
+    .answer-question {
+      font-weight: $font-weight-bold;
+      color: $color-text-dark;
+      margin-bottom: $spacing-sm;
+      font-size: $font-size-base;
+    }
+
+    .answer-response {
+      font-size: $font-size-sm;
+      color: $color-text-dark;
+
+      .answer-value {
+        font-weight: $font-weight-medium;
+      }
+
+      .answer-empty {
+        color: $color-text-muted;
+        font-style: italic;
+      }
+    }
+  }
+
+  .archived-answer-group {
+    .archived-response-entry {
+      padding: $spacing-md 0;
+      border-bottom: 1px solid $color-border-light;
+
+      &:last-child {
+        border-bottom: none;
+        padding-bottom: 0;
+      }
+
+      .archived-response-header {
+        margin-bottom: $spacing-xs;
+      }
+
+      .archived-meta {
+        font-size: $font-size-sm;
+        color: $color-text-muted;
+        margin-top: $spacing-xs;
+      }
+    }
+  }
+
+  .status-badge.replaced {
+    display: inline-block;
+    padding: 0.2em 0.6em;
+    font-size: $font-size-sm;
+    font-weight: $font-weight-medium;
+    border-radius: $border-radius-sm;
+    background: #FEF2F2;
+    color: #DC2626;
+    border: 1px solid #FECACA;
+  }
+
+  .archived-survey-detail {
+    h2 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: $color-text-dark;
+      margin-bottom: $spacing-lg;
+    }
+  }
+
+  .add-note-form {
+    .add-note-label {
+      display: block;
+      font-size: $font-size-sm;
+      font-weight: $font-weight-bold;
+      color: $color-text-muted;
+      margin-bottom: $spacing-xs;
+    }
+
+    .note-input {
+      margin-bottom: 0;
+    }
+  }
+
+  .delete-note-label {
+    font-weight: $font-weight-bold;
+    color: $color-text-muted;
+    font-size: $font-size-sm;
+  }
+
+  .view-note-details {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-sm;
+  }
+
+  .view-note-row {
+    display: flex;
+    justify-content: space-between;
+    padding: $spacing-sm 0;
+    border-bottom: 1px solid $color-border-light;
+    font-size: $font-size-sm;
+    color: $color-text-dark;
+
+    &:last-child {
+      border-bottom: none;
+    }
+  }
+
+  .view-note-label {
+    font-weight: $font-weight-bold;
+    color: $color-text-muted;
+  }
+
+  .documents-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: $spacing-md;
+
+    @include respond-below(lg) {
+      flex-direction: column;
+      gap: $spacing-sm;
+
+      .btn-primary {
+        width: 100%;
+      }
+    }
+
+    h2 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: $color-text-dark;
+      margin: 0;
+    }
+  }
+
+  .doc-requirements-summary {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-md;
+  }
+
+  .doc-req-group {
+    border: 1px solid $color-border-light;
+    border-radius: $border-radius-sm;
+    background: $color-white;
+    padding: $spacing-md $spacing-lg;
+  }
+
+  .doc-req-group-title {
+    font-size: $font-size-base;
+    font-weight: $font-weight-bold;
+    color: $color-text-dark;
+    margin: 0 0 $spacing-sm;
+  }
+
+  .doc-req-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-xs;
+
+    li {
+      font-size: $font-size-sm;
+      color: $color-text-dark;
+      padding: $spacing-xs 0;
+      border-bottom: 1px solid $color-border-light;
+
+      &:last-child {
+        border-bottom: none;
+      }
+    }
+  }
+
+  .doc-req-modal-body {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-lg;
+  }
+
+  .doc-req-section {
+    border: 1px solid $color-border-light;
+    border-radius: $border-radius-sm;
+    padding: $spacing-md;
+  }
+
+  .doc-req-section-title {
+    font-size: $font-size-base;
+    font-weight: $font-weight-medium;
+    color: $color-text-dark;
+    margin: 0 0 $spacing-sm;
+  }
+
+  .doc-req-modal-body label {
+    font-weight: $font-weight-medium;
+  }
+
+  .doc-req-items {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .doc-req-item {
+    padding: $spacing-md 0;
+    border-bottom: 1px solid $color-border-light;
+
+    &:last-child {
+      border-bottom: none;
+    }
+  }
+
+  .doc-req-item-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: $spacing-md;
+  }
+
+  .doc-req-item-name {
+    font-size: $font-size-sm;
+    font-weight: $font-weight-medium;
+    color: $color-text-dark;
+  }
+
+  .doc-file-link {
+    font-size: $font-size-sm;
+    font-weight: $font-weight-medium;
+    color: $color-primary;
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    text-decoration: underline;
+
+    &:hover {
+      color: $color-primary-dark;
+    }
+  }
+
+  .doc-req-item-details {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: $spacing-sm;
+    margin-top: $spacing-xs;
+    padding-left: $spacing-sm;
+
+    .doc-upload-date {
+      font-size: $font-size-sm;
+      color: $color-text-muted;
+    }
+
+    .btn-review-doc {
+      font-size: $font-size-sm;
+      padding: 2px $spacing-sm;
+      margin-left: auto;
+    }
+  }
+
+  .status-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    text-transform: capitalize;
+
+    &.approved {
+      background: rgba($color-success, 0.15);
+      color: $color-success;
+    }
+
+    &.pending {
+      background: rgba($color-warning, 0.15);
+      color: $color-accent-brown;
+    }
+
+    &.rejected {
+      background: rgba($color-error, 0.15);
+      color: $color-error;
+    }
+
+    &.needs-revision {
+      background: rgba($color-warning, 0.15);
+      color: $color-accent-brown;
+    }
+
+    &.not-received {
+      background: #F3F4F6;
+      color: #6B7280;
+    }
+  }
+
+  .review-form {
+    p {
+      margin-bottom: $spacing-sm;
+      font-size: $font-size-sm;
+      color: $color-text-dark;
     }
   }
 }

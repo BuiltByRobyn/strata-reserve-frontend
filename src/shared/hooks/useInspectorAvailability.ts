@@ -140,14 +140,18 @@ export const useInspectorAvailability = (inspectorProfileId?: string) => {
 
   // Get available dates by date range
   const getAvailableDatesByRange = useCallback(async (
-    startDate: string, 
-    endDate: string, 
-    profileId?: string
+    startDate: string,
+    endDate: string,
+    profileId?: string,
+    locationCodes?: string[]
   ): Promise<InspectorAvailableDate[]> => {
     try {
       let url = `${API_BASE}/admin/inspector-availability/range?startDate=${startDate}&endDate=${endDate}`;
       if (profileId) {
         url += `&inspectorProfileId=${profileId}`;
+      }
+      if (locationCodes?.length) {
+        url += `&locationCodes=${locationCodes.join(',')}`;
       }
       
       const response = await authFetch(url);

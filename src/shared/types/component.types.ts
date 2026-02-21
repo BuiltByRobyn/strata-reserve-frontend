@@ -29,7 +29,7 @@ export interface BaseFieldProps {
 
 export interface InputFieldProps extends BaseFieldProps,
   Omit<InputHTMLAttributes<HTMLInputElement>, 'className'> {
-  type?: 'text' | 'email' | 'tel' | 'password' | 'number' | 'url';
+  type?: 'text' | 'email' | 'tel' | 'password' | 'number' | 'url' | 'date';
 }
 
 export interface SelectFieldProps extends BaseFieldProps,
