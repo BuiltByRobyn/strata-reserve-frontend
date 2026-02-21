@@ -3,6 +3,7 @@ import { useAuthFetch } from './useAuthFetch';
 import type {
   SurveyQuestion,
   SurveyResponse,
+  ArchivedSurveyResponse,
   SaveResponsePayload,
 } from '../types/survey.types';
 import type { ApiResponse } from '../types/entities.types';
@@ -12,6 +13,7 @@ export const useSurvey = (routePrefix: 'client' | 'admin' = 'client') => {
   const authFetch = useAuthFetch();
   const [questions, setQuestions] = useState<SurveyQuestion[]>([]);
   const [responses, setResponses] = useState<SurveyResponse[]>([]);
+  const [archivedResponses, setArchivedResponses] = useState<ArchivedSurveyResponse[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -47,6 +49,20 @@ export const useSurvey = (routePrefix: 'client' | 'admin' = 'client') => {
       }
     } catch {
       // Silently fail - responses might not exist yet
+    }
+  }, [authFetch, routePrefix]);
+
+  const fetchArchivedResponses = useCallback(async (serviceRequestId: number) => {
+    try {
+      const res = await authFetch(
+        `${API_BASE}/${routePrefix}/service-requests/${serviceRequestId}/survey/responses/archived`
+      );
+      const data: ApiResponse<ArchivedSurveyResponse[]> = await res.json();
+      if (data.success && data.data) {
+        setArchivedResponses(data.data);
+      }
+    } catch {
+      // Silently fail
     }
   }, [authFetch, routePrefix]);
 
@@ -94,11 +110,13 @@ export const useSurvey = (routePrefix: 'client' | 'admin' = 'client') => {
   return {
     questions,
     responses,
+    archivedResponses,
     loading,
     saving,
     error,
     fetchQuestions,
     fetchResponses,
+    fetchArchivedResponses,
     saveResponses,
     getResponseForQuestion,
   };

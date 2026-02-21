@@ -140,16 +140,15 @@
 }
 
 // Responsive
-@include respond-below(desktop) {
+@include respond-below(lg) {
   .modal-footer {
-    flex-wrap: wrap;
-    justify-content: center;
+    flex-direction: column;
+    gap: $spacing-sm;
 
     button, a {
+      width: 100%;
       padding: $spacing-sm $spacing-sm;
       font-size: $font-size-sm;
-      min-width: 100px;
-      margin: auto;
     }
   }
 }

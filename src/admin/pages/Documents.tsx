@@ -41,9 +41,11 @@ export default function DocumentsPage() {
     documentTypeId: null,
     strataName: '',
     strataId: '',
-    notes: ''
+    notes: '',
+    propertyTypeId: null,
   });
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [strataPropertyTypes, setStrataPropertyTypes] = useState<{ propertyTypeId: number; propertyTypeName: string }[]>([]);
   const [syncing, setSyncing] = useState(false);
   const [syncMessage, setSyncMessage] = useState<string | null>(null);
 
@@ -55,7 +57,10 @@ export default function DocumentsPage() {
   const isDesktop = useMediaQuery('(min-width: 750px)');
 
   useEffect(() => {
-    if (!uploadForm.strataId || !STRATA_ID_PATTERN.test(uploadForm.strataId)) return;
+    if (!uploadForm.strataId || !STRATA_ID_PATTERN.test(uploadForm.strataId)) {
+      setStrataPropertyTypes([]);
+      return;
+    }
 
     const lookup = async () => {
       try {
@@ -68,8 +73,19 @@ export default function DocumentsPage() {
           if (match?.complexName) {
             setUploadForm(prev => ({ ...prev, strataName: match.complexName }));
           }
+          if (match?.strataPropertyTypes) {
+            setStrataPropertyTypes(
+              match.strataPropertyTypes.map((spt: { propertyType: { propertyTypeId: number; propertyTypeName: string } }) => spt.propertyType)
+            );
+          } else {
+            setStrataPropertyTypes([]);
+          }
+        } else {
+          setStrataPropertyTypes([]);
         }
-      } catch { /* ignore lookup failures */ }
+      } catch {
+        setStrataPropertyTypes([]);
+      }
     };
     lookup();
   }, [uploadForm.strataId, authFetch]);
@@ -232,8 +248,10 @@ export default function DocumentsPage() {
       documentTypeId: null,
       strataName: '',
       strataId: '',
-      notes: ''
+      notes: '',
+      propertyTypeId: null,
     });
+    setStrataPropertyTypes([]);
     setUploadError(null);
     setIsUploadModalOpen(true);
   };
@@ -258,13 +276,17 @@ export default function DocumentsPage() {
 
     setUploadError(null);
 
+    const selectedPt = strataPropertyTypes.find(pt => pt.propertyTypeId === uploadForm.propertyTypeId);
+
     try {
       await uploadDocument(
         uploadForm.file,
         uploadForm.documentTypeId,
         uploadForm.strataId,
         uploadForm.strataName || undefined,
-        uploadForm.notes || undefined
+        uploadForm.notes || undefined,
+        uploadForm.propertyTypeId || undefined,
+        selectedPt?.propertyTypeName || undefined
       );
       setIsUploadModalOpen(false);
     } catch (err) {
@@ -302,21 +324,21 @@ export default function DocumentsPage() {
             label="Document Type"
             value={filterDocType}
             onChange={(val) => setFilterDocType(val)}
-            options={documentTypes.map(dt => ({ value: dt.documentTypeId, label: formatTypeName(dt.typeName) }))}
+            options={documentTypes.map(dt => ({ value: dt.documentTypeId, label: formatTypeName(dt.typeName) })).filter((opt, i, arr) => arr.findIndex(o => o.label === opt.label) === i).sort((a, b) => a.label.localeCompare(b.label))}
             placeholder="All Types"
           />
           <SingleSelectDropdown
             label="Strata Name"
             value={filterStrataName}
             onChange={(val) => setFilterStrataName(val)}
-            options={stratas.filter(s => s.complexName).map(s => ({ value: s.strataId, label: s.complexName! }))}
+            options={stratas.filter(s => s.complexName).map(s => ({ value: s.strataId, label: s.complexName! })).sort((a, b) => a.label.localeCompare(b.label))}
             placeholder="All Strata"
           />
           <SingleSelectDropdown
             label="Strata Plan"
             value={filterStrataPlan}
             onChange={(val) => setFilterStrataPlan(val)}
-            options={stratas.filter(s => s.strataPlan).map(s => ({ value: s.strataId, label: s.strataPlan! }))}
+            options={stratas.filter(s => s.strataPlan).map(s => ({ value: s.strataId, label: s.strataPlan! })).sort((a, b) => a.label.localeCompare(b.label))}
             placeholder="All Plans"
           />
           <div className="form-field archived-toggle">
@@ -504,30 +526,40 @@ export default function DocumentsPage() {
             />
           </div>
 
-          <SingleSelectDropdown
-            label="Document Type"
-            required
-            value={uploadForm.documentTypeId?.toString() || ''}
-            onChange={(val) => setUploadForm(prev => ({ ...prev, documentTypeId: val ? parseInt(val) : null }))}
-            options={documentTypes.map(dt => ({ value: dt.documentTypeId, label: formatTypeName(dt.typeName) }))}
-            placeholder="Select document type"
-          />
-
           <FormRow>
+            <InputField
+              label="Strata ID"
+              required
+              value={uploadForm.strataId}
+              onChange={(e) => setUploadForm(prev => ({ ...prev, strataId: formatStrataId(e.target.value), propertyTypeId: null }))}
+              placeholder="e.g. ABC 12345"
+            />
             <InputField
               label="Strata Name"
               value={uploadForm.strataName}
               disabled
               placeholder="Auto-populated from Strata ID"
             />
-            <InputField
-              label="Strata ID"
-              required
-              value={uploadForm.strataId}
-              onChange={(e) => setUploadForm(prev => ({ ...prev, strataId: formatStrataId(e.target.value) }))}
-              placeholder="e.g. ABC 12345"
-            />
           </FormRow>
+
+          <SingleSelectDropdown
+            label="Document Type"
+            required
+            value={uploadForm.documentTypeId?.toString() || ''}
+            onChange={(val) => setUploadForm(prev => ({ ...prev, documentTypeId: val ? parseInt(val) : null }))}
+            options={documentTypes.map(dt => ({ value: dt.documentTypeId, label: formatTypeName(dt.typeName) })).filter((opt, i, arr) => arr.findIndex(o => o.label === opt.label) === i).sort((a, b) => a.label.localeCompare(b.label))}
+            placeholder="Select document type"
+          />
+
+          {strataPropertyTypes.length > 0 && (
+            <SingleSelectDropdown
+              label="Section (Property Type)"
+              value={uploadForm.propertyTypeId?.toString() || ''}
+              onChange={(val) => setUploadForm(prev => ({ ...prev, propertyTypeId: val ? parseInt(val) : null }))}
+              options={strataPropertyTypes.map(pt => ({ value: pt.propertyTypeId, label: pt.propertyTypeName })).sort((a, b) => a.label.localeCompare(b.label))}
+              placeholder="Select section"
+            />
+          )}
 
           <TextareaField
             label="Notes"

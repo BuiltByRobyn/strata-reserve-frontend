@@ -94,14 +94,16 @@ export const useDocuments = () => {
     documentTypeId: number,
     strataId: string,
     strataName?: string,
-    notes?: string
+    notes?: string,
+    propertyTypeId?: number,
+    propertyTypeName?: string
   ): Promise<boolean> => {
     const token = session?.access_token;
     if (!token) throw new Error('Not authenticated');
 
     setUploading(true);
     try {
-      await supabaseUploadDocument({ token, file, documentTypeId, strataId, strataName, notes });
+      await supabaseUploadDocument({ token, file, documentTypeId, strataId, strataName, notes, propertyTypeId, propertyTypeName });
       await fetchDocuments();
       return true;
     } catch (error) {

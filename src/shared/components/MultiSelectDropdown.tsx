@@ -34,15 +34,13 @@ export function MultiSelectDropdown({
     }
   };
 
-  const selectedLabels = options
-    .filter(o => selectedValues.includes(o.value))
-    .map(o => o.label);
+  const selectedCount = selectedValues.length;
 
-  const displayText = selectedLabels.length > 0
-    ? `${selectedLabels.length} selected`
+  const displayText = selectedCount > 0
+    ? `${selectedCount} selected`
     : placeholder;
 
-  const triggerClass = `multiselect__trigger${selectedLabels.length === 0 ? ' multiselect__trigger--placeholder' : ''}`;
+  const triggerClass = `multiselect__trigger${selectedCount === 0 ? ' multiselect__trigger--placeholder' : ''}`;
 
   return (
     <div className={`form-field ${error ? 'has-error' : ''}`} ref={containerRef}>
@@ -78,13 +76,6 @@ export function MultiSelectDropdown({
           </div>
         )}
       </div>
-      {selectedLabels.length > 0 && (
-        <div className="multiselect__tags">
-          {selectedLabels.map(lbl => (
-            <span key={lbl} className="multiselect__tag">{lbl}</span>
-          ))}
-        </div>
-      )}
       {helpText && <span className="help-text">{helpText}</span>}
       {error && <span className="error-text">{error}</span>}
     </div>

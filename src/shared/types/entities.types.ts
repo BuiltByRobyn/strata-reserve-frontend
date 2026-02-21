@@ -72,6 +72,13 @@ export interface StrataBasic {
   town: string | null;
 }
 
+export interface StrataPropertyType {
+  strataPropertyTypeId: number;
+  strataId: number;
+  propertyTypeId: number;
+  propertyType: PropertyType;
+}
+
 export interface Strata extends StrataBasic {
   unitNumber: string | null;
   streetName: string | null;
@@ -82,17 +89,28 @@ export interface Strata extends StrataBasic {
   legalTypeId: number | null;
   propertyTypeId: number | null;
   companyId: number | null;
+  fiscalYearEnd: string | null;
   createdAt: string;
   updatedAt: string;
   company?: { companyId: number; companyName: string } | null;
   legalType?: { legalTypeId: number; legalTypeName: string } | null;
   propertyType?: { propertyTypeId: number; propertyTypeName: string } | null;
   strataSections?: StrataSection[];
+  strataPropertyTypes?: StrataPropertyType[];
   _count?: {
     strataNotes: number;
     strataProfiles: number;
     strataServices: number;
+    serviceRequests: number;
   };
+}
+
+export interface DocumentNote {
+  serviceRequestDocumentId: number;
+  notes: string | null;
+  uploadedAt: string;
+  fileName: string;
+  uploadedBy: ProfileBasic | null;
 }
 
 export interface StrataWithDetails extends Strata {
@@ -103,6 +121,7 @@ export interface StrataWithDetails extends Strata {
   strataProfiles: StrataProfileWithProfile[];
   strataServices: StrataServiceWithDetails[];
   strataSections: StrataSection[];
+  serviceRequests?: { serviceRequestDocuments: DocumentNote[] }[];
 }
 
 export type StrataInfo = Pick<
@@ -133,8 +152,8 @@ export interface CreateStrataInput {
   propertyTypeId?: number;
   companyId?: number;
   sectionIds?: number[];
-  fiscalYear?: number;
-  fiscalYearMonth?: number;
+  propertyTypeIds?: number[];
+  fiscalYearEnd?: string;
   companyName?: string;
 }
 
@@ -390,27 +409,39 @@ export interface AppointmentWithDetails extends Appointment {
 // Inspector Availability Types
 // ============================================
 
+export interface InspectorAvailableLocation {
+  inspectorAvailableLocationId: number;
+  inspectorAvailableDateId: number;
+  locationCode: string;
+}
+
 export interface InspectorAvailableDate {
   inspectorAvailableDateId: number;
-  availableDate: string;
-  availableStartTime: string | null; // TIME format HH:mm:ss
-  availableEndTime: string | null; // TIME format HH:mm:ss
+  availableStartDate: string;
+  availableEndDate: string;
+  availableStartTime: string | null;
+  availableEndTime: string | null;
   createdAt: string;
   inspectorProfileId: string;
   inspectorProfile?: ProfileBasic;
+  locations: InspectorAvailableLocation[];
 }
 
 export interface CreateInspectorAvailableDateInput {
-  availableDate: string;
+  availableStartDate: string;
+  availableEndDate: string;
   availableStartTime?: string;
   availableEndTime?: string;
   inspectorProfileId: string;
+  locationCodes: string[];
 }
 
 export interface UpdateInspectorAvailableDateInput {
-  availableDate?: string;
+  availableStartDate?: string;
+  availableEndDate?: string;
   availableStartTime?: string | null;
   availableEndTime?: string | null;
+  locationCodes?: string[];
 }
 
 // ============================================

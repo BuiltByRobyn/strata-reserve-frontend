@@ -9,6 +9,7 @@ export interface DocumentUploadData {
   strataName?: string;
   strataId?: string;
   notes?: string;
+  propertyTypeId?: number | null;
 }
 
 export interface DocumentType {
@@ -68,6 +69,18 @@ export interface DocumentPreviewModalProps {
   onDelete?: () => void;
 }
 
+export interface SRDocRequirement {
+  srDocRequirementId: number;
+  serviceRequestId: number;
+  documentTypeId: number;
+  propertyTypeId: number | null;
+  isRequired: boolean;
+  quantity: number;
+  notes: string | null;
+  documentType: { documentTypeId: number; typeName: string };
+  propertyType: { propertyTypeId: number; propertyTypeName: string } | null;
+}
+
 export interface UploadDocumentParams {
   token: string;
   file: File;
@@ -75,4 +88,20 @@ export interface UploadDocumentParams {
   strataId: string;
   strataName?: string;
   notes?: string;
+  propertyTypeId?: number;
+  propertyTypeName?: string;
+}
+
+export interface SRUploadedDocument {
+  serviceRequestDocumentId: number;
+  fileName: string;
+  filePath: string;
+  fileSize: number;
+  uploadedAt: string;
+  notes?: string | null;
+  documentTypeId: number;
+  documentType: { documentTypeId: number; typeName: string };
+  uploadedBy: { id: string; firstName?: string | null; lastName?: string | null; displayName?: string | null };
+  reviewStatus?: { reviewStatusId: number; statusName: string } | null;
+  propertyType?: { propertyTypeId: number; propertyTypeName: string } | null;
 }
