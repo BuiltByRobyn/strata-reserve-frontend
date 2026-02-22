@@ -322,6 +322,12 @@ export interface ServiceRequest {
   serviceId: number;
   strataId: number;
   requestedByProfileId: string;
+  fiscalYearEnd?: string | null;
+  lastAgmDate?: string | null;
+  noAgmToDate?: boolean;
+  lastDepreciationReportDate?: string | null;
+  noReportToDate?: boolean;
+  targetDate?: string | null;
   service?: Service;
   strata?: Strata;
   requestedBy?: ProfileBasic;
