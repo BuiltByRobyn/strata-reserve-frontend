@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useSurvey } from '../../shared/hooks/useSurvey';
 import { useClientServiceRequest } from '../../shared/hooks/useClientServiceRequest';
 import { SurveyProgressBar } from '../../shared/components/SurveyProgressBar';
@@ -11,10 +11,12 @@ import {
 
 export default function SurveyPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { activeRequest, serviceRequestId, loading: srLoading } = useClientServiceRequest();
   const { questions, responses, loading, fetchQuestions, fetchResponses } = useSurvey();
 
   const [showThankYou, setShowThankYou] = useState(false);
+  const [showTimelinesMessage, setShowTimelinesMessage] = useState(false);
   const isSubmitted = !!activeRequest?.submittedForReviewDate;
 
   useEffect(() => {
@@ -22,6 +24,13 @@ export default function SurveyPage() {
       setShowThankYou(true);
     }
   }, [isSubmitted]);
+
+  useEffect(() => {
+    if (location.state?.fromTimelines) {
+      setShowTimelinesMessage(true);
+      window.history.replaceState({}, '');
+    }
+  }, [location.state]);
 
   useEffect(() => {
     if (serviceRequestId) {
@@ -67,13 +76,27 @@ export default function SurveyPage() {
         Based on your input information, you will need to complete the following survey sections
       </p>
 
+      {showTimelinesMessage && (
+        <div className="timelines-redirect-banner">
+          <span>Thank you for confirming your timelines, please complete required survey questions to start the process</span>
+          <button
+            className="timelines-redirect-banner__dismiss"
+            onClick={() => setShowTimelinesMessage(false)}
+            aria-label="Dismiss message"
+          >
+            &times;
+          </button>
+        </div>
+      )}
+
       <SurveyProgressBar answered={totalAnswered} total={totalQuestions} />
 
       <div className="survey-section-list">
-        {SURVEY_SECTIONS.map((section) => {
-          const complete = isSectionComplete(section.key);
+        {SURVEY_SECTIONS.filter(section => {
           const { total } = getSectionQuestionCount(section.key);
-          const hasQuestions = total > 0;
+          return total > 0;
+        }).map((section) => {
+          const complete = isSectionComplete(section.key);
 
           return (
             <div
@@ -89,7 +112,7 @@ export default function SurveyPage() {
                 <span className="section-description">{section.description}</span>
               </div>
               <span className={`section-status ${complete ? 'complete' : 'incomplete'}`}>
-                {!hasQuestions ? 'Not Required' : complete ? 'Complete' : 'Incomplete'}
+                {complete ? 'Complete' : 'Incomplete'}
               </span>
             </div>
           );

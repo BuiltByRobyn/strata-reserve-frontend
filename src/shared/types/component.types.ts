@@ -1,5 +1,6 @@
 import type { ReactNode, InputHTMLAttributes, SelectHTMLAttributes, TextareaHTMLAttributes } from 'react';
 import type { SurveySection } from './survey.types';
+import type { StrataPropertyType } from './entities.types';
 
 export interface Column<T> {
   key: string;
@@ -109,4 +110,9 @@ export interface SingleSelectDropdownProps extends BaseFieldProps {
   disabled?: boolean;
   className?: string;
   style?: import('react').CSSProperties;
+}
+
+export interface PropertyTypeSelectorProps {
+  availablePropertyTypes: StrataPropertyType[];
+  onRequestSubmitted: () => void;
 }

@@ -129,6 +129,14 @@ export type StrataInfo = Pick<
   'strataId' | 'strataPlan' | 'complexName' | 'streetName' | 'town' | 'province' | 'postalCode' | 'legalType' | 'propertyType'
 >;
 
+export interface StrataProfileResult {
+  id: string;
+  first_name: string | null;
+  last_name: string | null;
+  email: string | null;
+  phone_number: string | null;
+}
+
 export interface StrataMemberInfo {
   profileId: string;
   firstName: string | null;
@@ -199,12 +207,19 @@ export interface StrataProfileWithProfile extends StrataEmployee {
   strataProfileSections?: StrataProfileSection[];
 }
 
+export interface StrataProfilePropertyType {
+  strataProfilePropertyTypeId?: number;
+  propertyTypeId: number;
+  propertyType: PropertyType;
+}
+
 export interface StrataProfileWithStrata extends StrataEmployee {
   strata: StrataBasic & {
     company?: { companyName: string } | null;
     strataPropertyTypes?: StrataPropertyType[];
   };
   strataProfileSections?: StrataProfileSection[];
+  strataProfilePropertyTypes?: StrataProfilePropertyType[];
 }
 
 export interface CreateStrataEmployeeInput {
@@ -279,6 +294,7 @@ export interface CreateUserInput {
     strataId: number;
     strataPosition?: string;
     sectionIds?: number[];
+    propertyTypeIds?: number[];
   }>;
 }
 
@@ -331,6 +347,7 @@ export interface ServiceRequest {
   service?: Service;
   strata?: Strata;
   requestedBy?: ProfileBasic;
+  clientPropertyTypes?: Array<{ propertyTypeId: number }>;
   _count?: {
     questionResponses: number;
     serviceRequestDocuments: number;
@@ -475,6 +492,26 @@ export interface UpdateCompanyHolidayInput {
 }
 
 // ============================================
+// Property Type Request Types
+// ============================================
+
+export interface PropertyTypeRequest {
+  propertyTypeRequestId: number;
+  strataProfileId: number;
+  requestedPropertyTypeIds: number[];
+  status: string;
+  rejectionReason: string | null;
+  reviewedByProfileId: string | null;
+  createdAt: string;
+  reviewedAt: string | null;
+  strataProfile?: {
+    profile: ProfileBasic & { email?: string | null };
+    strata: StrataBasic;
+  };
+  reviewedBy?: ProfileBasic | null;
+}
+
+// ============================================
 // API Response Types
 // ============================================
 
@@ -492,6 +529,7 @@ export interface StrataAssociation {
   strataId: number;
   strataPosition?: string;
   sectionIds?: number[];
+  propertyTypeIds?: number[];
 }
 
 export interface BaseProfileFormData {

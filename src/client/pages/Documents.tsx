@@ -8,6 +8,7 @@ import { Modal } from '../../shared/components/Modal';
 import { DocumentPreviewModal } from '../../shared/components/DocumentPreviewModal';
 import { formatTypeName } from '../../shared/lib/formatters';
 import { validateFileType, validateFileSize } from '../../shared/lib/validation';
+import { PropertyTypeSelector } from '../components/PropertyTypeSelector';
 import type { RequiredDocumentChecklist } from '../../shared/types/document.types';
 
 const DOCS_PER_PAGE = 5;
@@ -41,11 +42,24 @@ export default function ClientDocumentsPage() {
   const strataPlan = activeRequest?.strata?.strataPlan || '';
   const isSubmitted = !!activeRequest?.submittedForReviewDate;
 
+  const clientPropertyTypeIds = useMemo(() => {
+    return activeRequest?.clientPropertyTypes?.map(cpt => cpt.propertyTypeId) || [];
+  }, [activeRequest]);
+
+  const filteredDocuments = useMemo(() => {
+    if (clientPropertyTypeIds.length === 0) {
+      return requiredDocuments.filter(d => !d.propertyType);
+    }
+    return requiredDocuments.filter(d =>
+      !d.propertyType || clientPropertyTypeIds.includes(d.propertyType.propertyTypeId)
+    );
+  }, [requiredDocuments, clientPropertyTypeIds]);
+
   const allMandatoryUploaded = useMemo(() => {
-    return requiredDocuments
+    return filteredDocuments
       .filter(d => d.isRequired)
       .every(d => !!d.uploadedDocument);
-  }, [requiredDocuments]);
+  }, [filteredDocuments]);
 
   useEffect(() => {
     if (serviceRequestId) {
@@ -59,8 +73,8 @@ export default function ClientDocumentsPage() {
     }
   }, [isSubmitted]);
 
-  const totalPages = Math.ceil(requiredDocuments.length / DOCS_PER_PAGE);
-  const pageItems = requiredDocuments.slice(
+  const totalPages = Math.ceil(filteredDocuments.length / DOCS_PER_PAGE);
+  const pageItems = filteredDocuments.slice(
     page * DOCS_PER_PAGE,
     (page + 1) * DOCS_PER_PAGE,
   );
@@ -155,6 +169,23 @@ export default function ClientDocumentsPage() {
     );
   }
 
+  if (clientPropertyTypeIds.length === 0 && activeRequest?.strata?.strataPropertyTypes?.length) {
+    return (
+      <div className="client-documents-page">
+        <div className="page-header">
+          <h1>Documents</h1>
+          <p className="page-subtitle">
+            We just need a little information before we can show your documents.
+          </p>
+        </div>
+        <PropertyTypeSelector
+          availablePropertyTypes={activeRequest.strata.strataPropertyTypes}
+          onRequestSubmitted={() => {}}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="client-documents-page">
       <div className="page-header">
@@ -175,7 +206,7 @@ export default function ClientDocumentsPage() {
         onChange={handleFileSelected}
       />
 
-      {requiredDocuments.length === 0 ? (
+      {filteredDocuments.length === 0 ? (
         <div className="empty-state">
           <p>No required documents found for this service request.</p>
         </div>
@@ -198,10 +229,15 @@ export default function ClientDocumentsPage() {
                     <span className="document-number">{docNumber}.</span>
                     <span className="document-name">{typeName}</span>
                   </div>
-                  {isUploaded
-                    ? <span className="uploaded-badge">Uploaded</span>
-                    : item.isRequired && <span className="mandatory-badge">Mandatory</span>
-                  }
+                  <div className="document-badges">
+                    {item.propertyType && (
+                      <span className="property-type-badge">{item.propertyType.propertyTypeName}</span>
+                    )}
+                    {isUploaded
+                      ? <span className="uploaded-badge">Uploaded</span>
+                      : item.isRequired && <span className="mandatory-badge">Mandatory</span>
+                    }
+                  </div>
 
                   <div className="document-actions">
                     {isUploaded ? (

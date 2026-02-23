@@ -49,6 +49,7 @@ export interface RequiredDocumentChecklist {
   requiredDocumentId: number;
   isRequired: boolean;
   documentType: { documentTypeId: number; typeName: string };
+  propertyType?: { propertyTypeId: number; propertyTypeName: string } | null;
   uploadedDocument?: UploadedDocument | null;
 }
 

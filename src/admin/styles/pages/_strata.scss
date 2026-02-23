@@ -106,62 +106,6 @@
     }
   }
 
-  .data-table-container {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-  }
-
-  // Mobile: 2 columns — Complex Name, Edit (buttons underneath)
-  .strata-table-mobile {
-    width: 100%;
-    border-collapse: collapse;
-
-    .strata-mobile-title {
-      text-align: center;
-      padding: $spacing-md;
-      font-size: $font-size-base;
-      font-weight: $font-weight-bold;
-      color: $color-primary-dark;
-      border-bottom: 2px solid $color-border-light;
-    }
-
-    tr {
-      border-bottom: 2px solid $color-border-light;
-      &:last-child {
-        border-bottom: none;
-      }
-    }
-
-    th.strata-mobile-col-name,
-    th.strata-mobile-col-actions {
-      text-align: left;
-      padding: $spacing-sm $spacing-md;
-      font-weight: $font-weight-bold;
-      color: $color-text-muted;
-      border-bottom: 1px solid $color-border-light;
-    }
-
-    td {
-      font-size: $font-size-base;
-      padding: $spacing-sm $spacing-md;
-      border-bottom: 1px solid rgba($color-border-light, 0.6);
-      vertical-align: middle;
-    }
-
-    .strata-mobile-col-name {
-      color: $color-text-dark;
-    }
-
-    .strata-mobile-col-actions {
-      .strata-mobile-actions {
-        display: flex;
-        flex-direction: column;
-        gap: $spacing-xs;
-        align-items: center;
-      }
-    }
-  }
-
   .error-banner {
     padding: $spacing-md;
     margin-bottom: $spacing-md;

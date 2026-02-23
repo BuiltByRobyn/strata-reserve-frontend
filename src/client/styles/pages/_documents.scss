@@ -130,7 +130,6 @@
     text-transform: uppercase;
     background: rgba($color-success, 0.1);
     color: $color-success;
-    justify-self: end;
     white-space: nowrap;
   }
 
@@ -142,8 +141,25 @@
     text-transform: uppercase;
     background: rgba($color-error, 0.1);
     color: $color-error;
-    justify-self: end;
     white-space: nowrap;
+  }
+
+  .property-type-badge {
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.6875rem;
+    font-weight: $font-weight-bold;
+    text-transform: uppercase;
+    background: rgba($color-secondary, 0.1);
+    color: $color-secondary-dark;
+    white-space: nowrap;
+  }
+
+  .document-badges {
+    display: flex;
+    align-items: center;
+    gap: $spacing-xs;
+    justify-self: end;
   }
 
   .document-actions {
@@ -270,6 +286,64 @@
     }
   }
 
+  .property-type-selector {
+    background: $color-white;
+    border: 1px solid $color-border-light;
+    border-radius: $border-radius-lg;
+    padding: $spacing-xl;
+    max-width: 500px;
+
+    h3 {
+      margin: 0 0 $spacing-sm;
+      font-size: 1.125rem;
+      font-weight: 600;
+      color: $color-text-dark;
+    }
+
+    p {
+      color: $color-text-light;
+      margin: 0 0 $spacing-md;
+      line-height: 1.5;
+    }
+  }
+
+  .property-type-pending {
+    background: rgba($color-primary, 0.05);
+    border: 1px solid rgba($color-primary, 0.2);
+    border-radius: $border-radius-lg;
+    padding: $spacing-xl;
+
+    h3 {
+      margin: 0 0 $spacing-sm;
+      font-size: 1.125rem;
+      font-weight: 600;
+      color: $color-primary;
+    }
+
+    p {
+      color: $color-text-light;
+      margin: 0 0 $spacing-xs;
+      line-height: 1.5;
+    }
+  }
+
+  .rejection-notice {
+    background: rgba($color-warning, 0.08);
+    border: 1px solid $color-warning;
+    border-radius: $border-radius-sm;
+    padding: $spacing-md;
+    margin-bottom: $spacing-md;
+
+    p {
+      margin: 0 0 $spacing-xs;
+      color: $color-accent-brown;
+
+      &:last-child {
+        margin-bottom: 0;
+      }
+    }
+  }
+
   .thank-you-content {
     text-align: center;
     padding: $spacing-md 0;
@@ -296,8 +370,7 @@
       font-size: $font-size-md;
     }
 
-    .mandatory-badge,
-    .uploaded-badge {
+    .document-badges {
       grid-column: 2;
       grid-row: 1;
     }
