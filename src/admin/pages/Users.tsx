@@ -18,13 +18,13 @@ const initialFormData: UserFormData = {
   phoneNumber: '',
   userTypeId: undefined,
   companyName: '',
-  strataAssociations: [{ strataId: 0, strataPosition: '', sectionIds: [] }]
+  strataAssociations: [{ strataId: 0, strataPosition: '', sectionIds: [], propertyTypeIds: [] }]
 };
 
 export default function UsersPage() {
   const { users, loading, error, createUser, updateUser, deleteUser } = useUsers();
   const { stratas } = useStrata();
-  const { userTypes, sections } = useLookups();
+  const { userTypes, propertyTypes } = useLookups();
 
   // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -43,7 +43,7 @@ export default function UsersPage() {
   const [filterStrataName, setFilterStrataName] = useState<string>('');
   const [filterStrataPlan, setFilterStrataPlan] = useState<string>('');
   const [filterUserTypeId, setFilterUserTypeId] = useState<string>('');
-  const [filterSectionId, setFilterSectionId] = useState<number[]>([]);
+  const [filterPropertyTypeIds, setFilterPropertyTypeIds] = useState<number[]>([]);
 
   // Filtered users
   const filteredUsers = useMemo(() => {
@@ -79,19 +79,19 @@ export default function UsersPage() {
         }
       }
 
-      // Section filter
-      if (filterSectionId.length > 0) {
-        const hasSection = user.strataProfiles?.some(
-          se => se.strataProfileSections?.some(
-            sps => filterSectionId.includes(sps.sectionId)
+      // Property type filter
+      if (filterPropertyTypeIds.length > 0) {
+        const hasType = user.strataProfiles?.some(
+          se => se.strata.strataPropertyTypes?.some(
+            spt => filterPropertyTypeIds.includes(spt.propertyTypeId)
           )
         );
-        if (!hasSection) return false;
+        if (!hasType) return false;
       }
 
       return true;
     });
-  }, [users, searchTerm, filterStrataName, filterStrataPlan, filterUserTypeId, filterSectionId]);
+  }, [users, searchTerm, filterStrataName, filterStrataPlan, filterUserTypeId, filterPropertyTypeIds]);
 
   const isDesktop = useMediaQuery('(min-width: 750px)');
 
@@ -201,9 +201,10 @@ export default function UsersPage() {
         ? user.strataProfiles.map(se => ({
             strataId: se.strata.strataId,
             strataPosition: se.strataPosition || '',
-            sectionIds: se.strataProfileSections?.map(sps => sps.sectionId) || []
+            sectionIds: se.strataProfileSections?.map(sps => sps.sectionId) || [],
+            propertyTypeIds: se.strataProfilePropertyTypes?.map(sppt => sppt.propertyTypeId) || []
           }))
-        : [{ strataId: 0, strataPosition: '', sectionIds: [] as number[] }]
+        : [{ strataId: 0, strataPosition: '', sectionIds: [] as number[], propertyTypeIds: [] as number[] }]
     });
     setFormError(null);
     setIsModalOpen(true);
@@ -285,7 +286,7 @@ export default function UsersPage() {
   const addStrataAssociation = () => {
     setFormData(prev => ({
       ...prev,
-      strataAssociations: [...prev.strataAssociations, { strataId: 0, strataPosition: '', sectionIds: [] }]
+      strataAssociations: [...prev.strataAssociations, { strataId: 0, strataPosition: '', sectionIds: [], propertyTypeIds: [] }]
     }));
   };
 
@@ -293,6 +294,14 @@ export default function UsersPage() {
     setFormData(prev => {
       const newAssociations = [...prev.strataAssociations];
       newAssociations[index] = { ...newAssociations[index], sectionIds };
+      return { ...prev, strataAssociations: newAssociations };
+    });
+  };
+
+  const updateStrataAssociationPropertyTypes = (index: number, propertyTypeIds: number[]) => {
+    setFormData(prev => {
+      const newAssociations = [...prev.strataAssociations];
+      newAssociations[index] = { ...newAssociations[index], propertyTypeIds };
       return { ...prev, strataAssociations: newAssociations };
     });
   };
@@ -351,29 +360,29 @@ export default function UsersPage() {
             label="Strata Name"
             value={filterStrataName}
             onChange={(val) => setFilterStrataName(val)}
-            options={stratas.filter(s => s.complexName).map(s => ({ value: s.strataId, label: s.complexName! }))}
+            options={stratas.filter(s => s.complexName).map(s => ({ value: s.strataId, label: s.complexName! })).sort((a, b) => a.label.localeCompare(b.label))}
             placeholder="All Strata"
           />
           <SingleSelectDropdown
             label="Strata Plan"
             value={filterStrataPlan}
             onChange={(val) => setFilterStrataPlan(val)}
-            options={stratas.filter(s => s.strataPlan).map(s => ({ value: s.strataId, label: s.strataPlan! }))}
+            options={stratas.filter(s => s.strataPlan).map(s => ({ value: s.strataId, label: s.strataPlan! })).sort((a, b) => a.label.localeCompare(b.label))}
             placeholder="All Plans"
           />
           <SingleSelectDropdown
             label="Role"
             value={filterUserTypeId}
             onChange={(val) => setFilterUserTypeId(val)}
-            options={userTypes.map(ut => ({ value: ut.userTypeId, label: ut.userTypeName }))}
+            options={userTypes.map(ut => ({ value: ut.userTypeId, label: ut.userTypeName })).sort((a, b) => a.label.localeCompare(b.label))}
             placeholder="All Roles"
           />
           <MultiSelectDropdown
-            label="Sections"
-            options={sections.map(s => ({ value: s.sectionId, label: s.sectionName }))}
-            selectedValues={filterSectionId}
-            onChange={setFilterSectionId}
-            placeholder="All Sections"
+            label="Property Types"
+            options={propertyTypes.map(pt => ({ value: pt.propertyTypeId, label: pt.propertyTypeName })).sort((a, b) => a.label.localeCompare(b.label))}
+            selectedValues={filterPropertyTypeIds}
+            onChange={setFilterPropertyTypeIds}
+            placeholder="All Types"
           />
         </div>
       </div>
@@ -518,7 +527,7 @@ export default function UsersPage() {
                     options={availableStratas.map(s => ({
                       value: s.strataId,
                       label: s.strataPlan || s.complexName || `Strata ${s.strataId}`
-                    }))}
+                    })).sort((a, b) => a.label.localeCompare(b.label))}
                     placeholder="Select Strata Plan"
                   />
                   <InputField
@@ -530,11 +539,17 @@ export default function UsersPage() {
                   />
                 </FormRow>
                 <MultiSelectDropdown
-                  label={`Sections${index === 0 ? '' : ` ${index + 1}`}`}
-                  options={sections.map(s => ({ value: s.sectionId, label: s.sectionName }))}
-                  selectedValues={association.sectionIds || []}
-                  onChange={(values) => updateStrataAssociationSections(index, values)}
-                  placeholder="Select sections"
+                  label={`Property Types${index === 0 ? '' : ` ${index + 1}`}`}
+                  options={
+                    selectedStrata?.strataPropertyTypes?.length
+                      ? selectedStrata.strataPropertyTypes
+                          .map(spt => ({ value: spt.propertyType.propertyTypeId, label: spt.propertyType.propertyTypeName }))
+                          .sort((a, b) => a.label.localeCompare(b.label))
+                      : propertyTypes.map(pt => ({ value: pt.propertyTypeId, label: pt.propertyTypeName })).sort((a, b) => a.label.localeCompare(b.label))
+                  }
+                  selectedValues={association.propertyTypeIds || []}
+                  onChange={(values) => updateStrataAssociationPropertyTypes(index, values)}
+                  placeholder="Select property types"
                 />
                 {index > 0 && (
                   <button

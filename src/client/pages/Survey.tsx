@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useSurvey } from '../../shared/hooks/useSurvey';
 import { useClientServiceRequest } from '../../shared/hooks/useClientServiceRequest';
 import { SurveyProgressBar } from '../../shared/components/SurveyProgressBar';
@@ -7,15 +7,16 @@ import { LoadingSpinner } from '../../shared/components/LoadingSpinner';
 import { Modal } from '../../shared/components/Modal';
 import {
   SURVEY_SECTIONS,
-  SECTION_QUESTION_RANGES,
 } from '../../shared/types/survey.types';
 
 export default function SurveyPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { activeRequest, serviceRequestId, loading: srLoading } = useClientServiceRequest();
   const { questions, responses, loading, fetchQuestions, fetchResponses } = useSurvey();
 
   const [showThankYou, setShowThankYou] = useState(false);
+  const [showTimelinesMessage, setShowTimelinesMessage] = useState(false);
   const isSubmitted = !!activeRequest?.submittedForReviewDate;
 
   useEffect(() => {
@@ -25,6 +26,13 @@ export default function SurveyPage() {
   }, [isSubmitted]);
 
   useEffect(() => {
+    if (location.state?.fromTimelines) {
+      setShowTimelinesMessage(true);
+      window.history.replaceState({}, '');
+    }
+  }, [location.state]);
+
+  useEffect(() => {
     if (serviceRequestId) {
       fetchQuestions(serviceRequestId);
       fetchResponses(serviceRequestId);
@@ -32,12 +40,10 @@ export default function SurveyPage() {
   }, [serviceRequestId, fetchQuestions, fetchResponses]);
 
   const getSectionQuestionCount = (sectionKey: string) => {
-    const range = SECTION_QUESTION_RANGES[sectionKey];
-    if (!range) return { total: 0, answered: 0 };
+    const sectionConfig = SURVEY_SECTIONS.find(s => s.key === sectionKey);
+    if (!sectionConfig) return { total: 0, answered: 0 };
 
-    const sectionQuestions = questions.filter(
-      q => q.sortOrder >= range.start && q.sortOrder <= range.end
-    );
+    const sectionQuestions = questions.filter(q => q.questionCategory === sectionConfig.label);
     const answeredIds = new Set(responses.map(r => r.questionId));
     const answered = sectionQuestions.filter(q => answeredIds.has(q.questionId)).length;
 
@@ -70,11 +76,26 @@ export default function SurveyPage() {
         Based on your input information, you will need to complete the following survey sections
       </p>
 
+      {showTimelinesMessage && (
+        <div className="timelines-redirect-banner">
+          <span>Thank you for confirming your timelines, please complete required survey questions to start the process</span>
+          <button
+            className="timelines-redirect-banner__dismiss"
+            onClick={() => setShowTimelinesMessage(false)}
+            aria-label="Dismiss message"
+          >
+            &times;
+          </button>
+        </div>
+      )}
+
       <SurveyProgressBar answered={totalAnswered} total={totalQuestions} />
 
       <div className="survey-section-list">
-        {SURVEY_SECTIONS.map((section) => {
-          const hasQuestions = !!SECTION_QUESTION_RANGES[section.key];
+        {SURVEY_SECTIONS.filter(section => {
+          const { total } = getSectionQuestionCount(section.key);
+          return total > 0;
+        }).map((section) => {
           const complete = isSectionComplete(section.key);
 
           return (
@@ -91,7 +112,7 @@ export default function SurveyPage() {
                 <span className="section-description">{section.description}</span>
               </div>
               <span className={`section-status ${complete ? 'complete' : 'incomplete'}`}>
-                {!hasQuestions ? 'Coming Soon' : complete ? 'Complete' : 'Incomplete'}
+                {complete ? 'Complete' : 'Incomplete'}
               </span>
             </div>
           );

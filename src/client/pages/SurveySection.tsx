@@ -7,7 +7,6 @@ import { SurveyCategoryNav } from '../../shared/components/SurveyCategoryNav';
 import { LoadingSpinner } from '../../shared/components/LoadingSpinner';
 import {
   SURVEY_SECTIONS,
-  SECTION_QUESTION_RANGES,
 } from '../../shared/types/survey.types';
 import type { SurveyQuestion, SaveResponsePayload } from '../../shared/types/survey.types';
 
@@ -31,6 +30,7 @@ export default function SurveySectionPage() {
   const [page, setPage] = useState(0);
   const [localAnswers, setLocalAnswers] = useState<Record<number, SaveResponsePayload>>({});
   const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const prevPageRef = useRef(page);
   const prevSectionRef = useRef(section);
 
@@ -42,11 +42,14 @@ export default function SurveySectionPage() {
   }, [serviceRequestId, fetchQuestions, fetchResponses]);
 
   const sectionConfig = SURVEY_SECTIONS.find(s => s.key === section);
-  const range = section ? SECTION_QUESTION_RANGES[section] : null;
 
-  const sectionQuestions = range
-    ? allQuestions.filter(q => q.sortOrder >= range.start && q.sortOrder <= range.end)
+  const sectionQuestions = sectionConfig
+    ? allQuestions.filter(q => q.questionCategory === sectionConfig.label)
     : [];
+
+  const requiredSections = SURVEY_SECTIONS.filter(s =>
+    allQuestions.some(q => q.questionCategory === s.label)
+  );
 
   const totalPages = Math.ceil(sectionQuestions.length / QUESTIONS_PER_PAGE);
   const pageQuestions = sectionQuestions.slice(
@@ -55,8 +58,8 @@ export default function SurveySectionPage() {
   );
 
   const isLastPage = page >= totalPages - 1;
-  const currentSectionIdx = SURVEY_SECTIONS.findIndex(s => s.key === section);
-  const isLastSection = currentSectionIdx >= SURVEY_SECTIONS.length - 1;
+  const currentSectionIdx = requiredSections.findIndex(s => s.key === section);
+  const isLastSection = currentSectionIdx >= requiredSections.length - 1;
 
   const totalAnswered = responses.length;
   const totalQuestions = allQuestions.length;
@@ -103,10 +106,13 @@ export default function SurveySectionPage() {
   const handleSaveAndSubmit = async () => {
     await saveCurrent();
     setSubmitting(true);
-    const success = await submitForReview();
+    setSubmitError(null);
+    const result = await submitForReview();
     setSubmitting(false);
-    if (success) {
+    if (result.success) {
       navigate('/client/survey');
+    } else {
+      setSubmitError(result.error || 'Failed to submit');
     }
   };
 
@@ -140,9 +146,7 @@ export default function SurveySectionPage() {
 
   const completionMap: Record<string, boolean> = {};
   for (const s of SURVEY_SECTIONS) {
-    const r = SECTION_QUESTION_RANGES[s.key];
-    if (!r) continue;
-    const sq = allQuestions.filter(q => q.sortOrder >= r.start && q.sortOrder <= r.end);
+    const sq = allQuestions.filter(q => q.questionCategory === s.label);
     const answeredIds = new Set(responses.map(resp => resp.questionId));
     completionMap[s.key] = sq.length > 0 && sq.every(q => answeredIds.has(q.questionId));
   }
@@ -155,7 +159,7 @@ export default function SurveySectionPage() {
       <div key={q.questionId} className="survey-question">
         <label className="question-label">
           {questionNumber}. {q.questionText}
-          {q.isRequired && !range && <span className="required-mark">*</span>}
+          {q.isRequired && <span className="required-mark">*</span>}
         </label>
 
         {q.informationText && (
@@ -304,7 +308,7 @@ export default function SurveySectionPage() {
   return (
     <div className="survey-section-page">
       <SurveyCategoryNav
-        sections={SURVEY_SECTIONS}
+        sections={requiredSections}
         activeSection={section || ''}
         onSelect={handleSectionChange}
         completionMap={completionMap}
@@ -317,7 +321,7 @@ export default function SurveySectionPage() {
       <div className="survey-questions-container">
         {!hasQuestions ? (
           <div className="survey-coming-soon">
-            <p>{sectionConfig?.label} survey coming soon.</p>
+            <p>You are not required to complete this section at this time.</p>
           </div>
         ) : (
           <>
@@ -325,6 +329,10 @@ export default function SurveySectionPage() {
           </>
         )}
       </div>
+
+      {submitError && (
+        <div className="submit-error">{submitError}</div>
+      )}
 
       <div className="survey-pagination">
         {(page > 0 || currentSectionIdx > 0) && (
@@ -335,7 +343,7 @@ export default function SurveySectionPage() {
                 await handlePageChange(page - 1);
               } else if (currentSectionIdx > 0) {
                 await saveCurrent();
-                navigate(`/client/survey/${SURVEY_SECTIONS[currentSectionIdx - 1].key}`);
+                navigate(`/client/survey/${requiredSections[currentSectionIdx - 1].key}`);
               }
             }}
             disabled={saving}
@@ -369,9 +377,8 @@ export default function SurveySectionPage() {
                 await handlePageChange(page + 1);
               } else {
                 await saveCurrent();
-                const currentIdx = SURVEY_SECTIONS.findIndex(s => s.key === section);
-                if (currentIdx < SURVEY_SECTIONS.length - 1) {
-                  navigate(`/client/survey/${SURVEY_SECTIONS[currentIdx + 1].key}`);
+                if (currentSectionIdx < requiredSections.length - 1) {
+                  navigate(`/client/survey/${requiredSections[currentSectionIdx + 1].key}`);
                 }
               }
             }}

@@ -1,0 +1,107 @@
+@use '../../../shared/styles/variables' as *;
+
+.timelines-page {
+  padding: $spacing-lg;
+
+  h1 {
+    margin: 0 0 $spacing-lg;
+    font-size: 1.75rem;
+    font-weight: 600;
+    color: $color-text-dark;
+
+    @include respond-to(desktop) {
+      font-size: $font-size-lg;
+    }
+  }
+
+  .tabs {
+    margin-bottom: $spacing-lg;
+  }
+
+  // Override shared filters-row: 2-col grid on tablet, 3-col grid on desktop
+  .filters-row {
+    margin-bottom: $spacing-lg;
+
+    // Tablet: Deadline Type full width, Strata Name + Plan paired, From + To paired
+    @include respond-to(desktop) {
+      > :first-child {
+        grid-column: span 2;
+      }
+    }
+
+    @include respond-to(lg) {
+      grid-template-columns: repeat(3, 1fr);
+
+      > :first-child {
+        grid-column: span 1;
+      }
+    }
+
+    .date-range-filter {
+      grid-column: span 2;
+
+      .form-field > label {
+        font-weight: $font-weight-bold;
+        color: $color-text-muted;
+      }
+    }
+  }
+
+  .date-range-filter {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-sm;
+    flex: 1 1 0;
+    min-width: 0;
+
+    @include respond-to(desktop) {
+      flex-direction: row;
+    }
+  }
+
+  .modal-content {
+    height: auto;
+  }
+
+  .modal-body {
+    text-align: left;
+
+    .form-field label {
+      font-size: $font-size-base;
+      font-weight: $font-weight-bold;
+      color: $color-text-muted;
+      text-align: left;
+    }
+  }
+
+  .timelines-checkbox {
+    display: flex;
+    align-items: center;
+    gap: $spacing-sm;
+    margin-top: $spacing-xs;
+    margin-bottom: $spacing-md;
+
+    input[type="checkbox"] {
+      width: 1rem;
+      height: 1rem;
+      accent-color: $color-primary;
+      cursor: pointer;
+    }
+
+    label {
+      font-size: $font-size-sm;
+      color: $color-text-light;
+      cursor: pointer;
+      font-weight: $font-weight-normal;
+    }
+  }
+
+  .form-error {
+    padding: $spacing-sm;
+    margin-bottom: $spacing-md;
+    background: rgba($color-error, 0.1);
+    border-radius: $border-radius-sm;
+    color: $color-error;
+    font-size: 0.875rem;
+  }
+}

@@ -66,32 +66,6 @@
     }
   }
 
-  .filters-row {
-    @include respond-to(desktop) {
-      display: flex;
-      gap: $spacing-lg;
-      align-items: flex-end;
-      flex-wrap: wrap;
-    }
-
-    label {
-      font-weight: $font-weight-bold;
-      color: $color-text-muted;
-      text-align: left;
-    }
-
-    .form-field {
-      margin-bottom: $spacing-md;
-      flex: 1;
-      min-width: 200px;
-      width: 100%;
-
-      @include respond-to(desktop) {
-        margin-bottom: 0;
-      }
-    }
-  }
-
   .create-question-button-desktop {
     display: none;
 

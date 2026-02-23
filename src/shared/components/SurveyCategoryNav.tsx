@@ -17,7 +17,7 @@ export function SurveyCategoryNav({
         value={activeSection}
         options={sections.map(s => ({
           key: s.key,
-          label: `${s.label}${completionMap?.[s.key] ? ' ✓' : ''}`,
+          label: s.label,
         }))}
         onChange={onSelect}
       />

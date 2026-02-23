@@ -9,6 +9,7 @@ import UsersPage from '../pages/Users';
 import AppointmentsPage from '../pages/Appointments';
 import DocumentsPage from '../pages/Documents';
 import QuestionsPage from '../pages/Questions';
+import TimelinesPage from '../pages/Timelines';
 
 export const adminRoutes = [
   <Route key="admin-dashboard" path="/admin/dashboard" element={
@@ -87,6 +88,16 @@ export const adminRoutes = [
         <AdminNavbar />
         <main className="app-main">
           <QuestionsPage />
+        </main>
+      </div>
+    </ProtectedRoute>
+  } />,
+  <Route key="admin-timelines" path="/admin/timelines" element={
+    <ProtectedRoute requireAdmin>
+      <div className="app">
+        <AdminNavbar />
+        <main className="app-main">
+          <TimelinesPage />
         </main>
       </div>
     </ProtectedRoute>

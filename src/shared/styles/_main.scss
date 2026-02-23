@@ -11,6 +11,7 @@
 @use 'components/document-preview';
 @use 'components/tabs';
 @use 'components/multiselect';
+@use 'components/filters-row';
 
 @use 'pages/dashboard';
 @use 'pages/upload';
@@ -26,11 +27,13 @@
 @use '../../admin/styles/pages/strata-detail';
 @use '../../admin/styles/pages/users';
 @use '../../admin/styles/pages/questions';
+@use '../../admin/styles/pages/timelines' as admin-timelines;
 
 @use '../../client/styles/pages/documents' as client-documents;
 @use '../../client/styles/pages/profile' as client-profile;
 @use '../../client/styles/pages/survey' as client-survey;
 @use '../../client/styles/pages/strata-information' as client-strata-information;
 @use '../../client/styles/pages/strata-members' as client-strata-members;
+@use '../../client/styles/pages/timelines' as client-timelines;
 
 @use 'utilities/responsive';

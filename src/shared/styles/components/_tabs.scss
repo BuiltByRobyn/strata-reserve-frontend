@@ -108,25 +108,29 @@
     flex-wrap: wrap;
 
     .tabs__tab {
-      padding: $spacing-xs $spacing-md;
+      padding: $spacing-sm $spacing-lg;
       background: $color-white;
-      border: 1px solid $color-border-light;
+      border: 1px solid $color-primary;
       border-radius: $border-radius-sm;
-      font-size: $font-size-sm;
-      font-weight: $font-weight-medium;
-      color: $color-text-muted;
+      font-size: 0.9375rem;
+      font-weight: 500;
+      color: $color-primary;
       cursor: pointer;
-      transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+      transition: all 0.2s ease;
 
       &:hover {
-        border-color: $color-primary;
-        color: $color-primary-dark;
+        background: rgba($color-primary, 0.05);
       }
 
       &--active {
         background: $color-primary;
         color: $color-white;
         border-color: $color-primary;
+
+        &:hover {
+          background: $color-primary-hover;
+          border-color: $color-primary-hover;
+        }
       }
     }
   }
