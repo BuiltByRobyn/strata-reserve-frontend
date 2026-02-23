@@ -1,18 +1,318 @@
 @use '../variables' as *;
 
-/* Dashboard Page Styles */
-.dashboard-container {
+/* Admin Dashboard */
+.admin-dashboard {
   padding: $spacing-lg;
-  
-  // Tablet responsive
+
   @include respond-below(md) {
     padding: $spacing-md;
   }
 
-  // Mobile responsive
   @include respond-below(sm) {
     padding: $spacing-sm;
   }
 }
 
-// Add dashboard specific styles here as needed
+/* Welcome Header */
+.dashboard-welcome {
+  margin-bottom: $spacing-xl;
+
+  h1 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: $color-text-dark;
+    margin: 0 0 $spacing-xs;
+  }
+
+  .dashboard-subtitle {
+    font-size: $font-size-sm;
+    color: $color-text-light;
+    margin: 0;
+  }
+}
+
+/* Stats Row */
+.dashboard-overview {
+  margin-bottom: $spacing-xl;
+}
+
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr) auto;
+  gap: $spacing-md;
+  align-items: start;
+
+  @include respond-below(lg) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @include respond-below(sm) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.stat-card {
+  background: $color-white;
+  border: 1px solid $color-border-light;
+  border-radius: $border-radius-lg;
+  padding: $spacing-lg $spacing-md;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+
+  .stat-number {
+    font-size: 2rem;
+    font-weight: 700;
+    color: $color-text-dark;
+    line-height: 1;
+  }
+
+  .stat-label {
+    font-size: $font-size-sm;
+    color: $color-text-light;
+  }
+
+  &--warning {
+    border-color: $color-warning;
+    background: rgba($color-warning, 0.05);
+
+    .stat-number {
+      color: $color-accent-brown;
+    }
+  }
+
+  &--accent {
+    border-color: $color-primary;
+    background: rgba($color-primary, 0.05);
+
+    .stat-number {
+      color: $color-primary;
+    }
+  }
+}
+
+/* Quick Actions Card */
+.quick-actions-card {
+  background: $color-off-white;
+  border: 1px solid $color-border-light;
+  border-radius: $border-radius-lg;
+  padding: $spacing-lg;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+
+  h3 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: $color-text-dark;
+  }
+
+  @include respond-below(lg) {
+    grid-column: 1 / -1;
+  }
+}
+
+.quick-action-link {
+  background: none;
+  border: none;
+  padding: $spacing-xs 0;
+  color: $color-primary;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  text-align: left;
+  cursor: pointer;
+  transition: color 0.2s ease;
+
+  &:hover {
+    color: $color-primary-dark;
+    text-decoration: underline;
+  }
+}
+
+/* Dashboard Sections */
+.dashboard-section {
+  margin-top: $spacing-xl;
+
+  h2 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: $color-text-dark;
+    margin: 0 0 $spacing-md;
+  }
+
+}
+
+.rejection-form {
+  p {
+    margin: 0 0 $spacing-sm;
+    color: $color-text-dark;
+  }
+
+  .form-textarea {
+    width: 100%;
+    box-sizing: border-box;
+    padding: $spacing-sm;
+    border: 1px solid $color-border-light;
+    border-radius: $border-radius-sm;
+    font-family: inherit;
+    font-size: $font-size-base;
+    color: $color-text-dark;
+    line-height: $line-height-base;
+    resize: vertical;
+    min-height: 80px;
+
+    &:focus {
+      outline: none;
+      border-color: $color-primary;
+    }
+  }
+}
+
+.empty-actions {
+  background: $color-white;
+  border: 1px solid $color-border-light;
+  border-radius: $border-radius-lg;
+  padding: $spacing-xl;
+  text-align: center;
+
+  p {
+    margin: 0;
+    color: $color-text-light;
+  }
+}
+
+/* Action Cards Grid */
+.action-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: $spacing-md;
+
+  @include respond-below(lg) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @include respond-below(sm) {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Individual Action Card */
+.action-card {
+  background: $color-white;
+  border: 1px solid $color-border-light;
+  border-radius: $border-radius-lg;
+  padding: $spacing-lg;
+  border-left: 4px solid $color-border-light;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+  transition: box-shadow 0.2s ease;
+
+  &:hover {
+    box-shadow: $shadow-md;
+  }
+
+  &--overdue {
+    border-left-color: $color-error;
+    background: rgba($color-error, 0.02);
+  }
+
+  &--due-today {
+    border-left-color: $color-warning;
+    background: rgba($color-warning, 0.03);
+  }
+
+  &--upcoming {
+    border-left-color: $color-primary;
+    background: rgba($color-primary, 0.02);
+  }
+}
+
+.action-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.urgency-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: $border-radius-sm;
+  font-size: 0.6875rem;
+  font-weight: $font-weight-bold;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+
+  &--overdue {
+    background: rgba($color-error, 0.1);
+    color: $color-error;
+  }
+
+  &--due-today {
+    background: rgba($color-warning, 0.15);
+    color: $color-accent-brown;
+  }
+
+  &--upcoming {
+    background: rgba($color-primary, 0.1);
+    color: $color-primary-dark;
+  }
+}
+
+.action-card-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: $color-text-dark;
+}
+
+.action-card-desc {
+  margin: 0;
+  font-size: $font-size-sm;
+  color: $color-text-light;
+  line-height: 1.5;
+  flex: 1;
+}
+
+.action-card-actions {
+  display: flex;
+  gap: $spacing-sm;
+  margin-top: $spacing-xs;
+}
+
+.btn-action {
+  padding: $spacing-xs $spacing-md;
+  border-radius: $border-radius-sm;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &--primary {
+    background: $color-primary;
+    color: $color-white;
+    border: none;
+
+    &:hover {
+      background: $color-primary-hover;
+    }
+
+    &:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+  }
+
+  &--secondary {
+    background: $color-white;
+    color: $color-text-light;
+    border: 1px solid $color-border-light;
+
+    &:hover {
+      border-color: $color-text-light;
+      color: $color-text-dark;
+    }
+  }
+}

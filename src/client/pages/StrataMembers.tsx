@@ -5,7 +5,7 @@ import { supabase } from '../../shared/lib/supabaseClient';
 import { LoadingSpinner } from '../../shared/components/LoadingSpinner';
 import { Modal } from '../../shared/components/Modal';
 import { InputField, FormRow } from '../../shared/components/FormField';
-import type { StrataMemberInfo } from '../../shared/types/entities.types';
+import type { StrataMemberInfo, StrataProfileResult } from '../../shared/types/entities.types';
 import { API_BASE } from '../../shared/lib/api';
 
 const STRATA_ROLES = ['Property Manager', 'Councillor'];
@@ -59,7 +59,7 @@ const StrataMembers = () => {
       if (membersError) throw membersError;
 
       const mapped: StrataMemberInfo[] = (members || []).map((m) => {
-        const p = m.profile as any;
+        const p = m.profile as unknown as StrataProfileResult;
         return {
           profileId: p.id,
           firstName: p.first_name,

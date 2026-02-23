@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { InputField, FormRow } from '../../shared/components/FormField';
 import { useClientServiceRequest } from '../../shared/hooks/useClientServiceRequest';
 import { useTimelines } from '../../shared/hooks/useTimelines';
@@ -48,7 +49,46 @@ function daysBetween(a: Date, b: Date): number {
   return Math.floor(ms / (1000 * 60 * 60 * 24));
 }
 
+/** Build a date for the given month/day in the specified year, clamping Feb 29 to Feb 28 in non-leap years */
+function buildAnniversaryDate(year: number, month: number, day: number): Date {
+  const candidate = new Date(year, month, day);
+  // If the month rolled over (e.g. Feb 29 → Mar 1), clamp to last day of intended month
+  if (candidate.getMonth() !== month) {
+    return new Date(year, month + 1, 0); // last day of the intended month
+  }
+  return candidate;
+}
+
+/** Next anniversary of baseDate that is strictly after referenceDate */
+function getNextAnniversary(baseDate: Date, referenceDate: Date): Date {
+  const month = baseDate.getMonth();
+  const day = baseDate.getDate();
+  let year = referenceDate.getFullYear();
+
+  for (let i = 0; i < 10; i++) {
+    const candidate = buildAnniversaryDate(year, month, day);
+    if (candidate > referenceDate) return candidate;
+    year++;
+  }
+  return buildAnniversaryDate(referenceDate.getFullYear() + 1, month, day);
+}
+
+/** Most recent anniversary of baseDate that is on or before referenceDate */
+function getMostRecentAnniversary(baseDate: Date, referenceDate: Date): Date {
+  const month = baseDate.getMonth();
+  const day = baseDate.getDate();
+  let year = referenceDate.getFullYear();
+
+  for (let i = 0; i < 10; i++) {
+    const candidate = buildAnniversaryDate(year, month, day);
+    if (candidate <= referenceDate) return candidate;
+    year--;
+  }
+  return baseDate;
+}
+
 const Timelines = () => {
+  const navigate = useNavigate();
   const { activeRequest, serviceRequestId, loading: srLoading } = useClientServiceRequest();
   const { timelines, loading: timelinesLoading, error: loadError, updateTimelines } = useTimelines(serviceRequestId);
 
@@ -56,7 +96,6 @@ const Timelines = () => {
   const [lastAGM, setLastAGM] = useState('');
   const [lastDepreciationReport, setLastDepreciationReport] = useState('');
   const [targetDate, setTargetDate] = useState('');
-  const [noFiscalYearToDate, setNoFiscalYearToDate] = useState(false);
   const [noAGMToDate, setNoAGMToDate] = useState(false);
   const [noReportToDate, setNoReportToDate] = useState(false);
 
@@ -67,7 +106,6 @@ const Timelines = () => {
     targetDate?: string;
   }>({});
   const [saveError, setSaveError] = useState<string | null>(null);
-  const [confirmSuccess, setConfirmSuccess] = useState(false);
   const [showCalculatedResults, setShowCalculatedResults] = useState(false);
 
   const initializedFromTimelines = useRef(false);
@@ -76,25 +114,23 @@ const Timelines = () => {
     if (timelines == null || initializedFromTimelines.current) return;
     initializedFromTimelines.current = true;
     setFiscalYearStart(toDateInputValue(timelines.fiscalYearEnd));
-    // Do not auto-check "No fiscal year to date" from loaded data; let the user decide
-    if (timelines.fiscalYearEnd != null) {
-      setNoFiscalYearToDate(false);
-    }
     setLastAGM(toDateInputValue(timelines.lastAgmDate));
     setNoAGMToDate(timelines.noAgmToDate);
     setLastDepreciationReport(toDateInputValue(timelines.lastDepreciationReportDate));
     setNoReportToDate(timelines.noReportToDate);
     setTargetDate(toDateInputValue(timelines.targetDate));
+    if (timelines.targetDate) {
+      setShowCalculatedResults(true);
+    }
   }, [timelines]);
 
   const handleCalculate = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaveError(null);
-    setConfirmSuccess(false);
     const newErrors: typeof errors = {};
 
-    if (!noFiscalYearToDate && !fiscalYearStart.trim()) {
-      newErrors.fiscalYearStart = 'Please select fiscal year start date or check "No fiscal year to date".';
+    if (!fiscalYearStart.trim()) {
+      newErrors.fiscalYearStart = 'Please select a fiscal year start date.';
     }
     if (!noAGMToDate && !lastAGM.trim()) {
       newErrors.lastAGM = 'Please select date of last AGM or check "No AGM to date".';
@@ -104,15 +140,10 @@ const Timelines = () => {
         'Please select date of last depreciation report or check "No report to date".';
     }
 
-    // Target date must be between last AGM and 45 days before next AGM (i.e. last AGM <= target <= last AGM + 320 days)
-    if (lastAGM.trim() && targetDate.trim() && !noAGMToDate) {
-      const lastAgmMs = new Date(lastAGM + 'T00:00:00').getTime();
-      const targetMs = new Date(targetDate + 'T00:00:00').getTime();
-      const daysAfterLastAgm = (targetMs - lastAgmMs) / (1000 * 60 * 60 * 24);
-      if (daysAfterLastAgm < 0) {
-        newErrors.targetDate = 'Target date must be on or after the date of last AGM.';
-      } else if (daysAfterLastAgm > 320) {
-        newErrors.targetDate = 'Target date must be at least 45 days before the next projected AGM.';
+    if (targetDate.trim()) {
+      const targetDateObj = new Date(targetDate + 'T00:00:00');
+      if (targetDateObj < today) {
+        newErrors.targetDate = 'Target date cannot be in the past.';
       }
     }
 
@@ -123,7 +154,7 @@ const Timelines = () => {
   };
 
   const buildPayload = (): UpdateTimelinesInput => ({
-    fiscalYearEnd: noFiscalYearToDate ? null : (fiscalYearStart ? new Date(fiscalYearStart + 'T00:00:00').toISOString() : null),
+    fiscalYearEnd: fiscalYearStart ? new Date(fiscalYearStart + 'T00:00:00').toISOString() : null,
     lastAgmDate: lastAGM ? new Date(lastAGM + 'T00:00:00').toISOString() : null,
     noAgmToDate: noAGMToDate,
     lastDepreciationReportDate: lastDepreciationReport ? new Date(lastDepreciationReport + 'T00:00:00').toISOString() : null,
@@ -135,8 +166,8 @@ const Timelines = () => {
     setSaveError(null);
     const newErrors: typeof errors = {};
 
-    if (!noFiscalYearToDate && !fiscalYearStart.trim()) {
-      newErrors.fiscalYearStart = 'Please select fiscal year start date or check "No fiscal year to date".';
+    if (!fiscalYearStart.trim()) {
+      newErrors.fiscalYearStart = 'Please select a fiscal year start date.';
     }
     if (!noAGMToDate && !lastAGM.trim()) {
       newErrors.lastAGM = 'Please select date of last AGM or check "No AGM to date".';
@@ -145,14 +176,10 @@ const Timelines = () => {
       newErrors.lastDepreciationReport =
         'Please select date of last depreciation report or check "No report to date".';
     }
-    if (lastAGM.trim() && targetDate.trim() && !noAGMToDate) {
-      const lastAgmMs = new Date(lastAGM + 'T00:00:00').getTime();
-      const targetMs = new Date(targetDate + 'T00:00:00').getTime();
-      const daysAfterLastAgm = (targetMs - lastAgmMs) / (1000 * 60 * 60 * 24);
-      if (daysAfterLastAgm < 0) {
-        newErrors.targetDate = 'Target date must be on or after the date of last AGM.';
-      } else if (daysAfterLastAgm > 320) {
-        newErrors.targetDate = 'Target date must be at least 45 days before the next projected AGM.';
+    if (targetDate.trim()) {
+      const targetDateObj = new Date(targetDate + 'T00:00:00');
+      if (targetDateObj < today) {
+        newErrors.targetDate = 'Target date cannot be in the past.';
       }
     }
 
@@ -161,7 +188,7 @@ const Timelines = () => {
 
     try {
       await updateTimelines(buildPayload());
-      setConfirmSuccess(true);
+      navigate('/client/survey', { state: { fromTimelines: true } });
     } catch {
       setSaveError('Failed to save timelines. Please try again.');
     }
@@ -178,14 +205,17 @@ const Timelines = () => {
   const lastAGMDate = lastAGM && !noAGMToDate ? new Date(lastAGM + 'T00:00:00') : null;
   const nextProjectedAGMDate: Date | null =
     lastAGMDate
-      ? addDays(lastAGMDate, 365)
+      ? getNextAnniversary(lastAGMDate, today)
       : noAGMToDate && fiscalYearStartDate
-        ? addDays(fiscalYearStartDate, 365)
+        ? getNextAnniversary(fiscalYearStartDate, today)
         : null;
+  const autoTargetDate: Date | null = nextProjectedAGMDate
+    ? addDays(nextProjectedAGMDate, -45)
+    : null;
   const displayTargetDate: Date | null = targetDate.trim()
     ? new Date(targetDate + 'T00:00:00')
-    : nextProjectedAGMDate
-      ? addDays(nextProjectedAGMDate, -45)
+    : (autoTargetDate && autoTargetDate >= today)
+      ? autoTargetDate
       : null;
   // Normalize to local date-only so "today" and "file opened today" both yield 0 days (avoids -1 from UTC vs local)
   const fileOpenedDateObj = fileOpenedDate
@@ -194,10 +224,13 @@ const Timelines = () => {
         return new Date(d.getFullYear(), d.getMonth(), d.getDate());
       })()
     : null;
-  const nextFiscalYearStart = fiscalYearStartDate ? addDays(fiscalYearStartDate, 365) : null;
+  const nextFiscalYearStart = fiscalYearStartDate ? getNextAnniversary(fiscalYearStartDate, today) : null;
+  const mostRecentFiscalYearStart = fiscalYearStartDate
+    ? getMostRecentAnniversary(fiscalYearStartDate, today)
+    : null;
 
   const daysIntoFiscalYear =
-    fiscalYearStartDate != null ? daysBetween(fiscalYearStartDate, today) : null;
+    mostRecentFiscalYearStart != null ? daysBetween(mostRecentFiscalYearStart, today) : null;
   const daysRemainingFiscalYear =
     nextFiscalYearStart != null ? daysBetween(today, nextFiscalYearStart) : null;
   const daysSinceLastAGM =
@@ -248,32 +281,19 @@ const Timelines = () => {
           <FormRow>
             <div>
               <InputField
-                label="Fiscal year start date"
+                label="Current Fiscal Year Start Date"
                 type="date"
-                required={!noFiscalYearToDate}
+                required
                 value={fiscalYearStart}
                 onChange={(e) => setFiscalYearStart(e.target.value)}
                 error={errors.fiscalYearStart}
-                disabled={noFiscalYearToDate}
                 max={maxDateToday}
               />
-              <div className="timelines-checkbox">
-                <input
-                  type="checkbox"
-                  id="no-fiscal-year"
-                  checked={noFiscalYearToDate}
-                  onChange={(e) => {
-                    setNoFiscalYearToDate(e.target.checked);
-                    if (e.target.checked) setErrors((prev) => ({ ...prev, fiscalYearStart: undefined }));
-                  }}
-                />
-                <label htmlFor="no-fiscal-year">No fiscal year to date</label>
-              </div>
             </div>
 
             <div>
               <InputField
-                label="Date of last AGM?"
+                label="Date of Last AGM?"
                 type="date"
                 required={!noAGMToDate}
                 value={lastAGM}
@@ -333,6 +353,7 @@ const Timelines = () => {
                   if (errors.targetDate) setErrors((prev) => ({ ...prev, targetDate: undefined }));
                 }}
                 error={errors.targetDate}
+                min={maxDateToday}
               />
             </div>
           </FormRow>
@@ -409,9 +430,6 @@ const Timelines = () => {
                 Confirm Timelines
               </button>
             </div>
-            {confirmSuccess && (
-              <p className="timelines-confirm-success">Timelines confirmed.</p>
-            )}
           </>
         )}
       </div>

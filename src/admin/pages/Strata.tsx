@@ -7,7 +7,6 @@ import {
   DataTable,
   type Column,
 } from "../../shared/components/DataTable";
-import { LoadingSpinner } from "../../shared/components/LoadingSpinner";
 import { Modal } from "../../shared/components/Modal";
 import {
   InputField,
@@ -80,7 +79,7 @@ export default function StrataPage() {
     setFilteredStratas(result);
   }, [stratas, filterStrataName, filterStrataPlan, filterPropertyTypeIds, filterCity, showArchived]);
 
-  const columns: Column<Strata>[] = [
+  const desktopColumns: Column<Strata>[] = [
     { key: "strataPlan", header: "Strata Plan" },
     { key: "complexName", header: "Complex Name" },
     { key: "streetName", header: "Address" },
@@ -97,6 +96,15 @@ export default function StrataPage() {
         strata.strataPropertyTypes?.length
           ? strata.strataPropertyTypes.map((spt) => spt.propertyType.propertyTypeName).join(", ")
           : strata.propertyType?.propertyTypeName ?? "-",
+    },
+  ];
+
+  const mobileColumns: Column<Strata>[] = [
+    { key: "strataPlan", header: "Strata Plan" },
+    {
+      key: "complexName",
+      header: "Complex Name",
+      render: (strata) => strata.complexName || "-",
     },
   ];
 
@@ -242,77 +250,27 @@ export default function StrataPage() {
 
       {error && <div className="error-banner">{error}</div>}
 
-      {isDesktop ? (
-        <DataTable
-          columns={columns}
-          data={filteredStratas}
-          keyExtractor={(s) => s.strataId}
-          loading={loading}
-          emptyMessage="No strata properties found. Click 'Create New Strata' to create one."
-          onRowClick={(strata) => navigate(`/admin/strata/${strata.strataId}`)}
-          actions={(strata) => (
-            <>
-              <button
-                className="btn-edit"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  openEditModal(strata);
-                }}
-              >
-                Edit
-              </button>
-            </>
-          )}
-        />
-      ) : (
-        <>
-          {loading && <LoadingSpinner />}
-          {!loading && filteredStratas.length === 0 && (
-            <div className="data-table-empty">
-              <p>No strata properties found. Click &apos;Create New Strata&apos; to create one.</p>
-            </div>
-          )}
-          {!loading && filteredStratas.length > 0 && (
-            <div className="data-table-container">
-              <table className="data-table strata-table-mobile">
-                <thead>
-                  <tr>
-                    <th colSpan={2} className="strata-mobile-title">
-                      Stratas
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredStratas.map((strata) => (
-                    <tr
-                      key={strata.strataId}
-                      onClick={() => navigate(`/admin/strata/${strata.strataId}`)}
-                      style={{ cursor: "pointer" }}
-                    >
-                      <td className="strata-mobile-col-name">
-                        {strata.complexName || strata.strataPlan || "-"}
-                      </td>
-                      <td className="strata-mobile-col-actions actions-cell">
-                        <div className="strata-mobile-actions">
-                          <button
-                            className="btn-edit"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              openEditModal(strata);
-                            }}
-                          >
-                            Edit
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </>
-      )}
+      <DataTable
+        title={isDesktop ? undefined : 'Stratas'}
+        columns={isDesktop ? desktopColumns : mobileColumns}
+        data={filteredStratas}
+        keyExtractor={(s) => s.strataId}
+        loading={loading}
+        emptyMessage="No strata properties found. Click 'Create New Strata' to create one."
+        onRowClick={(strata) => navigate(`/admin/strata/${strata.strataId}`)}
+        actions={(strata) => (
+          <button
+            className="btn-edit"
+            onClick={(e) => {
+              e.stopPropagation();
+              openEditModal(strata);
+            }}
+          >
+            Edit
+          </button>
+        )}
+        actionsColumnHeader="Action"
+      />
 
       <Modal
         isOpen={isModalOpen}

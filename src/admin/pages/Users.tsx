@@ -18,7 +18,7 @@ const initialFormData: UserFormData = {
   phoneNumber: '',
   userTypeId: undefined,
   companyName: '',
-  strataAssociations: [{ strataId: 0, strataPosition: '', sectionIds: [] }]
+  strataAssociations: [{ strataId: 0, strataPosition: '', sectionIds: [], propertyTypeIds: [] }]
 };
 
 export default function UsersPage() {
@@ -201,9 +201,10 @@ export default function UsersPage() {
         ? user.strataProfiles.map(se => ({
             strataId: se.strata.strataId,
             strataPosition: se.strataPosition || '',
-            sectionIds: se.strataProfileSections?.map(sps => sps.sectionId) || []
+            sectionIds: se.strataProfileSections?.map(sps => sps.sectionId) || [],
+            propertyTypeIds: se.strataProfilePropertyTypes?.map(sppt => sppt.propertyTypeId) || []
           }))
-        : [{ strataId: 0, strataPosition: '', sectionIds: [] as number[] }]
+        : [{ strataId: 0, strataPosition: '', sectionIds: [] as number[], propertyTypeIds: [] as number[] }]
     });
     setFormError(null);
     setIsModalOpen(true);
@@ -285,7 +286,7 @@ export default function UsersPage() {
   const addStrataAssociation = () => {
     setFormData(prev => ({
       ...prev,
-      strataAssociations: [...prev.strataAssociations, { strataId: 0, strataPosition: '', sectionIds: [] }]
+      strataAssociations: [...prev.strataAssociations, { strataId: 0, strataPosition: '', sectionIds: [], propertyTypeIds: [] }]
     }));
   };
 
@@ -293,6 +294,14 @@ export default function UsersPage() {
     setFormData(prev => {
       const newAssociations = [...prev.strataAssociations];
       newAssociations[index] = { ...newAssociations[index], sectionIds };
+      return { ...prev, strataAssociations: newAssociations };
+    });
+  };
+
+  const updateStrataAssociationPropertyTypes = (index: number, propertyTypeIds: number[]) => {
+    setFormData(prev => {
+      const newAssociations = [...prev.strataAssociations];
+      newAssociations[index] = { ...newAssociations[index], propertyTypeIds };
       return { ...prev, strataAssociations: newAssociations };
     });
   };
@@ -531,9 +540,15 @@ export default function UsersPage() {
                 </FormRow>
                 <MultiSelectDropdown
                   label={`Property Types${index === 0 ? '' : ` ${index + 1}`}`}
-                  options={propertyTypes.map(pt => ({ value: pt.propertyTypeId, label: pt.propertyTypeName })).sort((a, b) => a.label.localeCompare(b.label))}
-                  selectedValues={association.sectionIds || []}
-                  onChange={(values) => updateStrataAssociationSections(index, values)}
+                  options={
+                    selectedStrata?.strataPropertyTypes?.length
+                      ? selectedStrata.strataPropertyTypes
+                          .map(spt => ({ value: spt.propertyType.propertyTypeId, label: spt.propertyType.propertyTypeName }))
+                          .sort((a, b) => a.label.localeCompare(b.label))
+                      : propertyTypes.map(pt => ({ value: pt.propertyTypeId, label: pt.propertyTypeName })).sort((a, b) => a.label.localeCompare(b.label))
+                  }
+                  selectedValues={association.propertyTypeIds || []}
+                  onChange={(values) => updateStrataAssociationPropertyTypes(index, values)}
                   placeholder="Select property types"
                 />
                 {index > 0 && (

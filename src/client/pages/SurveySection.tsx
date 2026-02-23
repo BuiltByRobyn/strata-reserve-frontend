@@ -47,6 +47,10 @@ export default function SurveySectionPage() {
     ? allQuestions.filter(q => q.questionCategory === sectionConfig.label)
     : [];
 
+  const requiredSections = SURVEY_SECTIONS.filter(s =>
+    allQuestions.some(q => q.questionCategory === s.label)
+  );
+
   const totalPages = Math.ceil(sectionQuestions.length / QUESTIONS_PER_PAGE);
   const pageQuestions = sectionQuestions.slice(
     page * QUESTIONS_PER_PAGE,
@@ -54,8 +58,8 @@ export default function SurveySectionPage() {
   );
 
   const isLastPage = page >= totalPages - 1;
-  const currentSectionIdx = SURVEY_SECTIONS.findIndex(s => s.key === section);
-  const isLastSection = currentSectionIdx >= SURVEY_SECTIONS.length - 1;
+  const currentSectionIdx = requiredSections.findIndex(s => s.key === section);
+  const isLastSection = currentSectionIdx >= requiredSections.length - 1;
 
   const totalAnswered = responses.length;
   const totalQuestions = allQuestions.length;
@@ -304,7 +308,7 @@ export default function SurveySectionPage() {
   return (
     <div className="survey-section-page">
       <SurveyCategoryNav
-        sections={SURVEY_SECTIONS}
+        sections={requiredSections}
         activeSection={section || ''}
         onSelect={handleSectionChange}
         completionMap={completionMap}
@@ -339,7 +343,7 @@ export default function SurveySectionPage() {
                 await handlePageChange(page - 1);
               } else if (currentSectionIdx > 0) {
                 await saveCurrent();
-                navigate(`/client/survey/${SURVEY_SECTIONS[currentSectionIdx - 1].key}`);
+                navigate(`/client/survey/${requiredSections[currentSectionIdx - 1].key}`);
               }
             }}
             disabled={saving}
@@ -373,9 +377,8 @@ export default function SurveySectionPage() {
                 await handlePageChange(page + 1);
               } else {
                 await saveCurrent();
-                const currentIdx = SURVEY_SECTIONS.findIndex(s => s.key === section);
-                if (currentIdx < SURVEY_SECTIONS.length - 1) {
-                  navigate(`/client/survey/${SURVEY_SECTIONS[currentIdx + 1].key}`);
+                if (currentSectionIdx < requiredSections.length - 1) {
+                  navigate(`/client/survey/${requiredSections[currentSectionIdx + 1].key}`);
                 }
               }
             }}
