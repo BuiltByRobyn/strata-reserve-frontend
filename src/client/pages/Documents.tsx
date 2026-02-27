@@ -29,6 +29,8 @@ export default function ClientDocumentsPage() {
   const [page, setPage] = useState(0);
   const [naStatuses, setNaStatuses] = useState<Map<number, 'not_available' | 'not_applicable'>>(new Map());
   const [uploadingTypeId, setUploadingTypeId] = useState<number | null>(null);
+  const [uploadingPropertyTypeId, setUploadingPropertyTypeId] = useState<number | undefined>(undefined);
+  const [uploadingPropertyTypeName, setUploadingPropertyTypeName] = useState<string | undefined>(undefined);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [showThankYou, setShowThankYou] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -80,8 +82,10 @@ export default function ClientDocumentsPage() {
   );
   const isLastPage = page >= totalPages - 1;
 
-  const handleUploadClick = (documentTypeId: number) => {
+  const handleUploadClick = (documentTypeId: number, propertyTypeId?: number, propertyTypeName?: string) => {
     setUploadingTypeId(documentTypeId);
+    setUploadingPropertyTypeId(propertyTypeId);
+    setUploadingPropertyTypeName(propertyTypeName);
     setUploadError(null);
     fileInputRef.current?.click();
   };
@@ -91,21 +95,23 @@ export default function ClientDocumentsPage() {
     if (!file || !uploadingTypeId || !strataPlan) return;
 
     const typeError = validateFileType(file);
-    if (typeError) { setUploadError(typeError); setUploadingTypeId(null); return; }
+    if (typeError) { setUploadError(typeError); setUploadingTypeId(null); setUploadingPropertyTypeId(undefined); setUploadingPropertyTypeName(undefined); return; }
 
     const sizeError = validateFileSize(file);
-    if (sizeError) { setUploadError(sizeError); setUploadingTypeId(null); return; }
+    if (sizeError) { setUploadError(sizeError); setUploadingTypeId(null); setUploadingPropertyTypeId(undefined); setUploadingPropertyTypeName(undefined); return; }
 
     setUploadError(null);
-    const success = await uploadDocument(file, uploadingTypeId, strataPlan);
+    const success = await uploadDocument(file, uploadingTypeId, strataPlan, undefined, uploadingPropertyTypeId, uploadingPropertyTypeName);
 
     if (success && serviceRequestId) {
       await fetchRequiredDocuments(serviceRequestId);
     }
 
     setUploadingTypeId(null);
+    setUploadingPropertyTypeId(undefined);
+    setUploadingPropertyTypeName(undefined);
     if (fileInputRef.current) fileInputRef.current.value = '';
-  }, [uploadingTypeId, strataPlan, uploadDocument, serviceRequestId, fetchRequiredDocuments]);
+  }, [uploadingTypeId, uploadingPropertyTypeId, uploadingPropertyTypeName, strataPlan, uploadDocument, serviceRequestId, fetchRequiredDocuments]);
 
   const handlePageChange = (newPage: number) => {
     setPage(newPage);
@@ -250,7 +256,7 @@ export default function ClientDocumentsPage() {
                         </button>
                         <button
                           className="btn-replace"
-                          onClick={() => handleUploadClick(item.documentType.documentTypeId)}
+                          onClick={() => handleUploadClick(item.documentType.documentTypeId, item.propertyType?.propertyTypeId, item.propertyType?.propertyTypeName)}
                           disabled={isUploadingThis}
                         >
                           {isUploadingThis ? 'Uploading...' : 'Replace'}
@@ -264,7 +270,7 @@ export default function ClientDocumentsPage() {
                       <>
                         <button
                           className="btn-upload"
-                          onClick={() => handleUploadClick(item.documentType.documentTypeId)}
+                          onClick={() => handleUploadClick(item.documentType.documentTypeId, item.propertyType?.propertyTypeId, item.propertyType?.propertyTypeName)}
                           disabled={isUploadingThis}
                         >
                           {isUploadingThis ? 'Uploading...' : 'Upload'}

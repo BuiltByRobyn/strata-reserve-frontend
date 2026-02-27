@@ -97,7 +97,9 @@ export const useClientDocuments = () => {
     file: File,
     documentTypeId: number,
     strataId: string,
-    notes?: string
+    notes?: string,
+    propertyTypeId?: number,
+    propertyTypeName?: string
   ): Promise<boolean> => {
     const token = session?.access_token;
     if (!token) {
@@ -109,7 +111,7 @@ export const useClientDocuments = () => {
     setState(prev => ({ ...prev, error: null }));
 
     try {
-      await supabaseUploadDocument({ token, file, documentTypeId, strataId, notes });
+      await supabaseUploadDocument({ token, file, documentTypeId, strataId, notes, propertyTypeId, propertyTypeName });
       await fetchMyDocuments();
       return true;
     } catch (err) {

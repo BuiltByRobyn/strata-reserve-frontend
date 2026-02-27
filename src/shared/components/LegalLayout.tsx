@@ -9,6 +9,9 @@ export const LegalLayout: React.FC<LegalLayoutProps> = ({ title, children }) => 
         <div className="legal-page">
             <header className="legal-header">
                 <div className="legal-header-content">
+                    <button className="btn-link" onClick={() => navigate('/login')}>
+                        &larr; Back to Login
+                    </button>
                     <div className="legal-logo" onClick={() => navigate('/login')}>
                         <img src="/logonobg.png" alt="Strata Reserve Planning Logo" />
                         <div className="logo-text">
@@ -16,9 +19,6 @@ export const LegalLayout: React.FC<LegalLayoutProps> = ({ title, children }) => 
                             <span className="subbrand">Planning</span>
                         </div>
                     </div>
-                    <button className="btn-link" onClick={() => navigate('/login')}>
-                        &larr; Back to Login
-                    </button>
                 </div>
             </header>
 
