@@ -1,0 +1,167 @@
+@use '../variables' as *;
+
+.legal-page {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background-color: $color-primary;
+    font-family: inherit;
+}
+
+.legal-header {
+    background-color: transparent;
+    padding: $spacing-xl 0;
+
+    .legal-header-content {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 0 $spacing-xl;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .legal-logo {
+        display: flex;
+        align-items: center;
+        gap: $spacing-md;
+        cursor: pointer;
+
+        img {
+            width: 48px;
+            height: 48px;
+            padding: 4px;
+            border-radius: $border-radius-md;
+            object-fit: contain;
+        }
+
+        .logo-text {
+            display: flex;
+            flex-direction: column;
+            color: $color-white;
+
+            .brand {
+                font-weight: $font-weight-bold;
+                font-size: $font-size-lg;
+            }
+
+            .subbrand {
+                font-size: $font-size-sm;
+                opacity: 0.9;
+            }
+        }
+    }
+
+    .btn-link {
+        color: $color-white;
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        padding: 8px 16px;
+        border-radius: $border-radius-md;
+        transition: all 0.2s ease;
+        text-decoration: none;
+        background: rgba(255, 255, 255, 0.1);
+
+        &:hover {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: rgba(255, 255, 255, 0.5);
+        }
+    }
+}
+
+.legal-container {
+    flex: 1;
+    padding: $spacing-lg $spacing-xl $spacing-2xl;
+    display: flex;
+    justify-content: center;
+}
+
+.legal-document {
+    background-color: $color-white;
+    width: 100%;
+    max-width: 900px;
+    padding: $spacing-3xl;
+    border-radius: $border-radius-xl;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+
+    h1 {
+        font-size: $font-size-3xl;
+        color: $color-text-dark;
+        margin-bottom: $spacing-2xl;
+        border-bottom: 2px solid $color-primary-lightest;
+        padding-bottom: $spacing-md;
+    }
+
+    .legal-content {
+        color: $color-text-secondary;
+        line-height: 1.8;
+        font-size: $font-size-base;
+
+        h2 {
+            color: $color-text-dark;
+            font-size: $font-size-xl;
+            margin-top: $spacing-2xl;
+            margin-bottom: $spacing-md;
+        }
+
+        h3 {
+            color: $color-text-dark;
+            font-size: $font-size-lg;
+            margin-top: $spacing-xl;
+            margin-bottom: $spacing-sm;
+        }
+
+        p {
+            margin-bottom: $spacing-lg;
+        }
+
+        ul,
+        ol {
+            margin-bottom: $spacing-lg;
+            padding-left: $spacing-xl;
+
+            li {
+                margin-bottom: $spacing-sm;
+            }
+        }
+
+        .update-date {
+            font-style: italic;
+            color: $color-text-muted;
+            margin-bottom: $spacing-2xl;
+        }
+
+        section {
+            margin-bottom: $spacing-3xl;
+        }
+    }
+}
+
+.legal-footer {
+    padding: $spacing-xl;
+    text-align: center;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: $font-size-sm;
+}
+
+@include respond-below(md) {
+    .legal-document {
+        padding: $spacing-xl;
+    }
+}
+
+@include respond-below(sm) {
+    .legal-header-content {
+        flex-direction: column;
+        gap: $spacing-md;
+        text-align: center;
+    }
+
+    .legal-document {
+        padding: $spacing-lg;
+        border-radius: $border-radius-lg;
+
+        h1 {
+            font-size: $font-size-2xl;
+        }
+    }
+}

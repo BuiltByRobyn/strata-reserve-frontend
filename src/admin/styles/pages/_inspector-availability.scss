@@ -1,0 +1,105 @@
+@use '../../../shared/styles/variables' as *;
+
+.inspector-availability-modal {
+    .modal-footer {
+        display: flex;
+        justify-content: space-between;
+        width: 100%;
+    }
+
+    .modal-actions {
+        display: flex;
+        gap: $spacing-sm;
+    }
+
+    .btn-remove {
+        background-color: $color-error;
+        color: $color-white;
+        padding: 8px 16px;
+        border: none;
+        border-radius: $border-radius-sm;
+        cursor: pointer;
+    }
+
+    .btn-cancel {
+        padding: 8px 16px;
+        border: 1px solid #ccc;
+        border-radius: $border-radius-sm;
+        background: $color-white;
+        cursor: pointer;
+    }
+
+    .btn-primary {
+        padding: 8px 16px;
+        border: none;
+        border-radius: $border-radius-sm;
+        cursor: pointer;
+        background-color: $color-success;
+        color: $color-white;
+    }
+
+    .modal-error {
+        margin-bottom: $spacing-md;
+        color: $color-error;
+        background-color: #ffeeee;
+        padding: 10px;
+        border-radius: $border-radius-sm;
+    }
+
+    .modal-loading {
+        display: flex;
+        justify-content: center;
+        padding: $spacing-xl;
+    }
+
+    .modal-form {
+        display: flex;
+        flex-direction: column;
+        gap: $spacing-xl;
+    }
+
+    .form-row {
+        width: 100%;
+    }
+
+    .form-row-dates {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: $spacing-xl;
+    }
+
+    .form-row-times {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: $spacing-xl;
+    }
+
+    .locations-label {
+        display: block;
+        margin-bottom: $spacing-sm;
+        font-weight: $font-weight-bold;
+        color: #6A7282;
+        font-size: $font-size-sm;
+    }
+
+    .locations-options {
+        display: flex;
+        gap: $spacing-xl;
+        flex-wrap: wrap;
+    }
+
+    .location-option {
+        display: flex;
+        align-items: center;
+        gap: $spacing-sm;
+        cursor: pointer;
+        font-size: $font-size-sm;
+        color: #333;
+
+        input[type="checkbox"] {
+            accent-color: #6B8E5F;
+            width: 18px;
+            height: 18px;
+        }
+    }
+}

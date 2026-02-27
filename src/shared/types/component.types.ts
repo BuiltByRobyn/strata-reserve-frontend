@@ -1,6 +1,6 @@
 import type { ReactNode, InputHTMLAttributes, SelectHTMLAttributes, TextareaHTMLAttributes } from 'react';
 import type { SurveySection } from './survey.types';
-import type { StrataPropertyType } from './entities.types';
+import type { StrataPropertyType, InspectorAvailableDate, CreateInspectorAvailableDateInput, UpdateInspectorAvailableDateInput } from './entities.types';
 
 export interface Column<T> {
   key: string;
@@ -30,7 +30,7 @@ export interface BaseFieldProps {
 
 export interface InputFieldProps extends BaseFieldProps,
   Omit<InputHTMLAttributes<HTMLInputElement>, 'className'> {
-  type?: 'text' | 'email' | 'tel' | 'password' | 'number' | 'url' | 'date';
+  type?: 'text' | 'email' | 'tel' | 'password' | 'number' | 'url' | 'date' | 'time';
 }
 
 export interface SelectFieldProps extends BaseFieldProps,
@@ -115,4 +115,18 @@ export interface SingleSelectDropdownProps extends BaseFieldProps {
 export interface PropertyTypeSelectorProps {
   availablePropertyTypes: StrataPropertyType[];
   onRequestSubmitted: () => void;
+}
+
+export interface LegalLayoutProps {
+  title: string;
+  children: ReactNode;
+}
+
+export interface InspectorAvailabilityModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  initialData: InspectorAvailableDate | null;
+  onSubmitCreate: (data: CreateInspectorAvailableDateInput) => Promise<any>;
+  onSubmitUpdate: (id: number, data: UpdateInspectorAvailableDateInput) => Promise<any>;
+  onDeleteClick?: () => void;
 }
