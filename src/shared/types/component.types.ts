@@ -130,3 +130,27 @@ export interface InspectorAvailabilityModalProps {
   onSubmitUpdate: (id: number, data: UpdateInspectorAvailableDateInput) => Promise<any>;
   onDeleteClick?: () => void;
 }
+
+export interface NavItem {
+  to: string;
+  label: string;
+  end?: boolean;
+}
+
+export interface UserInfo {
+  label: string;
+  value: string;
+}
+
+export interface NavbarProps {
+  variant: 'admin' | 'client';
+  navItems: NavItem[];
+  userInfoRows: UserInfo[];
+}
+
+export interface DeleteAvailabilityModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  block: InspectorAvailableDate;
+  onDelete: (id: number) => Promise<any>;
+}

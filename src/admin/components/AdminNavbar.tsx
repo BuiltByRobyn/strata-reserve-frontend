@@ -1,139 +1,29 @@
-import { useState } from "react";
-import { NavLink, useNavigate } from "react-router-dom";
-import { useAuth } from "../../shared/contexts/AuthContext";
+import { useAuth } from '../../shared/contexts/AuthContext';
+import { Navbar } from '../../shared/components/Navbar';
+
+const ADMIN_NAV_ITEMS = [
+  { to: '/admin/dashboard', label: 'Dashboard', end: true },
+  { to: '/admin/strata', label: 'Strata' },
+  { to: '/admin/users', label: 'Users' },
+  { to: '/admin/documents', label: 'Documents' },
+  { to: '/admin/questions', label: 'Questions' },
+  { to: '/admin/appointments', label: 'Appointments' },
+  { to: '/admin/timelines', label: 'Timelines' },
+  { to: '/admin/profile', label: 'System Settings' },
+];
 
 export const AdminNavbar = () => {
-  const { signOut, user } = useAuth();
-  const navigate = useNavigate();
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-
-  const handleLogout = async () => {
-    await signOut();
-    navigate('/login');
-  };
-
-  const toggleMobileMenu = () => {
-    setIsMobileMenuOpen(!isMobileMenuOpen);
-  };
-
-  const closeMobileMenu = () => {
-    setIsMobileMenuOpen(false);
-  };
-
-  // Get admin user details
+  const { user } = useAuth();
   const adminUser = user?.role === 'admin' ? user : null;
 
   return (
-    <>
-    <div
-      className={`sidebar-overlay${isMobileMenuOpen ? ' active' : ''}`}
-      onClick={closeMobileMenu}
+    <Navbar
+      variant="admin"
+      navItems={ADMIN_NAV_ITEMS}
+      userInfoRows={[
+        { label: 'Company:', value: 'Strata Reserve Planning' },
+        { label: 'User:', value: adminUser?.fullName || '' },
+      ]}
     />
-    <nav className={`navbar admin-navbar${isMobileMenuOpen ? ' sidebar-open' : ''}`}>
-      <div className="navbar-brand">
-        <img src="/logonobg.svg" alt="Building Icon" />
-        <div className="navbar-brand-titles">
-          <span>Strata Reserve</span>
-          <div className="navbar-brand-text">Information Report Portal</div>
-        </div>
-      </div>
-
-      <div className="navbar-user-info">
-        <div className="navbar-user-title">
-          Company:
-          </div>
-          <div className="navbar-user-details">
-            Strata Reserve Planning
-            </div>
-          <div className="navbar-user-title">
-          User:
-          </div>
-            <div className="navbar-user-details">
-            {adminUser?.fullName}
-          </div>
-        </div>
-      
-      {/* Hamburger Menu Button */}
-      <button 
-        className={`navbar-hamburger ${isMobileMenuOpen ? 'active' : ''}`}
-        onClick={toggleMobileMenu}
-        aria-label="Toggle navigation menu"
-        aria-expanded={isMobileMenuOpen}
-      >
-        <span></span>
-        <span></span>
-        <span></span>
-      </button>
-
-      <div className={`navbar-links ${isMobileMenuOpen ? 'active' : ''}`}>
-        <NavLink 
-          to="/admin/dashboard" 
-          className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} 
-          onClick={closeMobileMenu}
-          end
-        >
-          Dashboard
-        </NavLink>
-        <NavLink 
-          to="/admin/strata" 
-          className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
-          onClick={closeMobileMenu}
-        >
-          Strata
-        </NavLink>
-        <NavLink 
-          to="/admin/users" 
-          className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
-          onClick={closeMobileMenu}
-        >
-          Users
-        </NavLink>
-        <NavLink
-          to="/admin/documents"
-          className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
-          onClick={closeMobileMenu}
-        >
-          Documents
-        </NavLink>
-        <NavLink
-          to="/admin/questions"
-          className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
-          onClick={closeMobileMenu}
-        >
-          Questions
-        </NavLink>
-        <NavLink
-          to="/admin/appointments"
-          className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
-          onClick={closeMobileMenu}
-        >
-          Appointments
-        </NavLink>
-        <NavLink
-          to="/admin/timelines"
-          className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
-          onClick={closeMobileMenu}
-        >
-          Timelines
-        </NavLink>
-        <NavLink 
-          to="/admin/profile" 
-          className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
-          onClick={closeMobileMenu}
-        >
-          System Settings
-        </NavLink>
-        <button 
-          onClick={() => {
-            handleLogout();
-            closeMobileMenu();
-          }} 
-          className="nav-link logout-btn"
-        >
-          <img src="/icons/logout-icon.svg" alt="" />Sign out
-        </button>
-      </div>
-    </nav>
-    </>
   );
 };

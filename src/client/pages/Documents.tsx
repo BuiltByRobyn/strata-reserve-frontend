@@ -49,12 +49,19 @@ export default function ClientDocumentsPage() {
   }, [activeRequest]);
 
   const filteredDocuments = useMemo(() => {
+    let docs: RequiredDocumentChecklist[];
     if (clientPropertyTypeIds.length === 0) {
-      return requiredDocuments.filter(d => !d.propertyType);
+      docs = requiredDocuments.filter(d => !d.propertyType);
+    } else {
+      docs = requiredDocuments.filter(d =>
+        !d.propertyType || clientPropertyTypeIds.includes(d.propertyType.propertyTypeId)
+      );
     }
-    return requiredDocuments.filter(d =>
-      !d.propertyType || clientPropertyTypeIds.includes(d.propertyType.propertyTypeId)
-    );
+    return [...docs].sort((a, b) => {
+      const nameA = a.propertyType?.propertyTypeName || '';
+      const nameB = b.propertyType?.propertyTypeName || '';
+      return nameA.localeCompare(nameB);
+    });
   }, [requiredDocuments, clientPropertyTypeIds]);
 
   const allMandatoryUploaded = useMemo(() => {
@@ -219,84 +226,97 @@ export default function ClientDocumentsPage() {
       ) : (
         <>
           <div className="document-list">
-            {pageItems.map((item, index) => {
-              const docNumber = page * DOCS_PER_PAGE + index + 1;
-              const typeName = formatTypeName(item.documentType.typeName);
-              const isUploaded = !!item.uploadedDocument;
-              const naStatus = naStatuses.get(item.documentType.documentTypeId);
-              const isUploadingThis = uploadingTypeId === item.documentType.documentTypeId && uploading;
+            {(() => {
+              const groups: { name: string; items: { item: RequiredDocumentChecklist; globalIndex: number }[] }[] = [];
+              pageItems.forEach((item, index) => {
+                const groupName = item.propertyType?.propertyTypeName || 'General';
+                let group = groups.find(g => g.name === groupName);
+                if (!group) {
+                  group = { name: groupName, items: [] };
+                  groups.push(group);
+                }
+                group.items.push({ item, globalIndex: page * DOCS_PER_PAGE + index + 1 });
+              });
+              return groups.map(group => (
+                <div key={group.name} className="document-group">
+                  <h3 className="document-group-title">{group.name}</h3>
+                  {group.items.map(({ item, globalIndex }) => {
+                    const typeName = formatTypeName(item.documentType.typeName);
+                    const isUploaded = !!item.uploadedDocument;
+                    const naStatus = naStatuses.get(item.documentType.documentTypeId);
+                    const isUploadingThis = uploadingTypeId === item.documentType.documentTypeId && uploading;
 
-              return (
-                <div
-                  key={item.requiredDocumentId}
-                  className={`document-item${isUploaded ? ' uploaded' : ''}`}
-                >
-                  <div className="document-info">
-                    <span className="document-number">{docNumber}.</span>
-                    <span className="document-name">{typeName}</span>
-                  </div>
-                  <div className="document-badges">
-                    {item.propertyType && (
-                      <span className="property-type-badge">{item.propertyType.propertyTypeName}</span>
-                    )}
-                    {isUploaded
-                      ? <span className="uploaded-badge">Uploaded</span>
-                      : item.isRequired && <span className="mandatory-badge">Mandatory</span>
-                    }
-                  </div>
+                    return (
+                      <div
+                        key={item.requiredDocumentId}
+                        className={`document-item${isUploaded ? ' uploaded' : ''}`}
+                      >
+                        <div className="document-info">
+                          <span className="document-number">{globalIndex}.</span>
+                          <span className="document-name">{typeName}</span>
+                        </div>
+                        <div className="document-badges">
+                          {isUploaded
+                            ? <span className="uploaded-badge">Uploaded</span>
+                            : item.isRequired && <span className="mandatory-badge">Mandatory</span>
+                          }
+                        </div>
 
-                  <div className="document-actions">
-                    {isUploaded ? (
-                      <>
-                        <button
-                          className="btn-view"
-                          onClick={() => handlePreview(item)}
-                        >
-                          View
-                        </button>
-                        <button
-                          className="btn-replace"
-                          onClick={() => handleUploadClick(item.documentType.documentTypeId, item.propertyType?.propertyTypeId, item.propertyType?.propertyTypeName)}
-                          disabled={isUploadingThis}
-                        >
-                          {isUploadingThis ? 'Uploading...' : 'Replace'}
-                        </button>
-                      </>
-                    ) : naStatus ? (
-                      <span className="na-status">
-                        {naStatus === 'not_available' ? 'Not Available' : 'Not Applicable'}
-                      </span>
-                    ) : (
-                      <>
-                        <button
-                          className="btn-upload"
-                          onClick={() => handleUploadClick(item.documentType.documentTypeId, item.propertyType?.propertyTypeId, item.propertyType?.propertyTypeName)}
-                          disabled={isUploadingThis}
-                        >
-                          {isUploadingThis ? 'Uploading...' : 'Upload'}
-                        </button>
-                        {!item.isRequired && (
-                          <>
-                            <button
-                              className="btn-not-available"
-                              onClick={() => toggleNaStatus(item.documentType.documentTypeId, 'not_available')}
-                            >
-                              Not Available
-                            </button>
-                            <button
-                              className="btn-not-applicable"
-                              onClick={() => toggleNaStatus(item.documentType.documentTypeId, 'not_applicable')}
-                            >
-                              Not Applicable
-                            </button>
-                          </>
-                        )}
-                      </>
-                    )}
-                  </div>
+                        <div className="document-actions">
+                          {isUploaded ? (
+                            <>
+                              <button
+                                className="btn-view"
+                                onClick={() => handlePreview(item)}
+                              >
+                                View
+                              </button>
+                              <button
+                                className="btn-replace"
+                                onClick={() => handleUploadClick(item.documentType.documentTypeId, item.propertyType?.propertyTypeId, item.propertyType?.propertyTypeName)}
+                                disabled={isUploadingThis}
+                              >
+                                {isUploadingThis ? 'Uploading...' : 'Replace'}
+                              </button>
+                            </>
+                          ) : naStatus ? (
+                            <span className="na-status">
+                              {naStatus === 'not_available' ? 'Not Available' : 'Not Applicable'}
+                            </span>
+                          ) : (
+                            <>
+                              <button
+                                className="btn-upload"
+                                onClick={() => handleUploadClick(item.documentType.documentTypeId, item.propertyType?.propertyTypeId, item.propertyType?.propertyTypeName)}
+                                disabled={isUploadingThis}
+                              >
+                                {isUploadingThis ? 'Uploading...' : 'Upload'}
+                              </button>
+                              {!item.isRequired && (
+                                <>
+                                  <button
+                                    className="btn-not-available"
+                                    onClick={() => toggleNaStatus(item.documentType.documentTypeId, 'not_available')}
+                                  >
+                                    Not Available
+                                  </button>
+                                  <button
+                                    className="btn-not-applicable"
+                                    onClick={() => toggleNaStatus(item.documentType.documentTypeId, 'not_applicable')}
+                                  >
+                                    Not Applicable
+                                  </button>
+                                </>
+                              )}
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
-              );
-            })}
+              ));
+            })()}
           </div>
 
           <div className="documents-pagination">

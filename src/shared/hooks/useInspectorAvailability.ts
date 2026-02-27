@@ -1,144 +1,85 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useAuthFetch } from './useAuthFetch';
+import { useApiClient } from './useApiClient';
+import { REQUEST_TIMEOUT_MS } from '../lib/apiClient';
 import type {
   InspectorAvailableDate,
   CreateInspectorAvailableDateInput,
   UpdateInspectorAvailableDateInput,
-  ApiListResponse,
-  ApiSingleResponse
 } from '../types/entities.types';
 import type { InspectorAvailabilityState } from '../types/hooks.types';
-import { API_BASE } from '../lib/api';
 
 export const useInspectorAvailability = (inspectorProfileId?: string) => {
-  const authFetch = useAuthFetch();
+  const api = useApiClient();
   const [state, setState] = useState<InspectorAvailabilityState>({
     availableDates: [],
     loading: true,
     error: null
   });
 
-  // Fetch all available dates (optionally filtered by inspector)
   const fetchAvailableDates = useCallback(async () => {
     setState(prev => ({ ...prev, loading: true, error: null }));
-    
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000);
-      
-      const url = inspectorProfileId 
-        ? `${API_BASE}/admin/inspector-availability?inspectorProfileId=${inspectorProfileId}`
-        : `${API_BASE}/admin/inspector-availability`;
-        
-      const response = await authFetch(url, {
-        signal: controller.signal
-      });
-      clearTimeout(timeoutId);
-      
-      if (!response.ok) {
-        throw new Error(`Server error: ${response.status}`);
-      }
-      
-      const data: ApiListResponse<InspectorAvailableDate> = await response.json();
-      
-      if (data.success) {
-        setState({ availableDates: data.data || [], loading: false, error: null });
-      } else {
-        throw new Error(data.error || 'Failed to fetch available dates');
-      }
+      const params: Record<string, string | undefined> = {};
+      if (inspectorProfileId) params.inspectorProfileId = inspectorProfileId;
+
+      const availableDates = await api.get<InspectorAvailableDate[]>(
+        '/admin/inspector-availability',
+        { params, timeout: REQUEST_TIMEOUT_MS }
+      );
+      setState({ availableDates: availableDates || [], loading: false, error: null });
     } catch (error) {
       console.error('Error fetching available dates:', error);
-      const errorMessage = error instanceof Error 
-        ? (error.name === 'AbortError' 
-          ? 'Request timed out. Is the backend running?' 
+      const errorMessage = error instanceof Error
+        ? (error.name === 'AbortError'
+          ? 'Request timed out. Is the backend running?'
           : error.message)
         : 'Failed to load available dates';
-      setState(prev => ({
-        ...prev,
-        loading: false,
-        error: errorMessage
-      }));
+      setState(prev => ({ ...prev, loading: false, error: errorMessage }));
     }
-  }, [authFetch, inspectorProfileId]);
+  }, [api, inspectorProfileId]);
 
-  // Get available date by ID
   const getAvailableDateById = useCallback(async (id: number): Promise<InspectorAvailableDate | null> => {
     try {
-      const response = await authFetch(`${API_BASE}/admin/inspector-availability/${id}`);
-      const data: ApiSingleResponse<InspectorAvailableDate> = await response.json();
-      
-      if (data.success && data.data) {
-        return data.data;
-      }
-      return null;
+      return await api.get<InspectorAvailableDate>(`/admin/inspector-availability/${id}`);
     } catch (error) {
       console.error('Error fetching available date:', error);
       return null;
     }
-  }, [authFetch]);
+  }, [api]);
 
-  // Create available date
   const createAvailableDate = useCallback(async (input: CreateInspectorAvailableDateInput): Promise<InspectorAvailableDate | null> => {
     try {
-      const response = await authFetch(`${API_BASE}/admin/inspector-availability`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(input)
-      });
-      const data: ApiSingleResponse<InspectorAvailableDate> = await response.json();
-      
-      if (data.success && data.data) {
-        await fetchAvailableDates();
-        return data.data;
-      }
-      throw new Error(data.error || 'Failed to create available date');
+      const result = await api.post<InspectorAvailableDate>('/admin/inspector-availability', input);
+      await fetchAvailableDates();
+      return result;
     } catch (error) {
       console.error('Error creating available date:', error);
       throw error;
     }
-  }, [authFetch, fetchAvailableDates]);
+  }, [api, fetchAvailableDates]);
 
-  // Update available date
   const updateAvailableDate = useCallback(async (id: number, input: UpdateInspectorAvailableDateInput): Promise<InspectorAvailableDate | null> => {
     try {
-      const response = await authFetch(`${API_BASE}/admin/inspector-availability/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(input)
-      });
-      const data: ApiSingleResponse<InspectorAvailableDate> = await response.json();
-      
-      if (data.success && data.data) {
-        await fetchAvailableDates();
-        return data.data;
-      }
-      throw new Error(data.error || 'Failed to update available date');
+      const result = await api.put<InspectorAvailableDate>(`/admin/inspector-availability/${id}`, input);
+      await fetchAvailableDates();
+      return result;
     } catch (error) {
       console.error('Error updating available date:', error);
       throw error;
     }
-  }, [authFetch, fetchAvailableDates]);
+  }, [api, fetchAvailableDates]);
 
-  // Delete available date
   const deleteAvailableDate = useCallback(async (id: number): Promise<boolean> => {
     try {
-      const response = await authFetch(`${API_BASE}/admin/inspector-availability/${id}`, {
-        method: 'DELETE'
-      });
-      const data = await response.json();
-      
-      if (data.success) {
-        await fetchAvailableDates();
-        return true;
-      }
-      throw new Error(data.error || 'Failed to delete available date');
+      await api.del(`/admin/inspector-availability/${id}`);
+      await fetchAvailableDates();
+      return true;
     } catch (error) {
       console.error('Error deleting available date:', error);
       throw error;
     }
-  }, [authFetch, fetchAvailableDates]);
+  }, [api, fetchAvailableDates]);
 
-  // Get available dates by date range
   const getAvailableDatesByRange = useCallback(async (
     startDate: string,
     endDate: string,
@@ -146,26 +87,22 @@ export const useInspectorAvailability = (inspectorProfileId?: string) => {
     locationCodes?: string[]
   ): Promise<InspectorAvailableDate[]> => {
     try {
-      let url = `${API_BASE}/admin/inspector-availability/range?startDate=${startDate}&endDate=${endDate}`;
-      if (profileId) {
-        url += `&inspectorProfileId=${profileId}`;
-      }
-      if (locationCodes?.length) {
-        url += `&locationCodes=${locationCodes.join(',')}`;
-      }
-      
-      const response = await authFetch(url);
-      const data: ApiListResponse<InspectorAvailableDate> = await response.json();
-      
-      if (data.success) {
-        return data.data || [];
-      }
-      return [];
+      const params: Record<string, string | undefined> = {
+        startDate,
+        endDate,
+      };
+      if (profileId) params.inspectorProfileId = profileId;
+      if (locationCodes?.length) params.locationCodes = locationCodes.join(',');
+
+      return await api.get<InspectorAvailableDate[]>(
+        '/admin/inspector-availability/range',
+        { params }
+      );
     } catch (error) {
       console.error('Error fetching available dates by range:', error);
       return [];
     }
-  }, [authFetch]);
+  }, [api]);
 
   useEffect(() => {
     fetchAvailableDates();

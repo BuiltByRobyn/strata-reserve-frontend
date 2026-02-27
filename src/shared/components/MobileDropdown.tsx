@@ -1,19 +1,12 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import type { MobileDropdownProps } from '../types/component.types';
+import { useClickOutside } from '../hooks/useClickOutside';
 
 export function MobileDropdown({ label, value, options, onChange }: MobileDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
-        setIsOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+  useClickOutside(ref, useCallback(() => setIsOpen(false), []));
 
   const activeLabel = options.find(o => o.key === value)?.label || '';
 

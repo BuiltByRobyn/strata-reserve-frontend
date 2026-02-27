@@ -1,11 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useAuthFetch } from './useAuthFetch';
+import { useApiClient } from './useApiClient';
 import { useAuth } from '../contexts/AuthContext';
-import type { PropertyTypeRequest, ApiSingleResponse } from '../types/entities.types';
-import { API_BASE } from '../lib/api';
+import type { PropertyTypeRequest } from '../types/entities.types';
 
 export const usePropertyTypeRequest = () => {
-  const authFetch = useAuthFetch();
+  const api = useApiClient();
   const { user } = useAuth();
   const [request, setRequest] = useState<PropertyTypeRequest | null>(null);
   const [loading, setLoading] = useState(true);
@@ -20,15 +19,14 @@ export const usePropertyTypeRequest = () => {
 
     setLoading(true);
     try {
-      const response = await authFetch(`${API_BASE}/client/property-type-request`);
-      const data: ApiSingleResponse<PropertyTypeRequest> = await response.json();
-      setRequest(data.success ? data.data || null : null);
+      const data = await api.get<PropertyTypeRequest>('/client/property-type-request');
+      setRequest(data || null);
     } catch {
       setRequest(null);
     } finally {
       setLoading(false);
     }
-  }, [authFetch, user]);
+  }, [api, user]);
 
   useEffect(() => {
     fetchRequest();
@@ -37,23 +35,15 @@ export const usePropertyTypeRequest = () => {
   const submitRequest = useCallback(async (propertyTypeIds: number[]): Promise<{ success: boolean; error?: string }> => {
     setSubmitting(true);
     try {
-      const response = await authFetch(`${API_BASE}/client/property-type-request`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ propertyTypeIds })
-      });
-      const data = await response.json();
-      if (data.success) {
-        await fetchRequest();
-        return { success: true };
-      }
-      return { success: false, error: data.error || 'Submission failed' };
+      await api.post('/client/property-type-request', { propertyTypeIds });
+      await fetchRequest();
+      return { success: true };
     } catch {
       return { success: false, error: 'Network error' };
     } finally {
       setSubmitting(false);
     }
-  }, [authFetch, fetchRequest]);
+  }, [api, fetchRequest]);
 
   return { request, loading, submitting, submitRequest, refetch: fetchRequest };
 };

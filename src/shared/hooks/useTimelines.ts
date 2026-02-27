@@ -1,11 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useAuthFetch } from './useAuthFetch';
+import { useApiClient } from './useApiClient';
 import type { TimelineData, UpdateTimelinesInput } from '../types/timeline.types';
-import type { ApiSingleResponse } from '../types/entities.types';
-import { API_BASE } from '../lib/api';
 
 export const useTimelines = (serviceRequestId: number | null) => {
-  const authFetch = useAuthFetch();
+  const api = useApiClient();
   const [timelines, setTimelines] = useState<TimelineData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -20,39 +18,26 @@ export const useTimelines = (serviceRequestId: number | null) => {
     setLoading(true);
     setError(null);
     try {
-      const response = await authFetch(
-        `${API_BASE}/client/service-requests/${serviceRequestId}/timelines`
+      const data = await api.get<TimelineData>(
+        `/client/service-requests/${serviceRequestId}/timelines`
       );
-      const data: ApiSingleResponse<TimelineData> = await response.json();
-      if (data.success) {
-        setTimelines(data.data || null);
-      } else {
-        throw new Error(data.error || 'Failed to fetch timelines');
-      }
+      setTimelines(data || null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load timelines');
     } finally {
       setLoading(false);
     }
-  }, [authFetch, serviceRequestId]);
+  }, [api, serviceRequestId]);
 
   const updateTimelines = useCallback(async (input: UpdateTimelinesInput): Promise<TimelineData | null> => {
     if (!serviceRequestId) return null;
-    const response = await authFetch(
-      `${API_BASE}/client/service-requests/${serviceRequestId}/timelines`,
-      {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(input),
-      }
+    const data = await api.put<TimelineData>(
+      `/client/service-requests/${serviceRequestId}/timelines`,
+      input
     );
-    const data: ApiSingleResponse<TimelineData> = await response.json();
-    if (data.success && data.data) {
-      setTimelines(data.data);
-      return data.data;
-    }
-    throw new Error(data.error || 'Failed to update timelines');
-  }, [authFetch, serviceRequestId]);
+    setTimelines(data);
+    return data;
+  }, [api, serviceRequestId]);
 
   useEffect(() => {
     fetchTimelines();
@@ -62,7 +47,7 @@ export const useTimelines = (serviceRequestId: number | null) => {
 };
 
 export const useAdminStrataTimelines = (strataId: number | null) => {
-  const authFetch = useAuthFetch();
+  const api = useApiClient();
   const [timelines, setTimelines] = useState<TimelineData | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -75,34 +60,23 @@ export const useAdminStrataTimelines = (strataId: number | null) => {
 
     setLoading(true);
     try {
-      const response = await authFetch(`${API_BASE}/admin/strata/${strataId}/timelines`);
-      const data: ApiSingleResponse<TimelineData> = await response.json();
-      if (data.success) {
-        setTimelines(data.data || null);
-      }
+      const data = await api.get<TimelineData>(`/admin/strata/${strataId}/timelines`);
+      setTimelines(data || null);
     } catch {
       setTimelines(null);
     } finally {
       setLoading(false);
     }
-  }, [authFetch, strataId]);
+  }, [api, strataId]);
 
   const updateTimelines = useCallback(async (serviceRequestId: number, input: UpdateTimelinesInput): Promise<TimelineData | null> => {
-    const response = await authFetch(
-      `${API_BASE}/admin/service-requests/${serviceRequestId}/timelines`,
-      {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(input),
-      }
+    const data = await api.put<TimelineData>(
+      `/admin/service-requests/${serviceRequestId}/timelines`,
+      input
     );
-    const data: ApiSingleResponse<TimelineData> = await response.json();
-    if (data.success && data.data) {
-      setTimelines(data.data);
-      return data.data;
-    }
-    throw new Error(data.error || 'Failed to update timelines');
-  }, [authFetch]);
+    setTimelines(data);
+    return data;
+  }, [api]);
 
   useEffect(() => {
     fetchTimelines();

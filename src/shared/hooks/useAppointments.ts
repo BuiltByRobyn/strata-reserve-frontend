@@ -1,35 +1,21 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useAuthFetch } from './useAuthFetch';
-import type {
-  AppointmentWithDetails,
-  ApiListResponse,
-  ApiSingleResponse
-} from '../types/entities.types';
+import { useApiClient } from './useApiClient';
+import type { AppointmentWithDetails } from '../types/entities.types';
 import type { AppointmentsState } from '../types/hooks.types';
-import { API_BASE } from '../lib/api';
 
 export const useAppointments = () => {
-  const authFetch = useAuthFetch();
+  const api = useApiClient();
   const [state, setState] = useState<AppointmentsState>({
     appointments: [],
     loading: true,
     error: null
   });
 
-  // Fetch all appointments
   const fetchAppointments = useCallback(async () => {
     setState(prev => ({ ...prev, loading: true, error: null }));
-    
     try {
-      const url = `${API_BASE}/admin/appointments`;
-      const response = await authFetch(url);
-      const data: ApiListResponse<AppointmentWithDetails> = await response.json();
-      
-      if (data.success) {
-        setState({ appointments: data.data || [], loading: false, error: null });
-      } else {
-        throw new Error(data.error || 'Failed to fetch appointments');
-      }
+      const appointments = await api.get<AppointmentWithDetails[]>('/admin/appointments');
+      setState({ appointments: appointments || [], loading: false, error: null });
     } catch (error) {
       console.error('Error fetching appointments:', error);
       setState(prev => ({
@@ -38,88 +24,53 @@ export const useAppointments = () => {
         error: error instanceof Error ? error.message : 'Failed to load appointments'
       }));
     }
-  }, [authFetch]);
+  }, [api]);
 
-  // Get appointment by ID
   const getAppointmentById = useCallback(async (id: number): Promise<AppointmentWithDetails | null> => {
     try {
-      const response = await authFetch(`${API_BASE}/admin/appointments/${id}`);
-      const data: ApiSingleResponse<AppointmentWithDetails> = await response.json();
-      
-      if (data.success && data.data) {
-        return data.data;
-      }
-      return null;
+      return await api.get<AppointmentWithDetails>(`/admin/appointments/${id}`);
     } catch (error) {
       console.error('Error fetching appointment:', error);
       return null;
     }
-  }, [authFetch]);
+  }, [api]);
 
-  // Update appointment status
   const updateStatus = useCallback(async (id: number, status: string, completionNote?: string): Promise<boolean> => {
     try {
-      const response = await authFetch(`${API_BASE}/admin/appointments/${id}/status`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status, completionNote })
-      });
-      const data = await response.json();
-      
-      if (data.success) {
-        await fetchAppointments();
-        return true;
-      }
-      throw new Error(data.error || 'Failed to update status');
+      await api.put(`/admin/appointments/${id}/status`, { status, completionNote });
+      await fetchAppointments();
+      return true;
     } catch (error) {
       console.error('Error updating appointment status:', error);
       throw error;
     }
-  }, [authFetch, fetchAppointments]);
+  }, [api, fetchAppointments]);
 
-  // Cancel appointment
   const cancelAppointment = useCallback(async (id: number): Promise<boolean> => {
     try {
-      const response = await authFetch(`${API_BASE}/admin/appointments/${id}`, {
-        method: 'DELETE'
-      });
-      const data = await response.json();
-      
-      if (data.success) {
-        await fetchAppointments();
-        return true;
-      }
-      throw new Error(data.error || 'Failed to cancel appointment');
+      await api.del(`/admin/appointments/${id}`);
+      await fetchAppointments();
+      return true;
     } catch (error) {
       console.error('Error cancelling appointment:', error);
       throw error;
     }
-  }, [authFetch, fetchAppointments]);
+  }, [api, fetchAppointments]);
 
-  // Reschedule appointment
   const rescheduleAppointment = useCallback(async (
-    id: number, 
-    appointmentDate: string, 
+    id: number,
+    appointmentDate: string,
     timeSlotId: number
   ): Promise<boolean> => {
     try {
-      const response = await authFetch(`${API_BASE}/admin/appointments/${id}/reschedule`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ appointmentDate, timeSlotId })
-      });
-      const data = await response.json();
-      
-      if (data.success) {
-        await fetchAppointments();
-        return true;
-      }
-      throw new Error(data.error || 'Failed to reschedule appointment');
+      await api.put(`/admin/appointments/${id}/reschedule`, { appointmentDate, timeSlotId });
+      await fetchAppointments();
+      return true;
     } catch (error) {
       console.error('Error rescheduling appointment:', error);
       throw error;
     }
-  }, [authFetch, fetchAppointments]);
+  }, [api, fetchAppointments]);
 
   useEffect(() => {
     fetchAppointments();

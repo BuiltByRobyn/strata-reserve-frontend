@@ -348,6 +348,7 @@ export interface ServiceRequest {
   strata?: Strata;
   requestedBy?: ProfileBasic;
   clientPropertyTypes?: Array<{ propertyTypeId: number }>;
+  latestDocumentUploadDate?: string | null;
   _count?: {
     questionResponses: number;
     serviceRequestDocuments: number;
@@ -585,3 +586,5 @@ export interface UserFormData {
   companyName: string;
   strataAssociations: StrataAssociation[];
 }
+
+export type AuthFetchFn = (url: string, options?: RequestInit) => Promise<Response>;

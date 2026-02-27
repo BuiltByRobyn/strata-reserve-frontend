@@ -1,15 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useAuthFetch } from './useAuthFetch';
+import { useApiClient } from './useApiClient';
 import { useAuth } from '../contexts/AuthContext';
 import type { DocumentWithDetails } from '../types/document.types';
-import type { ApiListResponse, ApiSingleResponse } from '../types/entities.types';
 import type { DocumentsState } from '../types/hooks.types';
-import { API_BASE } from '../lib/api';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../lib/constants';
 import { supabaseUploadDocument, supabaseDeleteDocument } from '../lib/documentService';
 
 export const useDocuments = () => {
-  const authFetch = useAuthFetch();
+  const api = useApiClient();
   const { session } = useAuth();
   const [state, setState] = useState<DocumentsState>({
     documents: [],
@@ -20,16 +18,9 @@ export const useDocuments = () => {
 
   const fetchDocuments = useCallback(async () => {
     setState(prev => ({ ...prev, loading: true, error: null }));
-
     try {
-      const response = await authFetch(`${API_BASE}/admin/documents`);
-      const data: ApiListResponse<DocumentWithDetails> = await response.json();
-
-      if (data.success) {
-        setState({ documents: data.data || [], loading: false, error: null });
-      } else {
-        throw new Error(data.error || 'Failed to fetch documents');
-      }
+      const documents = await api.get<DocumentWithDetails[]>('/admin/documents');
+      setState({ documents: documents || [], loading: false, error: null });
     } catch (error) {
       console.error('Error fetching documents:', error);
       setState(prev => ({
@@ -38,42 +29,27 @@ export const useDocuments = () => {
         error: error instanceof Error ? error.message : 'Failed to load documents'
       }));
     }
-  }, [authFetch]);
+  }, [api]);
 
   const getDocumentById = useCallback(async (id: number): Promise<DocumentWithDetails | null> => {
     try {
-      const response = await authFetch(`${API_BASE}/admin/documents/${id}`);
-      const data: ApiSingleResponse<DocumentWithDetails> = await response.json();
-
-      if (data.success && data.data) {
-        return data.data;
-      }
-      return null;
+      return await api.get<DocumentWithDetails>(`/admin/documents/${id}`);
     } catch (error) {
       console.error('Error fetching document:', error);
       return null;
     }
-  }, [authFetch]);
+  }, [api]);
 
   const updateDocumentStatus = useCallback(async (id: number, reviewStatusId: number, notes?: string): Promise<boolean> => {
     try {
-      const response = await authFetch(`${API_BASE}/admin/documents/${id}/status`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reviewStatusId, notes })
-      });
-      const data = await response.json();
-
-      if (data.success) {
-        await fetchDocuments();
-        return true;
-      }
-      throw new Error(data.error || 'Failed to update document status');
+      await api.put(`/admin/documents/${id}/status`, { reviewStatusId, notes });
+      await fetchDocuments();
+      return true;
     } catch (error) {
       console.error('Error updating document status:', error);
       throw error;
     }
-  }, [authFetch, fetchDocuments]);
+  }, [api, fetchDocuments]);
 
   const deleteDocument = useCallback(async (id: number): Promise<boolean> => {
     const token = session?.access_token;
@@ -114,7 +90,7 @@ export const useDocuments = () => {
     }
   }, [session, fetchDocuments]);
 
-  const syncDocuments = useCallback(async (): Promise<{ total: number; removed: number } | null> => {
+  const syncDocuments = useCallback(async (): Promise<{ total: number; removed: number; added: number } | null> => {
     const token = session?.access_token;
     if (!token) throw new Error('Not authenticated');
 
@@ -134,11 +110,8 @@ export const useDocuments = () => {
         throw new Error(data.error || 'Sync failed');
       }
 
-      if (data.removed > 0) {
-        await fetchDocuments();
-      }
-
-      return { total: data.total, removed: data.removed };
+      await fetchDocuments();
+      return { total: data.total, removed: data.removed, added: data.added ?? 0 };
     } catch (error) {
       console.error('Error syncing documents:', error);
       throw error;
@@ -147,18 +120,14 @@ export const useDocuments = () => {
 
   const searchDocuments = useCallback(async (query: string): Promise<DocumentWithDetails[]> => {
     try {
-      const response = await authFetch(`${API_BASE}/admin/documents/search?q=${encodeURIComponent(query)}`);
-      const data: ApiListResponse<DocumentWithDetails> = await response.json();
-
-      if (data.success) {
-        return data.data || [];
-      }
-      return [];
+      return await api.get<DocumentWithDetails[]>('/admin/documents/search', {
+        params: { q: query },
+      });
     } catch (error) {
       console.error('Error searching documents:', error);
       return [];
     }
-  }, [authFetch]);
+  }, [api]);
 
   useEffect(() => {
     fetchDocuments();

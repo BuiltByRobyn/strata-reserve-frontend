@@ -213,8 +213,11 @@ export default function DocumentsPage() {
     try {
       const result = await syncDocuments();
       if (result) {
-        if (result.removed > 0) {
-          setSyncMessage(`Sync complete: ${result.removed} orphaned record${result.removed === 1 ? '' : 's'} removed out of ${result.total} checked.`);
+        const parts: string[] = [];
+        if (result.added > 0) parts.push(`${result.added} new document${result.added === 1 ? '' : 's'} added`);
+        if (result.removed > 0) parts.push(`${result.removed} orphaned record${result.removed === 1 ? '' : 's'} removed`);
+        if (parts.length > 0) {
+          setSyncMessage(`Sync complete: ${parts.join(', ')} (${result.total} checked).`);
         } else {
           setSyncMessage(`Sync complete: All ${result.total} documents verified.`);
         }
