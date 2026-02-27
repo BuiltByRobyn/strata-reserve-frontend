@@ -1,10 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-
-interface LegalLayoutProps {
-    title: string;
-    children: React.ReactNode;
-}
+import type { LegalLayoutProps } from '../types/component.types';
 
 export const LegalLayout: React.FC<LegalLayoutProps> = ({ title, children }) => {
     const navigate = useNavigate();
@@ -13,7 +9,7 @@ export const LegalLayout: React.FC<LegalLayoutProps> = ({ title, children }) => 
         <div className="legal-page">
             <header className="legal-header">
                 <div className="legal-header-content">
-                    <div className="legal-logo" onClick={() => navigate('/login')} style={{ cursor: 'pointer' }}>
+                    <div className="legal-logo" onClick={() => navigate('/login')}>
                         <img src="/logonobg.png" alt="Strata Reserve Planning Logo" />
                         <div className="logo-text">
                             <span className="brand">Strata Reserve</span>

@@ -3,26 +3,10 @@ import { Modal } from '../../shared/components/Modal';
 import { InputField } from '../../shared/components/FormField';
 import { SingleSelectDropdown } from '../../shared/components/SingleSelectDropdown';
 import { useUsers } from '../../shared/hooks/useUsers';
-import type { InspectorAvailableDate, CreateInspectorAvailableDateInput, UpdateInspectorAvailableDateInput } from '../../shared/types/entities.types';
+import type { InspectorAvailabilityModalProps } from '../../shared/types/component.types';
 import { LoadingSpinner } from '../../shared/components/LoadingSpinner';
-
-const LOCATION_OPTIONS = [
-    { key: 'OK', label: 'OK' },
-    { key: 'TH', label: 'TH' },
-    { key: 'LM', label: 'LM' },
-    { key: 'LLVI', label: 'LLVI' },
-    { key: 'NB', label: 'NB' },
-    { key: 'Virtual', label: 'Virtual' }
-];
-
-interface Props {
-    isOpen: boolean;
-    onClose: () => void;
-    initialData: InspectorAvailableDate | null;
-    onSubmitCreate: (data: CreateInspectorAvailableDateInput) => Promise<any>;
-    onSubmitUpdate: (id: number, data: UpdateInspectorAvailableDateInput) => Promise<any>;
-    onDeleteClick?: () => void;
-}
+import { extractTimeFromISO } from '../../shared/utils/availabilityUtils';
+import { LOCATION_OPTIONS } from '../../shared/lib/constants';
 
 export const InspectorAvailabilityModal = ({
     isOpen,
@@ -31,7 +15,7 @@ export const InspectorAvailabilityModal = ({
     onSubmitCreate,
     onSubmitUpdate,
     onDeleteClick
-}: Props) => {
+}: InspectorAvailabilityModalProps) => {
     const { users, loading: usersLoading } = useUsers();
 
     const [formData, setFormData] = useState({
@@ -52,8 +36,8 @@ export const InspectorAvailabilityModal = ({
                 inspectorProfileId: initialData.inspectorProfileId,
                 availableStartDate: initialData.availableStartDate.split('T')[0],
                 availableEndDate: initialData.availableEndDate.split('T')[0],
-                availableStartTime: initialData.availableStartTime ? (initialData.availableStartTime.match(/(?:T|^)(\d{2}:\d{2})/) || [])[1] || '' : '',
-                availableEndTime: initialData.availableEndTime ? (initialData.availableEndTime.match(/(?:T|^)(\d{2}:\d{2})/) || [])[1] || '' : '',
+                availableStartTime: extractTimeFromISO(initialData.availableStartTime),
+                availableEndTime: extractTimeFromISO(initialData.availableEndTime),
                 locationCodes: initialData.locations ? initialData.locations.map(loc => loc.locationCode) : []
             });
         } else if (isOpen) {
@@ -79,7 +63,7 @@ export const InspectorAvailabilityModal = ({
             setError(null);
 
             if (initialData) {
-                const updatePayload: UpdateInspectorAvailableDateInput = {
+                const updatePayload = {
                     availableStartDate: formData.availableStartDate,
                     availableEndDate: formData.availableEndDate,
                     availableStartTime: formData.availableStartTime || null,
@@ -88,7 +72,7 @@ export const InspectorAvailabilityModal = ({
                 };
                 await onSubmitUpdate(initialData.inspectorAvailableDateId, updatePayload);
             } else {
-                const createPayload: CreateInspectorAvailableDateInput = {
+                const createPayload = {
                     inspectorProfileId: formData.inspectorProfileId,
                     availableStartDate: formData.availableStartDate,
                     availableEndDate: formData.availableEndDate,
@@ -123,15 +107,15 @@ export const InspectorAvailabilityModal = ({
     }));
 
     const footer = (
-        <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
+        <div className="inspector-availability-modal modal-footer">
             {initialData ? (
-                <button className="btn-action" style={{ backgroundColor: '#ff0000', color: 'white', padding: '8px 16px', border: 'none', borderRadius: '4px', cursor: 'pointer' }} onClick={onDeleteClick}>
+                <button className="btn-remove" onClick={onDeleteClick}>
                     Remove Availability
                 </button>
             ) : <div />}
-            <div style={{ display: 'flex', gap: '10px' }}>
-                <button className="btn-secondary" onClick={onClose} disabled={saving} style={{ padding: '8px 16px', border: '1px solid #ccc', borderRadius: '4px', background: 'white', cursor: 'pointer' }}>Cancel</button>
-                <button className="btn-primary" onClick={handleSubmit} disabled={saving} style={{ padding: '8px 16px', border: 'none', borderRadius: '4px', cursor: 'pointer', backgroundColor: '#628a55', color: 'white' }}>
+            <div className="modal-actions">
+                <button className="btn-cancel" onClick={onClose} disabled={saving}>Cancel</button>
+                <button className="btn-primary" onClick={handleSubmit} disabled={saving}>
                     {saving ? 'Saving...' : (initialData ? 'Update Availability' : 'Add Availability')}
                 </button>
             </div>
@@ -146,86 +130,80 @@ export const InspectorAvailabilityModal = ({
             size="large"
             footer={footer}
         >
-            {error && <div className="alert alert-error" style={{ marginBottom: '15px', color: '#ff0000', backgroundColor: '#ffeeee', padding: '10px', borderRadius: '4px' }}>{error}</div>}
+            <div className="inspector-availability-modal">
+                {error && <div className="modal-error">{error}</div>}
 
-            {usersLoading ? (
-                <div style={{ display: 'flex', justifyContent: 'center', padding: '20px' }}><LoadingSpinner /></div>
-            ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                    <div style={{ width: '100%' }}>
-                        <SingleSelectDropdown
-                            label="Staff Member *"
-                            options={userOptions}
-                            value={formData.inspectorProfileId}
-                            onChange={(val) => setFormData(prev => ({ ...prev, inspectorProfileId: String(val) }))}
-                            disabled={!!initialData}
-                        />
-                    </div>
+                {usersLoading ? (
+                    <div className="modal-loading"><LoadingSpinner /></div>
+                ) : (
+                    <div className="modal-form">
+                        <div className="form-row">
+                            <SingleSelectDropdown
+                                label="Staff Member *"
+                                options={userOptions}
+                                value={formData.inspectorProfileId}
+                                onChange={(val) => setFormData(prev => ({ ...prev, inspectorProfileId: String(val) }))}
+                                disabled={!!initialData}
+                            />
+                        </div>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-                        <InputField
-                            label="Available Start Date *"
-                            type="date"
-                            id="available-start-date"
-                            value={formData.availableStartDate}
-                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, availableStartDate: e.target.value }))}
-                        />
+                        <div className="form-row-dates">
+                            <InputField
+                                label="Available Start Date *"
+                                type="date"
+                                id="available-start-date"
+                                value={formData.availableStartDate}
+                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, availableStartDate: e.target.value }))}
+                            />
 
-                        <InputField
-                            label="Available End Date *"
-                            type="date"
-                            id="available-end-date"
-                            value={formData.availableEndDate}
-                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, availableEndDate: e.target.value }))}
-                        />
-                    </div>
+                            <InputField
+                                label="Available End Date *"
+                                type="date"
+                                id="available-end-date"
+                                value={formData.availableEndDate}
+                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, availableEndDate: e.target.value }))}
+                            />
+                        </div>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-                        <InputField
-                            label="Available Start Time"
-                            type="time"
-                            id="available-start-time"
-                            value={formData.availableStartTime}
-                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, availableStartTime: e.target.value }))}
-                        />
+                        <div className="form-row-times">
+                            <InputField
+                                label="Available Start Time"
+                                type="time"
+                                id="available-start-time"
+                                value={formData.availableStartTime}
+                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, availableStartTime: e.target.value }))}
+                            />
 
-                        <InputField
-                            label="Available End Time"
-                            type="time"
-                            id="available-end-time"
-                            value={formData.availableEndTime}
-                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, availableEndTime: e.target.value }))}
-                        />
-                    </div>
+                            <InputField
+                                label="Available End Time"
+                                type="time"
+                                id="available-end-time"
+                                value={formData.availableEndTime}
+                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, availableEndTime: e.target.value }))}
+                            />
+                        </div>
 
-                    <div style={{ width: '100%' }}>
-                        <label style={{ display: 'block', marginBottom: '10px', fontWeight: 'bold', color: '#6A7282', fontSize: '14px' }}>Available Locations</label>
-                        <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
-                            {LOCATION_OPTIONS.map(loc => (
-                                <label
-                                    key={loc.key}
-                                    style={{
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '8px',
-                                        cursor: 'pointer',
-                                        fontSize: '14px',
-                                        color: '#333'
-                                    }}
-                                >
-                                    <input
-                                        type="checkbox"
-                                        checked={formData.locationCodes.includes(loc.key)}
-                                        onChange={() => toggleLocation(loc.key)}
-                                        style={{ accentColor: '#6B8E5F', width: '18px', height: '18px' }}
-                                    />
-                                    <span>{loc.label}</span>
-                                </label>
-                            ))}
+                        <div className="form-row">
+                            <label className="locations-label">Available Locations</label>
+                            <div className="locations-options">
+                                {LOCATION_OPTIONS.map(loc => (
+                                    <label
+                                        key={loc.key}
+                                        className="location-option"
+                                    >
+                                        <input
+                                            type="checkbox"
+                                            checked={formData.locationCodes.includes(loc.key)}
+                                            onChange={() => toggleLocation(loc.key)}
+                                        />
+                                        <span>{loc.label}</span>
+                                    </label>
+                                ))}
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
+                )}
+            </div>
         </Modal>
     );
 };
