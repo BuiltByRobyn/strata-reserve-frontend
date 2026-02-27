@@ -114,7 +114,7 @@ export const useDocuments = () => {
     }
   }, [session, fetchDocuments]);
 
-  const syncDocuments = useCallback(async (): Promise<{ total: number; removed: number } | null> => {
+  const syncDocuments = useCallback(async (): Promise<{ total: number; removed: number; added: number } | null> => {
     const token = session?.access_token;
     if (!token) throw new Error('Not authenticated');
 
@@ -134,11 +134,9 @@ export const useDocuments = () => {
         throw new Error(data.error || 'Sync failed');
       }
 
-      if (data.removed > 0) {
-        await fetchDocuments();
-      }
+      await fetchDocuments();
 
-      return { total: data.total, removed: data.removed };
+      return { total: data.total, removed: data.removed, added: data.added ?? 0 };
     } catch (error) {
       console.error('Error syncing documents:', error);
       throw error;

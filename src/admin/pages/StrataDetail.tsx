@@ -786,7 +786,7 @@ export default function StrataDetailPage() {
                             {reqs.map(r => {
                               const matchedDocs = uploadedDocs.filter(
                                 d => d.documentType.documentTypeId === r.documentTypeId
-                                  && (d.propertyType?.propertyTypeId === ptId || !d.propertyType)
+                                  && d.propertyType?.propertyTypeId === ptId
                                   && !d.fileName.includes('- Archived')
                               );
                               const hasUpload = matchedDocs.length > 0;
@@ -815,7 +815,7 @@ export default function StrataDetailPage() {
                                     <div className="doc-req-item-details">
                                       <span className="doc-upload-date">
                                         Uploaded {formatDate(matchedDocs[0].uploadedAt)}
-                                        {matchedDocs[0].uploadedBy && ` by ${matchedDocs[0].uploadedBy.firstName || ''} ${matchedDocs[0].uploadedBy.lastName || ''}`.trim()}
+                                        {matchedDocs[0].uploadedBy && ` by ${matchedDocs[0].uploadedBy.firstName || ''} ${matchedDocs[0].uploadedBy.lastName || ''}`.trimEnd()}
                                       </span>
                                       <button
                                         className="btn-edit btn-review-doc"

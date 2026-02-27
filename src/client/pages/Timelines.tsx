@@ -413,10 +413,6 @@ const Timelines = () => {
                   <span className="timelines-overview-card__value">{daysSinceLastAGM ?? '—'}</span>
                   <span className="timelines-overview-card__label">Days Since Last AGM</span>
                 </div>
-                <div className="timelines-overview-card timelines-overview-card--yellow">
-                  <span className="timelines-overview-card__value">{daysSinceFileOpened ?? '—'}</span>
-                  <span className="timelines-overview-card__label">Days Since File Opened</span>
-                </div>
               </div>
             </section>
 

@@ -111,12 +111,8 @@
 
 .timelines-overview__cards {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: $spacing-md;
-
-  @include respond-below(md) {
-    grid-template-columns: repeat(2, 1fr);
-  }
 
   @include respond-below(sm) {
     grid-template-columns: 1fr;
