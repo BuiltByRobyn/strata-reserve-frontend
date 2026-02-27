@@ -404,11 +404,11 @@ export default function UsersPage() {
         }}
         loading={loading}
         emptyMessage="No users found. Click 'Create New Users' to add one."
-        actions={(user) => (
-          <button className="btn-edit" onClick={() => openEditModal(user)}>
+        actions={isDesktop ? (user) => (
+          <button className="btn-edit" onClick={(e) => { e.stopPropagation(); openEditModal(user); }}>
             Edit
           </button>
-        )}
+        ) : undefined}
         actionsColumnHeader="Action"
       />
 
@@ -605,15 +605,29 @@ export default function UsersPage() {
         title="View User"
         size="medium"
         footer={
-          <button
-            className="btn-primary"
-            onClick={() => {
-              setIsViewModalOpen(false);
-              setViewingUser(null);
-            }}
-          >
-            Close
-          </button>
+          <>
+            <button
+              className={isDesktop ? "btn-primary" : "btn-secondary"}
+              onClick={() => {
+                setIsViewModalOpen(false);
+                setViewingUser(null);
+              }}
+            >
+              Close
+            </button>
+            {!isDesktop && viewingUser && (
+              <button
+                className="btn-primary"
+                onClick={() => {
+                  setIsViewModalOpen(false);
+                  openEditModal(viewingUser);
+                  setViewingUser(null);
+                }}
+              >
+                Edit
+              </button>
+            )}
+          </>
         }
       >
         {viewingUser && (

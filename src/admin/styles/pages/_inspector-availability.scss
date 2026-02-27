@@ -1,43 +1,6 @@
 @use '../../../shared/styles/variables' as *;
 
 .inspector-availability-modal {
-    .modal-footer {
-        display: flex;
-        justify-content: space-between;
-        width: 100%;
-    }
-
-    .modal-actions {
-        display: flex;
-        gap: $spacing-sm;
-    }
-
-    .btn-remove {
-        background-color: $color-error;
-        color: $color-white;
-        padding: 8px 16px;
-        border: none;
-        border-radius: $border-radius-sm;
-        cursor: pointer;
-    }
-
-    .btn-cancel {
-        padding: 8px 16px;
-        border: 1px solid #ccc;
-        border-radius: $border-radius-sm;
-        background: $color-white;
-        cursor: pointer;
-    }
-
-    .btn-primary {
-        padding: 8px 16px;
-        border: none;
-        border-radius: $border-radius-sm;
-        cursor: pointer;
-        background-color: $color-success;
-        color: $color-white;
-    }
-
     .modal-error {
         margin-bottom: $spacing-md;
         color: $color-error;
@@ -62,16 +25,15 @@
         width: 100%;
     }
 
-    .form-row-dates {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: $spacing-xl;
-    }
-
+    .form-row-dates,
     .form-row-times {
         display: grid;
         grid-template-columns: 1fr 1fr;
-        gap: $spacing-xl;
+        gap: $spacing-md;
+
+        @include respond-below(sm) {
+            grid-template-columns: 1fr;
+        }
     }
 
     .locations-label {
@@ -84,8 +46,8 @@
 
     .locations-options {
         display: flex;
-        gap: $spacing-xl;
         flex-wrap: wrap;
+        gap: $spacing-sm $spacing-xl;
     }
 
     .location-option {
@@ -94,12 +56,121 @@
         gap: $spacing-sm;
         cursor: pointer;
         font-size: $font-size-sm;
-        color: #333;
+        color: $color-text-dark;
 
         input[type="checkbox"] {
-            accent-color: #6B8E5F;
+            accent-color: $color-primary;
             width: 18px;
             height: 18px;
         }
+    }
+}
+
+// Manager header
+.manager-header {
+    margin-bottom: $spacing-lg;
+
+    h3 {
+        margin: 0;
+        font-size: 1.125rem;
+        font-weight: $font-weight-bold;
+        color: $color-text-primary;
+    }
+}
+
+// Add button below table - matches profile confirm button
+.availability-add-button {
+    width: 100%;
+    margin-top: $spacing-lg;
+}
+
+// Mobile card view (matches documents mobile pattern)
+.availability-mobile-list {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-lg;
+}
+
+.availability-mobile-card {
+    border: 3px solid $color-border-light;
+    border-radius: $border-radius-lg;
+    overflow: hidden;
+    background: $color-white;
+}
+
+.availability-table-mobile {
+    width: 100%;
+    border-collapse: collapse;
+
+    tbody tr {
+        border-bottom: 1px solid rgba($color-border-light, 0.6);
+
+        &:last-child {
+            border-bottom: none;
+        }
+
+        td {
+            padding: $spacing-lg $spacing-md;
+            vertical-align: top;
+            font-size: $font-size-base;
+        }
+    }
+
+    .mobile-label-col {
+        font-weight: $font-weight-bold;
+        color: $color-text-muted;
+        width: 40%;
+        max-width: 120px;
+    }
+
+    .mobile-value-col {
+        color: $color-text-dark;
+        text-align: right;
+    }
+}
+
+// Delete availability modal body
+.delete-availability-body {
+    padding: 0 $spacing-lg;
+}
+
+.delete-availability-info {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: $spacing-2xl;
+    padding-bottom: $spacing-lg;
+    border-bottom: 1px solid $color-border-light;
+}
+
+.delete-availability-info-right {
+    text-align: right;
+}
+
+.delete-availability-label {
+    font-weight: $font-weight-bold;
+    color: $color-text-muted;
+    font-size: 0.8125rem;
+    margin-bottom: $spacing-xs;
+}
+
+.delete-availability-value {
+    font-size: 0.9375rem;
+    color: $color-text-dark;
+}
+
+.delete-availability-confirm {
+    text-align: center;
+    margin: $spacing-2xl 0;
+
+    h3 {
+        color: $color-text-dark;
+        font-size: 1.25rem;
+        margin-bottom: $spacing-md;
+        font-weight: $font-weight-bold;
+    }
+
+    p {
+        color: $color-text-muted;
+        line-height: 1.5;
     }
 }

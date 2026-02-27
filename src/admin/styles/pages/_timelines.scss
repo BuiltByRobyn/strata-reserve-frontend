@@ -8,9 +8,15 @@
     font-size: 1.75rem;
     font-weight: 600;
     color: $color-text-dark;
+    text-align: center;
+    border-bottom: 2px solid $color-border-light;
+    padding-bottom: $spacing-md;
 
     @include respond-to(desktop) {
       font-size: $font-size-lg;
+      text-align: left;
+      border-bottom: none;
+      padding-bottom: 0;
     }
   }
 
@@ -57,10 +63,6 @@
     @include respond-to(desktop) {
       flex-direction: row;
     }
-  }
-
-  .modal-content {
-    height: auto;
   }
 
   .modal-body {

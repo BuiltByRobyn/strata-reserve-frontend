@@ -172,8 +172,15 @@ export default function ProfilePage() {
     <div className="page-container profile-container">
       {/* Page Header */}
       <div className="profile-page-header">
-        <h1>Administration User Details</h1>
-        <p className="profile-subtitle">Please verify and update your user information</p>
+        <h1>{!isDesktop ? 'System Settings'
+          : activeTab === 'holidays' ? 'Company Holidays'
+          : activeTab === 'availability' ? 'Inspector Availability'
+          : 'Administration User Details'}</h1>
+        <p className="profile-subtitle">
+          {activeTab === 'holidays' ? 'Manage company holiday schedules'
+          : activeTab === 'availability' ? 'Manage inspector availability schedules'
+          : 'Please verify and update your user information'}
+        </p>
       </div>
 
       {/* Tabs - desktop only */}

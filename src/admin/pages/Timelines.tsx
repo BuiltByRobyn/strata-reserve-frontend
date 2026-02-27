@@ -70,6 +70,8 @@ export default function TimelinesPage() {
   const isDesktop = useMediaQuery('(min-width: 750px)');
 
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [viewingRow, setViewingRow] = useState<DeadlineRow | null>(null);
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState<ServiceRequest | null>(null);
   const [editingDeadlineType, setEditingDeadlineType] = useState<DeadlineType | null>(null);
   const [formData, setFormData] = useState<EditFormData>({
@@ -250,6 +252,13 @@ export default function TimelinesPage() {
   ];
 
   const maxDateToday = new Date().toISOString().split('T')[0];
+
+  const getViewTimelineRows = (row: DeadlineRow) => [
+    { label: 'Strata Plan', value: row.strataPlan },
+    { label: 'Complex Name', value: row.complexName },
+    { label: 'Deadline Type', value: row.deadlineType },
+    { label: 'Date', value: formatDate(row.date) },
+  ];
 
   const closeModal = () => {
     setIsModalOpen(false);
@@ -482,12 +491,63 @@ export default function TimelinesPage() {
         keyExtractor={(row) => row.id}
         loading={loading}
         emptyMessage="No deadlines found."
-        onRowClick={(row) => openEditModal(row.serviceRequest, row.deadlineType)}
-        actions={(row) => (
+        onRowClick={(row) => {
+          setViewingRow(row);
+          setIsViewModalOpen(true);
+        }}
+        actions={isDesktop ? (row) => (
           <button className="btn-edit" onClick={() => openEditModal(row.serviceRequest, row.deadlineType)}>Edit</button>
-        )}
+        ) : undefined}
         actionsColumnHeader="Action"
       />
+
+      <Modal
+        isOpen={isViewModalOpen}
+        onClose={() => {
+          setIsViewModalOpen(false);
+          setViewingRow(null);
+        }}
+        title="View Timeline"
+        size="medium"
+        footer={
+          <>
+            <button
+              className={isDesktop ? "btn-primary" : "btn-secondary"}
+              onClick={() => {
+                setIsViewModalOpen(false);
+                setViewingRow(null);
+              }}
+            >
+              Close
+            </button>
+            {!isDesktop && viewingRow && (
+              <button
+                className="btn-primary"
+                onClick={() => {
+                  setIsViewModalOpen(false);
+                  openEditModal(viewingRow.serviceRequest, viewingRow.deadlineType);
+                  setViewingRow(null);
+                }}
+              >
+                Edit
+              </button>
+            )}
+          </>
+        }
+      >
+        {viewingRow && (
+          <table className="view-detail-table">
+            <tbody>
+              {getViewTimelineRows(viewingRow).map((row) => (
+                <tr key={row.label}>
+                  <th scope="row">{row.label}</th>
+                  <td>{row.value}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </Modal>
 
       <Modal
         isOpen={isModalOpen}
