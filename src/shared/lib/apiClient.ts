@@ -1,11 +1,9 @@
-import type { ApiResponse } from '../types/entities.types';
+import type { ApiResponse, AuthFetchFn } from '../types/entities.types';
 import { API_BASE } from './api';
 
 export const REQUEST_TIMEOUT_MS = 10_000;
 
 const JSON_HEADERS = { 'Content-Type': 'application/json' } as const;
-
-type AuthFetchFn = (url: string, options?: RequestInit) => Promise<Response>;
 
 async function parseResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {

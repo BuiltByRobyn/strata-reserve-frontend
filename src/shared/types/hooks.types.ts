@@ -94,3 +94,9 @@ export interface PropertyTypeContextType {
   loading: boolean;
   refetch: () => Promise<void>;
 }
+
+export interface UseCrudModalOptions<TItem, TFormData> {
+  initialFormData: TFormData;
+  itemToFormData: (item: TItem) => TFormData;
+  onSubmit: (formData: TFormData, editingItem: TItem | null) => Promise<void>;
+}

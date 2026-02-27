@@ -1,23 +1,7 @@
 import { useState, useCallback } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-
-interface NavItem {
-  to: string;
-  label: string;
-  end?: boolean;
-}
-
-interface UserInfo {
-  label: string;
-  value: string;
-}
-
-interface NavbarProps {
-  variant: 'admin' | 'client';
-  navItems: NavItem[];
-  userInfoRows: UserInfo[];
-}
+import type { NavbarProps } from '../types/component.types';
 
 export function Navbar({ variant, navItems, userInfoRows }: NavbarProps) {
   const { signOut } = useAuth();

@@ -1,10 +1,5 @@
 import { useState, useCallback } from 'react';
-
-interface UseCrudModalOptions<TItem, TFormData> {
-  initialFormData: TFormData;
-  itemToFormData: (item: TItem) => TFormData;
-  onSubmit: (formData: TFormData, editingItem: TItem | null) => Promise<void>;
-}
+import type { UseCrudModalOptions } from '../types/hooks.types';
 
 export function useCrudModal<TItem, TFormData>({
   initialFormData,

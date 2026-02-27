@@ -1,21 +1,14 @@
 import { useState } from 'react';
 import { Modal } from '../../shared/components/Modal';
-import type { InspectorAvailableDate } from '../../shared/types/entities.types';
+import type { DeleteAvailabilityModalProps } from '../../shared/types/component.types';
 import { formatDateShort } from '../../shared/lib/formatters';
-
-interface Props {
-    isOpen: boolean;
-    onClose: () => void;
-    block: InspectorAvailableDate;
-    onDelete: (id: number) => Promise<any>;
-}
 
 export const DeleteAvailabilityModal = ({
     isOpen,
     onClose,
     block,
     onDelete
-}: Props) => {
+}: DeleteAvailabilityModalProps) => {
     const [error, setError] = useState<string | null>(null);
     const [deleting, setDeleting] = useState(false);
 

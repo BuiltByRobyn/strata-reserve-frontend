@@ -586,3 +586,5 @@ export interface UserFormData {
   companyName: string;
   strataAssociations: StrataAssociation[];
 }
+
+export type AuthFetchFn = (url: string, options?: RequestInit) => Promise<Response>;
