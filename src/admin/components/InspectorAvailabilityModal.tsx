@@ -107,19 +107,17 @@ export const InspectorAvailabilityModal = ({
     }));
 
     const footer = (
-        <div className="inspector-availability-modal modal-footer">
-            {initialData ? (
-                <button className="btn-remove" onClick={onDeleteClick}>
+        <>
+            <button className="btn-secondary" onClick={onClose} disabled={saving}>Cancel</button>
+            {initialData && (
+                <button className="btn-delete" onClick={onDeleteClick}>
                     Remove Availability
                 </button>
-            ) : <div />}
-            <div className="modal-actions">
-                <button className="btn-cancel" onClick={onClose} disabled={saving}>Cancel</button>
-                <button className="btn-primary" onClick={handleSubmit} disabled={saving}>
-                    {saving ? 'Saving...' : (initialData ? 'Update Availability' : 'Add Availability')}
-                </button>
-            </div>
-        </div>
+            )}
+            <button className="btn-primary" onClick={handleSubmit} disabled={saving}>
+                {saving ? 'Saving...' : (initialData ? 'Update Availability' : 'Add Availability')}
+            </button>
+        </>
     );
 
     return (
@@ -139,7 +137,8 @@ export const InspectorAvailabilityModal = ({
                     <div className="modal-form">
                         <div className="form-row">
                             <SingleSelectDropdown
-                                label="Staff Member *"
+                                label="Staff Member"
+                                required
                                 options={userOptions}
                                 value={formData.inspectorProfileId}
                                 onChange={(val) => setFormData(prev => ({ ...prev, inspectorProfileId: String(val) }))}
@@ -149,7 +148,8 @@ export const InspectorAvailabilityModal = ({
 
                         <div className="form-row-dates">
                             <InputField
-                                label="Available Start Date *"
+                                label="Available Start Date"
+                                required
                                 type="date"
                                 id="available-start-date"
                                 value={formData.availableStartDate}
@@ -157,7 +157,8 @@ export const InspectorAvailabilityModal = ({
                             />
 
                             <InputField
-                                label="Available End Date *"
+                                label="Available End Date"
+                                required
                                 type="date"
                                 id="available-end-date"
                                 value={formData.availableEndDate}

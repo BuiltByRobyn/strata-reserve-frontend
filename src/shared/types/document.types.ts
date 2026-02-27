@@ -27,6 +27,7 @@ export interface UploadedDocument {
   uploadedByProfileId: string;
   notes?: string;
   reviewStatusId?: number | null;
+  propertyTypeId?: number | null;
 }
 
 export interface DocumentWithDetails {

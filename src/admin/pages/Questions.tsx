@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useQuestions } from '../../shared/hooks/useQuestions';
 import { useLookups } from '../../shared/hooks/useLookups';
+import { useMediaQuery } from '../../shared/hooks/useMediaQuery';
 import { DataTable, type Column } from '../../shared/components/DataTable';
 import { Modal } from '../../shared/components/Modal';
 import { InputField, TextareaField, FormRow } from '../../shared/components/FormField';
@@ -42,6 +43,7 @@ const formatTypeName = (name: string) =>
 export default function QuestionsPage() {
   const { questions, loading, error, createQuestion, updateQuestion, deleteQuestion } = useQuestions();
   const { questionTypes, services, propertyTypes } = useLookups();
+  const isDesktop = useMediaQuery('(min-width: 750px)');
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState<AdminQuestion | null>(null);
@@ -252,9 +254,9 @@ export default function QuestionsPage() {
           setViewingQuestion(q);
           setIsViewModalOpen(true);
         }}
-        actions={(q) => (
+        actions={isDesktop ? (q) => (
           <button className="btn-edit" onClick={(e) => { e.stopPropagation(); openEditModal(q); }}>Edit</button>
-        )}
+        ) : undefined}
       />
 
       {totalPages > 1 && (
@@ -401,15 +403,43 @@ export default function QuestionsPage() {
         title="View Question"
         size="medium"
         footer={
-          <button
-            className="btn-primary"
-            onClick={() => {
-              setIsViewModalOpen(false);
-              setViewingQuestion(null);
-            }}
-          >
-            Close
-          </button>
+          <>
+            <button
+              className={isDesktop ? "btn-primary" : "btn-secondary"}
+              onClick={() => {
+                setIsViewModalOpen(false);
+                setViewingQuestion(null);
+              }}
+            >
+              Close
+            </button>
+            {!isDesktop && viewingQuestion && (
+              <>
+                <button
+                  className="btn-delete"
+                  onClick={async () => {
+                    const deleted = await handleDelete(viewingQuestion);
+                    if (deleted) {
+                      setIsViewModalOpen(false);
+                      setViewingQuestion(null);
+                    }
+                  }}
+                >
+                  Delete
+                </button>
+                <button
+                  className="btn-primary"
+                  onClick={() => {
+                    setIsViewModalOpen(false);
+                    openEditModal(viewingQuestion);
+                    setViewingQuestion(null);
+                  }}
+                >
+                  Edit
+                </button>
+              </>
+            )}
+          </>
         }
       >
         {viewingQuestion && (
