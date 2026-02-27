@@ -1,5 +1,5 @@
 import { useState, useEffect, type FormEvent } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 
 export const Login = () => {
@@ -151,9 +151,9 @@ export const Login = () => {
             </a>
           </p>
           <div className="footer-links">
-            <a href="#">Privacy Policy</a>
+            <Link to="/privacy">Privacy Policy</Link>
             <span>|</span>
-            <a href="#">Terms of Use</a>
+            <Link to="/terms">Terms of Use</Link>
           </div>
         </div>
 

@@ -8,12 +8,13 @@ import { supabase } from '../../shared/lib/supabaseClient';
 import type { AdminUser } from '../../shared/types/auth.types';
 import type { AdminProfileFormData as ProfileData } from '../../shared/types/entities.types';
 import { API_BASE } from '../../shared/lib/api';
+import { InspectorAvailabilityManager } from '../components/InspectorAvailabilityManager';
 import '../../admin/styles/pages/_profile.scss';
 
 export default function ProfilePage() {
   const { user } = useAuth();
   const authFetch = useAuthFetch();
-  
+
   // Profile data state
   const [profileData, setProfileData] = useState<ProfileData>({
     companyName: 'Strata Reserve Planning',
@@ -25,7 +26,7 @@ export default function ProfilePage() {
     postalCode: '',
     email: 'admin@admin.com'
   });
-  
+
   // UI state
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -43,15 +44,15 @@ export default function ProfilePage() {
     try {
       setLoading(true);
       setError(null);
-      
+
       const response = await authFetch(`${API_BASE}/admin/profile`);
-      
+
       if (!response.ok) {
         throw new Error('Failed to fetch profile');
       }
-      
+
       const data = await response.json();
-      
+
       if (data.success) {
         const profile = data.data;
         const userName = user && user.role === 'admin' ? (user as AdminUser).fullName : '';
@@ -91,7 +92,7 @@ export default function ProfilePage() {
       setSaving(true);
       setError(null);
       setSuccessMessage(null);
-      
+
       const response = await authFetch(`${API_BASE}/admin/profile`, {
         method: 'PUT',
         headers: {
@@ -106,13 +107,13 @@ export default function ProfilePage() {
           postalCode: profileData.postalCode
         })
       });
-      
+
       if (!response.ok) {
         throw new Error('Failed to update profile');
       }
-      
+
       const data = await response.json();
-      
+
       if (data.success) {
         setSuccessMessage('Profile updated successfully!');
       } else {
@@ -213,8 +214,7 @@ export default function ProfilePage() {
       {(!isDesktop || activeTab === 'availability') && (
         <div className="profile-content">
           <section className="profile-section">
-            <h2>Inspector Availability</h2>
-            <p className="placeholder-text">Inspector availability management coming soon...</p>
+            <InspectorAvailabilityManager />
           </section>
         </div>
       )}
