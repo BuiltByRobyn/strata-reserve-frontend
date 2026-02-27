@@ -1,25 +1,23 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useAuthFetch } from './useAuthFetch';
-import type { PropertyTypeRequest, ApiListResponse, ApiSingleResponse } from '../types/entities.types';
-import { API_BASE } from '../lib/api';
+import { useApiClient } from './useApiClient';
+import type { PropertyTypeRequest } from '../types/entities.types';
 
 export const usePropertyTypeRequests = () => {
-  const authFetch = useAuthFetch();
+  const api = useApiClient();
   const [requests, setRequests] = useState<PropertyTypeRequest[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchPending = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await authFetch(`${API_BASE}/admin/property-type-requests/pending`);
-      const data: ApiListResponse<PropertyTypeRequest> = await response.json();
-      setRequests(data.success ? data.data || [] : []);
+      const data = await api.get<PropertyTypeRequest[]>('/admin/property-type-requests/pending');
+      setRequests(data || []);
     } catch {
       setRequests([]);
     } finally {
       setLoading(false);
     }
-  }, [authFetch]);
+  }, [api]);
 
   useEffect(() => {
     fetchPending();
@@ -27,38 +25,23 @@ export const usePropertyTypeRequests = () => {
 
   const approveRequest = useCallback(async (id: number): Promise<boolean> => {
     try {
-      const response = await authFetch(`${API_BASE}/admin/property-type-requests/${id}/approve`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
-      });
-      const data: ApiSingleResponse<PropertyTypeRequest> = await response.json();
-      if (data.success) {
-        await fetchPending();
-        return true;
-      }
-      return false;
+      await api.post(`/admin/property-type-requests/${id}/approve`);
+      await fetchPending();
+      return true;
     } catch {
       return false;
     }
-  }, [authFetch, fetchPending]);
+  }, [api, fetchPending]);
 
   const rejectRequest = useCallback(async (id: number, rejectionReason: string): Promise<boolean> => {
     try {
-      const response = await authFetch(`${API_BASE}/admin/property-type-requests/${id}/reject`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ rejectionReason })
-      });
-      const data: ApiSingleResponse<PropertyTypeRequest> = await response.json();
-      if (data.success) {
-        await fetchPending();
-        return true;
-      }
-      return false;
+      await api.post(`/admin/property-type-requests/${id}/reject`, { rejectionReason });
+      await fetchPending();
+      return true;
     } catch {
       return false;
     }
-  }, [authFetch, fetchPending]);
+  }, [api, fetchPending]);
 
   return { requests, loading, approveRequest, rejectRequest, refetch: fetchPending };
 };

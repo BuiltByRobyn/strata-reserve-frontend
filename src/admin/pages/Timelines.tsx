@@ -338,8 +338,6 @@ export default function TimelinesPage() {
         payload.noReportToDate = false;
       } else if (editingDeadlineType === 'Target Date') {
         payload.targetDate = null;
-      } else if (editingDeadlineType === 'Fiscal Year End') {
-        payload.fiscalYearEnd = null;
       }
       const response = await authFetch(
         `${API_BASE}/admin/service-requests/${recordToDelete.serviceRequestId}/timelines`,

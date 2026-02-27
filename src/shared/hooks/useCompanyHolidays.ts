@@ -1,170 +1,103 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useAuthFetch } from './useAuthFetch';
+import { useApiClient } from './useApiClient';
+import { REQUEST_TIMEOUT_MS } from '../lib/apiClient';
 import type {
   CompanyHoliday,
   CreateCompanyHolidayInput,
   UpdateCompanyHolidayInput,
-  ApiListResponse,
-  ApiSingleResponse
 } from '../types/entities.types';
 import type { CompanyHolidaysState } from '../types/hooks.types';
-import { API_BASE } from '../lib/api';
 
 export const useCompanyHolidays = () => {
-  const authFetch = useAuthFetch();
+  const api = useApiClient();
   const [state, setState] = useState<CompanyHolidaysState>({
     holidays: [],
     loading: true,
     error: null
   });
 
-  // Fetch all company holidays
   const fetchHolidays = useCallback(async () => {
     setState(prev => ({ ...prev, loading: true, error: null }));
-    
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000);
-      
-      const response = await authFetch(`${API_BASE}/admin/company-holidays`, {
-        signal: controller.signal
+      const holidays = await api.get<CompanyHoliday[]>('/admin/company-holidays', {
+        timeout: REQUEST_TIMEOUT_MS,
       });
-      clearTimeout(timeoutId);
-      
-      if (!response.ok) {
-        throw new Error(`Server error: ${response.status}`);
-      }
-      
-      const data: ApiListResponse<CompanyHoliday> = await response.json();
-      
-      if (data.success) {
-        setState({ holidays: data.data || [], loading: false, error: null });
-      } else {
-        throw new Error(data.error || 'Failed to fetch company holidays');
-      }
+      setState({ holidays: holidays || [], loading: false, error: null });
     } catch (error) {
       console.error('Error fetching company holidays:', error);
-      const errorMessage = error instanceof Error 
-        ? (error.name === 'AbortError' 
-          ? 'Request timed out. Is the backend running?' 
+      const errorMessage = error instanceof Error
+        ? (error.name === 'AbortError'
+          ? 'Request timed out. Is the backend running?'
           : error.message)
         : 'Failed to load company holidays';
-      setState(prev => ({
-        ...prev,
-        loading: false,
-        error: errorMessage
-      }));
+      setState(prev => ({ ...prev, loading: false, error: errorMessage }));
     }
-  }, [authFetch]);
+  }, [api]);
 
-  // Get holiday by ID
   const getHolidayById = useCallback(async (id: number): Promise<CompanyHoliday | null> => {
     try {
-      const response = await authFetch(`${API_BASE}/admin/company-holidays/${id}`);
-      const data: ApiSingleResponse<CompanyHoliday> = await response.json();
-      
-      if (data.success && data.data) {
-        return data.data;
-      }
-      return null;
+      return await api.get<CompanyHoliday>(`/admin/company-holidays/${id}`);
     } catch (error) {
       console.error('Error fetching company holiday:', error);
       return null;
     }
-  }, [authFetch]);
+  }, [api]);
 
-  // Create holiday
   const createHoliday = useCallback(async (input: CreateCompanyHolidayInput): Promise<CompanyHoliday | null> => {
     try {
-      const response = await authFetch(`${API_BASE}/admin/company-holidays`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(input)
-      });
-      const data: ApiSingleResponse<CompanyHoliday> = await response.json();
-      
-      if (data.success && data.data) {
-        await fetchHolidays();
-        return data.data;
-      }
-      throw new Error(data.error || 'Failed to create company holiday');
+      const result = await api.post<CompanyHoliday>('/admin/company-holidays', input);
+      await fetchHolidays();
+      return result;
     } catch (error) {
       console.error('Error creating company holiday:', error);
       throw error;
     }
-  }, [authFetch, fetchHolidays]);
+  }, [api, fetchHolidays]);
 
-  // Update holiday
   const updateHoliday = useCallback(async (id: number, input: UpdateCompanyHolidayInput): Promise<CompanyHoliday | null> => {
     try {
-      const response = await authFetch(`${API_BASE}/admin/company-holidays/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(input)
-      });
-      const data: ApiSingleResponse<CompanyHoliday> = await response.json();
-      
-      if (data.success && data.data) {
-        await fetchHolidays();
-        return data.data;
-      }
-      throw new Error(data.error || 'Failed to update company holiday');
+      const result = await api.put<CompanyHoliday>(`/admin/company-holidays/${id}`, input);
+      await fetchHolidays();
+      return result;
     } catch (error) {
       console.error('Error updating company holiday:', error);
       throw error;
     }
-  }, [authFetch, fetchHolidays]);
+  }, [api, fetchHolidays]);
 
-  // Delete holiday
   const deleteHoliday = useCallback(async (id: number): Promise<boolean> => {
     try {
-      const response = await authFetch(`${API_BASE}/admin/company-holidays/${id}`, {
-        method: 'DELETE'
-      });
-      const data = await response.json();
-      
-      if (data.success) {
-        await fetchHolidays();
-        return true;
-      }
-      throw new Error(data.error || 'Failed to delete company holiday');
+      await api.del(`/admin/company-holidays/${id}`);
+      await fetchHolidays();
+      return true;
     } catch (error) {
       console.error('Error deleting company holiday:', error);
       throw error;
     }
-  }, [authFetch, fetchHolidays]);
+  }, [api, fetchHolidays]);
 
-  // Get holidays by year
   const getHolidaysByYear = useCallback(async (year: number): Promise<CompanyHoliday[]> => {
     try {
-      const response = await authFetch(`${API_BASE}/admin/company-holidays/by-year?year=${year}`);
-      const data: ApiListResponse<CompanyHoliday> = await response.json();
-      
-      if (data.success) {
-        return data.data || [];
-      }
-      return [];
+      return await api.get<CompanyHoliday[]>('/admin/company-holidays/by-year', {
+        params: { year },
+      });
     } catch (error) {
       console.error('Error fetching holidays by year:', error);
       return [];
     }
-  }, [authFetch]);
+  }, [api]);
 
-  // Check if a date is a holiday
   const checkIsHoliday = useCallback(async (date: string): Promise<boolean> => {
     try {
-      const response = await authFetch(`${API_BASE}/admin/company-holidays/check?date=${date}`);
-      const data = await response.json();
-      
-      if (data.success) {
-        return data.data?.isHoliday ?? false;
-      }
-      return false;
+      const result = await api.get<{ isHoliday: boolean }>('/admin/company-holidays/check', {
+        params: { date },
+      });
+      return result?.isHoliday ?? false;
     } catch (error) {
       console.error('Error checking if date is holiday:', error);
       return false;
     }
-  }, [authFetch]);
+  }, [api]);
 
   useEffect(() => {
     fetchHolidays();

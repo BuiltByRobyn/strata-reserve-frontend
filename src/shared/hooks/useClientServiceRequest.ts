@@ -1,11 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useAuthFetch } from './useAuthFetch';
+import { useApiClient } from './useApiClient';
 import { useAuth } from '../contexts/AuthContext';
-import type { ServiceRequest, ApiSingleResponse } from '../types/entities.types';
-import { API_BASE } from '../lib/api';
+import type { ServiceRequest } from '../types/entities.types';
 
 export const useClientServiceRequest = () => {
-  const authFetch = useAuthFetch();
+  const api = useApiClient();
   const { user } = useAuth();
   const [activeRequest, setActiveRequest] = useState<ServiceRequest | null>(null);
   const [loading, setLoading] = useState(true);
@@ -19,19 +18,14 @@ export const useClientServiceRequest = () => {
 
     setLoading(true);
     try {
-      const response = await authFetch(`${API_BASE}/client/service-requests/active`);
-      const data: ApiSingleResponse<ServiceRequest> = await response.json();
-      if (data.success) {
-        setActiveRequest(data.data || null);
-      } else {
-        setActiveRequest(null);
-      }
+      const data = await api.get<ServiceRequest>('/client/service-requests/active');
+      setActiveRequest(data || null);
     } catch {
       setActiveRequest(null);
     } finally {
       setLoading(false);
     }
-  }, [authFetch, user]);
+  }, [api, user]);
 
   useEffect(() => {
     fetchActiveRequest();
@@ -40,19 +34,13 @@ export const useClientServiceRequest = () => {
   const submitForReview = useCallback(async (): Promise<{ success: boolean; error?: string }> => {
     if (!activeRequest) return { success: false, error: 'No active request' };
     try {
-      const response = await authFetch(`${API_BASE}/client/service-requests/${activeRequest.serviceRequestId}/submit`, {
-        method: 'POST',
-      });
-      const data = await response.json();
-      if (data.success) {
-        await fetchActiveRequest();
-        return { success: true };
-      }
-      return { success: false, error: data.error || 'Submission failed' };
+      await api.post(`/client/service-requests/${activeRequest.serviceRequestId}/submit`);
+      await fetchActiveRequest();
+      return { success: true };
     } catch {
       return { success: false, error: 'Network error' };
     }
-  }, [activeRequest, authFetch, fetchActiveRequest]);
+  }, [activeRequest, api, fetchActiveRequest]);
 
   return {
     activeRequest,

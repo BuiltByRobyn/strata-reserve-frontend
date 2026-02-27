@@ -1,159 +1,95 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useAuthFetch } from './useAuthFetch';
+import { useApiClient } from './useApiClient';
+import { REQUEST_TIMEOUT_MS } from '../lib/apiClient';
 import type {
   Company,
   CompanyWithStratas,
   CreateCompanyInput,
   UpdateCompanyInput,
-  ApiListResponse,
-  ApiSingleResponse
 } from '../types/entities.types';
 import type { CompaniesState } from '../types/hooks.types';
-import { API_BASE } from '../lib/api';
 
 export const useCompanies = () => {
-  const authFetch = useAuthFetch();
+  const api = useApiClient();
   const [state, setState] = useState<CompaniesState>({
     companies: [],
     loading: true,
     error: null
   });
 
-  // Fetch all companies
   const fetchCompanies = useCallback(async () => {
     setState(prev => ({ ...prev, loading: true, error: null }));
-    
     try {
-      // Add timeout to prevent infinite loading
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000);
-      
-      const response = await authFetch(`${API_BASE}/admin/companies`, {
-        signal: controller.signal
+      const companies = await api.get<Company[]>('/admin/companies', {
+        timeout: REQUEST_TIMEOUT_MS,
       });
-      clearTimeout(timeoutId);
-      
-      if (!response.ok) {
-        throw new Error(`Server error: ${response.status}`);
-      }
-      
-      const data: ApiListResponse<Company> = await response.json();
-      
-      if (data.success) {
-        setState({ companies: data.data || [], loading: false, error: null });
-      } else {
-        throw new Error(data.error || 'Failed to fetch companies');
-      }
+      setState({ companies: companies || [], loading: false, error: null });
     } catch (error) {
       console.error('Error fetching companies:', error);
-      const errorMessage = error instanceof Error 
-        ? (error.name === 'AbortError' 
-          ? 'Request timed out. Is the backend running?' 
+      const errorMessage = error instanceof Error
+        ? (error.name === 'AbortError'
+          ? 'Request timed out. Is the backend running?'
           : error.message)
         : 'Failed to load companies';
-      setState(prev => ({
-        ...prev,
-        loading: false,
-        error: errorMessage
-      }));
+      setState(prev => ({ ...prev, loading: false, error: errorMessage }));
     }
-  }, [authFetch]);
+  }, [api]);
 
-  // Get company by ID
-  const getCompanyById = useCallback(async (id: number): Promise<CompanyWithStratas | null> => {
-    try {
-      const response = await authFetch(`${API_BASE}/admin/companies/${id}`);
-      const data: ApiSingleResponse<CompanyWithStratas> = await response.json();
-      
-      if (data.success && data.data) {
-        return data.data;
+  const getCompanyById = useCallback(
+    async (id: number): Promise<CompanyWithStratas | null> => {
+      try {
+        return await api.get<CompanyWithStratas>(`/admin/companies/${id}`);
+      } catch (error) {
+        console.error('Error fetching company:', error);
+        return null;
       }
-      return null;
-    } catch (error) {
-      console.error('Error fetching company:', error);
-      return null;
-    }
-  }, [authFetch]);
+    },
+    [api]
+  );
 
-  // Create company
   const createCompany = useCallback(async (input: CreateCompanyInput): Promise<Company | null> => {
     try {
-      const response = await authFetch(`${API_BASE}/admin/companies`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(input)
-      });
-      const data: ApiSingleResponse<Company> = await response.json();
-      
-      if (data.success && data.data) {
-        // Refresh list
-        await fetchCompanies();
-        return data.data;
-      }
-      throw new Error(data.error || 'Failed to create company');
+      const result = await api.post<Company>('/admin/companies', input);
+      await fetchCompanies();
+      return result;
     } catch (error) {
       console.error('Error creating company:', error);
       throw error;
     }
-  }, [authFetch, fetchCompanies]);
+  }, [api, fetchCompanies]);
 
-  // Update company
   const updateCompany = useCallback(async (id: number, input: UpdateCompanyInput): Promise<Company | null> => {
     try {
-      const response = await authFetch(`${API_BASE}/admin/companies/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(input)
-      });
-      const data: ApiSingleResponse<Company> = await response.json();
-      
-      if (data.success && data.data) {
-        // Refresh list
-        await fetchCompanies();
-        return data.data;
-      }
-      throw new Error(data.error || 'Failed to update company');
+      const result = await api.put<Company>(`/admin/companies/${id}`, input);
+      await fetchCompanies();
+      return result;
     } catch (error) {
       console.error('Error updating company:', error);
       throw error;
     }
-  }, [authFetch, fetchCompanies]);
+  }, [api, fetchCompanies]);
 
-  // Delete company
   const deleteCompany = useCallback(async (id: number): Promise<boolean> => {
     try {
-      const response = await authFetch(`${API_BASE}/admin/companies/${id}`, {
-        method: 'DELETE'
-      });
-      const data = await response.json();
-      
-      if (data.success) {
-        // Refresh list
-        await fetchCompanies();
-        return true;
-      }
-      throw new Error(data.error || 'Failed to delete company');
+      await api.del(`/admin/companies/${id}`);
+      await fetchCompanies();
+      return true;
     } catch (error) {
       console.error('Error deleting company:', error);
       throw error;
     }
-  }, [authFetch, fetchCompanies]);
+  }, [api, fetchCompanies]);
 
-  // Search companies
   const searchCompanies = useCallback(async (query: string): Promise<Company[]> => {
     try {
-      const response = await authFetch(`${API_BASE}/admin/companies/search?q=${encodeURIComponent(query)}`);
-      const data: ApiListResponse<Company> = await response.json();
-      
-      if (data.success) {
-        return data.data || [];
-      }
-      return [];
+      return await api.get<Company[]>('/admin/companies/search', {
+        params: { q: query },
+      });
     } catch (error) {
       console.error('Error searching companies:', error);
       return [];
     }
-  }, [authFetch]);
+  }, [api]);
 
   useEffect(() => {
     fetchCompanies();

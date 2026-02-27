@@ -64,7 +64,7 @@ export const InspectorAvailabilityManager = () => {
         { label: 'Available End Date', value: formatDateShort(block.availableEndDate) },
         { label: 'Start Time', value: formatTime(block.availableStartTime) },
         { label: 'End Time', value: formatTime(block.availableEndTime) },
-        { label: 'Locations', value: block.inspectorAvailableLocations?.map(l => l.location?.locationName).filter(Boolean).join(', ') || '-' },
+        { label: 'Locations', value: block.locations?.map((l) => l.locationCode).join(', ') || '-' },
     ];
 
     const getStaffName = (item: InspectorAvailableDate) =>

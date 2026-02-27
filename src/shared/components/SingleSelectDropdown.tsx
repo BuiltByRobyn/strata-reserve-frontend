@@ -1,5 +1,6 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import type { SingleSelectDropdownProps } from '../types/component.types';
+import { useClickOutside } from '../hooks/useClickOutside';
 
 export function SingleSelectDropdown({
   label,
@@ -18,15 +19,7 @@ export function SingleSelectDropdown({
   const containerRef = useRef<HTMLDivElement>(null);
   const fieldId = `field-${label.toLowerCase().replace(/\s+/g, '-')}`;
 
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setIsOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+  useClickOutside(containerRef, useCallback(() => setIsOpen(false), []));
 
   const selectedOption = options.find(o => String(o.value) === String(value));
   const displayText = selectedOption ? selectedOption.label : placeholder;

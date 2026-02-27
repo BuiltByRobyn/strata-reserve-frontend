@@ -1,5 +1,6 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import type { MultiSelectDropdownProps } from '../types/component.types';
+import { useClickOutside } from '../hooks/useClickOutside';
 
 export function MultiSelectDropdown({
   label,
@@ -16,15 +17,7 @@ export function MultiSelectDropdown({
   const containerRef = useRef<HTMLDivElement>(null);
   const fieldId = `field-${label.toLowerCase().replace(/\s+/g, '-')}`;
 
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setIsOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+  useClickOutside(containerRef, useCallback(() => setIsOpen(false), []));
 
   const toggleOption = (value: number) => {
     if (selectedValues.includes(value)) {

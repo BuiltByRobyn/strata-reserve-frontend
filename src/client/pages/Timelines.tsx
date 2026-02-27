@@ -217,13 +217,6 @@ const Timelines = () => {
     : (autoTargetDate && autoTargetDate >= today)
       ? autoTargetDate
       : null;
-  // Normalize to local date-only so "today" and "file opened today" both yield 0 days (avoids -1 from UTC vs local)
-  const fileOpenedDateObj = fileOpenedDate
-    ? (() => {
-        const d = new Date(fileOpenedDate);
-        return new Date(d.getFullYear(), d.getMonth(), d.getDate());
-      })()
-    : null;
   const nextFiscalYearStart = fiscalYearStartDate ? getNextAnniversary(fiscalYearStartDate, today) : null;
   const mostRecentFiscalYearStart = fiscalYearStartDate
     ? getMostRecentAnniversary(fiscalYearStartDate, today)
@@ -235,8 +228,6 @@ const Timelines = () => {
     nextFiscalYearStart != null ? daysBetween(today, nextFiscalYearStart) : null;
   const daysSinceLastAGM =
     lastAGMDate != null ? daysBetween(lastAGMDate, today) : null;
-  const daysSinceFileOpened =
-    fileOpenedDateObj != null ? daysBetween(fileOpenedDateObj, today) : null;
 
   const daysAway = (d: Date) => {
     const diff = daysBetween(today, d);
