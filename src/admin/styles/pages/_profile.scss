@@ -295,3 +295,63 @@
     gap: $spacing-lg;
   }
 }
+
+/* Company Holidays header: on desktop/tablet only, title and small right-aligned button; on mobile button is below the list (see CompanyHolidaysManager) */
+.company-holidays-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: $spacing-md;
+
+  .company-holidays-add-btn {
+    width: auto;
+    margin-top: 0;
+    flex-shrink: 0;
+  }
+}
+
+.company-holiday-modal {
+  .modal-error {
+    margin-bottom: $spacing-md;
+    color: $color-error;
+    background-color: #ffeeee;
+    padding: 10px;
+    border-radius: $border-radius-sm;
+  }
+
+  .modal-form {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-xl;
+  }
+
+  .form-row {
+    width: 100%;
+  }
+
+  .form-row-two-cols {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: $spacing-md;
+
+    @include respond-below(sm) {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: $spacing-sm;
+    cursor: pointer;
+    font-size: $font-size-base;
+    color: $color-text-dark;
+
+    input[type="checkbox"] {
+      accent-color: $color-primary;
+      width: 18px;
+      height: 18px;
+    }
+  }
+}
