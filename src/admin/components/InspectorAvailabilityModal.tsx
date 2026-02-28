@@ -3,6 +3,7 @@ import { Modal } from '../../shared/components/Modal';
 import { InputField } from '../../shared/components/FormField';
 import { SingleSelectDropdown } from '../../shared/components/SingleSelectDropdown';
 import { useUsers } from '../../shared/hooks/useUsers';
+import { useCompanyHolidays } from '../../shared/hooks/useCompanyHolidays';
 import type { InspectorAvailabilityModalProps } from '../../shared/types/component.types';
 import { LoadingSpinner } from '../../shared/components/LoadingSpinner';
 import { extractTimeFromISO } from '../../shared/utils/availabilityUtils';
@@ -17,6 +18,7 @@ export const InspectorAvailabilityModal = ({
     onDeleteClick
 }: InspectorAvailabilityModalProps) => {
     const { users, loading: usersLoading } = useUsers();
+    const { checkIsHoliday } = useCompanyHolidays();
 
     const [formData, setFormData] = useState({
         inspectorProfileId: '',
@@ -57,6 +59,22 @@ export const InspectorAvailabilityModal = ({
         try {
             if (!formData.inspectorProfileId || !formData.availableStartDate || !formData.availableEndDate) {
                 throw new Error('Please fill in all required fields.');
+            }
+
+            if (formData.availableEndDate < formData.availableStartDate) {
+                setError('End date must be on or after start date.');
+                return;
+            }
+
+            const start = new Date(formData.availableStartDate + 'T12:00:00');
+            const end = new Date(formData.availableEndDate + 'T12:00:00');
+            for (const d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+                const dateStr = d.toISOString().slice(0, 10);
+                const isHoliday = await checkIsHoliday(dateStr);
+                if (isHoliday) {
+                    setError('The company is closed on this day, please adjust availability or remove this closure.');
+                    return;
+                }
             }
 
             setSaving(true);

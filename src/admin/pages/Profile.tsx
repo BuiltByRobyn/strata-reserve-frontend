@@ -9,6 +9,7 @@ import type { AdminUser } from '../../shared/types/auth.types';
 import type { AdminProfileFormData as ProfileData } from '../../shared/types/entities.types';
 import { API_BASE } from '../../shared/lib/api';
 import { InspectorAvailabilityManager } from '../components/InspectorAvailabilityManager';
+import { CompanyHolidaysManager } from '../components/CompanyHolidaysManager';
 import '../../admin/styles/pages/_profile.scss';
 
 export default function ProfilePage() {
@@ -211,8 +212,7 @@ export default function ProfilePage() {
       {(!isDesktop || activeTab === 'holidays') && (
         <div className="profile-content">
           <section className="profile-section">
-            <h2>Company Holidays</h2>
-            <p className="placeholder-text">Company holidays management coming soon...</p>
+            <CompanyHolidaysManager />
           </section>
         </div>
       )}
