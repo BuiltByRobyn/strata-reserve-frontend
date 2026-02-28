@@ -364,7 +364,10 @@ export default function StrataDetailPage() {
     const sectionConfig = SURVEY_SECTIONS.find(s => s.key === sectionKey);
     if (!sectionConfig) return [];
 
-    let filtered = questions.filter(q => q.questionCategory === sectionConfig.label);
+    // Only parent questions at the top level
+    let filtered = questions.filter(
+      q => q.questionCategory === sectionConfig.label && q.parentQuestionId == null
+    );
 
     if (filterPropertyTypeIds.length > 0) {
       filtered = filtered.filter(q => {
@@ -379,10 +382,25 @@ export default function StrataDetailPage() {
     return filtered;
   };
 
+  const getSubQuestionsMap = (questions: SurveyQuestion[], sectionKey: string): Map<number, SurveyQuestion[]> => {
+    const sectionConfig = SURVEY_SECTIONS.find(s => s.key === sectionKey);
+    const map = new Map<number, SurveyQuestion[]>();
+    if (!sectionConfig) return map;
+    for (const q of questions) {
+      if (q.questionCategory === sectionConfig.label && q.parentQuestionId != null) {
+        const list = map.get(q.parentQuestionId) ?? [];
+        list.push(q);
+        map.set(q.parentQuestionId, list);
+      }
+    }
+    return map;
+  };
+
   const buildCompletionMap = (questions: SurveyQuestion[], responseIds: Set<number>) => {
     const map: Record<string, boolean> = {};
     for (const s of SURVEY_SECTIONS) {
-      const sq = questions.filter(q => q.questionCategory === s.label);
+      // Only count parent questions for completion
+      const sq = questions.filter(q => q.questionCategory === s.label && q.parentQuestionId == null);
       map[s.key] = sq.length > 0 && sq.every(q => responseIds.has(q.questionId));
     }
     return map;
@@ -503,10 +521,11 @@ export default function StrataDetailPage() {
     surveyLoading: boolean,
   ) => {
     const sectionQuestions = getFilteredQuestions(questions, sectionKey);
+    const subQuestionsMap = getSubQuestionsMap(questions, sectionKey);
 
     return (
       <>
-        <SurveyProgressBar answered={responses.length} total={questions.length} />
+        <SurveyProgressBar answered={responses.length} total={questions.filter(q => q.parentQuestionId == null).length} />
 
         {surveyLoading ? (
           <LoadingSpinner />
@@ -516,12 +535,28 @@ export default function StrataDetailPage() {
           </div>
         ) : (
           <div className="admin-survey-answers">
-            {sectionQuestions.map((q) => (
-              <div key={q.questionId} className="admin-answer-item">
-                <div className="answer-question">{q.questionText}</div>
-                <div className="answer-response">{renderAnswerValue(q, getResponse)}</div>
-              </div>
-            ))}
+            {sectionQuestions.map((q) => {
+              const subQuestions = subQuestionsMap.get(q.questionId) ?? [];
+              return (
+                <div key={q.questionId} className="admin-answer-item">
+                  <div className="answer-question">{q.questionText}</div>
+                  <div className="answer-response">{renderAnswerValue(q, getResponse)}</div>
+                  {subQuestions.length > 0 && (
+                    <div className="admin-sub-answers">
+                      {subQuestions.map(sq => (
+                        <div key={sq.questionId} className="admin-sub-answer-item">
+                          <div className="answer-question">
+                            {sq.subLabel && <span className="admin-sub-label">{sq.subLabel}.</span>}
+                            {sq.questionText}
+                          </div>
+                          <div className="answer-response">{renderAnswerValue(sq, getResponse)}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
       </>

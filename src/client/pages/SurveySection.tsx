@@ -43,9 +43,22 @@ export default function SurveySectionPage() {
 
   const sectionConfig = SURVEY_SECTIONS.find(s => s.key === section);
 
-  const sectionQuestions = sectionConfig
+  // Separate parent questions from sub-questions
+  const allSectionQuestions = sectionConfig
     ? allQuestions.filter(q => q.questionCategory === sectionConfig.label)
     : [];
+
+  const sectionQuestions = allSectionQuestions.filter(q => q.parentQuestionId == null);
+
+  // Map: parentQuestionId -> sub-questions (in order)
+  const subQuestionsMap = new Map<number, SurveyQuestion[]>();
+  for (const q of allSectionQuestions) {
+    if (q.parentQuestionId != null) {
+      const list = subQuestionsMap.get(q.parentQuestionId) ?? [];
+      list.push(q);
+      subQuestionsMap.set(q.parentQuestionId, list);
+    }
+  }
 
   const requiredSections = SURVEY_SECTIONS.filter(s =>
     allQuestions.some(q => q.questionCategory === s.label)
@@ -151,9 +164,50 @@ export default function SurveySectionPage() {
     completionMap[s.key] = sq.length > 0 && sq.every(q => answeredIds.has(q.questionId));
   }
 
+  const renderSubQuestion = (q: SurveyQuestion) => {
+    const answer = getAnswer(q.questionId);
+    return (
+      <div key={q.questionId} className="survey-sub-question">
+        <label className="question-label">
+          {q.subLabel && <span className="sub-label-badge">{q.subLabel}.</span>}
+          {q.questionText}
+          {q.isRequired && <span className="required-mark">*</span>}
+        </label>
+        {q.questionType === 'textarea' && (
+          <textarea
+            className="question-input question-textarea"
+            value={answer.responseText || ''}
+            onChange={(e) => updateAnswer(q.questionId, 'responseText', e.target.value)}
+            placeholder="Enter your answer..."
+            rows={2}
+          />
+        )}
+        {q.questionType === 'text' && (
+          <input
+            type="text"
+            className="question-input"
+            value={answer.responseText || ''}
+            onChange={(e) => updateAnswer(q.questionId, 'responseText', e.target.value)}
+            placeholder="Enter your answer..."
+          />
+        )}
+        {q.questionType === 'number' && (
+          <input
+            type="number"
+            className="question-input"
+            value={answer.responseNumber ?? ''}
+            onChange={(e) => updateAnswer(q.questionId, 'responseNumber', e.target.value ? parseInt(e.target.value) : null)}
+            placeholder="Enter number..."
+          />
+        )}
+      </div>
+    );
+  };
+
   const renderQuestion = (q: SurveyQuestion, index: number) => {
     const answer = getAnswer(q.questionId);
     const questionNumber = page * QUESTIONS_PER_PAGE + index + 1;
+    const subQuestions = subQuestionsMap.get(q.questionId) ?? [];
 
     return (
       <div key={q.questionId} className="survey-question">
@@ -171,7 +225,7 @@ export default function SurveySectionPage() {
             className="question-input question-textarea"
             value={answer.responseText || ''}
             onChange={(e) => updateAnswer(q.questionId, 'responseText', e.target.value)}
-            placeholder={q.informationText || 'Enter your answer...'}
+            placeholder="Enter your answer..."
             rows={3}
           />
         )}
@@ -287,6 +341,11 @@ export default function SurveySectionPage() {
                 rows={3}
               />
             )}
+          </div>
+        )}
+        {subQuestions.length > 0 && (
+          <div className="survey-sub-questions">
+            {subQuestions.map(sq => renderSubQuestion(sq))}
           </div>
         )}
       </div>

@@ -1,5 +1,7 @@
 export interface SurveyQuestion {
   questionId: number;
+  parentQuestionId: number | null;
+  subLabel: string | null;
   questionText: string;
   isRequired: boolean;
   informationText: string | null;
