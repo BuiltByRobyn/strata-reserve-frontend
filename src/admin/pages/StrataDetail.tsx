@@ -96,6 +96,11 @@ export default function StrataDetailPage() {
   const [docReqSaving, setDocReqSaving] = useState(false);
   const [docReqFormData, setDocReqFormData] = useState<Record<number, number[]>>({});
 
+  const [surveyRequirements, setSurveyRequirements] = useState<{ propertyTypeId: number }[]>([]);
+  const [surveyReqModalOpen, setSurveyReqModalOpen] = useState(false);
+  const [surveyReqSaving, setSurveyReqSaving] = useState(false);
+  const [surveyReqFormData, setSurveyReqFormData] = useState<number[]>([]);
+
   const [uploadedDocs, setUploadedDocs] = useState<SRUploadedDocument[]>([]);
   const [previewModalOpen, setPreviewModalOpen] = useState(false);
   const [previewDocId, setPreviewDocId] = useState<number | null>(null);
@@ -139,6 +144,18 @@ export default function StrataDetailPage() {
     }
   }, [authFetch]);
 
+  const fetchSurveyRequirements = useCallback(async (serviceRequestId: number) => {
+    try {
+      const res = await authFetch(`${API_BASE}/admin/service-requests/${serviceRequestId}/survey-requirements`);
+      const data = await res.json();
+      if (data.success && data.data) {
+        setSurveyRequirements(data.data);
+      }
+    } catch {
+      // silently fail
+    }
+  }, [authFetch]);
+
   const fetchUploadedDocs = useCallback(async (serviceRequestId: number) => {
     try {
       const res = await authFetch(`${API_BASE}/admin/service-requests/${serviceRequestId}/documents`);
@@ -157,6 +174,7 @@ export default function StrataDetailPage() {
       activeSurvey.fetchResponses(activeRequest.serviceRequestId);
       activeSurvey.fetchArchivedResponses(activeRequest.serviceRequestId);
       fetchDocRequirements(activeRequest.serviceRequestId);
+      fetchSurveyRequirements(activeRequest.serviceRequestId);
       fetchUploadedDocs(activeRequest.serviceRequestId);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -271,6 +289,11 @@ export default function StrataDetailPage() {
     setDocReqModalOpen(true);
   };
 
+  const openSurveyReqModal = () => {
+    setSurveyReqFormData(surveyRequirements.map(r => r.propertyTypeId));
+    setSurveyReqModalOpen(true);
+  };
+
   const handleDocPreview = (doc: SRUploadedDocument) => {
     setPreviewDocId(doc.serviceRequestDocumentId);
     setPreviewDocName(doc.fileName);
@@ -344,6 +367,31 @@ export default function StrataDetailPage() {
       // silently fail
     } finally {
       setDocReqSaving(false);
+    }
+  };
+
+  const handleSaveSurveyRequirements = async () => {
+    if (!activeRequest) return;
+    setSurveyReqSaving(true);
+    try {
+      const res = await authFetch(
+        `${API_BASE}/admin/service-requests/${activeRequest.serviceRequestId}/survey-requirements`,
+        {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ propertyTypeIds: surveyReqFormData }),
+        }
+      );
+      const data = await res.json();
+      if (data.success && data.data) {
+        setSurveyRequirements(data.data);
+        activeSurvey.fetchQuestions(activeRequest.serviceRequestId);
+      }
+      setSurveyReqModalOpen(false);
+    } catch {
+      // silently fail
+    } finally {
+      setSurveyReqSaving(false);
     }
   };
 
@@ -700,24 +748,29 @@ export default function StrataDetailPage() {
               </div>
             ) : (
               <div className="active-survey">
-                <div className="survey-header">
-                  <h2>Active Survey Answers</h2>
-                  <div className="survey-meta">
-                    <span>
-                      <strong>Status:</strong> {activeRequest.status}
-                    </span>
-                    <span>
-                      <strong>Service:</strong> {activeRequest.service?.serviceName || "-"}
-                    </span>
-                    <span>
-                      <strong>Requested:</strong>{" "}
-                      {new Date(activeRequest.requestDate).toLocaleDateString()}
-                    </span>
-                    <span>
-                      <strong>Answered:</strong>{" "}
-                      {activeSurvey.responses.length}/{activeSurvey.questions.length}
-                    </span>
+                <div className="survey-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                  <div className="survey-header-left">
+                    <h2>Active Survey Answers</h2>
+                    <div className="survey-meta">
+                      <span>
+                        <strong>Status:</strong> {activeRequest.status}
+                      </span>
+                      <span>
+                        <strong>Service:</strong> {activeRequest.service?.serviceName || "-"}
+                      </span>
+                      <span>
+                        <strong>Requested:</strong>{" "}
+                        {new Date(activeRequest.requestDate).toLocaleDateString()}
+                      </span>
+                      <span>
+                        <strong>Answered:</strong>{" "}
+                        {activeSurvey.responses.length}/{activeSurvey.questions.length}
+                      </span>
+                    </div>
                   </div>
+                  <button className="btn-primary" onClick={openSurveyReqModal}>
+                    Configure Required Surveys
+                  </button>
                 </div>
 
                 {renderSurveyAnswers(
@@ -1277,6 +1330,47 @@ export default function StrataDetailPage() {
                 </div>
               );
             })
+          )}
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={surveyReqModalOpen}
+        onClose={() => setSurveyReqModalOpen(false)}
+        title="Configure Required Surveys"
+        size="large"
+        footer={
+          <>
+            <button className="btn-secondary" onClick={() => setSurveyReqModalOpen(false)}>
+              Cancel
+            </button>
+            <button
+              className="btn-primary"
+              onClick={handleSaveSurveyRequirements}
+              disabled={surveyReqSaving}
+            >
+              {surveyReqSaving ? "Saving..." : "Save Configuration"}
+            </button>
+          </>
+        }
+      >
+        <div className="doc-req-modal-body" style={{ minHeight: '400px' }}>
+          <p style={{ marginBottom: '1rem' }}>
+            Select the property types that should be included in the survey for this service request.
+          </p>
+          {(strata?.strataPropertyTypes ?? []).length === 0 ? (
+            <p className="notes-empty">No property types assigned to this strata. Assign property types first.</p>
+          ) : (
+            <MultiSelectDropdown
+              label="Selected Property Types"
+              options={(strata?.strataPropertyTypes ?? []).map(spt => ({
+                value: spt.propertyType.propertyTypeId,
+                label: spt.propertyType.propertyTypeName
+              })).sort((a, b) => a.label.localeCompare(b.label))}
+              selectedValues={surveyReqFormData}
+              onChange={setSurveyReqFormData}
+              placeholder="Select property types for survey"
+            />
           )}
         </div>
       </Modal>
