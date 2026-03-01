@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import { useSurvey } from '../../shared/hooks/useSurvey';
 import { useClientServiceRequest } from '../../shared/hooks/useClientServiceRequest';
 import { SurveyProgressBar } from '../../shared/components/SurveyProgressBar';
@@ -28,7 +29,7 @@ export default function SurveySectionPage() {
   } = useSurvey();
 
   const [page, setPage] = useState(0);
-  const [localAnswers, setLocalAnswers] = useState<Record<number, SaveResponsePayload>>({});
+  const [localAnswers, setLocalAnswers] = useState<Record<string, SaveResponsePayload>>({});
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const prevPageRef = useRef(page);
@@ -51,12 +52,13 @@ export default function SurveySectionPage() {
   const sectionQuestions = allSectionQuestions.filter(q => q.parentQuestionId == null);
 
   // Map: parentQuestionId -> sub-questions (in order)
-  const subQuestionsMap = new Map<number, SurveyQuestion[]>();
+  const subQuestionsMap = new Map<string, SurveyQuestion[]>();
   for (const q of allSectionQuestions) {
     if (q.parentQuestionId != null) {
-      const list = subQuestionsMap.get(q.parentQuestionId) ?? [];
+      const key = `${q.parentQuestionId}-${q.propertyTypeId}`;
+      const list = subQuestionsMap.get(key) ?? [];
       list.push(q);
-      subQuestionsMap.set(q.parentQuestionId, list);
+      subQuestionsMap.set(key, list);
     }
   }
 
@@ -123,30 +125,36 @@ export default function SurveySectionPage() {
     const result = await submitForReview();
     setSubmitting(false);
     if (result.success) {
+      toast.success('Survey submitted successfully!');
       navigate('/client/survey');
     } else {
+      toast.error('Please complete all required questions before submitting.');
       setSubmitError(result.error || 'Failed to submit');
     }
   };
 
-  const updateAnswer = (questionId: number, field: keyof SaveResponsePayload, value: unknown) => {
+  const updateAnswer = (questionId: number, propertyTypeId: number, field: keyof SaveResponsePayload, value: unknown) => {
+    const key = `${questionId}-${propertyTypeId}`;
     setLocalAnswers(prev => ({
       ...prev,
-      [questionId]: {
-        ...prev[questionId],
+      [key]: {
+        ...prev[key],
         questionId,
+        propertyTypeId,
         [field]: value,
       },
     }));
   };
 
-  const getAnswer = (questionId: number): SaveResponsePayload => {
-    if (localAnswers[questionId]) return localAnswers[questionId];
+  const getAnswer = (questionId: number, propertyTypeId: number): SaveResponsePayload => {
+    const key = `${questionId}-${propertyTypeId}`;
+    if (localAnswers[key]) return localAnswers[key];
 
-    const existing = getResponseForQuestion(questionId);
+    const existing = getResponseForQuestion(questionId, propertyTypeId);
     if (existing) {
       return {
         questionId,
+        propertyTypeId,
         responseText: existing.responseText,
         responseDate: existing.responseDate,
         responseNumber: existing.responseNumber,
@@ -154,7 +162,7 @@ export default function SurveySectionPage() {
         multipleChoiceOptionId: existing.multipleChoiceOptionId,
       };
     }
-    return { questionId };
+    return { questionId, propertyTypeId };
   };
 
   const completionMap: Record<string, boolean> = {};
@@ -165,19 +173,18 @@ export default function SurveySectionPage() {
   }
 
   const renderSubQuestion = (q: SurveyQuestion) => {
-    const answer = getAnswer(q.questionId);
+    const answer = getAnswer(q.questionId, q.propertyTypeId);
     return (
-      <div key={q.questionId} className="survey-sub-question">
+      <div key={q.srSurveyQuestionId} className="survey-sub-question">
         <label className="question-label">
-          {q.subLabel && <span className="sub-label-badge">{q.subLabel}.</span>}
-          {q.questionText}
+          {q.subLabel && <span className="sub-label-badge">{q.subLabel}.</span>} {q.questionText}
           {q.isRequired && <span className="required-mark">*</span>}
         </label>
         {q.questionType === 'textarea' && (
           <textarea
             className="question-input question-textarea"
             value={answer.responseText || ''}
-            onChange={(e) => updateAnswer(q.questionId, 'responseText', e.target.value)}
+            onChange={(e) => updateAnswer(q.questionId, q.propertyTypeId, 'responseText', e.target.value)}
             placeholder="Enter your answer..."
             rows={2}
           />
@@ -187,7 +194,7 @@ export default function SurveySectionPage() {
             type="text"
             className="question-input"
             value={answer.responseText || ''}
-            onChange={(e) => updateAnswer(q.questionId, 'responseText', e.target.value)}
+            onChange={(e) => updateAnswer(q.questionId, q.propertyTypeId, 'responseText', e.target.value)}
             placeholder="Enter your answer..."
           />
         )}
@@ -196,7 +203,7 @@ export default function SurveySectionPage() {
             type="number"
             className="question-input"
             value={answer.responseNumber ?? ''}
-            onChange={(e) => updateAnswer(q.questionId, 'responseNumber', e.target.value ? parseInt(e.target.value) : null)}
+            onChange={(e) => updateAnswer(q.questionId, q.propertyTypeId, 'responseNumber', e.target.value ? parseInt(e.target.value) : null)}
             placeholder="Enter number..."
           />
         )}
@@ -205,12 +212,20 @@ export default function SurveySectionPage() {
   };
 
   const renderQuestion = (q: SurveyQuestion, index: number) => {
-    const answer = getAnswer(q.questionId);
+    const answer = getAnswer(q.questionId, q.propertyTypeId);
     const questionNumber = page * QUESTIONS_PER_PAGE + index + 1;
-    const subQuestions = subQuestionsMap.get(q.questionId) ?? [];
+    const subQuestions = subQuestionsMap.get(`${q.questionId}-${q.propertyTypeId}`) ?? [];
+
+    const hasAnswer = (
+      (answer.responseText != null && answer.responseText.trim() !== '') ||
+      answer.responseNumber != null ||
+      answer.responseBoolean != null ||
+      (answer.responseDate != null && answer.responseDate.trim() !== '') ||
+      answer.multipleChoiceOptionId != null
+    );
 
     return (
-      <div key={q.questionId} className="survey-question">
+      <div key={q.srSurveyQuestionId} className="survey-question">
         <label className="question-label">
           {questionNumber}. {q.questionText}
           {q.isRequired && <span className="required-mark">*</span>}
@@ -224,7 +239,7 @@ export default function SurveySectionPage() {
           <textarea
             className="question-input question-textarea"
             value={answer.responseText || ''}
-            onChange={(e) => updateAnswer(q.questionId, 'responseText', e.target.value)}
+            onChange={(e) => updateAnswer(q.questionId, q.propertyTypeId, 'responseText', e.target.value)}
             placeholder="Enter your answer..."
             rows={3}
           />
@@ -235,7 +250,7 @@ export default function SurveySectionPage() {
             type="text"
             className="question-input"
             value={answer.responseText || ''}
-            onChange={(e) => updateAnswer(q.questionId, 'responseText', e.target.value)}
+            onChange={(e) => updateAnswer(q.questionId, q.propertyTypeId, 'responseText', e.target.value)}
             placeholder="Enter your answer..."
           />
         )}
@@ -245,7 +260,7 @@ export default function SurveySectionPage() {
             type="number"
             className="question-input"
             value={answer.responseNumber ?? ''}
-            onChange={(e) => updateAnswer(q.questionId, 'responseNumber', e.target.value ? parseInt(e.target.value) : null)}
+            onChange={(e) => updateAnswer(q.questionId, q.propertyTypeId, 'responseNumber', e.target.value ? parseInt(e.target.value) : null)}
             placeholder="Enter number..."
           />
         )}
@@ -255,18 +270,18 @@ export default function SurveySectionPage() {
             <label>
               <input
                 type="radio"
-                name={`q-${q.questionId}`}
+                name={`q-${q.srSurveyQuestionId}`}
                 checked={answer.responseBoolean === true}
-                onChange={() => updateAnswer(q.questionId, 'responseBoolean', true)}
+                onChange={() => updateAnswer(q.questionId, q.propertyTypeId, 'responseBoolean', true)}
               />
               Yes
             </label>
             <label>
               <input
                 type="radio"
-                name={`q-${q.questionId}`}
+                name={`q-${q.srSurveyQuestionId}`}
                 checked={answer.responseBoolean === false}
-                onChange={() => updateAnswer(q.questionId, 'responseBoolean', false)}
+                onChange={() => updateAnswer(q.questionId, q.propertyTypeId, 'responseBoolean', false)}
               />
               No
             </label>
@@ -278,7 +293,7 @@ export default function SurveySectionPage() {
             type="date"
             className="question-input"
             value={answer.responseDate || ''}
-            onChange={(e) => updateAnswer(q.questionId, 'responseDate', e.target.value)}
+            onChange={(e) => updateAnswer(q.questionId, q.propertyTypeId, 'responseDate', e.target.value)}
           />
         )}
 
@@ -288,9 +303,9 @@ export default function SurveySectionPage() {
               <label key={opt.optionId} className="choice-option">
                 <input
                   type="radio"
-                  name={`q-${q.questionId}`}
+                  name={`q-${q.srSurveyQuestionId}`}
                   checked={answer.multipleChoiceOptionId === opt.optionId}
-                  onChange={() => updateAnswer(q.questionId, 'multipleChoiceOptionId', opt.optionId)}
+                  onChange={() => updateAnswer(q.questionId, q.propertyTypeId, 'multipleChoiceOptionId', opt.optionId)}
                 />
                 {opt.optionText}
               </label>
@@ -311,7 +326,7 @@ export default function SurveySectionPage() {
                     const updated = e.target.checked
                       ? [...current, id]
                       : current.filter(v => v !== id);
-                    updateAnswer(q.questionId, 'responseText', updated.join(','));
+                    updateAnswer(q.questionId, q.propertyTypeId, 'responseText', updated.join(','));
                   }}
                 />
                 {opt.optionText}
@@ -327,7 +342,7 @@ export default function SurveySectionPage() {
                 type="checkbox"
                 checked={answer.responseText === 'NONE'}
                 onChange={(e) => {
-                  updateAnswer(q.questionId, 'responseText', e.target.checked ? 'NONE' : '');
+                  updateAnswer(q.questionId, q.propertyTypeId, 'responseText', e.target.checked ? 'NONE' : '');
                 }}
               />
               None
@@ -336,14 +351,15 @@ export default function SurveySectionPage() {
               <textarea
                 className="question-input question-textarea"
                 value={answer.responseText === 'NONE' ? '' : (answer.responseText || '')}
-                onChange={(e) => updateAnswer(q.questionId, 'responseText', e.target.value)}
+                onChange={(e) => updateAnswer(q.questionId, q.propertyTypeId, 'responseText', e.target.value)}
                 placeholder="Please explain..."
                 rows={3}
               />
             )}
           </div>
         )}
-        {subQuestions.length > 0 && (
+
+        {subQuestions.length > 0 && hasAnswer && (
           <div className="survey-sub-questions">
             {subQuestions.map(sq => renderSubQuestion(sq))}
           </div>

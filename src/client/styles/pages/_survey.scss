@@ -21,13 +21,18 @@
 
 .survey-category-nav {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr 1fr 1fr 1fr 1fr;
+  grid-template-columns: repeat(8, 1fr);
+  gap: $spacing-xs;
   margin-bottom: $spacing-xl;
   width: 100%;
 
+  @include respond-below(lg) {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
   .category-btn {
     padding: $spacing-sm $spacing-xs;
-    width: 100;
+    width: 100%;
     background: $color-white;
     border: 1px solid $color-border-light;
     border-radius: $border-radius-sm;
@@ -36,6 +41,8 @@
     color: $color-text-muted;
     cursor: pointer;
     transition: all 0.2s ease;
+    text-align: center;
+    line-height: 1.2;
 
     &:hover {
       border-color: $color-primary;
@@ -307,11 +314,10 @@
   }
 
   .survey-sub-questions {
-    padding: $spacing-sm $spacing-lg $spacing-sm $spacing-xl;
-    background: $color-background-off-white;
+    padding: $spacing-sm 0 $spacing-sm $spacing-xl;
+    background: transparent;
     border-left: 3px solid $color-primary-light;
-    margin: 0 $spacing-lg $spacing-md;
-    border-radius: 0 $border-radius-sm $border-radius-sm 0;
+    margin: $spacing-sm 0 $spacing-md 0;
     display: flex;
     flex-direction: column;
     gap: $spacing-md;

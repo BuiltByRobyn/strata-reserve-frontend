@@ -100,7 +100,6 @@ export interface Strata extends StrataBasic {
   _count?: {
     strataNotes: number;
     strataProfiles: number;
-    strataServices: number;
     serviceRequests: number;
   };
 }
@@ -119,7 +118,6 @@ export interface StrataWithDetails extends Strata {
   propertyType: PropertyType | null;
   strataNotes: StrataNoteWithCreator[];
   strataProfiles: StrataProfileWithProfile[];
-  strataServices: StrataServiceWithDetails[];
   strataSections: StrataSection[];
   serviceRequests?: { serviceRequestDocuments: DocumentNote[] }[];
 }
@@ -227,24 +225,6 @@ export interface CreateStrataEmployeeInput {
   strataPosition?: string;
 }
 
-// ============================================
-// Strata Service Types
-// ============================================
-
-export interface StrataService {
-  strataServiceId: number;
-  strataId: number;
-  serviceId: number;
-  createdAt: string;
-}
-
-export interface StrataServiceWithDetails extends StrataService {
-  service: Service;
-}
-
-export interface CreateStrataServiceInput {
-  serviceId: number;
-}
 
 // ============================================
 // Profile Types (Extended)

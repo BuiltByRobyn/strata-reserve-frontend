@@ -24,7 +24,7 @@ const initialFormData: QuestionFormData = {
 
 const CATEGORIES = [
   'Exterior', 'Interior', 'Services', 'Clubhouse',
-  'Amenity Room', 'Legal', 'Council Concerns',
+  'Amenity Room', 'Legal', 'Council Concerns', 'Septic Fields',
 ];
 
 const FRIENDLY_TYPE_NAMES: Record<string, string> = {
@@ -71,7 +71,7 @@ export default function QuestionsPage() {
   const pageQuestions = filteredQuestions.slice(page * QUESTIONS_PER_PAGE, (page + 1) * QUESTIONS_PER_PAGE);
 
   const columns: Column<AdminQuestion>[] = [
-    { key: 'questionId', header: 'ID', width: '25px', render: (q) => q.questionId },
+    { key: 'questionId', header: '#', width: '25px', render: (_q, index) => page * QUESTIONS_PER_PAGE + index + 1 },
     {
       key: 'questionText', header: 'Question',
       render: (q) => q.questionText.length > 60 ? q.questionText.slice(0, 60) + '...' : q.questionText,
@@ -102,7 +102,6 @@ export default function QuestionsPage() {
       : '—';
 
     return [
-      { label: 'ID', value: String(q.questionId) },
       { label: 'Question Text', value: q.questionText },
       { label: 'Category', value: q.questionCategory },
       { label: 'Question Type', value: q.questionType?.questionTypeName ? formatTypeName(q.questionType.questionTypeName) : '—' },
