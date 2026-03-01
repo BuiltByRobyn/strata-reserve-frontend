@@ -1,6 +1,6 @@
 import type { ReactNode, InputHTMLAttributes, SelectHTMLAttributes, TextareaHTMLAttributes } from 'react';
 import type { SurveySection } from './survey.types';
-import type { StrataPropertyType, InspectorAvailableDate, CreateInspectorAvailableDateInput, UpdateInspectorAvailableDateInput } from './entities.types';
+import type { StrataPropertyType, InspectorAvailableDate, CreateInspectorAvailableDateInput, UpdateInspectorAvailableDateInput, CompanyHoliday } from './entities.types';
 
 export interface Column<T> {
   key: string;
@@ -153,4 +153,13 @@ export interface DeleteAvailabilityModalProps {
   onClose: () => void;
   block: InspectorAvailableDate;
   onDelete: (id: number) => Promise<any>;
+}
+
+export interface CompanyHolidayModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  initialData: CompanyHoliday | null;
+  onSubmitCreate: (input: { holidayName: string; holidayDate: string; isRecurringAnnually?: boolean }) => Promise<CompanyHoliday | null>;
+  onSubmitUpdate: (id: number, input: { holidayName?: string; holidayDate?: string; isRecurringAnnually?: boolean }) => Promise<CompanyHoliday | null>;
+  onDeleteClick?: () => void;
 }
