@@ -1,16 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Modal } from '../../shared/components/Modal';
 import { InputField } from '../../shared/components/FormField';
-import type { CompanyHoliday } from '../../shared/types/entities.types';
-
-export interface CompanyHolidayModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  initialData: CompanyHoliday | null;
-  onSubmitCreate: (input: { holidayName: string; holidayDate: string; isRecurringAnnually?: boolean }) => Promise<CompanyHoliday | null>;
-  onSubmitUpdate: (id: number, input: { holidayName?: string; holidayDate?: string; isRecurringAnnually?: boolean }) => Promise<CompanyHoliday | null>;
-  onDeleteClick?: () => void;
-}
+import type { CompanyHolidayModalProps } from '../../shared/types/component.types';
 
 export const CompanyHolidayModal = ({
   isOpen,
