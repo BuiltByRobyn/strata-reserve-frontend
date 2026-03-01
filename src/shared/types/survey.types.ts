@@ -1,5 +1,10 @@
 export interface SurveyQuestion {
+  srSurveyQuestionId: number;
+  propertyTypeId: number;
+  propertyTypeName: string;
   questionId: number;
+  parentQuestionId: number | null;
+  subLabel: string | null;
   questionText: string;
   isRequired: boolean;
   informationText: string | null;
@@ -22,6 +27,7 @@ export interface SurveyResponse {
   responseNumber: number | null;
   responseBoolean: boolean | null;
   questionId: number;
+  propertyTypeId: number;
   multipleChoiceOptionId: number | null;
   serviceRequestId: number;
   answeredByProfileId: string;
@@ -46,6 +52,7 @@ export interface ArchivedSurveyResponse extends SurveyResponse {
 
 export interface SaveResponsePayload {
   questionId: number;
+  propertyTypeId: number;
   responseText?: string | null;
   responseDate?: string | null;
   responseNumber?: number | null;
@@ -67,11 +74,14 @@ export const SURVEY_SECTIONS: SurveySection[] = [
   { key: 'amenity', label: 'Amenity Room', description: 'Information relating to additional amenities within your property' },
   { key: 'legal', label: 'Legal', description: 'Information relating to the legal standing of your property' },
   { key: 'council', label: 'Council Concerns', description: 'Information relating to specific concerns regarding your property' },
+  { key: 'septic-fields', label: 'Septic Fields', description: 'Information relating to the septic field and wastewater systems within your property' },
 ];
 
 
 export interface AdminQuestion {
   questionId: number;
+  parentQuestionId: number | null;
+  subLabel: string | null;
   questionText: string;
   isRequired: boolean;
   informationText: string | null;

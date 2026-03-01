@@ -5,7 +5,7 @@ import type { StrataPropertyType, InspectorAvailableDate, CreateInspectorAvailab
 export interface Column<T> {
   key: string;
   header: string;
-  render?: (item: T) => ReactNode;
+  render?: (item: T, index: number) => ReactNode;
   width?: string;
 }
 

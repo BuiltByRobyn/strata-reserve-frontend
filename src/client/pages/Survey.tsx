@@ -43,7 +43,10 @@ export default function SurveyPage() {
     const sectionConfig = SURVEY_SECTIONS.find(s => s.key === sectionKey);
     if (!sectionConfig) return { total: 0, answered: 0 };
 
-    const sectionQuestions = questions.filter(q => q.questionCategory === sectionConfig.label);
+    // Only count parent questions (not sub-questions) for completion
+    const sectionQuestions = questions.filter(
+      q => q.questionCategory === sectionConfig.label && q.parentQuestionId == null
+    );
     const answeredIds = new Set(responses.map(r => r.questionId));
     const answered = sectionQuestions.filter(q => answeredIds.has(q.questionId)).length;
 

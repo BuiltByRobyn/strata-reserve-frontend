@@ -6,6 +6,7 @@ import { useServiceRequests } from "../../shared/hooks/useServiceRequests";
 import { useLookups } from "../../shared/hooks/useLookups";
 import { useAuth } from "../../shared/contexts/AuthContext";
 import { useSurvey } from "../../shared/hooks/useSurvey";
+import { useSurveyQuestions } from "../../shared/hooks/useSurveyQuestions";
 import { useQuestions } from "../../shared/hooks/useQuestions";
 import { MultiSelectDropdown } from "../../shared/components/MultiSelectDropdown";
 import { LoadingSpinner } from "../../shared/components/LoadingSpinner";
@@ -62,6 +63,12 @@ export default function StrataDetailPage() {
   const authFetch = useAuthFetch();
 
   const activeSurvey = useSurvey("admin");
+  const { addQuestion: addSrQuestion, removeQuestion: removeSrQuestion } = useSurveyQuestions();
+  
+  const [isAddQModalOpen, setIsAddQModalOpen] = useState(false);
+  const [addQPropertyTypeId, setAddQPropertyTypeId] = useState<number | null>(null);
+  const [addQSelectedId, setAddQSelectedId] = useState("");
+  const [addQSubmitting, setAddQSubmitting] = useState(false);
   const { questions: allQuestions } = useQuestions();
   const { services, documentTypes, reviewStatuses } = useLookups();
 
@@ -95,6 +102,11 @@ export default function StrataDetailPage() {
   const [docReqModalOpen, setDocReqModalOpen] = useState(false);
   const [docReqSaving, setDocReqSaving] = useState(false);
   const [docReqFormData, setDocReqFormData] = useState<Record<number, number[]>>({});
+
+  const [surveyRequirements, setSurveyRequirements] = useState<{ propertyTypeId: number }[]>([]);
+  const [surveyReqModalOpen, setSurveyReqModalOpen] = useState(false);
+  const [surveyReqSaving, setSurveyReqSaving] = useState(false);
+  const [surveyReqFormData, setSurveyReqFormData] = useState<number[]>([]);
 
   const [uploadedDocs, setUploadedDocs] = useState<SRUploadedDocument[]>([]);
   const [previewModalOpen, setPreviewModalOpen] = useState(false);
@@ -139,6 +151,18 @@ export default function StrataDetailPage() {
     }
   }, [authFetch]);
 
+  const fetchSurveyRequirements = useCallback(async (serviceRequestId: number) => {
+    try {
+      const res = await authFetch(`${API_BASE}/admin/service-requests/${serviceRequestId}/survey-requirements`);
+      const data = await res.json();
+      if (data.success && data.data) {
+        setSurveyRequirements(data.data);
+      }
+    } catch {
+      // silently fail
+    }
+  }, [authFetch]);
+
   const fetchUploadedDocs = useCallback(async (serviceRequestId: number) => {
     try {
       const res = await authFetch(`${API_BASE}/admin/service-requests/${serviceRequestId}/documents`);
@@ -157,6 +181,7 @@ export default function StrataDetailPage() {
       activeSurvey.fetchResponses(activeRequest.serviceRequestId);
       activeSurvey.fetchArchivedResponses(activeRequest.serviceRequestId);
       fetchDocRequirements(activeRequest.serviceRequestId);
+      fetchSurveyRequirements(activeRequest.serviceRequestId);
       fetchUploadedDocs(activeRequest.serviceRequestId);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -271,6 +296,11 @@ export default function StrataDetailPage() {
     setDocReqModalOpen(true);
   };
 
+  const openSurveyReqModal = () => {
+    setSurveyReqFormData(surveyRequirements.map(r => r.propertyTypeId));
+    setSurveyReqModalOpen(true);
+  };
+
   const handleDocPreview = (doc: SRUploadedDocument) => {
     setPreviewDocId(doc.serviceRequestDocumentId);
     setPreviewDocName(doc.fileName);
@@ -347,6 +377,58 @@ export default function StrataDetailPage() {
     }
   };
 
+  const handleOpenAddQuestion = (propertyTypeId: number) => {
+    setAddQPropertyTypeId(propertyTypeId);
+    setAddQSelectedId("");
+    setIsAddQModalOpen(true);
+  };
+
+  const handleAddQuestionSubmit = async () => {
+    if (!activeRequest || !addQPropertyTypeId || !addQSelectedId) return;
+    setAddQSubmitting(true);
+    const success = await addSrQuestion(activeRequest.serviceRequestId, parseInt(addQSelectedId), addQPropertyTypeId);
+    if (success) {
+      setIsAddQModalOpen(false);
+      activeSurvey.fetchQuestions(activeRequest.serviceRequestId);
+    }
+    setAddQSubmitting(false);
+  };
+
+  const handleRemoveQuestion = async (srSurveyQuestionId: number) => {
+    if (!activeRequest) return;
+    if (window.confirm("Are you sure you want to remove this question?")) {
+      const success = await removeSrQuestion(activeRequest.serviceRequestId, srSurveyQuestionId);
+      if (success) {
+        activeSurvey.fetchQuestions(activeRequest.serviceRequestId);
+      }
+    }
+  };
+
+  const handleSaveSurveyRequirements = async () => {
+    if (!activeRequest) return;
+    setSurveyReqSaving(true);
+    try {
+      const res = await authFetch(
+        `${API_BASE}/admin/service-requests/${activeRequest.serviceRequestId}/survey-requirements`,
+        {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ propertyTypeIds: surveyReqFormData }),
+        }
+      );
+      const data = await res.json();
+      if (data.success && data.data) {
+        setSurveyRequirements(data.data);
+        activeSurvey.fetchQuestions(activeRequest.serviceRequestId);
+      }
+      setSurveyReqModalOpen(false);
+    } catch {
+      // silently fail
+    } finally {
+      setSurveyReqSaving(false);
+    }
+  };
+
   const updateSrField = <K extends keyof CreateSRFormData>(
     field: K,
     value: CreateSRFormData[K],
@@ -364,7 +446,10 @@ export default function StrataDetailPage() {
     const sectionConfig = SURVEY_SECTIONS.find(s => s.key === sectionKey);
     if (!sectionConfig) return [];
 
-    let filtered = questions.filter(q => q.questionCategory === sectionConfig.label);
+    // Only parent questions at the top level
+    let filtered = questions.filter(
+      q => q.questionCategory === sectionConfig.label && q.parentQuestionId == null
+    );
 
     if (filterPropertyTypeIds.length > 0) {
       filtered = filtered.filter(q => {
@@ -379,35 +464,31 @@ export default function StrataDetailPage() {
     return filtered;
   };
 
+  const getSubQuestionsMap = (questions: SurveyQuestion[], sectionKey: string): Map<string, SurveyQuestion[]> => {
+    const sectionConfig = SURVEY_SECTIONS.find(s => s.key === sectionKey);
+    const map = new Map<string, SurveyQuestion[]>();
+    if (!sectionConfig) return map;
+    for (const q of questions) {
+      if (q.questionCategory === sectionConfig.label && q.parentQuestionId != null) {
+        const key = `${q.parentQuestionId}-${q.propertyTypeId}`;
+        const list = map.get(key) ?? [];
+        list.push(q);
+        map.set(key, list);
+      }
+    }
+    return map;
+  };
+
   const buildCompletionMap = (questions: SurveyQuestion[], responseIds: Set<number>) => {
     const map: Record<string, boolean> = {};
     for (const s of SURVEY_SECTIONS) {
-      const sq = questions.filter(q => q.questionCategory === s.label);
+      // Only count parent questions for completion
+      const sq = questions.filter(q => q.questionCategory === s.label && q.parentQuestionId == null);
       map[s.key] = sq.length > 0 && sq.every(q => responseIds.has(q.questionId));
     }
     return map;
   };
 
-  const getArchivedQuestionGroups = () => {
-    const sectionConfig = SURVEY_SECTIONS.find(s => s.key === archivedSurveySection);
-    if (!sectionConfig) return [];
-
-    const grouped = new Map<number, ArchivedSurveyResponse[]>();
-    for (const resp of activeSurvey.archivedResponses) {
-      if (resp.question?.questionCategory !== sectionConfig.label) continue;
-
-      if (filterPropertyTypeIds.length > 0) {
-        const adminQ = allQuestions.find(aq => aq.questionId === resp.questionId);
-        if (!adminQ || !adminQ.questionPropertyTypes?.length) continue;
-        if (!adminQ.questionPropertyTypes.some(qpt => filterPropertyTypeIds.includes(qpt.propertyTypeId))) continue;
-      }
-
-      const list = grouped.get(resp.questionId) || [];
-      list.push(resp);
-      grouped.set(resp.questionId, list);
-    }
-    return Array.from(grouped.entries());
-  };
 
   const renderArchivedValue = (resp: ArchivedSurveyResponse) => {
     const q = resp.question;
@@ -445,9 +526,9 @@ export default function StrataDetailPage() {
 
   const renderAnswerValue = (
     q: SurveyQuestion,
-    getResponse: (id: number) => { responseText?: string | null; responseBoolean?: boolean | null; responseNumber?: number | null; responseDate?: string | null; multipleChoiceOptionId?: number | null } | undefined,
+    getResponse: (questionId: number, propertyTypeId: number) => { responseText?: string | null; responseBoolean?: boolean | null; responseNumber?: number | null; responseDate?: string | null; multipleChoiceOptionId?: number | null } | undefined,
   ) => {
-    const resp = getResponse(q.questionId);
+    const resp = getResponse(q.questionId, q.propertyTypeId);
     if (!resp) return <span className="answer-empty">No answer</span>;
 
     if (q.questionType === "boolean") {
@@ -499,29 +580,70 @@ export default function StrataDetailPage() {
     questions: SurveyQuestion[],
     responses: { questionId: number }[],
     sectionKey: string,
-    getResponse: (id: number) => ReturnType<typeof activeSurvey.getResponseForQuestion>,
+    getResponse: (questionId: number, propertyTypeId: number) => ReturnType<typeof activeSurvey.getResponseForQuestion>,
     surveyLoading: boolean,
   ) => {
     const sectionQuestions = getFilteredQuestions(questions, sectionKey);
+    const subQuestionsMap = getSubQuestionsMap(questions, sectionKey);
+
+    const validPropertyTypes = (strata?.strataPropertyTypes ?? []).filter(spt => 
+      surveyRequirements.some(req => req.propertyTypeId === spt.propertyType.propertyTypeId)
+    );
 
     return (
       <>
-        <SurveyProgressBar answered={responses.length} total={questions.length} />
+        <SurveyProgressBar answered={responses.length} total={questions.filter(q => q.parentQuestionId == null).length} />
 
         {surveyLoading ? (
           <LoadingSpinner />
-        ) : sectionQuestions.length === 0 ? (
+        ) : validPropertyTypes.length === 0 ? (
           <div className="survey-coming-soon">
-            <p>{SURVEY_SECTIONS.find(s => s.key === sectionKey)?.label} survey — no questions available.</p>
+            <p>No property types configured for this survey. Configure required surveys first.</p>
           </div>
         ) : (
           <div className="admin-survey-answers">
-            {sectionQuestions.map((q) => (
-              <div key={q.questionId} className="admin-answer-item">
-                <div className="answer-question">{q.questionText}</div>
-                <div className="answer-response">{renderAnswerValue(q, getResponse)}</div>
-              </div>
-            ))}
+            {validPropertyTypes.map(spt => {
+              const ptId = spt.propertyType.propertyTypeId;
+              const ptQuestions = sectionQuestions.filter(q => q.propertyTypeId === ptId && q.parentQuestionId == null);
+              
+              return (
+                <div key={ptId} className="doc-req-group" style={{ marginTop: '2rem' }}>
+                  <h3 className="doc-req-group-title">{spt.propertyType.propertyTypeName}</h3>
+                  {ptQuestions.length === 0 ? (
+                    <p style={{ margin: '1rem 0' }}>No questions for this property type in this section.</p>
+                  ) : (
+                    ptQuestions.map((q) => {
+                      const subQuestions = subQuestionsMap.get(`${q.questionId}-${ptId}`) ?? [];
+                      return (
+                        <div key={q.srSurveyQuestionId} className="admin-answer-item">
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                            <div className="answer-question">{q.questionText}</div>
+                            <button className="btn-delete-link" onClick={() => handleRemoveQuestion(q.srSurveyQuestionId)}>Remove</button>
+                          </div>
+                          <div className="answer-response">{renderAnswerValue(q, getResponse)}</div>
+                          {subQuestions.length > 0 && (
+                            <div className="admin-sub-answers">
+                              {subQuestions.map(sq => (
+                                <div key={sq.srSurveyQuestionId} className="admin-sub-answer-item">
+                                  <div className="answer-question">
+                                    {sq.subLabel && <span className="admin-sub-label">{sq.subLabel}.</span>}
+                                    {sq.questionText}
+                                  </div>
+                                  <div className="answer-response">{renderAnswerValue(sq, getResponse)}</div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })
+                  )}
+                  <button className="btn-secondary" style={{ marginTop: '1rem' }} onClick={() => handleOpenAddQuestion(ptId)}>
+                    + Add Question to {spt.propertyType.propertyTypeName}
+                  </button>
+                </div>
+              );
+            })}
           </div>
         )}
       </>
@@ -665,24 +787,29 @@ export default function StrataDetailPage() {
               </div>
             ) : (
               <div className="active-survey">
-                <div className="survey-header">
-                  <h2>Active Survey Answers</h2>
-                  <div className="survey-meta">
-                    <span>
-                      <strong>Status:</strong> {activeRequest.status}
-                    </span>
-                    <span>
-                      <strong>Service:</strong> {activeRequest.service?.serviceName || "-"}
-                    </span>
-                    <span>
-                      <strong>Requested:</strong>{" "}
-                      {new Date(activeRequest.requestDate).toLocaleDateString()}
-                    </span>
-                    <span>
-                      <strong>Answered:</strong>{" "}
-                      {activeSurvey.responses.length}/{activeSurvey.questions.length}
-                    </span>
+                <div className="survey-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                  <div className="survey-header-left">
+                    <h2>Active Survey Answers</h2>
+                    <div className="survey-meta">
+                      <span>
+                        <strong>Status:</strong> {activeRequest.status}
+                      </span>
+                      <span>
+                        <strong>Service:</strong> {activeRequest.service?.serviceName || "-"}
+                      </span>
+                      <span>
+                        <strong>Requested:</strong>{" "}
+                        {new Date(activeRequest.requestDate).toLocaleDateString()}
+                      </span>
+                      <span>
+                        <strong>Answered:</strong>{" "}
+                        {activeSurvey.responses.length}/{activeSurvey.questions.length}
+                      </span>
+                    </div>
                   </div>
+                  <button className="btn-primary" onClick={openSurveyReqModal}>
+                    Configure Required Surveys
+                  </button>
                 </div>
 
                 {renderSurveyAnswers(
@@ -706,54 +833,81 @@ export default function StrataDetailPage() {
           </div>
         )}
 
-        {activeTab === "archived" && (
-          <div className="tab-panel">
-            {activeSurvey.archivedResponses.length === 0 ? (
-              <div className="empty-state">
-                <h2>No Archived Answers</h2>
-              </div>
-            ) : (
-              <div className="archived-survey-detail">
-                <h2>Archived Survey Answers</h2>
+        {activeTab === "archived" && (() => {
+          const sectionConfig = SURVEY_SECTIONS.find(s => s.key === archivedSurveySection);
+          const validPropertyTypes = (strata?.strataPropertyTypes ?? []).filter(spt => 
+            surveyRequirements.some(req => req.propertyTypeId === spt.propertyType.propertyTypeId)
+          );
 
-                {activeSurvey.loading ? (
-                  <LoadingSpinner />
-                ) : getArchivedQuestionGroups().length === 0 ? (
-                  <div className="survey-coming-soon">
-                    <p>{SURVEY_SECTIONS.find(s => s.key === archivedSurveySection)?.label} — no archived answers.</p>
-                  </div>
-                ) : (
-                  <div className="admin-survey-answers">
-                    {getArchivedQuestionGroups().map(([questionId, responses]) => {
-                      const q = responses[0].question;
-                      const sorted = [...responses].sort((a, b) =>
-                        new Date(b.archivedAt!).getTime() - new Date(a.archivedAt!).getTime()
-                      );
-                      return (
-                        <div key={questionId} className="admin-answer-item archived-answer-group">
-                          <div className="answer-question">{q.questionText}</div>
-                          {sorted.map(resp => (
-                            <div key={resp.responseId} className="archived-response-entry">
-                              <div className="archived-response-header">
-                                <span className="status-badge replaced">Replaced</span>
-                              </div>
-                              <div className="answer-response">
-                                Answer: <span className="answer-value">{renderArchivedValue(resp)}</span>
-                              </div>
-                              <div className="archived-meta">
-                                Answered by {resp.answeredBy?.firstName || ""} {resp.answeredBy?.lastName || ""} on {formatArchivedDate(resp.createdAt)}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        )}
+          return (
+            <div className="tab-panel">
+              {activeSurvey.archivedResponses.length === 0 ? (
+                <div className="empty-state">
+                  <h2>No Archived Answers</h2>
+                </div>
+              ) : (
+                <div className="archived-survey-detail">
+                  <h2>Archived Survey Answers</h2>
+
+                  {activeSurvey.loading ? (
+                    <LoadingSpinner />
+                  ) : (
+                    <div className="admin-survey-answers">
+                      {validPropertyTypes.map(spt => {
+                        const ptId = spt.propertyType.propertyTypeId;
+                        // Filter responses to this section and property type
+                        const ptResponses = activeSurvey.archivedResponses.filter(r => 
+                          r.propertyTypeId === ptId && 
+                          r.question?.questionCategory === sectionConfig?.label
+                        );
+
+                        if (ptResponses.length === 0) return null;
+
+                        // Group by questionId
+                        const grouped = new Map<number, ArchivedSurveyResponse[]>();
+                        for (const r of ptResponses) {
+                          const list = grouped.get(r.questionId) || [];
+                          list.push(r);
+                          grouped.set(r.questionId, list);
+                        }
+
+                        return (
+                          <div key={ptId} className="doc-req-group" style={{ marginTop: '2rem' }}>
+                            <h3 className="doc-req-group-title">{spt.propertyType.propertyTypeName}</h3>
+                            {Array.from(grouped.entries()).map(([questionId, responses]) => {
+                              const q = responses[0].question;
+                              const sorted = [...responses].sort((a, b) =>
+                                new Date(b.archivedAt!).getTime() - new Date(a.archivedAt!).getTime()
+                              );
+                              return (
+                                <div key={questionId} className="admin-answer-item archived-answer-group">
+                                  <div className="answer-question">{q.questionText}</div>
+                                  {sorted.map(resp => (
+                                    <div key={resp.responseId} className="archived-response-entry">
+                                      <div className="archived-response-header">
+                                        <span className="status-badge replaced">Replaced</span>
+                                      </div>
+                                      <div className="answer-response">
+                                        Answer: <span className="answer-value">{renderArchivedValue(resp)}</span>
+                                      </div>
+                                      <div className="archived-meta">
+                                        Answered by {resp.answeredBy?.firstName || ""} {resp.answeredBy?.lastName || ""} on {formatArchivedDate(resp.createdAt)}
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })()}
 
         {activeTab === "documents" && (
           <div className="tab-panel">
@@ -1243,6 +1397,74 @@ export default function StrataDetailPage() {
               );
             })
           )}
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={surveyReqModalOpen}
+        onClose={() => setSurveyReqModalOpen(false)}
+        title="Configure Required Surveys"
+        size="large"
+        footer={
+          <>
+            <button className="btn-secondary" onClick={() => setSurveyReqModalOpen(false)}>
+              Cancel
+            </button>
+            <button
+              className="btn-primary"
+              onClick={handleSaveSurveyRequirements}
+              disabled={surveyReqSaving}
+            >
+              {surveyReqSaving ? "Saving..." : "Save Configuration"}
+            </button>
+          </>
+        }
+      >
+        <div className="doc-req-modal-body" style={{ minHeight: '400px' }}>
+          <p style={{ marginBottom: '1rem' }}>
+            Select the property types that should be included in the survey for this service request.
+          </p>
+          {(strata?.strataPropertyTypes ?? []).length === 0 ? (
+            <p className="notes-empty">No property types assigned to this strata. Assign property types first.</p>
+          ) : (
+            <MultiSelectDropdown
+              label="Selected Property Types"
+              options={(strata?.strataPropertyTypes ?? []).map(spt => ({
+                value: spt.propertyType.propertyTypeId,
+                label: spt.propertyType.propertyTypeName
+              })).sort((a, b) => a.label.localeCompare(b.label))}
+              selectedValues={surveyReqFormData}
+              onChange={setSurveyReqFormData}
+              placeholder="Select property types for survey"
+            />
+          )}
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={isAddQModalOpen}
+        onClose={() => setIsAddQModalOpen(false)}
+        title="Add Question to Survey"
+        size="medium"
+        footer={
+          <>
+            <button className="btn-secondary" onClick={() => setIsAddQModalOpen(false)}>Cancel</button>
+            <button className="btn-primary" onClick={handleAddQuestionSubmit} disabled={addQSubmitting || !addQSelectedId}>
+              {addQSubmitting ? 'Adding...' : 'Add Question'}
+            </button>
+          </>
+        }
+      >
+        <div className="review-form">
+          <p>Select a question to add for the {strata?.strataPropertyTypes?.find(p => p.propertyType.propertyTypeId === addQPropertyTypeId)?.propertyType.propertyTypeName} property type.</p>
+          <SingleSelectDropdown
+            label="Question"
+            required
+            value={addQSelectedId}
+            onChange={setAddQSelectedId}
+            options={allQuestions.filter(q => q.parentQuestionId == null).map(q => ({ value: q.questionId.toString(), label: `[${q.questionCategory}] ${q.questionText}` }))}
+            placeholder="Select Question"
+          />
         </div>
       </Modal>
 

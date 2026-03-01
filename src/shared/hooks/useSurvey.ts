@@ -68,7 +68,7 @@ export const useSurvey = (routePrefix: 'client' | 'admin' = 'client') => {
         setResponses(prev => {
           const updated = [...prev];
           for (const newResp of data) {
-            const idx = updated.findIndex(r => r.questionId === newResp.questionId);
+            const idx = updated.findIndex(r => r.questionId === newResp.questionId && r.propertyTypeId === newResp.propertyTypeId);
             if (idx >= 0) {
               updated[idx] = newResp;
             } else {
@@ -85,8 +85,8 @@ export const useSurvey = (routePrefix: 'client' | 'admin' = 'client') => {
     }
   }, [api, routePrefix]);
 
-  const getResponseForQuestion = useCallback((questionId: number): SurveyResponse | undefined => {
-    return responses.find(r => r.questionId === questionId);
+  const getResponseForQuestion = useCallback((questionId: number, propertyTypeId: number): SurveyResponse | undefined => {
+    return responses.find(r => r.questionId === questionId && r.propertyTypeId === propertyTypeId);
   }, [responses]);
 
   return {

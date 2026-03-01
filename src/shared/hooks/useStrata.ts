@@ -7,10 +7,8 @@ import type {
   UpdateStrataInput,
   CreateStrataNoteInput,
   CreateStrataEmployeeInput,
-  CreateStrataServiceInput,
   StrataNoteBasic,
   StrataEmployee,
-  StrataService,
 } from '../types/entities.types';
 import type { StrataState } from '../types/hooks.types';
 
@@ -144,27 +142,7 @@ export const useStrata = () => {
     }
   }, [api]);
 
-  // ============================================
-  // Strata Services
-  // ============================================
-  const addService = useCallback(async (strataId: number, input: CreateStrataServiceInput): Promise<StrataService | null> => {
-    try {
-      return await api.post<StrataService>(`/admin/strata/${strataId}/services`, input);
-    } catch (error) {
-      console.error('Error adding service:', error);
-      throw error;
-    }
-  }, [api]);
 
-  const removeService = useCallback(async (strataId: number, serviceId: number): Promise<boolean> => {
-    try {
-      await api.del(`/admin/strata/${strataId}/services/${serviceId}`);
-      return true;
-    } catch (error) {
-      console.error('Error removing service:', error);
-      throw error;
-    }
-  }, [api]);
 
   useEffect(() => {
     fetchStratas();
@@ -185,8 +163,5 @@ export const useStrata = () => {
     assignEmployee,
     updateEmployeePosition,
     removeEmployee,
-    // Services
-    addService,
-    removeService
   };
 };
