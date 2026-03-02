@@ -29,3 +29,27 @@ export function toDateInputValue(iso: string | null | undefined): string {
   if (!iso) return '';
   try { return iso.split('T')[0]; } catch { return ''; }
 }
+
+/** Format a date-only ISO string as "Monday, January 1, 2024" — for client-facing display */
+export function formatDateLong(iso: string): string {
+  const date = parseLocalDate(iso);
+  if (!date) return '';
+  return date.toLocaleDateString('en-CA', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+}
+
+/** Format a date-only ISO string as "Mon, Jan 1, 2024" — for admin/compact display */
+export function formatDateMedium(iso: string): string {
+  const date = parseLocalDate(iso);
+  if (!date) return '';
+  return date.toLocaleDateString('en-CA', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' });
+}
+
+/** Convert "HH:mm" or "HH:mm:ss" to "H:00 AM/PM" */
+export function formatTime12h(time: string): string {
+  const [h] = time.split(':');
+  const hour = parseInt(h);
+  if (hour === 0) return '12:00 AM';
+  if (hour < 12) return `${hour}:00 AM`;
+  if (hour === 12) return '12:00 PM';
+  return `${hour - 12}:00 PM`;
+}

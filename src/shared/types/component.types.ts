@@ -1,6 +1,6 @@
 import type { ReactNode, InputHTMLAttributes, SelectHTMLAttributes, TextareaHTMLAttributes } from 'react';
 import type { SurveySection } from './survey.types';
-import type { StrataPropertyType, InspectorAvailableDate, CreateInspectorAvailableDateInput, UpdateInspectorAvailableDateInput, CompanyHoliday } from './entities.types';
+import type { StrataPropertyType, InspectorAvailableDate, CreateInspectorAvailableDateInput, UpdateInspectorAvailableDateInput, CompanyHoliday, AppointmentRequest, AppointmentWithDetails, AppointmentTimeSlot, UserWithStratas } from './entities.types';
 
 export interface Column<T> {
   key: string;
@@ -164,4 +164,52 @@ export interface CompanyHolidayModalProps {
   onSubmitCreate: (input: { holidayName: string; holidayDate: string; isRecurringAnnually?: boolean }) => Promise<CompanyHoliday | null>;
   onSubmitUpdate: (id: number, input: { holidayName?: string; holidayDate?: string; isRecurringAnnually?: boolean }) => Promise<CompanyHoliday | null>;
   onDeleteClick?: () => void;
+}
+
+export interface OfferAppointmentModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  serviceRequestId: number;
+  strataName: string;
+  appointmentTypes: { appointmentTypeId: number; typeName: string }[];
+  inspectors: UserWithStratas[];
+  onSubmit: (serviceRequestId: number, data: {
+    dueDate?: string;
+    appointmentTypeId?: number;
+    inspectorProfileId?: string;
+    notes?: string;
+  }) => Promise<void>;
+}
+
+export interface AppointmentRequestReviewModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  request: AppointmentRequest | null;
+  inspectors: UserWithStratas[];
+  onReview: (id: number, data: {
+    approved: boolean;
+    approvedDateChoice?: number;
+    rejectionReason?: string;
+    inspectorProfileId?: string;
+    comments?: string;
+  }) => Promise<{ success: boolean; error?: string }>;
+}
+
+export interface RescheduleAppointmentModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  appointment: AppointmentWithDetails | null;
+  timeSlots: AppointmentTimeSlot[];
+  inspectors: UserWithStratas[];
+  onReschedule: (id: number, date: string, timeSlotId: number, options?: {
+    inspectorProfileId?: string;
+    reason?: string;
+  }) => Promise<boolean>;
+}
+
+export interface CancelAppointmentModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  appointment: AppointmentWithDetails | null;
+  onCancel: (id: number, reason?: string) => Promise<boolean>;
 }

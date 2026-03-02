@@ -86,10 +86,13 @@ export function createApiClient(authFetch: AuthFetchFn) {
       return parseResponse<T>(response);
     },
 
-    async del<T = void>(path: string): Promise<T> {
-      const response = await authFetch(buildUrl(path), {
-        method: 'DELETE',
-      });
+    async del<T = void>(path: string, body?: unknown): Promise<T> {
+      const options: RequestInit = { method: 'DELETE' };
+      if (body !== undefined) {
+        options.headers = JSON_HEADERS;
+        options.body = JSON.stringify(body);
+      }
+      const response = await authFetch(buildUrl(path), options);
       return parseResponse<T>(response);
     },
 

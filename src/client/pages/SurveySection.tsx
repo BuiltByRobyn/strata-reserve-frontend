@@ -183,12 +183,12 @@ export default function SurveySectionPage() {
     completionMap[s.key] = sq.length > 0 && sq.every(q => answeredIds.has(q.questionId));
   }
 
-  const renderSubQuestion = (q: SurveyQuestion) => {
+  const renderSubQuestion = (q: SurveyQuestion, index: number) => {
     const answer = getAnswer(q.questionId, q.propertyTypeId);
     return (
       <div key={q.srSurveyQuestionId} className="survey-sub-question">
         <label className="question-label">
-          {q.subLabel && <span className="sub-label-badge">{q.subLabel}.</span>} {q.questionText}
+          <span className="sub-label-badge">{String.fromCharCode(97 + index)}.</span> {q.questionText}
           {q.isRequired && <span className="required-mark">*</span>}
         </label>
         {q.questionType === 'textarea' && (
@@ -372,7 +372,7 @@ export default function SurveySectionPage() {
 
         {subQuestions.length > 0 && hasAnswer && (
           <div className="survey-sub-questions">
-            {subQuestions.map(sq => renderSubQuestion(sq))}
+            {subQuestions.map((sq, i) => renderSubQuestion(sq, i))}
           </div>
         )}
       </div>

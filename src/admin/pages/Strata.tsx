@@ -24,7 +24,7 @@ import { formatStrataId, validateStrataId } from "../../shared/utils/strataUtils
 export default function StrataPage() {
   const { stratas, loading, error, createStrata, updateStrata, deleteStrata } =
     useStrata();
-  const { legalTypes, propertyTypes } = useLookups();
+  const { legalTypes, propertyTypes, locations } = useLookups();
   const navigate = useNavigate();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -130,6 +130,7 @@ export default function StrataPage() {
       legalTypeId: strata.legalTypeId || undefined,
       companyId: strata.companyId || undefined,
       fiscalYearEnd: strata.fiscalYearEnd ? strata.fiscalYearEnd.split('T')[0] : undefined,
+      locationId: strata.locationId || undefined,
       propertyTypeIds: strata.strataPropertyTypes?.map(spt => spt.propertyTypeId) || [],
     });
     setFormError(null);
@@ -180,7 +181,7 @@ export default function StrataPage() {
 
   const updateField = (
     field: keyof CreateStrataInput,
-    value: string | number | undefined,
+    value: string | number | null | undefined,
   ) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
@@ -433,15 +434,28 @@ export default function StrataPage() {
               placeholder="Select property types"
               required
             />
-            <InputField
-              label="Current Fiscal Year Start Date"
-              type="date"
-              value={formData.fiscalYearEnd || ''}
-              onChange={(e) => updateField('fiscalYearEnd', e.target.value || undefined)}
-              min={(() => { const d = new Date(); d.setFullYear(d.getFullYear() - 1); return d.toISOString().split('T')[0]; })()}
-              max={new Date().toISOString().split('T')[0]}
+            <SingleSelectDropdown
+              label="Location"
+              value={formData.locationId?.toString() || ""}
+              onChange={(val) =>
+                updateField("locationId", val ? parseInt(val) : null)
+              }
+              options={locations.map((loc) => ({
+                value: loc.locationId,
+                label: loc.locationName,
+              }))}
+              placeholder="Select location"
             />
           </FormRow>
+
+          <InputField
+            label="Current Fiscal Year Start Date"
+            type="date"
+            value={formData.fiscalYearEnd || ''}
+            onChange={(e) => updateField('fiscalYearEnd', e.target.value || undefined)}
+            min={(() => { const d = new Date(); d.setFullYear(d.getFullYear() - 1); return d.toISOString().split('T')[0]; })()}
+            max={new Date().toISOString().split('T')[0]}
+          />
         </form>
       </Modal>
     </div>

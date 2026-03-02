@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../shared/contexts/AuthContext';
 import { usePropertyTypeRequests } from '../../shared/hooks/usePropertyTypeRequests';
 import { useStrata } from '../../shared/hooks/useStrata';
 import { useUsers } from '../../shared/hooks/useUsers';
 import { useLookups } from '../../shared/hooks/useLookups';
+import { useAppointments } from '../../shared/hooks/useAppointments';
 import { Modal } from '../../shared/components/Modal';
 import { LoadingSpinner } from '../../shared/components/LoadingSpinner';
 import type { PropertyTypeRequest } from '../../shared/types/entities.types';
@@ -16,6 +17,35 @@ export const Dashboard = () => {
   const { stratas, loading: stratasLoading } = useStrata();
   const { users, loading: usersLoading } = useUsers();
   const { propertyTypes } = useLookups();
+  const { appointments, loading: appointmentsLoading, requests: appointmentRequests, fetchAppointmentRequests } = useAppointments();
+
+  useEffect(() => {
+    fetchAppointmentRequests('Pending Review');
+  }, [fetchAppointmentRequests]);
+
+  const appointmentsThisWeek = useMemo(() => {
+    const now = new Date();
+    const startOfWeek = new Date(now);
+    startOfWeek.setDate(now.getDate() - now.getDay());
+    startOfWeek.setHours(0, 0, 0, 0);
+    const endOfWeek = new Date(startOfWeek);
+    endOfWeek.setDate(startOfWeek.getDate() + 7);
+
+    return appointments.filter(a => {
+      if (a.status === 'Cancelled') return false;
+      const aptDate = new Date(a.appointmentDate);
+      return aptDate >= startOfWeek && aptDate < endOfWeek;
+    });
+  }, [appointments]);
+
+  const upcomingAppointments = useMemo(() => {
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    return appointments
+      .filter(a => a.status !== 'Cancelled' && new Date(a.appointmentDate) >= now)
+      .sort((a, b) => new Date(a.appointmentDate).getTime() - new Date(b.appointmentDate).getTime())
+      .slice(0, 5);
+  }, [appointments]);
 
   const [reviewingRequest, setReviewingRequest] = useState<PropertyTypeRequest | null>(null);
   const [rejectionReason, setRejectionReason] = useState('');
@@ -81,7 +111,7 @@ export const Dashboard = () => {
     return r.strataProfile?.strata?.complexName || r.strataProfile?.strata?.strataPlan || 'Unknown Strata';
   };
 
-  const statsLoading = requestsLoading || stratasLoading || usersLoading;
+  const statsLoading = requestsLoading || stratasLoading || usersLoading || appointmentsLoading;
 
   return (
     <div className="admin-dashboard">
@@ -101,7 +131,7 @@ export const Dashboard = () => {
             <span className="stat-label">Pending Approvals</span>
           </div>
           <div className="stat-card stat-card--accent">
-            <span className="stat-number">-</span>
+            <span className="stat-number">{statsLoading ? '...' : appointmentsThisWeek.length}</span>
             <span className="stat-label">Appointments This Week</span>
           </div>
           <div className="stat-card">
@@ -170,9 +200,57 @@ export const Dashboard = () => {
 
       <section className="dashboard-section">
         <h2>Appointments</h2>
-        <div className="empty-actions">
-          <p>Appointment management coming soon.</p>
-        </div>
+
+        {appointmentRequests.length > 0 && (
+          <div className="dashboard-alert dashboard-alert--warning" onClick={() => navigate('/admin/appointments')} role="button" tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && navigate('/admin/appointments')}>
+            <span className="dashboard-alert__count">{appointmentRequests.length}</span>
+            <span className="dashboard-alert__text">
+              pending appointment {appointmentRequests.length === 1 ? 'request' : 'requests'} awaiting review
+            </span>
+            <span className="dashboard-alert__action">Review &rarr;</span>
+          </div>
+        )}
+
+        {appointmentsLoading ? (
+          <LoadingSpinner />
+        ) : upcomingAppointments.length === 0 ? (
+          <div className="empty-actions">
+            <p>No upcoming appointments.</p>
+          </div>
+        ) : (
+          <div className="dashboard-appointments">
+            <h3 className="dashboard-appointments__subtitle">Upcoming Appointments</h3>
+            <div className="action-cards">
+              {upcomingAppointments.map((apt) => {
+                const aptDate = new Date(apt.appointmentDate);
+                const dateStr = aptDate.toLocaleDateString('en-CA', { weekday: 'short', month: 'short', day: 'numeric' });
+                const strataName = apt.serviceRequest?.strata?.complexName || apt.serviceRequest?.strata?.strataPlan || 'Unknown';
+                const inspectorName = apt.inspector ? (apt.inspector.displayName || `${apt.inspector.firstName} ${apt.inspector.lastName}`) : 'Unassigned';
+
+                return (
+                  <div key={apt.appointmentId} className="action-card action-card--upcoming">
+                    <div className="action-card-header">
+                      <span className="urgency-badge urgency-badge--upcoming">{apt.status}</span>
+                    </div>
+                    <h4 className="action-card-title">{strataName}</h4>
+                    <p className="action-card-desc">
+                      {dateStr} &middot; {apt.timeSlot.slotName} ({apt.timeSlot.slotTime.slice(0, 5)}) &middot; {apt.appointmentType.typeName}
+                    </p>
+                    <p className="action-card-desc">Inspector: {inspectorName}</p>
+                    <div className="action-card-actions">
+                      <button
+                        className="btn-action btn-action--secondary"
+                        onClick={() => navigate('/admin/appointments')}
+                      >
+                        View Details
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </section>
 
       <Modal

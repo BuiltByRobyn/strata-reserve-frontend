@@ -7,7 +7,10 @@ import { useLookups } from "../../shared/hooks/useLookups";
 import { useAuth } from "../../shared/contexts/AuthContext";
 import { useSurvey } from "../../shared/hooks/useSurvey";
 import { useQuestions } from "../../shared/hooks/useQuestions";
+import { useUsers } from "../../shared/hooks/useUsers";
+import { useApiClient } from "../../shared/hooks/useApiClient";
 import { MultiSelectDropdown } from "../../shared/components/MultiSelectDropdown";
+import { OfferAppointmentModal } from "../components/OfferAppointmentModal";
 import { LoadingSpinner } from "../../shared/components/LoadingSpinner";
 import { Modal } from "../../shared/components/Modal";
 import { DocumentPreviewModal } from "../../shared/components/DocumentPreviewModal";
@@ -54,6 +57,7 @@ export default function StrataDetailPage() {
     getActiveByStrata,
     createServiceRequest,
     deleteServiceRequest,
+    offerAppointment,
   } = useServiceRequests();
   const { user, session } = useAuth();
   const authFetch = useAuthFetch();
@@ -61,7 +65,10 @@ export default function StrataDetailPage() {
   const activeSurvey = useSurvey("admin");
   const { questions: allQuestions } = useQuestions();
   const { services, documentTypes, reviewStatuses } = useLookups();
+  const { users: allUsers } = useUsers();
+  const api = useApiClient();
 
+  const [appointmentTypes, setAppointmentTypes] = useState<{ appointmentTypeId: number; typeName: string }[]>([]);
   const [filterPropertyTypeIds, setFilterPropertyTypeIds] = useState<number[]>([]);
 
   const [strata, setStrata] = useState<StrataWithDetails | null>(null);
@@ -106,6 +113,7 @@ export default function StrataDetailPage() {
   const [statusModalOpen, setStatusModalOpen] = useState(false);
   const [statusDoc, setStatusDoc] = useState<SRUploadedDocument | null>(null);
   const [statusForm, setStatusForm] = useState({ reviewStatusId: '', notes: '' });
+  const [offerModalOpen, setOfferModalOpen] = useState(false);
 
   const strataId = id ? parseInt(id) : null;
 
@@ -129,6 +137,12 @@ export default function StrataDetailPage() {
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  useEffect(() => {
+    api.get<{ appointmentTypeId: number; typeName: string }[]>('/admin/appointments/types')
+      .then(data => setAppointmentTypes(data || []))
+      .catch(() => {});
+  }, [api]);
 
   const fetchDocRequirements = useCallback(async (serviceRequestId: number) => {
     try {
@@ -636,10 +650,10 @@ export default function StrataDetailPage() {
                           <div className="answer-response">{renderAnswerValue(q, getResponse)}</div>
                           {subQuestions.length > 0 && (
                             <div className="admin-sub-answers">
-                              {subQuestions.map(sq => (
+                              {subQuestions.map((sq, i) => (
                                 <div key={sq.srSurveyQuestionId} className="admin-sub-answer-item">
                                   <div className="answer-question">
-                                    {sq.subLabel && <span className="admin-sub-label">{sq.subLabel}.</span>}
+                                    <span className="admin-sub-label">{String.fromCharCode(97 + i)}.</span>
                                     {sq.questionText}
                                   </div>
                                   <div className="answer-response">{renderAnswerValue(sq, getResponse)}</div>
@@ -719,7 +733,9 @@ export default function StrataDetailPage() {
               {downloadingDocs ? "Downloading..." : "Download Documents"}
             </button>
             <button className="btn-primary">Download Survey Answers</button>
-            <button className="btn-primary">Offer Appointment</button>
+            {!activeRequest.appointmentOfferedAt && (
+              <button className="btn-primary" onClick={() => setOfferModalOpen(true)}>Offer Appointment</button>
+            )}
           </div>
         )}
       </div>
@@ -765,7 +781,9 @@ export default function StrataDetailPage() {
             {downloadingDocs ? "Downloading..." : "Download Documents"}
           </button>
           <button className="btn-primary">Download Survey Answers</button>
-          <button className="btn-primary">Offer Appointment</button>
+          {!activeRequest.appointmentOfferedAt && (
+            <button className="btn-primary" onClick={() => setOfferModalOpen(true)}>Offer Appointment</button>
+          )}
         </div>
       )}
 
@@ -1499,6 +1517,21 @@ export default function StrataDetailPage() {
           </div>
         )}
       </Modal>
+
+      {activeRequest && (
+        <OfferAppointmentModal
+          isOpen={offerModalOpen}
+          onClose={() => setOfferModalOpen(false)}
+          serviceRequestId={activeRequest.serviceRequestId}
+          strataName={strata?.complexName || strata?.strataPlan || 'this strata'}
+          appointmentTypes={appointmentTypes}
+          inspectors={allUsers}
+          onSubmit={async (srId, data) => {
+            await offerAppointment(srId, data);
+            await loadData();
+          }}
+        />
+      )}
     </div>
   );
 }

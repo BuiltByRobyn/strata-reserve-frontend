@@ -167,8 +167,8 @@ export const InspectorAvailabilityManager = () => {
     ];
 
     const renderActions = (item: InspectorAvailableDate) => (
-        <button className="btn-link" onClick={() => handleEdit(item)}>
-            <u>Edit</u>
+        <button className="btn-edit" onClick={() => handleEdit(item)}>
+            Edit
         </button>
     );
 

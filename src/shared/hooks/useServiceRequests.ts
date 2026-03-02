@@ -63,12 +63,22 @@ export const useServiceRequests = () => {
     return true;
   }, [api]);
 
+  const offerAppointment = useCallback(async (id: number, data?: {
+    dueDate?: string;
+    appointmentTypeId?: number;
+    inspectorProfileId?: string;
+    notes?: string;
+  }): Promise<void> => {
+    await api.put(`/admin/service-requests/${id}/offer-appointment`, data || {});
+  }, [api]);
+
   return {
     ...state,
     refetch: fetchServiceRequests,
     getActiveByStrata,
     getServiceRequestById,
     createServiceRequest,
-    deleteServiceRequest
+    deleteServiceRequest,
+    offerAppointment
   };
 };

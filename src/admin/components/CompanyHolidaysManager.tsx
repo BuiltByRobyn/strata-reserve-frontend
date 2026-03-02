@@ -104,8 +104,8 @@ export const CompanyHolidaysManager = () => {
   ];
 
   const renderActions = (item: DisplayHoliday) => (
-    <button className="btn-link" onClick={() => handleEdit(item)}>
-      <u>Edit</u>
+    <button className="btn-edit" onClick={() => handleEdit(item)}>
+      Edit
     </button>
   );
 
@@ -195,8 +195,8 @@ export const CompanyHolidaysManager = () => {
                       <tr>
                         <td className="mobile-label-col">Actions</td>
                         <td className="mobile-value-col" onClick={(e) => e.stopPropagation()}>
-                          <button className="btn-link" onClick={() => handleEdit(item)}>
-                            <u>Edit</u>
+                          <button className="btn-edit" onClick={() => handleEdit(item)}>
+                            Edit
                           </button>
                         </td>
                       </tr>

@@ -1,0 +1,461 @@
+@use '../../../shared/styles/variables' as *;
+
+.inspection-date {
+  &__card {
+    background: $color-white;
+    border: $border-width-thin solid $color-border-light;
+    border-radius: $border-radius-lg;
+    padding: $spacing-xl;
+    margin-bottom: $spacing-lg;
+
+    h3 {
+      margin: 0 0 $spacing-md;
+      color: $color-text-dark;
+    }
+
+    p {
+      color: $color-text-secondary;
+      margin-bottom: $spacing-md;
+    }
+
+    &--info {
+      border-left: 4px solid $color-secondary;
+      background: $color-secondary-pale;
+    }
+
+    &--pending {
+      border-left: 4px solid $color-accent-yellow;
+    }
+
+    &--scheduled {
+      border-left: 4px solid $color-primary;
+    }
+  }
+
+  &__error {
+    background: #fef2f2;
+    color: $color-error;
+    padding: $spacing-md;
+    border-radius: $border-radius-md;
+    margin-bottom: $spacing-lg;
+    border: $border-width-thin solid #fecaca;
+  }
+
+  &__success {
+    background: $color-primary-lightest;
+    color: $color-primary-dark;
+    padding: $spacing-md;
+    border-radius: $border-radius-md;
+    margin-bottom: $spacing-lg;
+    border: $border-width-thin solid $color-primary;
+  }
+
+  &__details {
+    margin: $spacing-lg 0;
+  }
+
+  &__detail-row {
+    display: flex;
+    padding: $spacing-sm 0;
+    border-bottom: $border-width-thin solid $color-border-light;
+
+    &:last-child {
+      border-bottom: none;
+    }
+
+    @include respond-below(md) {
+      flex-direction: column;
+      gap: $spacing-xs;
+    }
+  }
+
+  &__detail-label {
+    font-weight: 600;
+    color: $color-text-dark;
+    min-width: 160px;
+    flex-shrink: 0;
+  }
+
+  &__detail-value {
+    color: $color-text-secondary;
+  }
+
+  &__status {
+    &--pending {
+      color: $color-accent-brown;
+      font-weight: 600;
+    }
+
+    &--scheduled {
+      color: $color-primary;
+      font-weight: 600;
+    }
+  }
+
+  &__actions {
+    display: flex;
+    gap: $spacing-md;
+    margin-top: $spacing-lg;
+
+    @include respond-below(sm) {
+      flex-direction: column;
+    }
+  }
+
+  &__notice {
+    margin-top: $spacing-lg;
+    font-size: 0.875rem;
+    color: $color-text-light;
+    font-style: italic;
+  }
+
+  &__booking {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-lg;
+  }
+
+  &__step-indicator {
+    h3 {
+      margin: 0 0 $spacing-sm;
+      color: $color-text-dark;
+    }
+  }
+
+  &__first-choice-summary {
+    background: $color-primary-lightest;
+    padding: $spacing-sm $spacing-md;
+    border-radius: $border-radius-md;
+    color: $color-primary-dark;
+    font-weight: 500;
+    margin-bottom: $spacing-sm;
+    display: inline-block;
+  }
+
+  &__calendar-section {
+    display: flex;
+    gap: $spacing-xl;
+    align-items: flex-start;
+
+    @include respond-below(lg) {
+      flex-direction: column;
+    }
+  }
+}
+
+// Booking Calendar
+.booking-calendar {
+  background: $color-white;
+  border: $border-width-thin solid $color-border-light;
+  border-radius: $border-radius-lg;
+  padding: $spacing-lg;
+  min-width: 340px;
+  flex-shrink: 0;
+
+  @include respond-below(sm) {
+    min-width: 0;
+    width: 100%;
+    padding: $spacing-md;
+  }
+
+  &__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: $spacing-lg;
+  }
+
+  &__title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: $color-text-dark;
+  }
+
+  &__nav-btn {
+    background: none;
+    border: $border-width-thin solid $color-border-light;
+    border-radius: $border-radius-md;
+    padding: $spacing-xs $spacing-sm;
+    cursor: pointer;
+    font-size: 1.25rem;
+    color: $color-text-dark;
+    line-height: 1;
+
+    &:hover:not(:disabled) {
+      background: $color-background-off-white;
+    }
+
+    &:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+  }
+
+  &__loading {
+    text-align: center;
+    padding: $spacing-xl;
+    color: $color-text-light;
+  }
+
+  &__grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 2px;
+  }
+
+  &__day-header {
+    text-align: center;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: $color-text-light;
+    padding: $spacing-xs 0;
+    text-transform: uppercase;
+  }
+
+  &__cell {
+    aspect-ratio: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.875rem;
+    border-radius: $border-radius-md;
+    cursor: default;
+    transition: background-color 0.15s, color 0.15s;
+
+    &--empty {
+      background: transparent;
+    }
+
+    &--available {
+      background: $color-primary-lightest;
+      color: $color-primary-dark;
+      cursor: pointer;
+      font-weight: 500;
+
+      &:hover {
+        background: $color-primary;
+        color: $color-white;
+      }
+    }
+
+    &--unavailable {
+      background: $color-background-off-white;
+      color: $color-text-light;
+    }
+
+    &--disabled {
+      background: transparent;
+      color: #d1d5db;
+    }
+
+    &--selected {
+      background: $color-primary !important;
+      color: $color-white !important;
+      font-weight: 600;
+    }
+  }
+
+  &__legend {
+    display: flex;
+    gap: $spacing-lg;
+    margin-top: $spacing-lg;
+    padding-top: $spacing-md;
+    border-top: $border-width-thin solid $color-border-light;
+
+    @include respond-below(sm) {
+      gap: $spacing-md;
+      flex-wrap: wrap;
+    }
+  }
+
+  &__legend-item {
+    display: flex;
+    align-items: center;
+    gap: $spacing-xs;
+    font-size: 0.75rem;
+    color: $color-text-light;
+  }
+
+  &__legend-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+
+    &--available {
+      background: $color-primary-lightest;
+      border: $border-width-thin solid $color-primary;
+    }
+
+    &--unavailable {
+      background: $color-background-off-white;
+      border: $border-width-thin solid $color-border-light;
+    }
+
+    &--selected {
+      background: $color-primary;
+    }
+  }
+}
+
+// Time Slot Picker
+.time-slot-picker {
+  flex: 1;
+  min-width: 250px;
+
+  &__label {
+    margin: 0 0 $spacing-md;
+    color: $color-text-dark;
+    font-size: 1rem;
+  }
+
+  &__empty {
+    color: $color-text-light;
+    font-style: italic;
+  }
+
+  &__slots {
+    display: flex;
+    gap: $spacing-md;
+    flex-wrap: wrap;
+  }
+
+  &__slot {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: $spacing-xs;
+    padding: $spacing-md $spacing-lg;
+    background: $color-white;
+    border: $border-width-medium solid $color-border-light;
+    border-radius: $border-radius-lg;
+    cursor: pointer;
+    transition: all 0.15s;
+    min-width: 140px;
+
+    &:hover {
+      border-color: $color-primary;
+      background: $color-primary-lightest;
+    }
+
+    &--selected {
+      border-color: $color-primary;
+      background: $color-primary;
+      color: $color-white;
+
+      &:hover {
+        background: $color-primary-hover;
+        color: $color-white;
+      }
+    }
+  }
+
+  &__slot-name {
+    font-weight: 600;
+    font-size: 1rem;
+  }
+
+  &__slot-time {
+    font-size: 0.875rem;
+    opacity: 0.8;
+  }
+}
+
+// Booking Confirmation
+.booking-confirmation {
+  background: $color-white;
+  border: $border-width-thin solid $color-border-light;
+  border-radius: $border-radius-lg;
+  padding: $spacing-xl;
+
+  &__title {
+    margin: 0 0 $spacing-lg;
+    color: $color-text-dark;
+  }
+
+  &__choices {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: $spacing-lg;
+    margin-bottom: $spacing-xl;
+
+    @include respond-below(md) {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  &__choice {
+    background: $color-background-off-white;
+    padding: $spacing-lg;
+    border-radius: $border-radius-md;
+
+    h4 {
+      margin: 0 0 $spacing-sm;
+      color: $color-text-dark;
+      font-size: 0.875rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+  }
+
+  &__date {
+    font-weight: 600;
+    color: $color-text-dark;
+    margin: 0 0 $spacing-xs;
+  }
+
+  &__time {
+    color: $color-text-secondary;
+    margin: 0;
+  }
+
+  &__requirements {
+    margin-bottom: $spacing-xl;
+
+    label {
+      display: block;
+      font-weight: 600;
+      color: $color-text-dark;
+      margin-bottom: $spacing-sm;
+    }
+  }
+
+  &__textarea {
+    width: 100%;
+    padding: $spacing-sm $spacing-md;
+    border: $border-width-thin solid $color-border-light;
+    border-radius: $border-radius-md;
+    font-family: inherit;
+    font-size: 0.875rem;
+    resize: vertical;
+
+    &:focus {
+      outline: none;
+      border-color: $color-primary;
+      box-shadow: 0 0 0 2px rgba($color-primary, 0.15);
+    }
+  }
+
+  &__actions {
+    display: flex;
+    gap: $spacing-md;
+    justify-content: flex-end;
+
+    @include respond-below(sm) {
+      flex-direction: column-reverse;
+    }
+  }
+}
+
+.btn-link {
+  background: none;
+  border: none;
+  color: $color-secondary;
+  cursor: pointer;
+  padding: 0;
+  font-size: 0.875rem;
+  text-decoration: underline;
+
+  &:hover {
+    color: $color-secondary-dark;
+  }
+}

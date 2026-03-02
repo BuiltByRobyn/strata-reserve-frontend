@@ -185,6 +185,16 @@ export default function TimelinesPage() {
       if (latestSurveyAnswer) {
         rows.push({ id: `${srId}-survey-answer`, date: latestSurveyAnswer, deadlineType: 'Last Survey Answer Date', strataPlan, complexName, strataId, serviceRequest: sr });
       }
+
+      // Appointments
+      if (sr.appointments) {
+        for (const apt of sr.appointments) {
+          const aptDate = parseLocalDate(apt.appointmentDate);
+          if (aptDate) {
+            rows.push({ id: `${srId}-apt-${apt.appointmentId}`, date: aptDate, deadlineType: 'Appointment', strataPlan, complexName, strataId, serviceRequest: sr });
+          }
+        }
+      }
     }
 
     rows.sort((a, b) => a.date.getTime() - b.date.getTime());
@@ -247,6 +257,7 @@ export default function TimelinesPage() {
         documentUpload: ['Most Recent Document Upload'],
         surveySubmitted: ['Survey Submitted'],
         surveyAnswer: ['Last Survey Answer Date'],
+        appointment: ['Appointment'],
       };
       const matches = typeMap[filterDeadlineType];
       if (matches) rows = rows.filter(r => matches.includes(r.deadlineType));
@@ -585,6 +596,7 @@ export default function TimelinesPage() {
             { value: 'documentUpload', label: 'Document Upload' },
             { value: 'surveySubmitted', label: 'Survey Submitted' },
             { value: 'surveyAnswer', label: 'Last Survey Answer' },
+            { value: 'appointment', label: 'Appointment' },
           ]}
           placeholder="All Types"
         />

@@ -3,6 +3,7 @@ import type {
   Company,
   CompanyHoliday,
   InspectorAvailableDate,
+  Location,
   ServiceRequest,
   Strata,
   UserWithStratas,
@@ -55,6 +56,7 @@ export interface LookupState {
   reviewStatuses: ReviewStatus[];
   sections: Section[];
   questionTypes: QuestionType[];
+  locations: Location[];
   loading: boolean;
   error: string | null;
 }

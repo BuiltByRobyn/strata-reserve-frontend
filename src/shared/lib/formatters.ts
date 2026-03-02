@@ -1,4 +1,5 @@
 import { formatDate as formatDateSafe, formatDateShort as formatDateShortSafe } from './dateUtils';
+export { formatDateLong, formatDateMedium, formatTime12h } from './dateUtils';
 
 export const formatTypeName = (name: string): string =>
   name.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
