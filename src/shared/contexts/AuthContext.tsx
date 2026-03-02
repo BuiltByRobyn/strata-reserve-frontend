@@ -136,7 +136,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // Set up auth state change listener
     // CRITICAL: Do NOT await inside this callback - it causes Navigator.locks deadlock!
     // Use setTimeout(0) to defer execution outside the auth lock context
-    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
       // console.log('Auth state change:', event, session ? 'has session' : 'no session');
       
       // Defer to next tick to break out of Navigator.locks context
