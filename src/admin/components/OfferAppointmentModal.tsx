@@ -7,7 +7,7 @@ export const OfferAppointmentModal = ({
   isOpen,
   onClose,
   serviceRequestId,
-  strataName,
+  strataName: _strataName,
   appointmentTypes,
   inspectors,
   onSubmit,
