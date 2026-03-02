@@ -50,11 +50,17 @@ export interface ClientAppointmentsState {
   error: string | null;
 }
 
+export interface CalendarMilestone {
+  date: string;
+  label: string;
+}
+
 export interface BookingCalendarProps {
   availability: AvailableDay[];
   selectedDate: string | null;
   onSelectDate: (date: string) => void;
   loading: boolean;
+  milestones?: CalendarMilestone[];
 }
 
 export interface TimeSlotPickerProps {

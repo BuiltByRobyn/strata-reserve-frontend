@@ -215,12 +215,14 @@
   &__cell {
     aspect-ratio: 1;
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
     font-size: 0.875rem;
     border-radius: $border-radius-md;
     cursor: default;
     transition: background-color 0.15s, color 0.15s;
+    position: relative;
 
     &--empty {
       background: transparent;
@@ -252,6 +254,41 @@
       background: $color-primary !important;
       color: $color-white !important;
       font-weight: 600;
+    }
+
+    &--milestone {
+      background: $color-accent-yellow-light !important;
+      color: $color-accent-brown !important;
+      font-weight: 600;
+
+      &:hover {
+        background: $color-accent-yellow !important;
+      }
+
+      &.booking-calendar__cell--selected {
+        background: $color-primary !important;
+        color: $color-white !important;
+      }
+    }
+  }
+
+  &__cell-day {
+    line-height: 1;
+  }
+
+  &__cell-label {
+    font-size: 0.45rem;
+    font-weight: 600;
+    color: $color-accent-brown;
+    white-space: nowrap;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1;
+    margin-top: 1px;
+
+    .booking-calendar__cell--selected & {
+      color: $color-white;
     }
   }
 
@@ -293,6 +330,11 @@
 
     &--selected {
       background: $color-primary;
+    }
+
+    &--milestone {
+      background: $color-accent-yellow-light;
+      border: $border-width-thin solid $color-accent-yellow;
     }
   }
 }

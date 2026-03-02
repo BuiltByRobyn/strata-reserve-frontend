@@ -1,21 +1,66 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { Navigate } from 'react-router-dom';
 import { useClientServiceRequest } from '../../shared/hooks/useClientServiceRequest';
 import { useClientAppointments } from '../../shared/hooks/useClientAppointments';
+import { useTimelines } from '../../shared/hooks/useTimelines';
 import { useLookups } from '../../shared/hooks/useLookups';
 import { LoadingSpinner } from '../../shared/components/LoadingSpinner';
 import { formatDateLong, formatTime12h } from '../../shared/lib/formatters';
 import BookingCalendar from '../components/BookingCalendar';
 import TimeSlotPicker from '../components/TimeSlotPicker';
 import BookingConfirmation from '../components/BookingConfirmation';
-import type { AvailableDay, AvailableSlot, BookingChoice, ActiveAppointmentResponse } from '../../shared/types/appointment.types';
+import type { AvailableDay, AvailableSlot, BookingChoice, ActiveAppointmentResponse, CalendarMilestone } from '../../shared/types/appointment.types';
 import type { AppointmentType } from '../../shared/types/entities.types';
 
 type BookingStep = 'first-date' | 'first-slot' | 'second-date' | 'second-slot' | 'confirm';
 
+/** Next anniversary of baseDate strictly after referenceDate */
+function getNextAnniversary(baseDate: Date, referenceDate: Date): Date {
+  const month = baseDate.getMonth();
+  const day = baseDate.getDate();
+  let year = referenceDate.getFullYear();
+
+  for (let i = 0; i < 10; i++) {
+    const candidate = new Date(year, month, day);
+    if (candidate.getMonth() !== month) {
+      // Clamp (e.g. Feb 29 in non-leap year)
+      const clamped = new Date(year, month + 1, 0);
+      if (clamped > referenceDate) return clamped;
+    } else if (candidate > referenceDate) {
+      return candidate;
+    }
+    year++;
+  }
+  return new Date(referenceDate.getFullYear() + 1, month, day);
+}
+
+function addDays(d: Date, days: number): Date {
+  const out = new Date(d);
+  out.setDate(out.getDate() + days);
+  return out;
+}
+
+function formatYMD(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
 const InspectionDate = () => {
   const { activeRequest, loading: srLoading } = useClientServiceRequest();
-  const appointments = useClientAppointments();
+  const {
+    getAvailability,
+    getActiveAppointment,
+    createRequest,
+    cancelRequest,
+    cancelAppointment,
+    checkDraftMeetingEligibility,
+  } = useClientAppointments();
   const { services } = useLookups();
+
+  const serviceRequestId = activeRequest?.serviceRequestId ?? null;
+  const { timelines } = useTimelines(serviceRequestId);
 
   const [activeAppointment, setActiveAppointment] = useState<ActiveAppointmentResponse>(null);
   const [appointmentTypes, setAppointmentTypes] = useState<AppointmentType[]>([]);
@@ -35,20 +80,22 @@ const InspectionDate = () => {
   const [draftMeetingEligible, setDraftMeetingEligible] = useState(false);
   const [bookingDraftMeeting, setBookingDraftMeeting] = useState(false);
 
-  const serviceRequestId = activeRequest?.serviceRequestId ?? null;
   const isOffered = !!activeRequest?.appointmentOfferedAt;
 
-  const loadActiveAppointment = useCallback(async () => {
-    const data = await appointments.getActiveAppointment();
-    setActiveAppointment(data);
-  }, [appointments]);
+  // Ref guards to prevent duplicate effect execution
+  const hasFetchedAppointment = useRef(false);
+  const hasFetchedAvailability = useRef(false);
 
+  const loadActiveAppointment = useCallback(async () => {
+    const data = await getActiveAppointment();
+    setActiveAppointment(data);
+  }, [getActiveAppointment]);
+
+  // Effect 1: Load active appointment (once, when service request loads)
   useEffect(() => {
-    if (!srLoading && activeRequest) {
-      loadActiveAppointment().finally(() => setPageLoading(false));
-    } else if (!srLoading) {
-      setPageLoading(false);
-    }
+    if (srLoading || !activeRequest || hasFetchedAppointment.current) return;
+    hasFetchedAppointment.current = true;
+    loadActiveAppointment().finally(() => setPageLoading(false));
   }, [srLoading, activeRequest, loadActiveAppointment]);
 
   const loadAvailability = useCallback(async (isDraft = false) => {
@@ -62,34 +109,71 @@ const InspectionDate = () => {
 
     const startStr = start.toISOString().split('T')[0];
     const endStr = end.toISOString().split('T')[0];
-    const data = await appointments.getAvailability(startStr, endStr, serviceRequestId, isDraft);
+    const data = await getAvailability(startStr, endStr, serviceRequestId, isDraft);
     setAvailability(data);
     setCalendarLoading(false);
-  }, [serviceRequestId, appointments]);
+  }, [serviceRequestId, getAvailability]);
 
-  useEffect(() => {
-    if (isOffered && !activeAppointment && serviceRequestId) {
-      if (bookingDraftMeeting) {
-        loadAvailability(true);
-      } else {
-        loadAvailability();
-      }
-      loadAppointmentTypes();
-      appointments.checkDraftMeetingEligibility(serviceRequestId).then(setDraftMeetingEligible);
-    }
-  }, [isOffered, activeAppointment, serviceRequestId, loadAvailability, bookingDraftMeeting]);
-
-  const loadAppointmentTypes = useCallback(async () => {
-    try {
-      const svc = activeRequest?.service || services.find(s => s.serviceId === activeRequest?.serviceId);
-      if (!svc) return;
-      setAppointmentTypes([
-        { appointmentTypeId: 1, typeName: 'Half Day Inspection', durationType: 'Half Day', isDraftMeeting: false, description: null, serviceId: svc.serviceId },
-        { appointmentTypeId: 2, typeName: 'Full Day Inspection', durationType: 'Full Day', isDraftMeeting: false, description: null, serviceId: svc.serviceId },
-        { appointmentTypeId: 3, typeName: 'Draft Meeting', durationType: 'Evening', isDraftMeeting: true, description: null, serviceId: svc.serviceId },
-      ]);
-    } catch { /* ignore */ }
+  const loadAppointmentTypes = useCallback(() => {
+    const svc = activeRequest?.service || services.find(s => s.serviceId === activeRequest?.serviceId);
+    if (!svc) return;
+    setAppointmentTypes([
+      { appointmentTypeId: 1, typeName: 'Half Day Inspection', durationType: 'Half Day', isDraftMeeting: false, description: null, serviceId: svc.serviceId },
+      { appointmentTypeId: 2, typeName: 'Full Day Inspection', durationType: 'Full Day', isDraftMeeting: false, description: null, serviceId: svc.serviceId },
+      { appointmentTypeId: 3, typeName: 'Draft Meeting', durationType: 'Evening', isDraftMeeting: true, description: null, serviceId: svc.serviceId },
+    ]);
   }, [activeRequest, services]);
+
+  // Effect 2: Load availability + check eligibility (once, when offered and no active appointment)
+  useEffect(() => {
+    if (!isOffered || activeAppointment || !serviceRequestId || hasFetchedAvailability.current) return;
+    hasFetchedAvailability.current = true;
+    loadAvailability(bookingDraftMeeting);
+    loadAppointmentTypes();
+    checkDraftMeetingEligibility(serviceRequestId).then(setDraftMeetingEligible);
+  }, [isOffered, activeAppointment, serviceRequestId, loadAvailability, bookingDraftMeeting, loadAppointmentTypes, checkDraftMeetingEligibility]);
+
+  // Compute timeline milestones for the calendar
+  const milestones = useMemo((): CalendarMilestone[] => {
+    if (!timelines) return [];
+    const result: CalendarMilestone[] = [];
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    if (timelines.targetDate) {
+      result.push({ date: timelines.targetDate, label: 'Target Date' });
+    }
+
+    // Next Projected AGM
+    const lastAgmDate = timelines.lastAgmDate && !timelines.noAgmToDate
+      ? new Date(timelines.lastAgmDate + 'T00:00:00')
+      : null;
+    const fiscalYearEnd = timelines.fiscalYearEnd
+      ? new Date(timelines.fiscalYearEnd + 'T00:00:00')
+      : null;
+    const agmBase = lastAgmDate ?? (timelines.noAgmToDate ? fiscalYearEnd : null);
+    if (agmBase) {
+      const nextAgm = getNextAnniversary(agmBase, today);
+      const nextAgmStr = formatYMD(nextAgm);
+      if (!result.some(m => m.date === nextAgmStr)) {
+        result.push({ date: nextAgmStr, label: 'Projected AGM' });
+      }
+    }
+
+    // Auto target date (45 days before projected AGM) if no manual target date
+    if (!timelines.targetDate && agmBase) {
+      const nextAgm = getNextAnniversary(agmBase, today);
+      const autoTarget = addDays(nextAgm, -45);
+      if (autoTarget >= today) {
+        const autoTargetStr = formatYMD(autoTarget);
+        if (!result.some(m => m.date === autoTargetStr)) {
+          result.push({ date: autoTargetStr, label: 'Target Date' });
+        }
+      }
+    }
+
+    return result;
+  }, [timelines]);
 
   const selectedDaySlots = useMemo(() => {
     if (!selectedDate) return [];
@@ -138,6 +222,7 @@ const InspectionDate = () => {
 
   const handleStartDraftMeetingBooking = () => {
     setBookingDraftMeeting(true);
+    hasFetchedAvailability.current = false;
     resetBooking();
     setSuccessMsg(null);
   };
@@ -156,7 +241,7 @@ const InspectionDate = () => {
     setSubmitting(true);
     setErrorMsg(null);
 
-    const result = await appointments.createRequest({
+    const result = await createRequest({
       serviceRequestId,
       appointmentTypeId: selectedType.appointmentTypeId,
       firstChoiceDate: firstChoice.date,
@@ -180,12 +265,13 @@ const InspectionDate = () => {
   const handleCancelRequest = async (requestId: number) => {
     setCancellingRequest(true);
     setErrorMsg(null);
-    const result = await appointments.cancelRequest(requestId);
+    const result = await cancelRequest(requestId);
     setCancellingRequest(false);
 
     if (result.success) {
       setSuccessMsg('Your appointment request has been cancelled.');
       await loadActiveAppointment();
+      hasFetchedAvailability.current = false;
       loadAvailability();
     } else {
       setErrorMsg(result.error || 'Failed to cancel request');
@@ -194,7 +280,7 @@ const InspectionDate = () => {
 
   const handleCancelAppointment = async (appointmentId: number) => {
     setErrorMsg(null);
-    const result = await appointments.cancelAppointment(appointmentId);
+    const result = await cancelAppointment(appointmentId);
     if (result.success) {
       setSuccessMsg('Your appointment has been cancelled.');
       await loadActiveAppointment();
@@ -230,20 +316,9 @@ const InspectionDate = () => {
     );
   }
 
-  // State 1: Not Ready
+  // Redirect to dashboard if appointment not yet offered
   if (!isOffered) {
-    return (
-      <div className="page-container">
-        <h1>Inspection Date</h1>
-        <div className="inspection-date__card inspection-date__card--info">
-          <h3>Appointment Booking Not Yet Available</h3>
-          <p>
-            Please complete your documents and surveys. Appointment booking will
-            be available once your submissions are reviewed and approved.
-          </p>
-        </div>
-      </div>
-    );
+    return <Navigate to="/client/dashboard" replace />;
   }
 
   // State 3: Pending Review
@@ -437,6 +512,7 @@ const InspectionDate = () => {
               selectedDate={selectedDate}
               onSelectDate={handleDateSelect}
               loading={calendarLoading}
+              milestones={milestones}
             />
 
             {selectedDate && (bookingStep === 'first-slot' || bookingStep === 'second-slot') && (

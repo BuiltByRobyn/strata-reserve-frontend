@@ -25,7 +25,7 @@ export const useClientServiceRequest = () => {
     } finally {
       setLoading(false);
     }
-  }, [api, user]);
+  }, [api, user?.role]);
 
   useEffect(() => {
     fetchActiveRequest();

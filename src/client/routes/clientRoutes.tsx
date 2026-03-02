@@ -1,4 +1,4 @@
-import { Route, Navigate } from 'react-router-dom';
+import { Route } from 'react-router-dom';
 import { ProtectedRoute } from '../../shared/routes/ProtectedRoute';
 import { ClientNavbar } from '../components/ClientNavbar';
 import { Dashboard } from '../pages/Dashboard';
@@ -9,14 +9,6 @@ import StrataInformation from '../pages/StrataInformation';
 import StrataMembers from '../pages/StrataMembers';
 import Timelines from '../pages/Timelines';
 import InspectionDate from '../pages/InspectionDate';
-import { useClientServiceRequest } from '../../shared/hooks/useClientServiceRequest';
-
-const InspectionDateGuard = () => {
-  const { activeRequest, loading } = useClientServiceRequest();
-  if (loading) return null;
-  if (!activeRequest?.appointmentOfferedAt) return <Navigate to="/client/dashboard" replace />;
-  return <InspectionDate />;
-};
 
 export const clientRoutes = [
   <Route key="client-dashboard" path="/client/dashboard" element={
@@ -92,7 +84,7 @@ export const clientRoutes = [
       <div className="app">
         <ClientNavbar />
         <main className="app-main">
-          <InspectionDateGuard />
+          <InspectionDate />
         </main>
       </div>
     </ProtectedRoute>

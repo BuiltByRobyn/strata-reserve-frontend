@@ -1,11 +1,9 @@
-import { useState, useCallback } from 'react';
+import { useCallback } from 'react';
 import { useApiClient } from './useApiClient';
 import type { AvailableDay, ActiveAppointmentResponse } from '../types/appointment.types';
 
 export const useClientAppointments = () => {
   const api = useApiClient();
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   const getAvailability = useCallback(async (
     startDate: string,
@@ -13,19 +11,13 @@ export const useClientAppointments = () => {
     serviceRequestId: number,
     isDraftMeeting = false
   ): Promise<AvailableDay[]> => {
-    setLoading(true);
-    setError(null);
     try {
       const data = await api.get<AvailableDay[]>('/client/appointments/availability', {
         params: { startDate, endDate, serviceRequestId, isDraftMeeting }
       });
       return data || [];
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Failed to load availability';
-      setError(msg);
+    } catch {
       return [];
-    } finally {
-      setLoading(false);
     }
   }, [api]);
 
@@ -97,8 +89,6 @@ export const useClientAppointments = () => {
   }, [api]);
 
   return {
-    loading,
-    error,
     getAvailability,
     createRequest,
     getActiveAppointment,

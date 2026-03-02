@@ -392,14 +392,6 @@ export default function StrataPage() {
             />
           </FormRow>
 
-          <InputField
-            label="Website"
-            type="url"
-            value={formData.website || ""}
-            onChange={(e) => updateField("website", e.target.value)}
-            placeholder="https://example.com"
-          />
-
           <FormRow>
             <InputField
               label="Company"
@@ -440,22 +432,33 @@ export default function StrataPage() {
               onChange={(val) =>
                 updateField("locationId", val ? parseInt(val) : null)
               }
-              options={locations.map((loc) => ({
-                value: loc.locationId,
-                label: loc.locationName,
-              }))}
+              options={locations
+                .filter((loc) => loc.locationCode !== "Virtual")
+                .map((loc) => ({
+                  value: loc.locationId,
+                  label: loc.locationName,
+                }))}
               placeholder="Select location"
             />
           </FormRow>
 
-          <InputField
-            label="Current Fiscal Year Start Date"
-            type="date"
-            value={formData.fiscalYearEnd || ''}
-            onChange={(e) => updateField('fiscalYearEnd', e.target.value || undefined)}
-            min={(() => { const d = new Date(); d.setFullYear(d.getFullYear() - 1); return d.toISOString().split('T')[0]; })()}
-            max={new Date().toISOString().split('T')[0]}
-          />
+          <FormRow>
+            <InputField
+              label="Website"
+              type="url"
+              value={formData.website || ""}
+              onChange={(e) => updateField("website", e.target.value)}
+              placeholder="https://example.com"
+            />
+            <InputField
+              label="Current Fiscal Year Start Date"
+              type="date"
+              value={formData.fiscalYearEnd || ''}
+              onChange={(e) => updateField('fiscalYearEnd', e.target.value || undefined)}
+              min={(() => { const d = new Date(); d.setFullYear(d.getFullYear() - 1); return d.toISOString().split('T')[0]; })()}
+              max={new Date().toISOString().split('T')[0]}
+            />
+          </FormRow>
         </form>
       </Modal>
     </div>
