@@ -89,6 +89,13 @@ export const useSurvey = (routePrefix: 'client' | 'admin' = 'client') => {
     return responses.find(r => r.questionId === questionId && r.propertyTypeId === propertyTypeId);
   }, [responses]);
 
+  const clearState = useCallback(() => {
+    setQuestions([]);
+    setResponses([]);
+    setArchivedResponses([]);
+    setError(null);
+  }, []);
+
   return {
     questions,
     responses,
@@ -101,5 +108,6 @@ export const useSurvey = (routePrefix: 'client' | 'admin' = 'client') => {
     fetchArchivedResponses,
     saveResponses,
     getResponseForQuestion,
+    clearState,
   };
 };

@@ -81,7 +81,13 @@ export default function SurveySectionPage() {
 
   const buildPendingPayloads = useCallback(() => {
     return Object.values(localAnswers).filter(a => {
-      return a.responseText || a.responseNumber !== null || a.responseBoolean !== null || a.responseDate || a.multipleChoiceOptionId;
+      return (
+        (a.responseText != null && a.responseText.trim() !== '') ||
+        (a.responseNumber !== undefined && a.responseNumber !== null) ||
+        (a.responseBoolean !== undefined && a.responseBoolean !== null) ||
+        (a.responseDate != null && a.responseDate.trim() !== '') ||
+        (a.multipleChoiceOptionId !== undefined && a.multipleChoiceOptionId !== null)
+      );
     });
   }, [localAnswers]);
 
@@ -100,6 +106,11 @@ export default function SurveySectionPage() {
       prevSectionRef.current = section;
     }
   }, [page, section]);
+
+  // Reset to first page when navigating to a new section
+  useEffect(() => {
+    setPage(0);
+  }, [section]);
 
   const handlePageChange = async (newPage: number) => {
     await saveCurrent();
@@ -172,12 +183,12 @@ export default function SurveySectionPage() {
     completionMap[s.key] = sq.length > 0 && sq.every(q => answeredIds.has(q.questionId));
   }
 
-  const renderSubQuestion = (q: SurveyQuestion) => {
+  const renderSubQuestion = (q: SurveyQuestion, index: number) => {
     const answer = getAnswer(q.questionId, q.propertyTypeId);
     return (
       <div key={q.srSurveyQuestionId} className="survey-sub-question">
         <label className="question-label">
-          {q.subLabel && <span className="sub-label-badge">{q.subLabel}.</span>} {q.questionText}
+          <span className="sub-label-badge">{String.fromCharCode(97 + index)}.</span> {q.questionText}
           {q.isRequired && <span className="required-mark">*</span>}
         </label>
         {q.questionType === 'textarea' && (
@@ -361,7 +372,7 @@ export default function SurveySectionPage() {
 
         {subQuestions.length > 0 && hasAnswer && (
           <div className="survey-sub-questions">
-            {subQuestions.map(sq => renderSubQuestion(sq))}
+            {subQuestions.map((sq, i) => renderSubQuestion(sq, i))}
           </div>
         )}
       </div>

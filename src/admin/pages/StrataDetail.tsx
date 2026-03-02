@@ -6,9 +6,11 @@ import { useServiceRequests } from "../../shared/hooks/useServiceRequests";
 import { useLookups } from "../../shared/hooks/useLookups";
 import { useAuth } from "../../shared/contexts/AuthContext";
 import { useSurvey } from "../../shared/hooks/useSurvey";
-import { useSurveyQuestions } from "../../shared/hooks/useSurveyQuestions";
 import { useQuestions } from "../../shared/hooks/useQuestions";
+import { useUsers } from "../../shared/hooks/useUsers";
+import { useApiClient } from "../../shared/hooks/useApiClient";
 import { MultiSelectDropdown } from "../../shared/components/MultiSelectDropdown";
+import { OfferAppointmentModal } from "../components/OfferAppointmentModal";
 import { LoadingSpinner } from "../../shared/components/LoadingSpinner";
 import { Modal } from "../../shared/components/Modal";
 import { DocumentPreviewModal } from "../../shared/components/DocumentPreviewModal";
@@ -32,7 +34,9 @@ import type {
 } from "../../shared/types/entities.types";
 import type { SRDocRequirement, SRUploadedDocument } from "../../shared/types/document.types";
 import { API_BASE } from "../../shared/lib/api";
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from "../../shared/lib/constants";
 import { formatTypeName, formatDate, getStatusBadgeClass } from "../../shared/lib/formatters";
+import { parseLocalDate, formatDateShort } from "../../shared/lib/dateUtils";
 
 const MAIN_TABS = [
   { key: "active", label: "Active" },
@@ -43,11 +47,6 @@ const MAIN_TABS = [
 
 const INITIAL_SR_FORM: CreateSRFormData = {
   serviceId: "",
-  requestedByFirstName: "",
-  requestedByLastName: "",
-  associatedCompany: "",
-  contactEmail: "",
-  contactPhone: "",
 };
 
 export default function StrataDetailPage() {
@@ -58,20 +57,18 @@ export default function StrataDetailPage() {
     getActiveByStrata,
     createServiceRequest,
     deleteServiceRequest,
+    offerAppointment,
   } = useServiceRequests();
   const { user, session } = useAuth();
   const authFetch = useAuthFetch();
 
   const activeSurvey = useSurvey("admin");
-  const { addQuestion: addSrQuestion, removeQuestion: removeSrQuestion } = useSurveyQuestions();
-  
-  const [isAddQModalOpen, setIsAddQModalOpen] = useState(false);
-  const [addQPropertyTypeId, setAddQPropertyTypeId] = useState<number | null>(null);
-  const [addQSelectedId, setAddQSelectedId] = useState("");
-  const [addQSubmitting, setAddQSubmitting] = useState(false);
   const { questions: allQuestions } = useQuestions();
   const { services, documentTypes, reviewStatuses } = useLookups();
+  const { users: allUsers } = useUsers();
+  const api = useApiClient();
 
+  const [appointmentTypes, setAppointmentTypes] = useState<{ appointmentTypeId: number; typeName: string }[]>([]);
   const [filterPropertyTypeIds, setFilterPropertyTypeIds] = useState<number[]>([]);
 
   const [strata, setStrata] = useState<StrataWithDetails | null>(null);
@@ -106,8 +103,9 @@ export default function StrataDetailPage() {
   const [surveyRequirements, setSurveyRequirements] = useState<{ propertyTypeId: number }[]>([]);
   const [surveyReqModalOpen, setSurveyReqModalOpen] = useState(false);
   const [surveyReqSaving, setSurveyReqSaving] = useState(false);
-  const [surveyReqFormData, setSurveyReqFormData] = useState<number[]>([]);
+  const [surveyReqFormData, setSurveyReqFormData] = useState<Record<number, number[]>>({});
 
+  const [downloadingDocs, setDownloadingDocs] = useState(false);
   const [uploadedDocs, setUploadedDocs] = useState<SRUploadedDocument[]>([]);
   const [previewModalOpen, setPreviewModalOpen] = useState(false);
   const [previewDocId, setPreviewDocId] = useState<number | null>(null);
@@ -115,6 +113,7 @@ export default function StrataDetailPage() {
   const [statusModalOpen, setStatusModalOpen] = useState(false);
   const [statusDoc, setStatusDoc] = useState<SRUploadedDocument | null>(null);
   const [statusForm, setStatusForm] = useState({ reviewStatusId: '', notes: '' });
+  const [offerModalOpen, setOfferModalOpen] = useState(false);
 
   const strataId = id ? parseInt(id) : null;
 
@@ -138,6 +137,12 @@ export default function StrataDetailPage() {
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  useEffect(() => {
+    api.get<{ appointmentTypeId: number; typeName: string }[]>('/admin/appointments/types')
+      .then(data => setAppointmentTypes(data || []))
+      .catch(() => {});
+  }, [api]);
 
   const fetchDocRequirements = useCallback(async (serviceRequestId: number) => {
     try {
@@ -187,12 +192,16 @@ export default function StrataDetailPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeRequest?.serviceRequestId]);
 
+  // Re-fetch documents data when switching to Documents tab (picks up uploads from Documents page)
+  useEffect(() => {
+    if (activeTab === 'documents' && activeRequest) {
+      fetchDocRequirements(activeRequest.serviceRequestId);
+      fetchUploadedDocs(activeRequest.serviceRequestId);
+    }
+  }, [activeTab, activeRequest?.serviceRequestId, fetchDocRequirements, fetchUploadedDocs]);
 
   const handleOpenCreateModal = () => {
-    setSrFormData({
-      ...INITIAL_SR_FORM,
-      associatedCompany: strata?.company?.companyName || "",
-    });
+    setSrFormData({ ...INITIAL_SR_FORM });
     setSrFormError(null);
     setCreateModalOpen(true);
   };
@@ -200,15 +209,6 @@ export default function StrataDetailPage() {
   const handleCreateServiceRequest = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!strata || !srFormData.serviceId || !user) return;
-
-    if (!srFormData.requestedByFirstName.trim() || !srFormData.requestedByLastName.trim()) {
-      setSrFormError("First name and last name are required");
-      return;
-    }
-    if (!srFormData.contactEmail.trim()) {
-      setSrFormError("Contact email is required");
-      return;
-    }
 
     setSrSubmitting(true);
     setSrFormError(null);
@@ -218,7 +218,7 @@ export default function StrataDetailPage() {
         serviceId: parseInt(srFormData.serviceId),
         strataId: strata.strataId,
         requestedByProfileId: user.id,
-        notes: `Requested by: ${srFormData.requestedByFirstName} ${srFormData.requestedByLastName} | Company: ${srFormData.associatedCompany} | Email: ${srFormData.contactEmail} | Phone: ${srFormData.contactPhone}`,
+        notes: `Requested by: ${user && 'fullName' in user ? user.fullName : 'Unknown'}`,
       });
       setActiveRequest(result);
       setCreateModalOpen(false);
@@ -235,6 +235,7 @@ export default function StrataDetailPage() {
     setDeleteSubmitting(true);
     try {
       await deleteServiceRequest(activeRequest.serviceRequestId);
+      activeSurvey.clearState();
       setActiveRequest(null);
       setDeleteModalOpen(false);
     } catch {
@@ -297,7 +298,24 @@ export default function StrataDetailPage() {
   };
 
   const openSurveyReqModal = () => {
-    setSurveyReqFormData(surveyRequirements.map(r => r.propertyTypeId));
+    const formData: Record<number, number[]> = {};
+    const existingQuestions = activeSurvey.questions;
+
+    for (const spt of strata?.strataPropertyTypes ?? []) {
+      const ptId = spt.propertyType.propertyTypeId;
+      if (existingQuestions.length > 0) {
+        const ptQuestionIds = existingQuestions
+          .filter(q => q.propertyTypeId === ptId && q.parentQuestionId == null)
+          .map(q => q.questionId);
+        formData[ptId] = [...new Set(ptQuestionIds)];
+      } else {
+        formData[ptId] = allQuestions
+          .filter(q => q.parentQuestionId == null && q.questionPropertyTypes.some(qpt => qpt.propertyTypeId === ptId))
+          .map(q => q.questionId);
+      }
+    }
+
+    setSurveyReqFormData(formData);
     setSurveyReqModalOpen(true);
   };
 
@@ -347,6 +365,41 @@ export default function StrataDetailPage() {
     }
   };
 
+  const handleDownloadDocuments = async () => {
+    if (!activeRequest || !session?.access_token) return;
+    setDownloadingDocs(true);
+    try {
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/download-sr-documents`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+          'apikey': SUPABASE_ANON_KEY,
+        },
+        body: JSON.stringify({ serviceRequestId: activeRequest.serviceRequestId }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => null);
+        const message = err?.error || 'Download failed';
+        alert(message);
+        return;
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Documents - ${strata?.strataPlan || 'SR'}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      alert('Download failed. Please try again.');
+    } finally {
+      setDownloadingDocs(false);
+    }
+  };
+
   const handleSaveDocRequirements = async () => {
     if (!activeRequest) return;
     setDocReqSaving(true);
@@ -377,48 +430,28 @@ export default function StrataDetailPage() {
     }
   };
 
-  const handleOpenAddQuestion = (propertyTypeId: number) => {
-    setAddQPropertyTypeId(propertyTypeId);
-    setAddQSelectedId("");
-    setIsAddQModalOpen(true);
-  };
-
-  const handleAddQuestionSubmit = async () => {
-    if (!activeRequest || !addQPropertyTypeId || !addQSelectedId) return;
-    setAddQSubmitting(true);
-    const success = await addSrQuestion(activeRequest.serviceRequestId, parseInt(addQSelectedId), addQPropertyTypeId);
-    if (success) {
-      setIsAddQModalOpen(false);
-      activeSurvey.fetchQuestions(activeRequest.serviceRequestId);
-    }
-    setAddQSubmitting(false);
-  };
-
-  const handleRemoveQuestion = async (srSurveyQuestionId: number) => {
-    if (!activeRequest) return;
-    if (window.confirm("Are you sure you want to remove this question?")) {
-      const success = await removeSrQuestion(activeRequest.serviceRequestId, srSurveyQuestionId);
-      if (success) {
-        activeSurvey.fetchQuestions(activeRequest.serviceRequestId);
-      }
-    }
-  };
-
   const handleSaveSurveyRequirements = async () => {
     if (!activeRequest) return;
     setSurveyReqSaving(true);
     try {
+      const selections = Object.entries(surveyReqFormData)
+        .filter(([, questionIds]) => questionIds.length > 0)
+        .map(([propertyTypeId, questionIds]) => ({
+          propertyTypeId: parseInt(propertyTypeId),
+          questionIds,
+        }));
+
       const res = await authFetch(
         `${API_BASE}/admin/service-requests/${activeRequest.serviceRequestId}/survey-requirements`,
         {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ propertyTypeIds: surveyReqFormData }),
+          body: JSON.stringify({ selections }),
         }
       );
       const data = await res.json();
-      if (data.success && data.data) {
-        setSurveyRequirements(data.data);
+      if (data.success) {
+        fetchSurveyRequirements(activeRequest.serviceRequestId);
         activeSurvey.fetchQuestions(activeRequest.serviceRequestId);
       }
       setSurveyReqModalOpen(false);
@@ -452,13 +485,7 @@ export default function StrataDetailPage() {
     );
 
     if (filterPropertyTypeIds.length > 0) {
-      filtered = filtered.filter(q => {
-        const adminQ = allQuestions.find(aq => aq.questionId === q.questionId);
-        if (!adminQ || !adminQ.questionPropertyTypes || adminQ.questionPropertyTypes.length === 0) {
-          return false;
-        }
-        return adminQ.questionPropertyTypes.some(qpt => filterPropertyTypeIds.includes(qpt.propertyTypeId));
-      });
+      filtered = filtered.filter(q => filterPropertyTypeIds.includes(q.propertyTypeId));
     }
 
     return filtered;
@@ -513,7 +540,7 @@ export default function StrataDetailPage() {
       return resp.responseNumber !== null ? String(resp.responseNumber) : "No answer";
     }
     if (typeName === "date") {
-      return resp.responseDate ? new Date(resp.responseDate).toLocaleDateString("en-GB", { day: "2-digit", month: "long", year: "numeric" }) : "No answer";
+      return resp.responseDate ? (parseLocalDate(resp.responseDate)?.toLocaleDateString("en-GB", { day: "2-digit", month: "long", year: "numeric" }) ?? "No answer") : "No answer";
     }
     return resp.responseText || "No answer";
   };
@@ -565,7 +592,7 @@ export default function StrataDetailPage() {
 
     if (q.questionType === "date") {
       return resp.responseDate
-        ? <span className="answer-value">{new Date(resp.responseDate).toLocaleDateString()}</span>
+        ? <span className="answer-value">{parseLocalDate(resp.responseDate)?.toLocaleDateString("en-GB", { day: "2-digit", month: "long", year: "numeric" })}</span>
         : <span className="answer-empty">No answer</span>;
     }
 
@@ -586,9 +613,12 @@ export default function StrataDetailPage() {
     const sectionQuestions = getFilteredQuestions(questions, sectionKey);
     const subQuestionsMap = getSubQuestionsMap(questions, sectionKey);
 
-    const validPropertyTypes = (strata?.strataPropertyTypes ?? []).filter(spt => 
-      surveyRequirements.some(req => req.propertyTypeId === spt.propertyType.propertyTypeId)
-    );
+    const validPropertyTypes = (strata?.strataPropertyTypes ?? []).filter(spt => {
+      const ptId = spt.propertyType.propertyTypeId;
+      if (!surveyRequirements.some(req => req.propertyTypeId === ptId)) return false;
+      if (filterPropertyTypeIds.length > 0 && !filterPropertyTypeIds.includes(ptId)) return false;
+      return true;
+    });
 
     return (
       <>
@@ -616,17 +646,14 @@ export default function StrataDetailPage() {
                       const subQuestions = subQuestionsMap.get(`${q.questionId}-${ptId}`) ?? [];
                       return (
                         <div key={q.srSurveyQuestionId} className="admin-answer-item">
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                            <div className="answer-question">{q.questionText}</div>
-                            <button className="btn-delete-link" onClick={() => handleRemoveQuestion(q.srSurveyQuestionId)}>Remove</button>
-                          </div>
+                          <div className="answer-question">{q.questionText}</div>
                           <div className="answer-response">{renderAnswerValue(q, getResponse)}</div>
                           {subQuestions.length > 0 && (
                             <div className="admin-sub-answers">
-                              {subQuestions.map(sq => (
+                              {subQuestions.map((sq, i) => (
                                 <div key={sq.srSurveyQuestionId} className="admin-sub-answer-item">
                                   <div className="answer-question">
-                                    {sq.subLabel && <span className="admin-sub-label">{sq.subLabel}.</span>}
+                                    <span className="admin-sub-label">{String.fromCharCode(97 + i)}.</span>
                                     {sq.questionText}
                                   </div>
                                   <div className="answer-response">{renderAnswerValue(sq, getResponse)}</div>
@@ -638,9 +665,6 @@ export default function StrataDetailPage() {
                       );
                     })
                   )}
-                  <button className="btn-secondary" style={{ marginTop: '1rem' }} onClick={() => handleOpenAddQuestion(ptId)}>
-                    + Add Question to {spt.propertyType.propertyTypeName}
-                  </button>
                 </div>
               );
             })}
@@ -705,9 +729,13 @@ export default function StrataDetailPage() {
         <h1>{strata.complexName || strata.strataPlan || "Strata Detail"}</h1>
         {activeRequest && (
           <div className="action-buttons-desktop">
-            <button className="btn-primary">Download Documents</button>
+            <button className="btn-primary" onClick={handleDownloadDocuments} disabled={downloadingDocs}>
+              {downloadingDocs ? "Downloading..." : "Download Documents"}
+            </button>
             <button className="btn-primary">Download Survey Answers</button>
-            <button className="btn-primary">Offer Appointment</button>
+            {!activeRequest.appointmentOfferedAt && (
+              <button className="btn-primary" onClick={() => setOfferModalOpen(true)}>Offer Appointment</button>
+            )}
           </div>
         )}
       </div>
@@ -723,8 +751,12 @@ export default function StrataDetailPage() {
             <span className="info-value">{strata.complexName || "N/A"}</span>
           </div>
           <div className="info-item">
-            <span className="info-label">PROPERTY TYPE</span>
-            <span className="info-value">{strata.propertyType?.propertyTypeName || "N/A"}</span>
+            <span className="info-label">PROPERTY TYPES</span>
+            <span className="info-value">
+              {strata.strataPropertyTypes && strata.strataPropertyTypes.length > 0
+                ? strata.strataPropertyTypes.map(spt => spt.propertyType.propertyTypeName).join(', ')
+                : "N/A"}
+            </span>
           </div>
         </div>
         <div className="info-row">
@@ -738,16 +770,20 @@ export default function StrataDetailPage() {
           </div>
           <div className="info-item">
             <span className="info-label">FISCAL YEAR START</span>
-            <span className="info-value">{strata.fiscalYearEnd ? new Date(strata.fiscalYearEnd).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : "N/A"}</span>
+            <span className="info-value">{strata.fiscalYearEnd ? formatDateShort(strata.fiscalYearEnd) : "N/A"}</span>
           </div>
         </div>
       </div>
 
       {activeRequest && (
         <div className="strata-action-buttons">
-          <button className="btn-primary">Download Documents</button>
+          <button className="btn-primary" onClick={handleDownloadDocuments} disabled={downloadingDocs}>
+            {downloadingDocs ? "Downloading..." : "Download Documents"}
+          </button>
           <button className="btn-primary">Download Survey Answers</button>
-          <button className="btn-primary">Offer Appointment</button>
+          {!activeRequest.appointmentOfferedAt && (
+            <button className="btn-primary" onClick={() => setOfferModalOpen(true)}>Offer Appointment</button>
+          )}
         </div>
       )}
 
@@ -757,7 +793,10 @@ export default function StrataDetailPage() {
           <div className="filters-row">
             <MultiSelectDropdown
               label="Property Types"
-              options={(strata?.strataPropertyTypes ?? []).map(spt => ({ value: spt.propertyType.propertyTypeId, label: spt.propertyType.propertyTypeName })).sort((a, b) => a.label.localeCompare(b.label))}
+              options={(strata?.strataPropertyTypes ?? [])
+                .filter(spt => surveyRequirements.some(req => req.propertyTypeId === spt.propertyType.propertyTypeId))
+                .map(spt => ({ value: spt.propertyType.propertyTypeId, label: spt.propertyType.propertyTypeName }))
+                .sort((a, b) => a.label.localeCompare(b.label))}
               selectedValues={filterPropertyTypeIds}
               onChange={setFilterPropertyTypeIds}
               placeholder="All Types"
@@ -780,14 +819,14 @@ export default function StrataDetailPage() {
           <div className="tab-panel">
             {!activeRequest ? (
               <div className="empty-state">
-                <h2>No Active Surveys Found</h2>
+                <h2>No Active Reports Found</h2>
                 <button className="btn-primary btn-create-sr" onClick={handleOpenCreateModal}>
                   Create New Survey Request
                 </button>
               </div>
             ) : (
               <div className="active-survey">
-                <div className="survey-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                <div className="survey-header">
                   <div className="survey-header-left">
                     <h2>Active Survey Answers</h2>
                     <div className="survey-meta">
@@ -820,14 +859,6 @@ export default function StrataDetailPage() {
                   activeSurvey.loading,
                 )}
 
-                <div className="survey-actions-bottom">
-                  <button
-                    className="btn-delete btn-delete-survey"
-                    onClick={() => setDeleteModalOpen(true)}
-                  >
-                    Delete Survey
-                  </button>
-                </div>
               </div>
             )}
           </div>
@@ -835,15 +866,23 @@ export default function StrataDetailPage() {
 
         {activeTab === "archived" && (() => {
           const sectionConfig = SURVEY_SECTIONS.find(s => s.key === archivedSurveySection);
-          const validPropertyTypes = (strata?.strataPropertyTypes ?? []).filter(spt => 
-            surveyRequirements.some(req => req.propertyTypeId === spt.propertyType.propertyTypeId)
-          );
+          const validPropertyTypes = (strata?.strataPropertyTypes ?? []).filter(spt => {
+            const ptId = spt.propertyType.propertyTypeId;
+            if (!surveyRequirements.some(req => req.propertyTypeId === ptId)) return false;
+            if (filterPropertyTypeIds.length > 0 && !filterPropertyTypeIds.includes(ptId)) return false;
+            return true;
+          });
 
           return (
             <div className="tab-panel">
               {activeSurvey.archivedResponses.length === 0 ? (
                 <div className="empty-state">
                   <h2>No Archived Answers</h2>
+                  {!activeRequest && (
+                    <button className="btn-primary btn-create-sr" onClick={handleOpenCreateModal}>
+                      Create New Survey Request
+                    </button>
+                  )}
                 </div>
               ) : (
                 <div className="archived-survey-detail">
@@ -913,8 +952,10 @@ export default function StrataDetailPage() {
           <div className="tab-panel">
             {!activeRequest ? (
               <div className="empty-state">
-                <h2>No Active Survey</h2>
-                <p>Create a service request to manage documents.</p>
+                <h2>No Active Reports Found</h2>
+                <button className="btn-primary btn-create-sr" onClick={handleOpenCreateModal}>
+                  Create New Survey Request
+                </button>
               </div>
             ) : (
               <>
@@ -1028,20 +1069,24 @@ export default function StrataDetailPage() {
 
           return (
             <div className="tab-panel">
-              <div className="notes-header">
-                <h2>Notes For {strata.complexName || strata.strataPlan || "Strata"}</h2>
-                <button
-                  className="btn-primary"
-                  onClick={() => { setNoteInput(''); setNoteError(null); setAddNoteModalOpen(true); }}
-                >
-                  Add Note
-                </button>
-              </div>
-
               {allNotes.length === 0 ? (
-                <div className="notes-empty">No notes yet.</div>
+                <div className="empty-state">
+                  <h2>No Notes Found</h2>
+                  <button className="btn-primary btn-create-sr" onClick={() => { setNoteInput(''); setNoteError(null); setAddNoteModalOpen(true); }}>
+                    Add Note
+                  </button>
+                </div>
               ) : (
                 <>
+                <div className="notes-header">
+                  <h2>Notes For {strata.complexName || strata.strataPlan || "Strata"}</h2>
+                  <button
+                    className="btn-primary"
+                    onClick={() => { setNoteInput(''); setNoteError(null); setAddNoteModalOpen(true); }}
+                  >
+                    Add Note
+                  </button>
+                </div>
                   <div className="notes-table-wrapper">
                     <table className="notes-table">
                       <thead>
@@ -1125,11 +1170,23 @@ export default function StrataDetailPage() {
         })()}
       </div>
 
+      {activeRequest && activeTab !== "notes" && (
+        <div className="survey-actions-bottom" style={{ display: 'flex', justifyContent: 'flex-end' }}>
+          <button
+            className="btn-delete btn-delete-survey"
+            onClick={() => setDeleteModalOpen(true)}
+          >
+            Delete Survey
+          </button>
+        </div>
+      )}
+
       <Modal
         isOpen={createModalOpen}
         onClose={() => setCreateModalOpen(false)}
         title="Create New Survey Request"
         size="large"
+        className="modal-create-sr"
         footer={
           <>
             <button className="btn-secondary" onClick={() => setCreateModalOpen(false)}>
@@ -1165,22 +1222,11 @@ export default function StrataDetailPage() {
 
           <FormRow>
             <InputField
-              label="Requested By (First Name)"
-              value={srFormData.requestedByFirstName}
-              onChange={(e) => updateSrField("requestedByFirstName", e.target.value)}
-              placeholder="First name"
-              required
+              label="Requested By"
+              value={user && 'fullName' in user ? user.fullName : ''}
+              onChange={() => {}}
+              disabled
             />
-            <InputField
-              label="Requested By (Last Name)"
-              value={srFormData.requestedByLastName}
-              onChange={(e) => updateSrField("requestedByLastName", e.target.value)}
-              placeholder="Last name"
-              required
-            />
-          </FormRow>
-
-          <FormRow>
             <SingleSelectDropdown
               label="Request Type"
               value={srFormData.serviceId}
@@ -1192,31 +1238,8 @@ export default function StrataDetailPage() {
               placeholder="-- Select Request Type --"
               required
             />
-            <InputField
-              label="Associated Company"
-              value={srFormData.associatedCompany}
-              onChange={(e) => updateSrField("associatedCompany", e.target.value)}
-              placeholder="Enter company name"
-            />
           </FormRow>
 
-          <FormRow>
-            <InputField
-              label="Contact Email"
-              type="email"
-              value={srFormData.contactEmail}
-              onChange={(e) => updateSrField("contactEmail", e.target.value)}
-              placeholder="Enter email address"
-              required
-            />
-            <InputField
-              label="Contact Phone Number"
-              type="tel"
-              value={srFormData.contactPhone}
-              onChange={(e) => updateSrField("contactPhone", e.target.value)}
-              placeholder="Enter phone number"
-            />
-          </FormRow>
         </form>
       </Modal>
 
@@ -1405,6 +1428,7 @@ export default function StrataDetailPage() {
         onClose={() => setSurveyReqModalOpen(false)}
         title="Configure Required Surveys"
         size="large"
+        className="modal-configure-surveys"
         footer={
           <>
             <button className="btn-secondary" onClick={() => setSurveyReqModalOpen(false)}>
@@ -1420,51 +1444,28 @@ export default function StrataDetailPage() {
           </>
         }
       >
-        <div className="doc-req-modal-body" style={{ minHeight: '400px' }}>
-          <p style={{ marginBottom: '1rem' }}>
-            Select the property types that should be included in the survey for this service request.
-          </p>
+        <div className="doc-req-modal-body">
           {(strata?.strataPropertyTypes ?? []).length === 0 ? (
             <p className="notes-empty">No property types assigned to this strata. Assign property types first.</p>
           ) : (
-            <MultiSelectDropdown
-              label="Selected Property Types"
-              options={(strata?.strataPropertyTypes ?? []).map(spt => ({
-                value: spt.propertyType.propertyTypeId,
-                label: spt.propertyType.propertyTypeName
-              })).sort((a, b) => a.label.localeCompare(b.label))}
-              selectedValues={surveyReqFormData}
-              onChange={setSurveyReqFormData}
-              placeholder="Select property types for survey"
-            />
+            (strata?.strataPropertyTypes ?? []).map(spt => {
+              const ptId = spt.propertyType.propertyTypeId;
+              const availableQuestions = allQuestions.filter(q => q.parentQuestionId == null);
+              return (
+                <div key={ptId} className="doc-req-section">
+                  <h3 className="doc-req-section-title">{spt.propertyType.propertyTypeName}</h3>
+                  <MultiSelectDropdown
+                    label="Required Questions"
+                    searchable
+                    options={availableQuestions.map(q => ({ value: q.questionId, label: `[${q.questionCategory}] ${q.questionText}` })).sort((a, b) => a.label.localeCompare(b.label))}
+                    selectedValues={surveyReqFormData[ptId] ?? []}
+                    onChange={(values) => setSurveyReqFormData(prev => ({ ...prev, [ptId]: values }))}
+                    placeholder="Select questions for this property type"
+                  />
+                </div>
+              );
+            })
           )}
-        </div>
-      </Modal>
-
-      <Modal
-        isOpen={isAddQModalOpen}
-        onClose={() => setIsAddQModalOpen(false)}
-        title="Add Question to Survey"
-        size="medium"
-        footer={
-          <>
-            <button className="btn-secondary" onClick={() => setIsAddQModalOpen(false)}>Cancel</button>
-            <button className="btn-primary" onClick={handleAddQuestionSubmit} disabled={addQSubmitting || !addQSelectedId}>
-              {addQSubmitting ? 'Adding...' : 'Add Question'}
-            </button>
-          </>
-        }
-      >
-        <div className="review-form">
-          <p>Select a question to add for the {strata?.strataPropertyTypes?.find(p => p.propertyType.propertyTypeId === addQPropertyTypeId)?.propertyType.propertyTypeName} property type.</p>
-          <SingleSelectDropdown
-            label="Question"
-            required
-            value={addQSelectedId}
-            onChange={setAddQSelectedId}
-            options={allQuestions.filter(q => q.parentQuestionId == null).map(q => ({ value: q.questionId.toString(), label: `[${q.questionCategory}] ${q.questionText}` }))}
-            placeholder="Select Question"
-          />
         </div>
       </Modal>
 
@@ -1516,6 +1517,21 @@ export default function StrataDetailPage() {
           </div>
         )}
       </Modal>
+
+      {activeRequest && (
+        <OfferAppointmentModal
+          isOpen={offerModalOpen}
+          onClose={() => setOfferModalOpen(false)}
+          serviceRequestId={activeRequest.serviceRequestId}
+          strataName={strata?.complexName || strata?.strataPlan || 'this strata'}
+          appointmentTypes={appointmentTypes}
+          inspectors={allUsers}
+          onSubmit={async (srId, data) => {
+            await offerAppointment(srId, data);
+            await loadData();
+          }}
+        />
+      )}
     </div>
   );
 }

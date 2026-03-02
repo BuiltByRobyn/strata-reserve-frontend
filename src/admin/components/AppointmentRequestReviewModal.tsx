@@ -1,0 +1,185 @@
+import { useState } from 'react';
+import { Modal } from '../../shared/components/Modal';
+import { SingleSelectDropdown } from '../../shared/components/SingleSelectDropdown';
+import { formatDateMedium, formatTime12h } from '../../shared/lib/formatters';
+import type { AppointmentRequestReviewModalProps } from '../../shared/types/component.types';
+
+const AppointmentRequestReviewModal = ({
+  isOpen,
+  onClose,
+  request,
+  inspectors,
+  onReview,
+}: AppointmentRequestReviewModalProps) => {
+  const [inspectorId, setInspectorId] = useState('');
+  const [rejectionReason, setRejectionReason] = useState('');
+  const [comments, setComments] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  if (!request) return null;
+
+  const sr = (request as any).serviceRequest;
+  const strataName = sr?.strata?.complexName || sr?.strata?.strataPlan || 'Unknown';
+
+  const inspectorOptions = inspectors
+    .filter(u => u.isAdmin || ['Inspector', 'Admin'].includes(u.userType?.userTypeName ?? ''))
+    .map(u => ({
+      value: u.id,
+      label: u.displayName || `${u.firstName || ''} ${u.lastName || ''}`.trim(),
+    }));
+
+  const handleApprove = async (choiceNum: number) => {
+    if (!inspectorId) {
+      setError('Please assign an inspector before approving');
+      return;
+    }
+    setSubmitting(true);
+    setError(null);
+    const result = await onReview(request.appointmentRequestId, {
+      approved: true,
+      approvedDateChoice: choiceNum,
+      inspectorProfileId: inspectorId,
+      comments: comments.trim() || undefined,
+    });
+    setSubmitting(false);
+    if (result.success) {
+      resetAndClose();
+    } else {
+      setError(result.error || 'Approval failed');
+    }
+  };
+
+  const handleReject = async () => {
+    if (!rejectionReason.trim()) {
+      setError('Please provide a rejection reason');
+      return;
+    }
+    setSubmitting(true);
+    setError(null);
+    const result = await onReview(request.appointmentRequestId, {
+      approved: false,
+      rejectionReason: rejectionReason.trim(),
+      comments: comments.trim() || undefined,
+    });
+    setSubmitting(false);
+    if (result.success) {
+      resetAndClose();
+    } else {
+      setError(result.error || 'Rejection failed');
+    }
+  };
+
+  const resetAndClose = () => {
+    setInspectorId('');
+    setRejectionReason('');
+    setComments('');
+    setError(null);
+    onClose();
+  };
+
+  return (
+    <Modal isOpen={isOpen} onClose={resetAndClose} title="Review Appointment Request" size="large">
+      <div className="review-modal">
+        {error && <div className="review-modal__error">{error}</div>}
+
+        <div className="review-modal__info">
+          <div className="review-modal__row">
+            <span className="review-modal__label">Strata</span>
+            <span className="review-modal__value">{strataName}</span>
+          </div>
+          <div className="review-modal__row">
+            <span className="review-modal__label">Type</span>
+            <span className="review-modal__value">{request.appointmentType?.typeName}</span>
+          </div>
+          <div className="review-modal__row">
+            <span className="review-modal__label">Requested By</span>
+            <span className="review-modal__value">
+              {request.requestedBy?.displayName || `${request.requestedBy?.firstName || ''} ${request.requestedBy?.lastName || ''}`.trim()}
+            </span>
+          </div>
+        </div>
+
+        <div className="review-modal__choices">
+          <div className="review-modal__choice">
+            <h4>First Choice</h4>
+            <p>{formatDateMedium(request.firstChoiceDate)}</p>
+            <p>{request.firstChoiceTimeSlot?.slotName} ({formatTime12h(request.firstChoiceTimeSlot?.slotTime || '')})</p>
+            <button
+              type="button"
+              className="btn btn-primary btn-sm"
+              onClick={() => handleApprove(1)}
+              disabled={submitting}
+            >
+              Approve First Choice
+            </button>
+          </div>
+
+          {request.secondChoiceDate && request.secondChoiceTimeSlot && (
+            <div className="review-modal__choice">
+              <h4>Second Choice</h4>
+              <p>{formatDateMedium(request.secondChoiceDate)}</p>
+              <p>{request.secondChoiceTimeSlot.slotName} ({formatTime12h(request.secondChoiceTimeSlot.slotTime)})</p>
+              <button
+                type="button"
+                className="btn btn-primary btn-sm"
+                onClick={() => handleApprove(2)}
+                disabled={submitting}
+              >
+                Approve Second Choice
+              </button>
+            </div>
+          )}
+        </div>
+
+        {request.specialRequirements && (
+          <div className="review-modal__section">
+            <h4>Special Requirements</h4>
+            <p>{request.specialRequirements}</p>
+          </div>
+        )}
+
+        <SingleSelectDropdown
+          label="Assign Inspector"
+          required
+          options={inspectorOptions}
+          value={inspectorId}
+          onChange={setInspectorId}
+          placeholder="Select an inspector..."
+        />
+
+        <div className="review-modal__section">
+          <label htmlFor="review-comments">Comments (Optional)</label>
+          <textarea
+            id="review-comments"
+            className="review-modal__textarea"
+            value={comments}
+            onChange={(e) => setComments(e.target.value)}
+            rows={2}
+          />
+        </div>
+
+        <div className="review-modal__reject-section">
+          <h4>Reject Request</h4>
+          <textarea
+            className="review-modal__textarea"
+            placeholder="Rejection reason (required to reject)..."
+            value={rejectionReason}
+            onChange={(e) => setRejectionReason(e.target.value)}
+            rows={2}
+          />
+          <button
+            type="button"
+            className="btn btn-danger btn-sm"
+            onClick={handleReject}
+            disabled={submitting}
+          >
+            {submitting ? 'Processing...' : 'Reject Request'}
+          </button>
+        </div>
+      </div>
+    </Modal>
+  );
+};
+
+export default AppointmentRequestReviewModal;

@@ -121,6 +121,20 @@
   flex: 1;
 }
 
+.modal-create-sr .modal-body {
+  overflow: visible;
+  min-height: 400px;
+}
+
+.modal-configure-surveys {
+  height: 90vh;
+
+  .modal-body {
+    flex: 1;
+    overflow-y: auto;
+  }
+}
+
 .modal-footer {
   padding: $spacing-md $spacing-lg;
   border-top: 1px solid $color-border-light;

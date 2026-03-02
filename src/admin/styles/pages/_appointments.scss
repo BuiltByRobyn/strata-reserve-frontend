@@ -111,7 +111,401 @@
   }
 
 
+  .tabs {
+    margin-bottom: $spacing-lg;
+  }
+
   @include respond-to(desktop) {
     margin-left: $spacing-xl;
   }
+}
+
+// Review Modal
+.review-modal {
+  &__error {
+    background: rgba($color-error, 0.1);
+    color: $color-error;
+    padding: $spacing-sm $spacing-md;
+    border-radius: $border-radius-sm;
+    margin-bottom: $spacing-md;
+  }
+
+  &__info {
+    margin-bottom: $spacing-lg;
+  }
+
+  &__row {
+    display: flex;
+    padding: $spacing-xs 0;
+    border-bottom: 1px solid $color-border-light;
+
+    &:last-child { border-bottom: none; }
+  }
+
+  &__label {
+    font-weight: 600;
+    min-width: 120px;
+    color: $color-text-dark;
+  }
+
+  &__value {
+    color: $color-text-secondary;
+  }
+
+  &__choices {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: $spacing-md;
+    margin-bottom: $spacing-lg;
+
+    @include respond-below(md) {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  &__choice {
+    background: $color-background-off-white;
+    padding: $spacing-md;
+    border-radius: $border-radius-md;
+
+    h4 {
+      margin: 0 0 $spacing-sm;
+      font-size: 0.875rem;
+      text-transform: uppercase;
+      color: $color-text-dark;
+    }
+
+    p { margin: 0 0 $spacing-xs; color: $color-text-secondary; }
+
+    .btn { margin-top: $spacing-sm; }
+  }
+
+  &__section {
+    margin-bottom: $spacing-md;
+
+    h4 {
+      margin: 0 0 $spacing-sm;
+      color: $color-text-dark;
+    }
+
+    label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: $spacing-xs;
+      color: $color-text-dark;
+    }
+  }
+
+  &__textarea {
+    width: 100%;
+    padding: $spacing-sm;
+    border: 1px solid $color-border-light;
+    border-radius: $border-radius-sm;
+    font-family: inherit;
+    font-size: 0.875rem;
+    resize: vertical;
+
+    &:focus {
+      outline: none;
+      border-color: $color-primary;
+    }
+  }
+
+  &__reject-section {
+    border-top: 1px solid $color-border-light;
+    padding-top: $spacing-md;
+    margin-top: $spacing-md;
+
+    h4 {
+      margin: 0 0 $spacing-sm;
+      color: $color-error;
+    }
+
+    .btn { margin-top: $spacing-sm; }
+  }
+}
+
+// Shared Appointment Info Row (used in Reschedule & Cancel modals)
+.appointment-info-row {
+  background: $color-background-off-white;
+  border: 1px solid $color-border-light;
+  border-radius: $border-radius-md;
+  padding: $spacing-md;
+  margin-bottom: $spacing-lg;
+
+  &__header {
+    font-weight: 600;
+    font-size: 0.875rem;
+    color: $color-text-dark;
+    margin-bottom: $spacing-sm;
+  }
+
+  &__grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: $spacing-sm;
+
+    @include respond-below(md) {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    > div {
+      display: flex;
+      flex-direction: column;
+      gap: $spacing-xs;
+    }
+  }
+
+  &__label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: $color-text-light;
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+  }
+}
+
+// Offer Appointment Modal
+.offer-modal {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+
+  &__error {
+    background: rgba($color-error, 0.1);
+    color: $color-error;
+    padding: $spacing-sm $spacing-md;
+    border-radius: $border-radius-sm;
+  }
+
+  &__field {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-xs;
+
+    label {
+      font-weight: 600;
+      font-size: 0.875rem;
+      color: $color-text-dark;
+    }
+
+    input[type="date"] {
+      padding: $spacing-sm;
+      border: 1px solid $color-border-light;
+      border-radius: $border-radius-sm;
+      font-family: inherit;
+      font-size: 0.875rem;
+
+      &:focus {
+        outline: none;
+        border-color: $color-primary;
+      }
+    }
+  }
+
+  &__label {
+    font-weight: 600;
+    font-size: 0.875rem;
+    color: $color-text-light;
+  }
+
+  &__value {
+    font-size: 0.875rem;
+    color: $color-text-dark;
+  }
+
+  &__type-buttons {
+    display: flex;
+    gap: $spacing-sm;
+    flex-wrap: wrap;
+  }
+
+  &__type-btn {
+    padding: $spacing-sm $spacing-md;
+    border: 1px solid $color-border-light;
+    border-radius: $border-radius-md;
+    background: $color-background;
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: all 0.15s ease;
+
+    &:hover {
+      border-color: $color-primary;
+      background: rgba($color-primary, 0.05);
+    }
+
+    &--selected {
+      border-color: $color-primary;
+      background: rgba($color-primary, 0.1);
+      color: $color-primary-dark;
+      font-weight: 600;
+    }
+  }
+
+  &__textarea {
+    width: 100%;
+    padding: $spacing-sm;
+    border: 1px solid $color-border-light;
+    border-radius: $border-radius-sm;
+    font-family: inherit;
+    font-size: 0.875rem;
+    resize: vertical;
+
+    &:focus {
+      outline: none;
+      border-color: $color-primary;
+    }
+  }
+
+  &__actions {
+    display: flex;
+    gap: $spacing-md;
+    justify-content: flex-end;
+    padding-top: $spacing-sm;
+    border-top: 1px solid $color-border-light;
+  }
+}
+
+// Reschedule Modal
+.reschedule-modal {
+  &__error {
+    background: rgba($color-error, 0.1);
+    color: $color-error;
+    padding: $spacing-sm $spacing-md;
+    border-radius: $border-radius-sm;
+    margin-bottom: $spacing-md;
+  }
+
+  &__form {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-md;
+    margin-bottom: $spacing-md;
+  }
+
+  &__slot-buttons {
+    display: flex;
+    gap: $spacing-sm;
+    flex-wrap: wrap;
+  }
+
+  &__slot-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: $spacing-xs;
+    padding: $spacing-sm $spacing-md;
+    border: 1px solid $color-border-light;
+    border-radius: $border-radius-md;
+    background: $color-background;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    min-width: 100px;
+
+    &:hover {
+      border-color: $color-primary;
+      background: rgba($color-primary, 0.05);
+    }
+
+    &--selected {
+      border-color: $color-primary;
+      background: rgba($color-primary, 0.1);
+      font-weight: 600;
+    }
+  }
+
+  &__slot-name {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: $color-text-dark;
+  }
+
+  &__slot-time {
+    font-size: 0.75rem;
+    color: $color-text-light;
+  }
+
+  &__textarea {
+    width: 100%;
+    padding: $spacing-sm;
+    border: 1px solid $color-border-light;
+    border-radius: $border-radius-sm;
+    font-family: inherit;
+    font-size: 0.875rem;
+    resize: vertical;
+
+    &:focus {
+      outline: none;
+      border-color: $color-primary;
+    }
+  }
+
+  &__actions {
+    display: flex;
+    gap: $spacing-md;
+    justify-content: flex-end;
+  }
+}
+
+// Cancel Modal
+.cancel-modal {
+  &__error {
+    background: rgba($color-error, 0.1);
+    color: $color-error;
+    padding: $spacing-sm $spacing-md;
+    border-radius: $border-radius-sm;
+    margin-bottom: $spacing-md;
+  }
+
+  &__question {
+    font-weight: 500;
+    color: $color-text-dark;
+    margin: 0 0 $spacing-md;
+  }
+
+  &__textarea {
+    width: 100%;
+    padding: $spacing-sm;
+    border: 1px solid $color-border-light;
+    border-radius: $border-radius-sm;
+    font-family: inherit;
+    font-size: 0.875rem;
+    resize: vertical;
+
+    &:focus {
+      outline: none;
+      border-color: $color-primary;
+    }
+  }
+
+  &__notice {
+    font-size: 0.8125rem;
+    color: $color-text-light;
+    font-style: italic;
+    margin: $spacing-md 0;
+  }
+
+  &__actions {
+    display: flex;
+    gap: $spacing-md;
+    justify-content: flex-end;
+  }
+}
+
+.btn-danger {
+  background: $color-error;
+  color: $color-white;
+  border: none;
+  padding: $spacing-xs $spacing-md;
+  border-radius: $border-radius-sm;
+  cursor: pointer;
+  font-weight: 500;
+
+  &:hover { background: $color-error-dark; }
+  &:disabled { opacity: 0.6; cursor: not-allowed; }
+}
+
+.btn-sm {
+  padding: $spacing-xs $spacing-sm;
+  font-size: 0.8125rem;
 }

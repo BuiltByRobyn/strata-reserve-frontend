@@ -24,13 +24,14 @@ export const InspectorAvailabilityModal = ({
         inspectorProfileId: '',
         availableStartDate: '',
         availableEndDate: '',
-        availableStartTime: '',
-        availableEndTime: '',
+        availableStartTime: '09:00',
+        availableEndTime: '18:00',
         locationCodes: [] as string[]
     });
 
     const [error, setError] = useState<string | null>(null);
     const [saving, setSaving] = useState(false);
+    const [holidayWarning, setHolidayWarning] = useState<string | null>(null);
 
     useEffect(() => {
         if (initialData && isOpen) {
@@ -47,58 +48,91 @@ export const InspectorAvailabilityModal = ({
                 inspectorProfileId: '',
                 availableStartDate: '',
                 availableEndDate: '',
-                availableStartTime: '',
-                availableEndTime: '',
+                availableStartTime: '09:00',
+                availableEndTime: '18:00',
                 locationCodes: []
             });
         }
         setError(null);
+        setHolidayWarning(null);
     }, [initialData, isOpen]);
 
-    const handleSubmit = async () => {
+    const handleSubmit = async (skipHolidayCheck = false) => {
         try {
-            if (!formData.inspectorProfileId || !formData.availableStartDate || !formData.availableEndDate) {
+            const effectiveEndDate = initialData ? formData.availableStartDate : formData.availableEndDate;
+
+            if (!formData.inspectorProfileId || !formData.availableStartDate || (!initialData && !formData.availableEndDate)) {
                 throw new Error('Please fill in all required fields.');
             }
 
-            if (formData.availableEndDate < formData.availableStartDate) {
+            if (formData.locationCodes.length === 0) {
+                setError('Please select at least one location.');
+                return;
+            }
+
+            const today = new Date().toISOString().split('T')[0];
+            if (formData.availableStartDate < today) {
+                setError('Date cannot be in the past.');
+                return;
+            }
+
+            if (!initialData && effectiveEndDate < formData.availableStartDate) {
                 setError('End date must be on or after start date.');
                 return;
             }
 
-            const start = new Date(formData.availableStartDate + 'T12:00:00');
-            const end = new Date(formData.availableEndDate + 'T12:00:00');
-            for (const d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-                const dateStr = d.toISOString().slice(0, 10);
-                const isHoliday = await checkIsHoliday(dateStr);
-                if (isHoliday) {
-                    setError('The company is closed on this day, please adjust availability or remove this closure.');
+            if (!skipHolidayCheck) {
+                const holidayDates: string[] = [];
+                const start = new Date(formData.availableStartDate + 'T12:00:00');
+                const end = new Date(effectiveEndDate + 'T12:00:00');
+                for (const d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+                    const dateStr = d.toISOString().slice(0, 10);
+                    const isHoliday = await checkIsHoliday(dateStr);
+                    if (isHoliday) {
+                        holidayDates.push(dateStr);
+                    }
+                }
+
+                if (holidayDates.length > 0) {
+                    setHolidayWarning(
+                        `The following date(s) fall on a company holiday: ${holidayDates.join(', ')}. Are you sure you wish to open availability on a blocked date?`
+                    );
                     return;
                 }
             }
 
             setSaving(true);
             setError(null);
+            setHolidayWarning(null);
+
+            // Expand date range into individual per-day records
+            const start = new Date(formData.availableStartDate + 'T12:00:00');
+            const end = new Date(effectiveEndDate + 'T12:00:00');
+            const dates: string[] = [];
+            for (const d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+                dates.push(d.toISOString().slice(0, 10));
+            }
 
             if (initialData) {
-                const updatePayload = {
+                // Edit mode: single day update
+                await onSubmitUpdate(initialData.inspectorAvailableDateId, {
                     availableStartDate: formData.availableStartDate,
-                    availableEndDate: formData.availableEndDate,
+                    availableEndDate: formData.availableStartDate,
                     availableStartTime: formData.availableStartTime || null,
                     availableEndTime: formData.availableEndTime || null,
                     locationCodes: formData.locationCodes,
-                };
-                await onSubmitUpdate(initialData.inspectorAvailableDateId, updatePayload);
+                });
             } else {
-                const createPayload = {
-                    inspectorProfileId: formData.inspectorProfileId,
-                    availableStartDate: formData.availableStartDate,
-                    availableEndDate: formData.availableEndDate,
-                    availableStartTime: formData.availableStartTime || undefined,
-                    availableEndTime: formData.availableEndTime || undefined,
-                    locationCodes: formData.locationCodes,
-                };
-                await onSubmitCreate(createPayload);
+                for (const dateStr of dates) {
+                    await onSubmitCreate({
+                        inspectorProfileId: formData.inspectorProfileId,
+                        availableStartDate: dateStr,
+                        availableEndDate: dateStr,
+                        availableStartTime: formData.availableStartTime || undefined,
+                        availableEndTime: formData.availableEndTime || undefined,
+                        locationCodes: formData.locationCodes,
+                    });
+                }
             }
             onClose();
         } catch (err) {
@@ -106,6 +140,15 @@ export const InspectorAvailabilityModal = ({
         } finally {
             setSaving(false);
         }
+    };
+
+    const handleHolidayOverrideConfirm = () => {
+        setHolidayWarning(null);
+        handleSubmit(true);
+    };
+
+    const handleHolidayOverrideCancel = () => {
+        setHolidayWarning(null);
     };
 
     const toggleLocation = (code: string) => {
@@ -119,12 +162,14 @@ export const InspectorAvailabilityModal = ({
         });
     };
 
-    const userOptions = users.map(u => ({
-        value: u.id,
-        label: u.displayName || `${u.firstName || ''} ${u.lastName || ''}`.trim() || 'Unknown'
-    }));
+    const userOptions = users
+        .filter(u => u.isAdmin || ['Inspector', 'Admin'].includes(u.userType?.userTypeName ?? ''))
+        .map(u => ({
+            value: u.id,
+            label: u.displayName || `${u.firstName || ''} ${u.lastName || ''}`.trim() || 'Unknown'
+        }));
 
-    const footer = (
+    const footer = holidayWarning ? null : (
         <>
             <button className="btn-secondary" onClick={onClose} disabled={saving}>Cancel</button>
             {initialData && (
@@ -132,7 +177,7 @@ export const InspectorAvailabilityModal = ({
                     Remove Availability
                 </button>
             )}
-            <button className="btn-primary" onClick={handleSubmit} disabled={saving}>
+            <button className="btn-primary" onClick={() => handleSubmit()} disabled={saving}>
                 {saving ? 'Saving...' : (initialData ? 'Update Availability' : 'Add Availability')}
             </button>
         </>
@@ -144,10 +189,25 @@ export const InspectorAvailabilityModal = ({
             onClose={onClose}
             title={initialData ? "Inspector Available" : "Inspector Available"}
             size="large"
+            className="modal-inspector-availability"
             footer={footer}
         >
             <div className="inspector-availability-modal">
                 {error && <div className="modal-error">{error}</div>}
+
+                {holidayWarning && (
+                    <div className="modal-warning">
+                        <p>{holidayWarning}</p>
+                        <div className="modal-warning-actions">
+                            <button className="btn-secondary" onClick={handleHolidayOverrideCancel}>
+                                Go Back
+                            </button>
+                            <button className="btn-primary" onClick={handleHolidayOverrideConfirm}>
+                                Yes, Proceed
+                            </button>
+                        </div>
+                    </div>
+                )}
 
                 {usersLoading ? (
                     <div className="modal-loading"><LoadingSpinner /></div>
@@ -164,25 +224,41 @@ export const InspectorAvailabilityModal = ({
                             />
                         </div>
 
-                        <div className="form-row-dates">
-                            <InputField
-                                label="Available Start Date"
-                                required
-                                type="date"
-                                id="available-start-date"
-                                value={formData.availableStartDate}
-                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, availableStartDate: e.target.value }))}
-                            />
+                        {initialData ? (
+                            <div className="form-row">
+                                <InputField
+                                    label="Available Date"
+                                    required
+                                    type="date"
+                                    id="available-date"
+                                    value={formData.availableStartDate}
+                                    min={new Date().toISOString().split('T')[0]}
+                                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, availableStartDate: e.target.value }))}
+                                />
+                            </div>
+                        ) : (
+                            <div className="form-row-dates">
+                                <InputField
+                                    label="Available Start Date"
+                                    required
+                                    type="date"
+                                    id="available-start-date"
+                                    value={formData.availableStartDate}
+                                    min={new Date().toISOString().split('T')[0]}
+                                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, availableStartDate: e.target.value }))}
+                                />
 
-                            <InputField
-                                label="Available End Date"
-                                required
-                                type="date"
-                                id="available-end-date"
-                                value={formData.availableEndDate}
-                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, availableEndDate: e.target.value }))}
-                            />
-                        </div>
+                                <InputField
+                                    label="Available End Date"
+                                    required
+                                    type="date"
+                                    id="available-end-date"
+                                    value={formData.availableEndDate}
+                                    min={formData.availableStartDate || new Date().toISOString().split('T')[0]}
+                                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, availableEndDate: e.target.value }))}
+                                />
+                            </div>
+                        )}
 
                         <div className="form-row-times">
                             <InputField
@@ -202,23 +278,21 @@ export const InspectorAvailabilityModal = ({
                             />
                         </div>
 
-                        <div className="form-row">
+                        <div className="locations-row">
                             <label className="locations-label">Available Locations</label>
-                            <div className="locations-options">
-                                {LOCATION_OPTIONS.map(loc => (
-                                    <label
-                                        key={loc.key}
-                                        className="location-option"
-                                    >
-                                        <input
-                                            type="checkbox"
-                                            checked={formData.locationCodes.includes(loc.key)}
-                                            onChange={() => toggleLocation(loc.key)}
-                                        />
-                                        <span>{loc.label}</span>
-                                    </label>
-                                ))}
-                            </div>
+                            {LOCATION_OPTIONS.map(loc => (
+                                <label
+                                    key={loc.key}
+                                    className="location-option"
+                                >
+                                    <input
+                                        type="checkbox"
+                                        checked={formData.locationCodes.includes(loc.key)}
+                                        onChange={() => toggleLocation(loc.key)}
+                                    />
+                                    <span>{loc.label}</span>
+                                </label>
+                            ))}
                         </div>
                     </div>
                 )}

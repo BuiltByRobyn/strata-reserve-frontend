@@ -206,22 +206,31 @@
     .btn-create-sr {
       padding: $spacing-sm $spacing-xl;
       font-size: $font-size-base;
+      min-width: 260px;
     }
   }
 
   .active-survey {
     .survey-header {
-      margin-bottom: $spacing-lg;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: $spacing-md;
 
-      @include respond-below(desktop) {
-        text-align: center;
+      @include respond-below(lg) {
+        flex-direction: column;
+        gap: $spacing-sm;
+
+        .btn-primary {
+          width: 100%;
+        }
       }
 
       h2 {
         font-size: 1.25rem;
         font-weight: 600;
         color: $color-text-dark;
-        margin-bottom: $spacing-md;
+        margin: 0;
       }
 
       .survey-meta {
@@ -756,6 +765,12 @@
     align-items: center;
     justify-content: space-between;
     gap: $spacing-md;
+
+    @include respond-below(desktop) {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: $spacing-xs;
+    }
   }
 
   .doc-req-item-name {
@@ -787,6 +802,12 @@
     margin-top: $spacing-xs;
     padding-left: $spacing-sm;
 
+    @include respond-below(desktop) {
+      flex-direction: column;
+      align-items: flex-start;
+      padding-left: 0;
+    }
+
     .doc-upload-date {
       font-size: $font-size-sm;
       color: $color-text-muted;
@@ -796,6 +817,10 @@
       font-size: $font-size-sm;
       padding: 2px $spacing-sm;
       margin-left: auto;
+
+      @include respond-below(desktop) {
+        margin-left: 0;
+      }
     }
   }
 

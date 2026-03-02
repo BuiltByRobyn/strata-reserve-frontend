@@ -282,7 +282,7 @@ export default function DocumentsPage() {
     const selectedPt = strataPropertyTypes.find(pt => pt.propertyTypeId === uploadForm.propertyTypeId);
 
     try {
-      await uploadDocument(
+      const result = await uploadDocument(
         uploadForm.file,
         uploadForm.documentTypeId,
         uploadForm.strataId,
@@ -291,6 +291,24 @@ export default function DocumentsPage() {
         uploadForm.propertyTypeId || undefined,
         selectedPt?.propertyTypeName || undefined
       );
+
+      // Auto-configure document requirement so it appears on the strata Documents tab
+      const srId = result?.document?.service_request_id;
+      if (srId && uploadForm.documentTypeId) {
+        try {
+          await authFetch(`${API_BASE}/admin/service-requests/${srId}/document-requirements/add`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              documentTypeId: uploadForm.documentTypeId,
+              propertyTypeId: uploadForm.propertyTypeId || null,
+            }),
+          });
+        } catch {
+          // Non-critical — document uploaded successfully, requirement config is best-effort
+        }
+      }
+
       setIsUploadModalOpen(false);
     } catch (err) {
       setUploadError(err instanceof Error ? err.message : 'Upload failed');

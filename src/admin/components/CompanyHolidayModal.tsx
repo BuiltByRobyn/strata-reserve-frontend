@@ -43,6 +43,12 @@ export const CompanyHolidayModal = ({
         throw new Error('Please fill in Holiday Name and Holiday Date.');
       }
 
+      const today = new Date().toISOString().split('T')[0];
+      if (!formData.isRecurringAnnually && formData.holidayDate < today) {
+        setError('Holiday date cannot be in the past.');
+        return;
+      }
+
       setSaving(true);
       setError(null);
 
@@ -130,6 +136,7 @@ export const CompanyHolidayModal = ({
                   type="date"
                   id="new-holiday-date"
                   value={formData.holidayDate}
+                  min={formData.isRecurringAnnually ? undefined : new Date().toISOString().split('T')[0]}
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                     setFormData((prev) => ({ ...prev, holidayDate: e.target.value }))
                   }
@@ -154,6 +161,7 @@ export const CompanyHolidayModal = ({
                 type="date"
                 id="holiday-date"
                 value={formData.holidayDate}
+                min={formData.isRecurringAnnually ? undefined : new Date().toISOString().split('T')[0]}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                   setFormData((prev) => ({ ...prev, holidayDate: e.target.value }))
                 }

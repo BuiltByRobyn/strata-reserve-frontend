@@ -30,6 +30,12 @@ export interface Service {
   serviceDescription: string | null;
 }
 
+export interface Location {
+  locationId: number;
+  locationCode: string;
+  locationName: string;
+}
+
 export interface StrataSection {
   strataSectionId: number;
   strataId: number;
@@ -89,12 +95,14 @@ export interface Strata extends StrataBasic {
   legalTypeId: number | null;
   propertyTypeId: number | null;
   companyId: number | null;
+  locationId: number | null;
   fiscalYearEnd: string | null;
   createdAt: string;
   updatedAt: string;
   company?: { companyId: number; companyName: string } | null;
   legalType?: { legalTypeId: number; legalTypeName: string } | null;
   propertyType?: { propertyTypeId: number; propertyTypeName: string } | null;
+  location?: Location | null;
   strataSections?: StrataSection[];
   strataPropertyTypes?: StrataPropertyType[];
   _count?: {
@@ -157,6 +165,7 @@ export interface CreateStrataInput {
   legalTypeId?: number;
   propertyTypeId?: number;
   companyId?: number;
+  locationId?: number | null;
   sectionIds?: number[];
   propertyTypeIds?: number[];
   fiscalYearEnd?: string;
@@ -324,11 +333,20 @@ export interface ServiceRequest {
   lastDepreciationReportDate?: string | null;
   noReportToDate?: boolean;
   targetDate?: string | null;
+  appointmentOfferedAt?: string | null;
+  appointmentOfferedByProfileId?: string | null;
   service?: Service;
   strata?: Strata;
   requestedBy?: ProfileBasic;
   clientPropertyTypes?: Array<{ propertyTypeId: number }>;
   latestDocumentUploadDate?: string | null;
+  latestSurveyAnswerDate?: string | null;
+  appointments?: Array<{
+    appointmentId: number;
+    appointmentDate: string;
+    status: string;
+    timeSlotId: number;
+  }>;
   _count?: {
     questionResponses: number;
     serviceRequestDocuments: number;
@@ -540,11 +558,6 @@ export interface EditableField {
 
 export interface CreateSRFormData {
   serviceId: string;
-  requestedByFirstName: string;
-  requestedByLastName: string;
-  associatedCompany: string;
-  contactEmail: string;
-  contactPhone: string;
 }
 
 export interface UpdateAdminProfileInput {

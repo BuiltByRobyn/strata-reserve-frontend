@@ -311,6 +311,41 @@
   }
 }
 
+/* Filter row for holidays and availability managers */
+.company-holidays-manager,
+.inspector-availability-manager {
+  .filters-row {
+    margin-bottom: $spacing-lg;
+  }
+
+  .date-range-filter {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-sm;
+    flex: 1 1 0;
+    min-width: 0;
+
+    @include respond-to(desktop) {
+      flex-direction: row;
+    }
+
+    .form-field > label {
+      font-weight: $font-weight-bold;
+      color: $color-text-muted;
+    }
+  }
+
+  .load-more-container {
+    text-align: center;
+    margin-top: $spacing-md;
+
+    .btn-link {
+      font-size: $font-size-sm;
+      color: $color-primary;
+    }
+  }
+}
+
 .company-holiday-modal {
   .modal-error {
     margin-bottom: $spacing-md;

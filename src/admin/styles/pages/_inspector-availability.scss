@@ -1,5 +1,17 @@
 @use '../../../shared/styles/variables' as *;
 
+.modal-inspector-availability {
+    .modal-header h2 {
+        border-bottom: none;
+        padding-bottom: 0;
+        margin-bottom: 0;
+    }
+
+    .modal-body {
+        overflow-y: visible;
+    }
+}
+
 .inspector-availability-modal {
     .modal-error {
         margin-bottom: $spacing-md;
@@ -9,10 +21,33 @@
         border-radius: $border-radius-sm;
     }
 
+    .modal-warning {
+        margin-bottom: $spacing-md;
+        color: $color-accent-brown;
+        background-color: transparent;
+        padding: $spacing-md;
+        border-radius: $border-radius-sm;
+        border: 2px solid $color-warning;
+
+        p {
+            margin: 0 0 $spacing-md 0;
+        }
+
+        .modal-warning-actions {
+            display: flex;
+            gap: $spacing-sm;
+
+            button {
+                flex: 1;
+            }
+        }
+    }
+
     .modal-loading {
         display: flex;
         justify-content: center;
-        padding: $spacing-xl;
+        align-items: center;
+        flex: 1;
     }
 
     .modal-form {
@@ -23,6 +58,7 @@
 
     .form-row {
         width: 100%;
+        display: block;
     }
 
     .form-row-dates,
@@ -36,12 +72,18 @@
         }
     }
 
+    .locations-row {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: $spacing-sm $spacing-xl;
+    }
+
     .locations-label {
-        display: block;
-        margin-bottom: $spacing-sm;
         font-weight: $font-weight-bold;
         color: #6A7282;
         font-size: $font-size-sm;
+        white-space: nowrap;
     }
 
     .locations-options {

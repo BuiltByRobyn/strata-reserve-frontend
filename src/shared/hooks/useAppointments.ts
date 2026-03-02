@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useApiClient } from './useApiClient';
-import type { AppointmentWithDetails } from '../types/entities.types';
+import type { AppointmentWithDetails, AppointmentRequest } from '../types/entities.types';
 import type { AppointmentsState } from '../types/hooks.types';
 
 export const useAppointments = () => {
@@ -10,6 +10,8 @@ export const useAppointments = () => {
     loading: true,
     error: null
   });
+  const [requests, setRequests] = useState<AppointmentRequest[]>([]);
+  const [requestsLoading, setRequestsLoading] = useState(false);
 
   const fetchAppointments = useCallback(async () => {
     setState(prev => ({ ...prev, loading: true, error: null }));
@@ -46,9 +48,9 @@ export const useAppointments = () => {
     }
   }, [api, fetchAppointments]);
 
-  const cancelAppointment = useCallback(async (id: number): Promise<boolean> => {
+  const cancelAppointment = useCallback(async (id: number, reason?: string): Promise<boolean> => {
     try {
-      await api.del(`/admin/appointments/${id}`);
+      await api.del(`/admin/appointments/${id}`, { reason });
       await fetchAppointments();
       return true;
     } catch (error) {
@@ -60,10 +62,15 @@ export const useAppointments = () => {
   const rescheduleAppointment = useCallback(async (
     id: number,
     appointmentDate: string,
-    timeSlotId: number
+    timeSlotId: number,
+    options?: { inspectorProfileId?: string; reason?: string }
   ): Promise<boolean> => {
     try {
-      await api.put(`/admin/appointments/${id}/reschedule`, { appointmentDate, timeSlotId });
+      await api.put(`/admin/appointments/${id}/reschedule`, {
+        appointmentDate,
+        timeSlotId,
+        ...options,
+      });
       await fetchAppointments();
       return true;
     } catch (error) {
@@ -72,16 +79,54 @@ export const useAppointments = () => {
     }
   }, [api, fetchAppointments]);
 
+  const fetchAppointmentRequests = useCallback(async (status?: string) => {
+    setRequestsLoading(true);
+    try {
+      const params: Record<string, string> = {};
+      if (status) params.status = status;
+      const data = await api.get<AppointmentRequest[]>('/admin/appointments/requests', { params });
+      setRequests(data || []);
+    } catch (err) {
+      console.error('Error fetching requests:', err);
+    } finally {
+      setRequestsLoading(false);
+    }
+  }, [api]);
+
+  const reviewAppointmentRequest = useCallback(async (
+    id: number,
+    data: {
+      approved: boolean;
+      approvedDateChoice?: number;
+      rejectionReason?: string;
+      inspectorProfileId?: string;
+      comments?: string;
+    }
+  ): Promise<{ success: boolean; error?: string }> => {
+    try {
+      await api.post(`/admin/appointments/requests/${id}/review`, data);
+      await fetchAppointmentRequests('Pending Review');
+      await fetchAppointments();
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : 'Review failed' };
+    }
+  }, [api, fetchAppointmentRequests, fetchAppointments]);
+
   useEffect(() => {
     fetchAppointments();
   }, [fetchAppointments]);
 
   return {
     ...state,
+    requests,
+    requestsLoading,
     refetch: fetchAppointments,
     getAppointmentById,
     updateStatus,
     cancelAppointment,
-    rescheduleAppointment
+    rescheduleAppointment,
+    fetchAppointmentRequests,
+    reviewAppointmentRequest,
   };
 };

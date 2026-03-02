@@ -10,6 +10,7 @@ import type { AdminProfileFormData as ProfileData } from '../../shared/types/ent
 import { API_BASE } from '../../shared/lib/api';
 import { InspectorAvailabilityManager } from '../components/InspectorAvailabilityManager';
 import { CompanyHolidaysManager } from '../components/CompanyHolidaysManager';
+import { MobileDropdown } from '../../shared/components/MobileDropdown';
 import '../../admin/styles/pages/_profile.scss';
 
 export default function ProfilePage() {
@@ -33,7 +34,7 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState('profile');
+  const [activeTab, setActiveTab] = useState('holidays');
   const isDesktop = useMediaQuery('(min-width: 750px)');
 
   // Fetch profile on mount
@@ -184,8 +185,8 @@ export default function ProfilePage() {
         </p>
       </div>
 
-      {/* Tabs - desktop only */}
-      {isDesktop && (
+      {/* Tabs - desktop tabs, mobile dropdown */}
+      {isDesktop ? (
         <div className="profile-tabs">
           <button
             className={`tab ${activeTab === 'holidays' ? 'active' : ''}`}
@@ -206,10 +207,21 @@ export default function ProfilePage() {
             Profile
           </button>
         </div>
+      ) : (
+        <MobileDropdown
+          label="Categories"
+          value={activeTab}
+          options={[
+            { key: 'holidays', label: 'Company Holidays' },
+            { key: 'availability', label: 'Inspector Availability' },
+            { key: 'profile', label: 'Profile' },
+          ]}
+          onChange={setActiveTab}
+        />
       )}
 
       {/* Company Holidays */}
-      {(!isDesktop || activeTab === 'holidays') && (
+      {activeTab === 'holidays' && (
         <div className="profile-content">
           <section className="profile-section">
             <CompanyHolidaysManager />
@@ -218,7 +230,7 @@ export default function ProfilePage() {
       )}
 
       {/* Inspector Availability */}
-      {(!isDesktop || activeTab === 'availability') && (
+      {activeTab === 'availability' && (
         <div className="profile-content">
           <section className="profile-section">
             <InspectorAvailabilityManager />
@@ -227,7 +239,7 @@ export default function ProfilePage() {
       )}
 
       {/* Profile */}
-      {(!isDesktop || activeTab === 'profile') && (
+      {activeTab === 'profile' && (
         <div className="profile-content">
           {error && (
             <div className="alert alert-error">

@@ -24,7 +24,7 @@ import { formatStrataId, validateStrataId } from "../../shared/utils/strataUtils
 export default function StrataPage() {
   const { stratas, loading, error, createStrata, updateStrata, deleteStrata } =
     useStrata();
-  const { legalTypes, propertyTypes } = useLookups();
+  const { legalTypes, propertyTypes, locations } = useLookups();
   const navigate = useNavigate();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -130,6 +130,7 @@ export default function StrataPage() {
       legalTypeId: strata.legalTypeId || undefined,
       companyId: strata.companyId || undefined,
       fiscalYearEnd: strata.fiscalYearEnd ? strata.fiscalYearEnd.split('T')[0] : undefined,
+      locationId: strata.locationId || undefined,
       propertyTypeIds: strata.strataPropertyTypes?.map(spt => spt.propertyTypeId) || [],
     });
     setFormError(null);
@@ -180,7 +181,7 @@ export default function StrataPage() {
 
   const updateField = (
     field: keyof CreateStrataInput,
-    value: string | number | undefined,
+    value: string | number | null | undefined,
   ) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
@@ -391,14 +392,6 @@ export default function StrataPage() {
             />
           </FormRow>
 
-          <InputField
-            label="Website"
-            type="url"
-            value={formData.website || ""}
-            onChange={(e) => updateField("website", e.target.value)}
-            placeholder="https://example.com"
-          />
-
           <FormRow>
             <InputField
               label="Company"
@@ -432,6 +425,30 @@ export default function StrataPage() {
               onChange={(values) => setFormData(prev => ({ ...prev, propertyTypeIds: values }))}
               placeholder="Select property types"
               required
+            />
+            <SingleSelectDropdown
+              label="Location"
+              value={formData.locationId?.toString() || ""}
+              onChange={(val) =>
+                updateField("locationId", val ? parseInt(val) : null)
+              }
+              options={locations
+                .filter((loc) => loc.locationCode !== "Virtual")
+                .map((loc) => ({
+                  value: loc.locationId,
+                  label: loc.locationName,
+                }))}
+              placeholder="Select location"
+            />
+          </FormRow>
+
+          <FormRow>
+            <InputField
+              label="Website"
+              type="url"
+              value={formData.website || ""}
+              onChange={(e) => updateField("website", e.target.value)}
+              placeholder="https://example.com"
             />
             <InputField
               label="Current Fiscal Year Start Date"
