@@ -1,11 +1,11 @@
 import type { ModalProps } from '../types/component.types';
 
-export const Modal = ({ isOpen, onClose, title, size = 'medium', footer, children }: ModalProps) => {
+export const Modal = ({ isOpen, onClose, title, size = 'medium', className, footer, children }: ModalProps) => {
   if (!isOpen) return null;
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className={`modal-content modal-${size}`} onClick={(e) => e.stopPropagation()}>
+      <div className={`modal-content modal-${size}${className ? ` ${className}` : ''}`} onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <h2>{title}</h2>
           <button className="modal-close" onClick={onClose}>&times;</button>

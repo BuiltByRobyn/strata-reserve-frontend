@@ -31,6 +31,7 @@ export const InspectorAvailabilityModal = ({
 
     const [error, setError] = useState<string | null>(null);
     const [saving, setSaving] = useState(false);
+    const [holidayWarning, setHolidayWarning] = useState<string | null>(null);
 
     useEffect(() => {
         if (initialData && isOpen) {
@@ -53,9 +54,10 @@ export const InspectorAvailabilityModal = ({
             });
         }
         setError(null);
+        setHolidayWarning(null);
     }, [initialData, isOpen]);
 
-    const handleSubmit = async () => {
+    const handleSubmit = async (skipHolidayCheck = false) => {
         try {
             if (!formData.inspectorProfileId || !formData.availableStartDate || !formData.availableEndDate) {
                 throw new Error('Please fill in all required fields.');
@@ -66,19 +68,29 @@ export const InspectorAvailabilityModal = ({
                 return;
             }
 
-            const start = new Date(formData.availableStartDate + 'T12:00:00');
-            const end = new Date(formData.availableEndDate + 'T12:00:00');
-            for (const d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-                const dateStr = d.toISOString().slice(0, 10);
-                const isHoliday = await checkIsHoliday(dateStr);
-                if (isHoliday) {
-                    setError('The company is closed on this day, please adjust availability or remove this closure.');
+            if (!skipHolidayCheck) {
+                const holidayDates: string[] = [];
+                const start = new Date(formData.availableStartDate + 'T12:00:00');
+                const end = new Date(formData.availableEndDate + 'T12:00:00');
+                for (const d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+                    const dateStr = d.toISOString().slice(0, 10);
+                    const isHoliday = await checkIsHoliday(dateStr);
+                    if (isHoliday) {
+                        holidayDates.push(dateStr);
+                    }
+                }
+
+                if (holidayDates.length > 0) {
+                    setHolidayWarning(
+                        `The following date(s) fall on a company holiday: ${holidayDates.join(', ')}. Are you sure you wish to open availability on a blocked date?`
+                    );
                     return;
                 }
             }
 
             setSaving(true);
             setError(null);
+            setHolidayWarning(null);
 
             if (initialData) {
                 const updatePayload = {
@@ -108,6 +120,15 @@ export const InspectorAvailabilityModal = ({
         }
     };
 
+    const handleHolidayOverrideConfirm = () => {
+        setHolidayWarning(null);
+        handleSubmit(true);
+    };
+
+    const handleHolidayOverrideCancel = () => {
+        setHolidayWarning(null);
+    };
+
     const toggleLocation = (code: string) => {
         setFormData(prev => {
             const isSelected = prev.locationCodes.includes(code);
@@ -124,7 +145,7 @@ export const InspectorAvailabilityModal = ({
         label: u.displayName || `${u.firstName || ''} ${u.lastName || ''}`.trim() || 'Unknown'
     }));
 
-    const footer = (
+    const footer = holidayWarning ? null : (
         <>
             <button className="btn-secondary" onClick={onClose} disabled={saving}>Cancel</button>
             {initialData && (
@@ -132,7 +153,7 @@ export const InspectorAvailabilityModal = ({
                     Remove Availability
                 </button>
             )}
-            <button className="btn-primary" onClick={handleSubmit} disabled={saving}>
+            <button className="btn-primary" onClick={() => handleSubmit()} disabled={saving}>
                 {saving ? 'Saving...' : (initialData ? 'Update Availability' : 'Add Availability')}
             </button>
         </>
@@ -148,6 +169,20 @@ export const InspectorAvailabilityModal = ({
         >
             <div className="inspector-availability-modal">
                 {error && <div className="modal-error">{error}</div>}
+
+                {holidayWarning && (
+                    <div className="modal-warning">
+                        <p>{holidayWarning}</p>
+                        <div className="modal-warning-actions">
+                            <button className="btn-secondary" onClick={handleHolidayOverrideCancel}>
+                                Go Back
+                            </button>
+                            <button className="btn-primary" onClick={handleHolidayOverrideConfirm}>
+                                Yes, Proceed
+                            </button>
+                        </div>
+                    </div>
+                )}
 
                 {usersLoading ? (
                     <div className="modal-loading"><LoadingSpinner /></div>

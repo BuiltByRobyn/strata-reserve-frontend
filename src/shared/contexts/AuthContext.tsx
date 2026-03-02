@@ -40,6 +40,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           email: supabaseUser.email!,
           role: 'admin' as const,
           fullName: profile.display_name || `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || 'Admin User',
+          firstName: profile.first_name || '',
+          lastName: profile.last_name || '',
           permissions: ['read', 'write', 'delete'],
           createdAt: supabaseUser.created_at,
         };

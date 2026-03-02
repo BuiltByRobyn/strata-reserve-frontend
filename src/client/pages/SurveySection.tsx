@@ -81,7 +81,13 @@ export default function SurveySectionPage() {
 
   const buildPendingPayloads = useCallback(() => {
     return Object.values(localAnswers).filter(a => {
-      return a.responseText || a.responseNumber !== null || a.responseBoolean !== null || a.responseDate || a.multipleChoiceOptionId;
+      return (
+        (a.responseText != null && a.responseText.trim() !== '') ||
+        (a.responseNumber !== undefined && a.responseNumber !== null) ||
+        (a.responseBoolean !== undefined && a.responseBoolean !== null) ||
+        (a.responseDate != null && a.responseDate.trim() !== '') ||
+        (a.multipleChoiceOptionId !== undefined && a.multipleChoiceOptionId !== null)
+      );
     });
   }, [localAnswers]);
 
@@ -100,6 +106,11 @@ export default function SurveySectionPage() {
       prevSectionRef.current = section;
     }
   }, [page, section]);
+
+  // Reset to first page when navigating to a new section
+  useEffect(() => {
+    setPage(0);
+  }, [section]);
 
   const handlePageChange = async (newPage: number) => {
     await saveCurrent();

@@ -13,6 +13,14 @@ export const CompanyHolidaysManager = () => {
   const { holidays, loading, error, createHoliday, updateHoliday, deleteHoliday } = useCompanyHolidays();
   const isDesktop = useMediaQuery('(min-width: 750px)');
 
+  const adjustDateForRecurring = (holiday: CompanyHoliday): string => {
+    if (!holiday.isRecurringAnnually) return holiday.holidayDate;
+    const date = new Date(holiday.holidayDate);
+    const currentYear = new Date().getFullYear();
+    const adjusted = new Date(currentYear, date.getMonth(), date.getDate());
+    return adjusted.toISOString();
+  };
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedHoliday, setSelectedHoliday] = useState<CompanyHoliday | null>(null);
   const [viewingHoliday, setViewingHoliday] = useState<CompanyHoliday | null>(null);
@@ -49,7 +57,7 @@ export const CompanyHolidaysManager = () => {
     {
       key: 'holidayDate',
       header: 'DATE',
-      render: (item) => formatDateShort(item.holidayDate)
+      render: (item) => formatDateShort(adjustDateForRecurring(item))
     },
     {
       key: 'isRecurringAnnually',
@@ -66,13 +74,13 @@ export const CompanyHolidaysManager = () => {
 
   const getMobileCardRows = (item: CompanyHoliday) => [
     { label: 'Holiday Name', value: item.holidayName },
-    { label: 'Date', value: formatDateShort(item.holidayDate) },
+    { label: 'Date', value: formatDateShort(adjustDateForRecurring(item)) },
     { label: 'Recurring Annually', value: item.isRecurringAnnually ? 'Yes' : 'No' }
   ];
 
   const getViewHolidayRows = (item: CompanyHoliday) => [
     { label: 'Holiday Name', value: item.holidayName },
-    { label: 'Date', value: formatDateShort(item.holidayDate) },
+    { label: 'Date', value: formatDateShort(adjustDateForRecurring(item)) },
     { label: 'Recurring Annually', value: item.isRecurringAnnually ? 'Yes' : 'No' }
   ];
 

@@ -5,6 +5,8 @@ export interface AdminUser {
   email: string;
   role: 'admin';
   fullName: string;
+  firstName: string;
+  lastName: string;
   permissions: string[];
   createdAt: string;
 }

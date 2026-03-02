@@ -59,6 +59,7 @@ export interface ModalProps {
   onClose: () => void;
   title: string;
   size?: 'small' | 'medium' | 'large' | 'preview';
+  className?: string;
   footer?: ReactNode;
   children: ReactNode;
 }
@@ -100,6 +101,7 @@ export interface MultiSelectDropdownProps extends BaseFieldProps {
   onChange: (values: number[]) => void;
   placeholder?: string;
   disabled?: boolean;
+  searchable?: boolean;
 }
 
 export interface SingleSelectDropdownProps extends BaseFieldProps {

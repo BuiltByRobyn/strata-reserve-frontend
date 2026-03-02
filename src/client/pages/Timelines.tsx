@@ -142,8 +142,9 @@ const Timelines = () => {
 
     if (targetDate.trim()) {
       const targetDateObj = new Date(targetDate + 'T00:00:00');
-      if (targetDateObj < today) {
-        newErrors.targetDate = 'Target date cannot be in the past.';
+      const minTarget = addDays(today, 45);
+      if (targetDateObj < minTarget) {
+        newErrors.targetDate = 'Target date must be at least 45 days from today.';
       }
     }
 
@@ -178,8 +179,9 @@ const Timelines = () => {
     }
     if (targetDate.trim()) {
       const targetDateObj = new Date(targetDate + 'T00:00:00');
-      if (targetDateObj < today) {
-        newErrors.targetDate = 'Target date cannot be in the past.';
+      const minTarget = addDays(today, 45);
+      if (targetDateObj < minTarget) {
+        newErrors.targetDate = 'Target date must be at least 45 days from today.';
       }
     }
 
@@ -197,6 +199,7 @@ const Timelines = () => {
   const loading = srLoading || (!!serviceRequestId && timelinesLoading);
   const fileOpenedDate = timelines?.requestDate ?? activeRequest?.requestDate;
   const maxDateToday = new Date().toISOString().split('T')[0];
+  const minTargetDate = addDays(new Date(), 45).toISOString().split('T')[0];
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
@@ -344,7 +347,7 @@ const Timelines = () => {
                   if (errors.targetDate) setErrors((prev) => ({ ...prev, targetDate: undefined }));
                 }}
                 error={errors.targetDate}
-                min={maxDateToday}
+                min={minTargetDate}
               />
             </div>
           </FormRow>

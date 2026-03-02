@@ -540,11 +540,6 @@ export interface EditableField {
 
 export interface CreateSRFormData {
   serviceId: string;
-  requestedByFirstName: string;
-  requestedByLastName: string;
-  associatedCompany: string;
-  contactEmail: string;
-  contactPhone: string;
 }
 
 export interface UpdateAdminProfileInput {

@@ -1,7 +1,7 @@
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from './constants';
 import type { UploadDocumentParams } from '../types/document.types';
 
-export async function supabaseUploadDocument(params: UploadDocumentParams): Promise<void> {
+export async function supabaseUploadDocument(params: UploadDocumentParams): Promise<{ document: any }> {
   const formData = new FormData();
   formData.append('file', params.file);
   formData.append('document_type_id', params.documentTypeId.toString());
@@ -19,6 +19,7 @@ export async function supabaseUploadDocument(params: UploadDocumentParams): Prom
 
   const data = await response.json();
   if (!response.ok) throw new Error(data.error || 'Upload failed');
+  return data;
 }
 
 export async function supabaseDeleteDocument(token: string, documentId: number): Promise<void> {

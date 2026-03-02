@@ -288,6 +288,7 @@ export default function TimelinesPage() {
   ];
 
   const maxDateToday = new Date().toISOString().split('T')[0];
+  const minTargetDate = (() => { const d = new Date(); d.setDate(d.getDate() + 45); return d.toISOString().split('T')[0]; })();
 
   const getViewTimelineRows = (row: DeadlineRow) => {
     const opened = parseLocalDate(row.serviceRequest.requestDate);
@@ -420,6 +421,15 @@ export default function TimelinesPage() {
         setFormError('Date of last depreciation report is required, or check "No report to date".');
         return;
       }
+      if (formData.targetDate.trim()) {
+        const targetDateObj = new Date(formData.targetDate + 'T00:00:00');
+        const minTarget = new Date(todayValidation);
+        minTarget.setDate(minTarget.getDate() + 45);
+        if (targetDateObj < minTarget) {
+          setFormError('Target date must be at least 45 days from today.');
+          return;
+        }
+      }
     } else {
       if (isAgmType) {
         if (!formData.fiscalYearEnd.trim()) {
@@ -449,8 +459,10 @@ export default function TimelinesPage() {
       if (isTargetType) {
         if (formData.targetDate.trim()) {
           const targetDateObj = new Date(formData.targetDate + 'T00:00:00');
-          if (targetDateObj < todayValidation) {
-            setFormError('Target date cannot be in the past.');
+          const minTarget = new Date(todayValidation);
+          minTarget.setDate(minTarget.getDate() + 45);
+          if (targetDateObj < minTarget) {
+            setFormError('Target date must be at least 45 days from today.');
             return;
           }
         }
@@ -787,7 +799,7 @@ export default function TimelinesPage() {
                 type="date"
                 value={formData.targetDate}
                 onChange={(e) => setFormData(prev => ({ ...prev, targetDate: e.target.value }))}
-                min={maxDateToday}
+                min={minTargetDate}
               />
             </>
           )}
@@ -852,7 +864,7 @@ export default function TimelinesPage() {
               type="date"
               value={formData.targetDate}
               onChange={(e) => setFormData(prev => ({ ...prev, targetDate: e.target.value }))}
-              min={maxDateToday}
+              min={minTargetDate}
             />
           )}
         </form>
