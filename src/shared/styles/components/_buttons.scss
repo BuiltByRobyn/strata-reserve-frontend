@@ -82,6 +82,24 @@
   font-size: 0.8125rem;
 }
 
+// Text Primary — Primary colored text link style
+.btn-text-primary {
+  background: none;
+  color: $color-primary;
+  border: none;
+  padding: $spacing-xs $spacing-sm;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  text-decoration: none;
+
+  &:hover {
+    color: $color-primary-hover;
+    background: rgba($color-primary, 0.05);
+    border-radius: $border-radius-sm;
+  }
+}
+
 // ============================================
 // Size Modifiers
 // ============================================
