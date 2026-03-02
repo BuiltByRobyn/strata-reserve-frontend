@@ -1,30 +1,67 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useCompanyHolidays } from '../../shared/hooks/useCompanyHolidays';
 import { useMediaQuery } from '../../shared/hooks/useMediaQuery';
 import { DataTable, type Column } from '../../shared/components/DataTable';
 import { Modal } from '../../shared/components/Modal';
 import { LoadingSpinner } from '../../shared/components/LoadingSpinner';
+import { InputField } from '../../shared/components/FormField';
 import { formatDateShort } from '../../shared/lib/formatters';
+import { parseLocalDate } from '../../shared/lib/dateUtils';
 import type { CompanyHoliday } from '../../shared/types/entities.types';
 import { CompanyHolidayModal } from './CompanyHolidayModal';
+
+type DisplayHoliday = CompanyHoliday & { displayYear: number; displayDate: string };
 
 // TODO: Add Holiday start time, end time in database and UI
 export const CompanyHolidaysManager = () => {
   const { holidays, loading, error, createHoliday, updateHoliday, deleteHoliday } = useCompanyHolidays();
   const isDesktop = useMediaQuery('(min-width: 750px)');
 
-  const adjustDateForRecurring = (holiday: CompanyHoliday): string => {
-    if (!holiday.isRecurringAnnually) return holiday.holidayDate;
-    const date = new Date(holiday.holidayDate);
-    const currentYear = new Date().getFullYear();
-    const adjusted = new Date(currentYear, date.getMonth(), date.getDate());
-    return adjusted.toISOString();
-  };
+  const currentYear = useMemo(() => new Date().getFullYear(), []);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedHoliday, setSelectedHoliday] = useState<CompanyHoliday | null>(null);
-  const [viewingHoliday, setViewingHoliday] = useState<CompanyHoliday | null>(null);
+  const [viewingHoliday, setViewingHoliday] = useState<DisplayHoliday | null>(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+
+  // Filter state
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+  const [maxYear, setMaxYear] = useState(() => new Date().getFullYear());
+
+  const filteredHolidays = useMemo(() => {
+    const expanded: DisplayHoliday[] = [];
+
+    const toYMD = (d: Date) =>
+      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+    for (const holiday of holidays) {
+      const date = parseLocalDate(holiday.holidayDate);
+      if (!date) continue;
+      if (holiday.isRecurringAnnually) {
+        for (let year = currentYear; year <= maxYear; year++) {
+          const adjusted = new Date(year, date.getMonth(), date.getDate());
+          expanded.push({ ...holiday, displayYear: year, displayDate: toYMD(adjusted) });
+        }
+      } else {
+        const year = date.getFullYear();
+        if (year >= currentYear && year <= maxYear) {
+          expanded.push({ ...holiday, displayYear: year, displayDate: toYMD(date) });
+        }
+      }
+    }
+
+    expanded.sort((a, b) => a.displayDate.localeCompare(b.displayDate));
+
+    let result = expanded;
+    if (dateFrom) {
+      result = result.filter(h => h.displayDate >= dateFrom);
+    }
+    if (dateTo) {
+      result = result.filter(h => h.displayDate <= dateTo);
+    }
+    return result;
+  }, [holidays, dateFrom, dateTo, maxYear, currentYear]);
 
   const handleEdit = (holiday: CompanyHoliday) => {
     setSelectedHoliday(holiday);
@@ -48,7 +85,7 @@ export const CompanyHolidaysManager = () => {
     }
   };
 
-  const columns: Column<CompanyHoliday>[] = [
+  const columns: Column<DisplayHoliday>[] = [
     {
       key: 'holidayName',
       header: 'HOLIDAY NAME',
@@ -57,7 +94,7 @@ export const CompanyHolidaysManager = () => {
     {
       key: 'holidayDate',
       header: 'DATE',
-      render: (item) => formatDateShort(adjustDateForRecurring(item))
+      render: (item) => formatDateShort(item.displayDate)
     },
     {
       key: 'isRecurringAnnually',
@@ -66,21 +103,21 @@ export const CompanyHolidaysManager = () => {
     }
   ];
 
-  const renderActions = (item: CompanyHoliday) => (
+  const renderActions = (item: DisplayHoliday) => (
     <button className="btn-link" onClick={() => handleEdit(item)}>
       <u>Edit</u>
     </button>
   );
 
-  const getMobileCardRows = (item: CompanyHoliday) => [
+  const getMobileCardRows = (item: DisplayHoliday) => [
     { label: 'Holiday Name', value: item.holidayName },
-    { label: 'Date', value: formatDateShort(adjustDateForRecurring(item)) },
+    { label: 'Date', value: formatDateShort(item.displayDate) },
     { label: 'Recurring Annually', value: item.isRecurringAnnually ? 'Yes' : 'No' }
   ];
 
-  const getViewHolidayRows = (item: CompanyHoliday) => [
+  const getViewHolidayRows = (item: DisplayHoliday) => [
     { label: 'Holiday Name', value: item.holidayName },
-    { label: 'Date', value: formatDateShort(adjustDateForRecurring(item)) },
+    { label: 'Date', value: formatDateShort(item.displayDate) },
     { label: 'Recurring Annually', value: item.isRecurringAnnually ? 'Yes' : 'No' }
   ];
 
@@ -95,13 +132,30 @@ export const CompanyHolidaysManager = () => {
         )}
       </div>
 
+      <div className="filters-row">
+        <div className="date-range-filter">
+          <InputField
+            label="From"
+            type="date"
+            value={dateFrom}
+            onChange={(e) => setDateFrom(e.target.value)}
+          />
+          <InputField
+            label="To"
+            type="date"
+            value={dateTo}
+            onChange={(e) => setDateTo(e.target.value)}
+          />
+        </div>
+      </div>
+
       {error && <div className="alert alert-error">{error}</div>}
 
       {isDesktop ? (
         <DataTable
           columns={columns}
-          data={holidays}
-          keyExtractor={(item) => item.companyHolidayId}
+          data={filteredHolidays}
+          keyExtractor={(item) => `${item.companyHolidayId}-${item.displayYear}`}
           loading={loading}
           onRowClick={(item) => {
             setViewingHoliday(item);
@@ -114,16 +168,16 @@ export const CompanyHolidaysManager = () => {
       ) : (
         <>
           {loading && <LoadingSpinner />}
-          {!loading && holidays.length === 0 && (
+          {!loading && filteredHolidays.length === 0 && (
             <div className="data-table-empty">
-              <p>No holidays added yet.</p>
+              <p>No holidays found.</p>
             </div>
           )}
-          {!loading && holidays.length > 0 && (
+          {!loading && filteredHolidays.length > 0 && (
             <div className="availability-mobile-list">
-              {holidays.map((item) => (
+              {filteredHolidays.map((item) => (
                 <div
-                  key={item.companyHolidayId}
+                  key={`${item.companyHolidayId}-${item.displayYear}`}
                   className="availability-mobile-card clickable"
                   onClick={() => {
                     setViewingHoliday(item);
@@ -154,6 +208,12 @@ export const CompanyHolidaysManager = () => {
           )}
         </>
       )}
+
+      <div className="load-more-container">
+        <button className="btn-link" onClick={() => setMaxYear(prev => prev + 1)}>
+          Load More ({maxYear + 1})
+        </button>
+      </div>
 
       {!isDesktop && (
         <button className="btn-confirm availability-add-button" onClick={handleAddNew}>

@@ -4,31 +4,19 @@ import { InputField, FormRow } from '../../shared/components/FormField';
 import { useClientServiceRequest } from '../../shared/hooks/useClientServiceRequest';
 import { useTimelines } from '../../shared/hooks/useTimelines';
 import { LoadingSpinner } from '../../shared/components/LoadingSpinner';
+import { parseLocalDate, toDateInputValue } from '../../shared/lib/dateUtils';
 import type { UpdateTimelinesInput } from '../../shared/types/timeline.types';
 
 const PLACEHOLDER_FILE_OPENED = '—';
 
 function formatFileOpenedDate(isoDate: string | undefined): string {
-  if (!isoDate) return PLACEHOLDER_FILE_OPENED;
-  try {
-    return new Date(isoDate).toLocaleDateString('en-GB', {
-      day: '2-digit',
-      month: 'long',
-      year: 'numeric',
-    });
-  } catch {
-    return PLACEHOLDER_FILE_OPENED;
-  }
-}
-
-/** Convert API ISO date to YYYY-MM-DD for input[type="date"] */
-function toDateInputValue(iso: string | null): string {
-  if (!iso) return '';
-  try {
-    return iso.split('T')[0];
-  } catch {
-    return '';
-  }
+  const date = parseLocalDate(isoDate);
+  if (!date) return PLACEHOLDER_FILE_OPENED;
+  return date.toLocaleDateString('en-GB', {
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric',
+  });
 }
 
 /** Format date as "DD Month YYYY" (e.g. 14 May 2026) */
@@ -155,12 +143,12 @@ const Timelines = () => {
   };
 
   const buildPayload = (): UpdateTimelinesInput => ({
-    fiscalYearEnd: fiscalYearStart ? new Date(fiscalYearStart + 'T00:00:00').toISOString() : null,
-    lastAgmDate: lastAGM ? new Date(lastAGM + 'T00:00:00').toISOString() : null,
+    fiscalYearEnd: fiscalYearStart || null,
+    lastAgmDate: lastAGM || null,
     noAgmToDate: noAGMToDate,
-    lastDepreciationReportDate: lastDepreciationReport ? new Date(lastDepreciationReport + 'T00:00:00').toISOString() : null,
+    lastDepreciationReportDate: lastDepreciationReport || null,
     noReportToDate: noReportToDate,
-    targetDate: targetDate ? new Date(targetDate + 'T00:00:00').toISOString() : null,
+    targetDate: targetDate || null,
   });
 
   const handleConfirmTimelines = async () => {

@@ -34,6 +34,7 @@ export default function ClientDocumentsPage() {
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [showThankYou, setShowThankYou] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [requiredDocsReady, setRequiredDocsReady] = useState(false);
 
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewDocId, setPreviewDocId] = useState<number | null>(null);
@@ -72,7 +73,7 @@ export default function ClientDocumentsPage() {
 
   useEffect(() => {
     if (serviceRequestId) {
-      fetchRequiredDocuments(serviceRequestId);
+      fetchRequiredDocuments(serviceRequestId).then(() => setRequiredDocsReady(true));
     }
   }, [serviceRequestId, fetchRequiredDocuments]);
 
@@ -167,7 +168,7 @@ export default function ClientDocumentsPage() {
     setPreviewDocName('');
   };
 
-  if (srLoading || loading) return <LoadingSpinner />;
+  if (srLoading || loading || (serviceRequestId && !requiredDocsReady)) return <LoadingSpinner />;
 
   if (!serviceRequestId) {
     return (

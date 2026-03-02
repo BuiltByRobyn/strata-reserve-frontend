@@ -329,6 +329,7 @@ export interface ServiceRequest {
   requestedBy?: ProfileBasic;
   clientPropertyTypes?: Array<{ propertyTypeId: number }>;
   latestDocumentUploadDate?: string | null;
+  latestSurveyAnswerDate?: string | null;
   _count?: {
     questionResponses: number;
     serviceRequestDocuments: number;

@@ -33,6 +33,7 @@ import type { SRDocRequirement, SRUploadedDocument } from "../../shared/types/do
 import { API_BASE } from "../../shared/lib/api";
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from "../../shared/lib/constants";
 import { formatTypeName, formatDate, getStatusBadgeClass } from "../../shared/lib/formatters";
+import { parseLocalDate, formatDateShort } from "../../shared/lib/dateUtils";
 
 const MAIN_TABS = [
   { key: "active", label: "Active" },
@@ -525,7 +526,7 @@ export default function StrataDetailPage() {
       return resp.responseNumber !== null ? String(resp.responseNumber) : "No answer";
     }
     if (typeName === "date") {
-      return resp.responseDate ? new Date(resp.responseDate).toLocaleDateString("en-GB", { day: "2-digit", month: "long", year: "numeric" }) : "No answer";
+      return resp.responseDate ? (parseLocalDate(resp.responseDate)?.toLocaleDateString("en-GB", { day: "2-digit", month: "long", year: "numeric" }) ?? "No answer") : "No answer";
     }
     return resp.responseText || "No answer";
   };
@@ -577,7 +578,7 @@ export default function StrataDetailPage() {
 
     if (q.questionType === "date") {
       return resp.responseDate
-        ? <span className="answer-value">{new Date(resp.responseDate).toLocaleDateString()}</span>
+        ? <span className="answer-value">{parseLocalDate(resp.responseDate)?.toLocaleDateString("en-GB", { day: "2-digit", month: "long", year: "numeric" })}</span>
         : <span className="answer-empty">No answer</span>;
     }
 
@@ -753,7 +754,7 @@ export default function StrataDetailPage() {
           </div>
           <div className="info-item">
             <span className="info-label">FISCAL YEAR START</span>
-            <span className="info-value">{strata.fiscalYearEnd ? new Date(strata.fiscalYearEnd).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : "N/A"}</span>
+            <span className="info-value">{strata.fiscalYearEnd ? formatDateShort(strata.fiscalYearEnd) : "N/A"}</span>
           </div>
         </div>
       </div>
@@ -807,7 +808,7 @@ export default function StrataDetailPage() {
               </div>
             ) : (
               <div className="active-survey">
-                <div className="survey-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                <div className="survey-header">
                   <div className="survey-header-left">
                     <h2>Active Survey Answers</h2>
                     <div className="survey-meta">

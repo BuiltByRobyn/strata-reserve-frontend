@@ -10,6 +10,7 @@ import { SingleSelectDropdown } from '../../shared/components/SingleSelectDropdo
 import type { ServiceRequest } from '../../shared/types/entities.types';
 import type { UpdateTimelinesInput, DeadlineType, DeadlineRow, EditFormData } from '../../shared/types/timeline.types';
 import { API_BASE } from '../../shared/lib/api';
+import { parseLocalDate, toDateInputValue } from '../../shared/lib/dateUtils';
 
 function buildAnniversaryDate(year: number, month: number, day: number): Date {
   const candidate = new Date(year, month, day);
@@ -31,25 +32,8 @@ function getNextAnniversary(baseDate: Date, referenceDate: Date): Date {
   return buildAnniversaryDate(referenceDate.getFullYear() + 1, month, day);
 }
 
-function parseLocalDate(iso: string | null | undefined): Date | null {
-  if (!iso) return null;
-  try {
-    const datePart = typeof iso === 'string' ? iso.split('T')[0] : '';
-    if (!datePart || !/^\d{4}-\d{2}-\d{2}$/.test(datePart)) return null;
-    const [y, m, d] = datePart.split('-').map(Number);
-    return new Date(y, m - 1, d);
-  } catch {
-    return null;
-  }
-}
-
-function formatDate(date: Date): string {
+function formatDateDisplay(date: Date): string {
   return date.toLocaleDateString('en-AU', { day: '2-digit', month: '2-digit', year: 'numeric' });
-}
-
-function toDateInputValue(iso: string | null | undefined): string {
-  if (!iso) return '';
-  try { return iso.split('T')[0]; } catch { return ''; }
 }
 
 function daysBetween(a: Date, b: Date): number {
@@ -141,6 +125,11 @@ export default function TimelinesPage() {
       const lastReport = parseLocalDate(sr.lastDepreciationReportDate);
       const target = parseLocalDate(sr.targetDate);
 
+      // Fiscal Year Start
+      if (fiscalDate) {
+        rows.push({ id: `${srId}-fiscal-year`, date: fiscalDate, deadlineType: 'Fiscal Year Start', strataPlan, complexName, strataId, serviceRequest: sr });
+      }
+
       // Last AGM Date (historical)
       if (lastAgm) {
         rows.push({ id: `${srId}-last-agm`, date: lastAgm, deadlineType: 'Last AGM Date', strataPlan, complexName, strataId, serviceRequest: sr });
@@ -189,6 +178,12 @@ export default function TimelinesPage() {
       const surveySubmitted = parseLocalDate(sr.submittedForReviewDate);
       if (surveySubmitted) {
         rows.push({ id: `${srId}-survey-submitted`, date: surveySubmitted, deadlineType: 'Survey Submitted', strataPlan, complexName, strataId, serviceRequest: sr });
+      }
+
+      // Last Survey Answer Date
+      const latestSurveyAnswer = parseLocalDate(sr.latestSurveyAnswerDate);
+      if (latestSurveyAnswer) {
+        rows.push({ id: `${srId}-survey-answer`, date: latestSurveyAnswer, deadlineType: 'Last Survey Answer Date', strataPlan, complexName, strataId, serviceRequest: sr });
       }
     }
 
@@ -244,12 +239,14 @@ export default function TimelinesPage() {
     // Deadline Type dropdown
     if (filterDeadlineType) {
       const typeMap: Record<string, string[]> = {
+        fiscalYear: ['Fiscal Year Start'],
         agm: ['Last AGM Date', 'Next Projected AGM'],
         depreciation: ['Last Depreciation Report Date', 'Next Projected Depreciation'],
         target: ['Target Date'],
         fileOpened: ['File Opened'],
         documentUpload: ['Most Recent Document Upload'],
         surveySubmitted: ['Survey Submitted'],
+        surveyAnswer: ['Last Survey Answer Date'],
       };
       const matches = typeMap[filterDeadlineType];
       if (matches) rows = rows.filter(r => matches.includes(r.deadlineType));
@@ -296,7 +293,7 @@ export default function TimelinesPage() {
       { label: 'Strata Plan', value: row.strataPlan },
       { label: 'Complex Name', value: row.complexName },
       { label: 'Deadline Type', value: row.deadlineType },
-      { label: 'Date', value: formatDate(row.date) },
+      { label: 'Date', value: formatDateDisplay(row.date) },
       { label: 'Days Open', value: opened ? String(daysBetween(opened, today)) : '—' },
     ];
   };
@@ -372,13 +369,14 @@ export default function TimelinesPage() {
     setIsModalOpen(true);
   };
 
-  const isAgmType = editingDeadlineType === 'Last AGM Date' || editingDeadlineType === 'Next Projected AGM';
+  const isAgmType = editingDeadlineType === 'Fiscal Year Start' || editingDeadlineType === 'Last AGM Date' || editingDeadlineType === 'Next Projected AGM';
   const isDepreciationType = editingDeadlineType === 'Last Depreciation Report Date' || editingDeadlineType === 'Next Projected Depreciation';
   const isTargetType = editingDeadlineType === 'Target Date';
 
   const getModalTitle = (type: DeadlineType | null): string => {
     if (isCreating) return 'Add New Date';
     switch (type) {
+      case 'Fiscal Year Start':
       case 'Last AGM Date':
       case 'Next Projected AGM':
         return 'Edit AGM Date';
@@ -479,27 +477,27 @@ export default function TimelinesPage() {
 
     if (isCreating) {
       payload = {
-        fiscalYearEnd: formData.fiscalYearEnd ? new Date(formData.fiscalYearEnd + 'T00:00:00').toISOString() : null,
-        lastAgmDate: formData.lastAgmDate ? new Date(formData.lastAgmDate + 'T00:00:00').toISOString() : null,
+        fiscalYearEnd: formData.fiscalYearEnd || null,
+        lastAgmDate: formData.lastAgmDate || null,
         noAgmToDate: formData.noAgmToDate,
-        lastDepreciationReportDate: formData.lastDepreciationReportDate ? new Date(formData.lastDepreciationReportDate + 'T00:00:00').toISOString() : null,
+        lastDepreciationReportDate: formData.lastDepreciationReportDate || null,
         noReportToDate: formData.noReportToDate,
-        targetDate: formData.targetDate ? new Date(formData.targetDate + 'T00:00:00').toISOString() : null,
+        targetDate: formData.targetDate || null,
       };
     } else if (isAgmType) {
       payload = {
-        fiscalYearEnd: formData.fiscalYearEnd ? new Date(formData.fiscalYearEnd + 'T00:00:00').toISOString() : null,
-        lastAgmDate: formData.lastAgmDate ? new Date(formData.lastAgmDate + 'T00:00:00').toISOString() : null,
+        fiscalYearEnd: formData.fiscalYearEnd || null,
+        lastAgmDate: formData.lastAgmDate || null,
         noAgmToDate: formData.noAgmToDate,
       };
     } else if (isDepreciationType) {
       payload = {
-        lastDepreciationReportDate: formData.lastDepreciationReportDate ? new Date(formData.lastDepreciationReportDate + 'T00:00:00').toISOString() : null,
+        lastDepreciationReportDate: formData.lastDepreciationReportDate || null,
         noReportToDate: formData.noReportToDate,
       };
     } else {
       payload = {
-        targetDate: formData.targetDate ? new Date(formData.targetDate + 'T00:00:00').toISOString() : null,
+        targetDate: formData.targetDate || null,
       };
     }
 
@@ -523,7 +521,7 @@ export default function TimelinesPage() {
     {
       key: 'date',
       header: 'Date',
-      render: (row) => formatDate(row.date),
+      render: (row) => formatDateDisplay(row.date),
     },
     {
       key: 'deadlineType',
@@ -579,12 +577,14 @@ export default function TimelinesPage() {
           value={filterDeadlineType}
           onChange={setFilterDeadlineType}
           options={[
+            { value: 'fiscalYear', label: 'Fiscal Year Start' },
             { value: 'agm', label: 'AGM' },
             { value: 'depreciation', label: 'Depreciation Report' },
             { value: 'target', label: 'Target Date' },
             { value: 'fileOpened', label: 'File Opened' },
             { value: 'documentUpload', label: 'Document Upload' },
             { value: 'surveySubmitted', label: 'Survey Submitted' },
+            { value: 'surveyAnswer', label: 'Last Survey Answer' },
           ]}
           placeholder="All Types"
         />

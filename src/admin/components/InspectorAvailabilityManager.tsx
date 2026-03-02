@@ -1,10 +1,13 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useInspectorAvailability } from '../../shared/hooks/useInspectorAvailability';
 import { useMediaQuery } from '../../shared/hooks/useMediaQuery';
 import { DataTable, type Column } from '../../shared/components/DataTable';
 import { Modal } from '../../shared/components/Modal';
 import { LoadingSpinner } from '../../shared/components/LoadingSpinner';
+import { InputField } from '../../shared/components/FormField';
+import { SingleSelectDropdown } from '../../shared/components/SingleSelectDropdown';
 import { formatDateShort } from '../../shared/lib/formatters';
+import { parseLocalDate } from '../../shared/lib/dateUtils';
 import type { InspectorAvailableDate } from '../../shared/types/entities.types';
 import { InspectorAvailabilityModal } from './InspectorAvailabilityModal.tsx';
 import { DeleteAvailabilityModal } from './DeleteAvailabilityModal.tsx';
@@ -29,6 +32,74 @@ const formatTime = (timeStr: string | null): string => {
 export const InspectorAvailabilityManager = () => {
     const { availableDates, loading, error, deleteAvailableDate, createAvailableDate, updateAvailableDate } = useInspectorAvailability();
     const isDesktop = useMediaQuery('(min-width: 750px)');
+
+    // Filter state
+    const [dateFrom, setDateFrom] = useState('');
+    const [dateTo, setDateTo] = useState('');
+    const [filterInspector, setFilterInspector] = useState('');
+    const [showPastDates, setShowPastDates] = useState(false);
+
+    const inspectorOptions = useMemo(() => {
+        const seen = new Map<string, string>();
+        for (const d of availableDates) {
+            if (!seen.has(d.inspectorProfileId)) {
+                const name = d.inspectorProfile?.displayName ||
+                    `${d.inspectorProfile?.firstName || ''} ${d.inspectorProfile?.lastName || ''}`.trim() ||
+                    'Unknown';
+                seen.set(d.inspectorProfileId, name);
+            }
+        }
+        return Array.from(seen.entries())
+            .map(([value, label]) => ({ value, label }))
+            .sort((a, b) => a.label.localeCompare(b.label));
+    }, [availableDates]);
+
+    const filteredDates = useMemo(() => {
+        let result = availableDates;
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        if (showPastDates) {
+            // Show ONLY past dates
+            result = result.filter(d => {
+                const startDate = parseLocalDate(d.availableStartDate);
+                return startDate ? startDate < today : false;
+            });
+        } else {
+            // Show ONLY future/today dates
+            result = result.filter(d => {
+                const startDate = parseLocalDate(d.availableStartDate);
+                return startDate ? startDate >= today : false;
+            });
+        }
+
+        if (filterInspector) {
+            result = result.filter(d => d.inspectorProfileId === filterInspector);
+        }
+        if (dateFrom) {
+            const from = new Date(dateFrom + 'T00:00:00');
+            result = result.filter(d => {
+                const startDate = parseLocalDate(d.availableStartDate);
+                return startDate ? startDate >= from : false;
+            });
+        }
+        if (dateTo) {
+            const to = new Date(dateTo + 'T00:00:00');
+            result = result.filter(d => {
+                const startDate = parseLocalDate(d.availableStartDate);
+                return startDate ? startDate <= to : false;
+            });
+        }
+
+        // Sort: past dates most recent first, future dates closest first
+        result = [...result].sort((a, b) => {
+            const dateA = parseLocalDate(a.availableStartDate)?.getTime() ?? 0;
+            const dateB = parseLocalDate(b.availableStartDate)?.getTime() ?? 0;
+            return showPastDates ? dateB - dateA : dateA - dateB;
+        });
+
+        return result;
+    }, [availableDates, filterInspector, dateFrom, dateTo, showPastDates]);
 
     // Modal state
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -114,12 +185,46 @@ export const InspectorAvailabilityManager = () => {
                 <h3>Inspector Availability</h3>
             </div>
 
+            <div className="filters-row">
+                <SingleSelectDropdown
+                    label="Inspector"
+                    value={filterInspector}
+                    onChange={setFilterInspector}
+                    options={inspectorOptions}
+                    placeholder="All Inspectors"
+                />
+                <div className="date-range-filter">
+                    <InputField
+                        label="From"
+                        type="date"
+                        value={dateFrom}
+                        onChange={(e) => setDateFrom(e.target.value)}
+                    />
+                    <InputField
+                        label="To"
+                        type="date"
+                        value={dateTo}
+                        onChange={(e) => setDateTo(e.target.value)}
+                    />
+                </div>
+                <div className="form-field archived-toggle">
+                    <label>
+                        <input
+                            type="checkbox"
+                            checked={showPastDates}
+                            onChange={() => setShowPastDates(prev => !prev)}
+                        />
+                        Show Past Dates
+                    </label>
+                </div>
+            </div>
+
             {error && <div className="alert alert-error">{error}</div>}
 
             {isDesktop ? (
                 <DataTable
                     columns={columns}
-                    data={availableDates}
+                    data={filteredDates}
                     keyExtractor={(item) => item.inspectorAvailableDateId}
                     loading={loading}
                     onRowClick={(block) => {
@@ -132,14 +237,14 @@ export const InspectorAvailabilityManager = () => {
             ) : (
                 <>
                     {loading && <LoadingSpinner />}
-                    {!loading && availableDates.length === 0 && (
+                    {!loading && filteredDates.length === 0 && (
                         <div className="data-table-empty">
                             <p>No availability found.</p>
                         </div>
                     )}
-                    {!loading && availableDates.length > 0 && (
+                    {!loading && filteredDates.length > 0 && (
                         <div className="availability-mobile-list">
-                            {availableDates.map((item) => (
+                            {filteredDates.map((item) => (
                                 <div
                                     key={item.inspectorAvailableDateId}
                                     className="availability-mobile-card clickable"
