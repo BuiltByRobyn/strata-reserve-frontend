@@ -15,13 +15,18 @@ export const OfferAppointmentModal = ({
   initialTypeId,
   initialInspectorId,
   initialSecondInspectorId,
+  locations,
+  initialLocationId,
+  strataId,
   onSubmit,
   onAddNote,
+  onUpdateLocation,
 }: OfferAppointmentModalProps) => {
   const [selectedTypeId, setSelectedTypeId] = useState<number | null>(null);
   const [inspectorId, setInspectorId] = useState('');
   const [addSecondInspector, setAddSecondInspector] = useState(false);
   const [secondInspectorId, setSecondInspectorId] = useState('');
+  const [locationId, setLocationId] = useState<number | null>(null);
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -38,10 +43,11 @@ export const OfferAppointmentModal = ({
         setAddSecondInspector(false);
         setSecondInspectorId('');
       }
+      setLocationId(initialLocationId ?? null);
       setNotes('');
       setError(null);
     }
-  }, [isOpen, initialTypeId, initialInspectorId, initialSecondInspectorId]);
+  }, [isOpen, initialTypeId, initialInspectorId, initialSecondInspectorId, initialLocationId]);
 
   const inspectorOptions = inspectors
     .filter(u => u.isAdmin || ['Inspector', 'Admin'].includes(u.userType?.userTypeName ?? ''))
@@ -52,6 +58,12 @@ export const OfferAppointmentModal = ({
 
   const secondInspectorOptions = inspectorOptions.filter(o => o.value !== inspectorId);
 
+  const locationOptions = useMemo(() =>
+    locations.map(l => ({ value: l.locationId, label: l.locationCode }))
+      .sort((a, b) => a.label.localeCompare(b.label)),
+    [locations]
+  );
+
   const sortedTypes = useMemo(() =>
     [...appointmentTypes].sort((a, b) => {
       if (a.isDraftMeeting !== b.isDraftMeeting) return a.isDraftMeeting ? 1 : -1;
@@ -61,16 +73,24 @@ export const OfferAppointmentModal = ({
     [appointmentTypes]
   );
 
-  const isValid = selectedTypeId != null && inspectorId !== '';
+  const isValid = selectedTypeId != null && inspectorId !== '' && locationId != null;
 
   const handleSubmit = async () => {
-    if (!isValid) {
+    if (selectedTypeId == null || !inspectorId) {
       setError('Please select an appointment type and assign an inspector');
+      return;
+    }
+    if (locationId == null) {
+      setError('Please select a location for this strata');
       return;
     }
     setSaving(true);
     setError(null);
     try {
+      // Update strata location if changed
+      if (locationId !== initialLocationId) {
+        await onUpdateLocation(strataId, locationId);
+      }
       if (notes.trim() && onAddNote) {
         await onAddNote(notes.trim());
       }
@@ -106,6 +126,17 @@ export const OfferAppointmentModal = ({
         </div>
 
         <div className="offer-modal__field">
+          <span className="offer-modal__label">Location <span className="offer-modal__required">*</span></span>
+          <SingleSelectDropdown
+            label=""
+            options={locationOptions}
+            value={locationId ?? ''}
+            onChange={(val) => setLocationId(val ? Number(val) : null)}
+            placeholder="Select location..."
+          />
+        </div>
+
+        <div className="offer-modal__field">
           <span className="offer-modal__label">Appointment Type <span className="offer-modal__required">*</span></span>
           {/* Desktop: buttons */}
           <div className="offer-modal__type-buttons offer-modal__desktop">
@@ -132,18 +163,33 @@ export const OfferAppointmentModal = ({
           </div>
         </div>
 
-        <div className="offer-modal__field">
-          <span className="offer-modal__label">Assign Inspector <span className="offer-modal__required">*</span></span>
-          <SingleSelectDropdown
-            label=""
-            options={inspectorOptions}
-            value={inspectorId}
-            onChange={(val) => {
-              setInspectorId(val);
-              if (val === secondInspectorId) setSecondInspectorId('');
-            }}
-            placeholder="Select inspector..."
-          />
+        <div className="offer-modal__row">
+          <div className="offer-modal__field">
+            <span className="offer-modal__label">Assign Inspector <span className="offer-modal__required">*</span></span>
+            <SingleSelectDropdown
+              label=""
+              options={inspectorOptions}
+              value={inspectorId}
+              onChange={(val) => {
+                setInspectorId(val);
+                if (val === secondInspectorId) setSecondInspectorId('');
+              }}
+              placeholder="Select inspector..."
+            />
+          </div>
+
+          {addSecondInspector && (
+            <div className="offer-modal__field">
+              <span className="offer-modal__label">Additional Inspector</span>
+              <SingleSelectDropdown
+                label=""
+                options={secondInspectorOptions}
+                value={secondInspectorId}
+                onChange={setSecondInspectorId}
+                placeholder="Select additional inspector..."
+              />
+            </div>
+          )}
         </div>
 
         <div className="offer-modal__field">
@@ -159,19 +205,6 @@ export const OfferAppointmentModal = ({
             Add additional inspector
           </label>
         </div>
-
-        {addSecondInspector && (
-          <div className="offer-modal__field">
-            <span className="offer-modal__label">Additional Inspector</span>
-            <SingleSelectDropdown
-              label=""
-              options={secondInspectorOptions}
-              value={secondInspectorId}
-              onChange={setSecondInspectorId}
-              placeholder="Select additional inspector..."
-            />
-          </div>
-        )}
 
         <div className="offer-modal__field">
           <span className="offer-modal__label">Admin Notes (optional)</span>

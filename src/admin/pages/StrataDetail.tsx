@@ -52,7 +52,7 @@ const INITIAL_SR_FORM: CreateSRFormData = {
 export default function StrataDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { getStrataById, addNote, deleteNote } = useStrata();
+  const { getStrataById, updateStrata, addNote, deleteNote } = useStrata();
   const {
     getActiveByStrata,
     createServiceRequest,
@@ -64,7 +64,7 @@ export default function StrataDetailPage() {
 
   const activeSurvey = useSurvey("admin");
   const { questions: allQuestions } = useQuestions();
-  const { services, documentTypes, reviewStatuses } = useLookups();
+  const { services, documentTypes, reviewStatuses, locations } = useLookups();
   const { users: allUsers } = useUsers();
   const api = useApiClient();
 
@@ -1526,6 +1526,9 @@ export default function StrataDetailPage() {
           initialTypeId={activeRequest.appointmentOfferTypeId ?? null}
           initialInspectorId={activeRequest.appointmentOfferInspectorId ?? null}
           initialSecondInspectorId={activeRequest.appointmentOfferSecondInspectorId ?? null}
+          locations={locations}
+          initialLocationId={strata?.locationId ?? null}
+          strataId={strata?.strataId ?? 0}
           onSubmit={async (srId, data) => {
             await offerAppointment(srId, data);
             await loadData();
@@ -1537,6 +1540,11 @@ export default function StrataDetailPage() {
               createdByProfileId: user?.id,
             });
             const updated = await getStrataById(strataId);
+            if (updated) setStrata(updated);
+          }}
+          onUpdateLocation={async (sId, locId) => {
+            await updateStrata(sId, { locationId: locId });
+            const updated = await getStrataById(sId);
             if (updated) setStrata(updated);
           }}
         />

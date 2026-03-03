@@ -5,9 +5,10 @@ import { useClientAppointments } from '../../shared/hooks/useClientAppointments'
 import { useTimelines } from '../../shared/hooks/useTimelines';
 import { useLookups } from '../../shared/hooks/useLookups';
 import { LoadingSpinner } from '../../shared/components/LoadingSpinner';
+import { Modal } from '../../shared/components/Modal';
 import { formatDateLong, formatTime12h } from '../../shared/lib/formatters';
 import BookingCalendar from '../components/BookingCalendar';
-import TimeSlotPicker from '../components/TimeSlotPicker';
+import AvailableMeetingDates from '../components/AvailableMeetingDates';
 import BookingConfirmation from '../components/BookingConfirmation';
 import type { AvailableDay, AvailableSlot, BookingChoice, ActiveAppointmentResponse, CalendarMilestone } from '../../shared/types/appointment.types';
 import type { AppointmentType } from '../../shared/types/entities.types';
@@ -79,12 +80,23 @@ const InspectionDate = () => {
   const [cancellingRequest, setCancellingRequest] = useState(false);
   const [draftMeetingEligible, setDraftMeetingEligible] = useState(false);
   const [bookingDraftMeeting, setBookingDraftMeeting] = useState(false);
+  const [showWelcomeModal, setShowWelcomeModal] = useState(false);
 
   const isOffered = !!activeRequest?.appointmentOfferedAt;
 
   // Ref guards to prevent duplicate effect execution
   const hasFetchedAppointment = useRef(false);
   const hasFetchedAvailability = useRef(false);
+
+  // Welcome modal: show once per session per service request
+  useEffect(() => {
+    if (!serviceRequestId || !isOffered) return;
+    const key = `welcome-modal-shown-${serviceRequestId}`;
+    if (!sessionStorage.getItem(key)) {
+      setShowWelcomeModal(true);
+      sessionStorage.setItem(key, '1');
+    }
+  }, [serviceRequestId, isOffered]);
 
   const loadActiveAppointment = useCallback(async () => {
     const data = await getActiveAppointment();
@@ -135,12 +147,24 @@ const InspectionDate = () => {
 
   // Compute timeline milestones for the calendar
   const milestones = useMemo((): CalendarMilestone[] => {
-    if (!timelines) return [];
+    if (!timelines && !activeRequest?.appointmentOfferedAt) return [];
     const result: CalendarMilestone[] = [];
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
+    // "Approved" milestone on the date the appointment was offered
+    if (activeRequest?.appointmentOfferedAt) {
+      const offeredDate = activeRequest.appointmentOfferedAt.split('T')[0];
+      result.push({ date: offeredDate, label: 'Approved' });
+    }
+
+    if (!timelines) return result;
+
+    // Determine the effective target date
+    let effectiveTargetDate: Date | null = null;
+
     if (timelines.targetDate) {
+      effectiveTargetDate = new Date(timelines.targetDate + 'T00:00:00');
       result.push({ date: timelines.targetDate, label: 'Target Date' });
     }
 
@@ -165,6 +189,7 @@ const InspectionDate = () => {
       const nextAgm = getNextAnniversary(agmBase, today);
       const autoTarget = addDays(nextAgm, -45);
       if (autoTarget >= today) {
+        effectiveTargetDate = autoTarget;
         const autoTargetStr = formatYMD(autoTarget);
         if (!result.some(m => m.date === autoTargetStr)) {
           result.push({ date: autoTargetStr, label: 'Target Date' });
@@ -172,38 +197,48 @@ const InspectionDate = () => {
       }
     }
 
-    return result;
-  }, [timelines]);
+    // 7 Days and 14 Days warning milestones before the effective target date
+    if (effectiveTargetDate) {
+      const sevenDaysBefore = addDays(effectiveTargetDate, -7);
+      const fourteenDaysBefore = addDays(effectiveTargetDate, -14);
 
-  const selectedDaySlots = useMemo(() => {
-    if (!selectedDate) return [];
-    const day = availability.find(d => d.date === selectedDate);
-    return day?.slots ?? [];
-  }, [selectedDate, availability]);
+      if (sevenDaysBefore >= today) {
+        const sevenStr = formatYMD(sevenDaysBefore);
+        if (!result.some(m => m.date === sevenStr)) {
+          result.push({ date: sevenStr, label: '7 Days' });
+        }
+      }
+
+      if (fourteenDaysBefore >= today) {
+        const fourteenStr = formatYMD(fourteenDaysBefore);
+        if (!result.some(m => m.date === fourteenStr)) {
+          result.push({ date: fourteenStr, label: '14 Days' });
+        }
+      }
+    }
+
+    return result;
+  }, [timelines, activeRequest?.appointmentOfferedAt]);
 
   const handleDateSelect = (date: string) => {
     setSelectedDate(date);
     setErrorMsg(null);
-    if (bookingStep === 'first-date') {
-      setBookingStep('first-slot');
-    } else if (bookingStep === 'second-date') {
-      setBookingStep('second-slot');
-    }
   };
 
-  const handleSlotSelect = (slot: AvailableSlot) => {
+  // One-click slot selection from AvailableMeetingDates cards
+  const handleCardSlotSelect = (date: string, slot: AvailableSlot) => {
     const choice: BookingChoice = {
-      date: selectedDate!,
+      date,
       timeSlotId: slot.timeSlotId,
       slotName: slot.slotName,
       slotTime: slot.slotTime,
     };
 
-    if (bookingStep === 'first-slot') {
+    if (bookingStep === 'first-date' || bookingStep === 'first-slot') {
       setFirstChoice(choice);
       setSelectedDate(null);
       setBookingStep('second-date');
-    } else if (bookingStep === 'second-slot') {
+    } else if (bookingStep === 'second-date' || bookingStep === 'second-slot') {
       setSecondChoice(choice);
       setSelectedDate(null);
       setBookingStep('confirm');
@@ -454,13 +489,13 @@ const InspectionDate = () => {
   }
 
   // State 2: Ready to Book
-  const bookingTitle = bookingDraftMeeting ? 'Schedule Draft Meeting' : 'Inspection Date';
+  const bookingTitle = bookingDraftMeeting ? 'Schedule Draft Meeting' : 'Pick a date for your inspection';
   const bookingSubtitle = bookingDraftMeeting
     ? 'Select your preferred draft meeting date and time (evening slots only)'
-    : 'Select your preferred inspection dates and times';
+    : 'Select a date and time that works for you';
 
   return (
-    <div className="page-container page-container--wide">
+    <div className="page-container inspection-date-page">
       <h1>{bookingTitle}</h1>
       <p className="page-subtitle">{bookingSubtitle}</p>
 
@@ -494,7 +529,7 @@ const InspectionDate = () => {
               <h3>Step 1: Select your first preferred date and time</h3>
             ) : (
               <div>
-                <h3>Step 2: Select a second preferred date and time (optional)</h3>
+                <h3>Step 2: Select a second preferred date and time</h3>
                 {firstChoice && (
                   <div className="inspection-date__first-choice-summary">
                     First Choice: {formatDateLong(firstChoice.date)} - {firstChoice.slotName} ({formatTime12h(firstChoice.slotTime)})
@@ -519,18 +554,40 @@ const InspectionDate = () => {
               loading={calendarLoading}
               milestones={milestones}
             />
-
-            {selectedDate && (bookingStep === 'first-slot' || bookingStep === 'second-slot') && (
-              <TimeSlotPicker
-                slots={selectedDaySlots}
-                selectedSlotId={null}
-                onSelectSlot={handleSlotSelect}
-                label={`Available times for ${formatDateLong(selectedDate)}`}
-              />
-            )}
           </div>
+
+          <AvailableMeetingDates
+            availability={availability}
+            onSelectSlot={handleCardSlotSelect}
+            firstChoice={firstChoice}
+            secondChoice={secondChoice}
+            bookingStep={bookingStep}
+          />
         </div>
       )}
+
+      <Modal
+        isOpen={showWelcomeModal}
+        onClose={() => setShowWelcomeModal(false)}
+        title="Please book an inspection date"
+        size="medium"
+        footer={
+          <button className="btn btn-primary" onClick={() => setShowWelcomeModal(false)}>
+            Close
+          </button>
+        }
+      >
+        <p>
+          Your submission has been approved and you can now book an inspection date.
+          Please select your preferred dates and times from the available slots below.
+        </p>
+        <p>
+          If you have any questions, please contact us at{' '}
+          <a href="mailto:clientcare@stratareserveplanning.com">
+            clientcare@stratareserveplanning.com
+          </a>
+        </p>
+      </Modal>
     </div>
   );
 };

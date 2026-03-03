@@ -2,9 +2,11 @@ import { useState, useEffect, useMemo } from 'react';
 import toast from 'react-hot-toast';
 import { useAppointments } from '../../shared/hooks/useAppointments';
 import { useUsers } from '../../shared/hooks/useUsers';
-import { Tabs } from '../../shared/components/Tabs';
+import { useLookups } from '../../shared/hooks/useLookups';
 import { DataTable, type Column } from '../../shared/components/DataTable';
 import { SingleSelectDropdown } from '../../shared/components/SingleSelectDropdown';
+import { InputField } from '../../shared/components/FormField';
+import { Tabs } from '../../shared/components/Tabs';
 import RescheduleAppointmentModal from '../components/RescheduleAppointmentModal';
 import CancelAppointmentModal from '../components/CancelAppointmentModal';
 import type { AppointmentWithDetails, AppointmentRequest, AppointmentTimeSlot, ProfileBasic } from '../../shared/types/entities.types';
@@ -30,14 +32,32 @@ const getProfileName = (p?: ProfileBasic | null): string => {
   return `${p.firstName || ''} ${p.lastName || ''}`.trim() || '-';
 };
 
-const getServiceId = (srId: number): string => {
-  return `#SR-${srId.toString().padStart(4, '0')}`;
+const getInspectorNames = (
+  inspector?: ProfileBasic | null,
+  secondInspector?: ProfileBasic | null
+): string => {
+  const names: string[] = [];
+  if (inspector) names.push(getProfileName(inspector));
+  if (secondInspector) names.push(getProfileName(secondInspector));
+  return names.length > 0 ? names.join(', ') : '-';
 };
 
-const TABS = [
-  { key: 'scheduled', label: 'Scheduled Appointments' },
-  { key: 'requests', label: 'Pending Requests' },
-];
+// Unified row type for the merged list
+interface UnifiedRow {
+  id: string;
+  type: 'appointment' | 'request';
+  date: string;
+  time: string;
+  appointmentTypeName: string;
+  strataPlan: string;
+  strataName: string;
+  strataId: number;
+  location: string;
+  inspectorNames: string;
+  inspectorId: string | null;
+  status: string;
+  original: AppointmentWithDetails | AppointmentRequest;
+}
 
 type SelectedItem =
   | { type: 'appointment'; data: AppointmentWithDetails }
@@ -52,25 +72,34 @@ export default function AppointmentsPage() {
     checkInspectorAvailability,
   } = useAppointments();
   const { users } = useUsers();
+  const { locations } = useLookups();
 
-  const [activeTab, setActiveTab] = useState('scheduled');
   const [selectedItem, setSelectedItem] = useState<SelectedItem | null>(null);
   const [rescheduleApt, setRescheduleApt] = useState<AppointmentWithDetails | null>(null);
   const [cancelApt, setCancelApt] = useState<AppointmentWithDetails | null>(null);
   const [timeSlots, setTimeSlots] = useState<AppointmentTimeSlot[]>([]);
 
-  // Review state for request detail view
+  // Review state
   const [inspectorId, setInspectorId] = useState('');
   const [rejectionReason, setRejectionReason] = useState('');
   const [comments, setComments] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [reviewError, setReviewError] = useState<string | null>(null);
+  const [showRejectSection, setShowRejectSection] = useState(false);
 
+  // Filters
+  const [filterStrataName, setFilterStrataName] = useState('');
+  const [filterStrataPlan, setFilterStrataPlan] = useState('');
+  const [filterInspector, setFilterInspector] = useState('');
+  const [filterLocation, setFilterLocation] = useState('all');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+  const [showPastDates, setShowPastDates] = useState(false);
+
+  // Fetch requests on mount (no longer tab-gated)
   useEffect(() => {
-    if (activeTab === 'requests') {
-      fetchAppointmentRequests('Pending Review');
-    }
-  }, [activeTab, fetchAppointmentRequests]);
+    fetchAppointmentRequests('Pending Review');
+  }, [fetchAppointmentRequests]);
 
   useEffect(() => {
     const slotsFromAppointments = appointments.reduce<AppointmentTimeSlot[]>((acc, apt) => {
@@ -111,62 +140,160 @@ export default function AppointmentsPage() {
     return getSlotTimeRange(slotTime, aptType.isDraftMeeting, isFullDay);
   };
 
-  // ─── Appointment columns ──────────────────────────────────────
-  const appointmentColumns: Column<AppointmentWithDetails>[] = [
-    { key: 'date', header: 'Date', render: (apt) => formatDateShort(apt.appointmentDate) },
+  // ─── Unified rows: merge appointments + requests ────────────
+  const unifiedRows = useMemo<UnifiedRow[]>(() => {
+    const rows: UnifiedRow[] = [];
+
+    for (const apt of appointments) {
+      const sr = apt.serviceRequest;
+      rows.push({
+        id: `apt-${apt.appointmentId}`,
+        type: 'appointment',
+        date: apt.appointmentDate,
+        time: getTimeRange(apt.timeSlot.slotTime, apt.appointmentType),
+        appointmentTypeName: apt.appointmentType.typeName,
+        strataPlan: sr.strata.strataPlan || '-',
+        strataName: sr.strata.complexName || '-',
+        strataId: sr.strata.strataId,
+        location: sr.strata.town || '-',
+        inspectorNames: getInspectorNames(apt.inspector, sr.appointmentOfferSecondInspector),
+        inspectorId: apt.inspectorProfileId,
+        status: apt.status,
+        original: apt,
+      });
+    }
+
+    for (const req of requests) {
+      const sr = req.serviceRequest;
+      const inspector1 = sr?.appointmentOfferInspector;
+      const inspector2 = sr?.appointmentOfferSecondInspector;
+      rows.push({
+        id: `req-${req.appointmentRequestId}`,
+        type: 'request',
+        date: req.firstChoiceDate,
+        time: 'TBC',
+        appointmentTypeName: req.appointmentType?.typeName || '-',
+        strataPlan: sr?.strata?.strataPlan || '-',
+        strataName: sr?.strata?.complexName || '-',
+        strataId: sr?.strata?.strataId || 0,
+        location: sr?.strata?.town || '-',
+        inspectorNames: getInspectorNames(inspector1, inspector2),
+        inspectorId: inspector1?.id || null,
+        status: req.status,
+        original: req,
+      });
+    }
+
+    rows.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    return rows;
+  }, [appointments, requests]);
+
+  // ─── Filter options derived from data ───────────────────────
+  const strataNameOptions = useMemo(() => {
+    const seen = new Set<number>();
+    return unifiedRows
+      .filter(r => {
+        if (r.strataName === '-' || seen.has(r.strataId)) return false;
+        seen.add(r.strataId);
+        return true;
+      })
+      .map(r => ({ value: r.strataId, label: r.strataName }))
+      .sort((a, b) => a.label.localeCompare(b.label));
+  }, [unifiedRows]);
+
+  const strataPlanOptions = useMemo(() => {
+    const seen = new Set<number>();
+    return unifiedRows
+      .filter(r => {
+        if (r.strataPlan === '-' || seen.has(r.strataId)) return false;
+        seen.add(r.strataId);
+        return true;
+      })
+      .map(r => ({ value: r.strataId, label: r.strataPlan }))
+      .sort((a, b) => a.label.localeCompare(b.label));
+  }, [unifiedRows]);
+
+  const locationTabs = useMemo(() => {
+    const tabs = [{ key: 'all', label: 'All Locations' }];
+    const sorted = [...locations].sort((a, b) => a.locationName.localeCompare(b.locationName));
+    for (const l of sorted) {
+      tabs.push({ key: l.locationName, label: l.locationName });
+    }
+    return tabs;
+  }, [locations]);
+
+  // ─── Filtered rows ──────────────────────────────────────────
+  const today = useMemo(() => {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }, []);
+
+  const filteredRows = useMemo(() => {
+    let rows = unifiedRows;
+
+    if (!showPastDates) {
+      rows = rows.filter(r => new Date(r.date) >= today);
+    }
+
+    if (filterStrataName) {
+      const id = parseInt(filterStrataName);
+      rows = rows.filter(r => r.strataId === id);
+    }
+
+    if (filterStrataPlan) {
+      const id = parseInt(filterStrataPlan);
+      rows = rows.filter(r => r.strataId === id);
+    }
+
+    if (filterInspector) {
+      rows = rows.filter(r => r.inspectorId === filterInspector);
+    }
+
+    if (filterLocation && filterLocation !== 'all') {
+      rows = rows.filter(r => r.location === filterLocation);
+    }
+
+    if (dateFrom) {
+      const from = new Date(dateFrom + 'T00:00:00');
+      rows = rows.filter(r => new Date(r.date) >= from);
+    }
+
+    if (dateTo) {
+      const to = new Date(dateTo + 'T00:00:00');
+      rows = rows.filter(r => new Date(r.date) <= to);
+    }
+
+    return rows;
+  }, [unifiedRows, showPastDates, filterStrataName, filterStrataPlan, filterInspector, filterLocation, dateFrom, dateTo, today]);
+
+  // ─── Columns ────────────────────────────────────────────────
+  const unifiedColumns: Column<UnifiedRow>[] = [
+    { key: 'date', header: 'Date', render: (r) => formatDateShort(r.date) },
     {
       key: 'time', header: 'Time',
-      render: (apt) => <strong>{getTimeRange(apt.timeSlot.slotTime, apt.appointmentType)}</strong>
+      render: (r) => r.time === 'TBC'
+        ? <span className="status-badge status-requested">TBC</span>
+        : <strong>{r.time}</strong>
     },
-    { key: 'appointmentType', header: 'Type', render: (apt) => apt.appointmentType.typeName },
-    { key: 'strata', header: 'Strata Plan', render: (apt) => apt.serviceRequest.strata.strataPlan || '-' },
-    { key: 'serviceId', header: 'Service ID', render: (apt) => getServiceId(apt.serviceRequest.serviceRequestId) },
-    { key: 'inspector', header: 'Inspector', render: (apt) => getProfileName(apt.inspector) },
+    { key: 'type', header: 'Type', render: (r) => r.appointmentTypeName },
+    { key: 'strataPlan', header: 'Strata Plan', render: (r) => r.strataPlan },
+    { key: 'location', header: 'Location', render: (r) => r.location },
+    { key: 'inspector', header: 'Inspector(s)', render: (r) => r.inspectorNames },
     {
       key: 'status', header: 'Status',
-      render: (apt) => <span className={`status-badge ${getStatusClass(apt.status)}`}>{apt.status}</span>
+      render: (r) => <span className={`status-badge ${getStatusClass(r.status)}`}>{r.status}</span>
     },
   ];
 
-  // ─── Request columns ──────────────────────────────────────────
-  const requestColumns: Column<AppointmentRequest>[] = [
-    {
-      key: 'firstDate', header: 'First Choice',
-      render: (req) => formatDateShort(req.firstChoiceDate),
-    },
-    {
-      key: 'firstTime', header: 'First Time',
-      render: (req) => req.firstChoiceTimeSlot
-        ? getTimeRange(req.firstChoiceTimeSlot.slotTime, req.appointmentType)
-        : '-',
-    },
-    {
-      key: 'secondDate', header: 'Second Choice',
-      render: (req) => req.secondChoiceDate ? formatDateShort(req.secondChoiceDate) : '-',
-    },
-    {
-      key: 'secondTime', header: 'Second Time',
-      render: (req) => req.secondChoiceTimeSlot
-        ? getTimeRange(req.secondChoiceTimeSlot.slotTime, req.appointmentType)
-        : '-',
-    },
-    {
-      key: 'type', header: 'Type',
-      render: (req) => req.appointmentType?.typeName || '-',
-    },
-    {
-      key: 'strata', header: 'Strata Plan',
-      render: (req) => req.serviceRequest?.strata?.strataPlan || '-',
-    },
-    {
-      key: 'inspector', header: 'Inspector',
-      render: (req) => getProfileName(req.serviceRequest?.appointmentOfferInspector),
-    },
-    {
-      key: 'status', header: 'Status',
-      render: (req) => <span className={`status-badge ${getStatusClass(req.status)}`}>{req.status}</span>,
-    },
-  ];
+  // ─── Row click handler ──────────────────────────────────────
+  const handleRowClick = (row: UnifiedRow) => {
+    if (row.type === 'appointment') {
+      setSelectedItem({ type: 'appointment', data: row.original as AppointmentWithDetails });
+    } else {
+      setSelectedItem({ type: 'request', data: row.original as AppointmentRequest });
+    }
+  };
 
   // ─── Request detail: handlers ─────────────────────────────────
   const handleInspectorChange = async (newInspectorId: string) => {
@@ -234,12 +361,14 @@ export default function AppointmentsPage() {
     setRejectionReason('');
     setComments('');
     setReviewError(null);
+    setShowRejectSection(false);
   };
 
   // ─── Detail view: appointment ─────────────────────────────────
   const renderAppointmentDetail = (apt: AppointmentWithDetails) => {
     const sr = apt.serviceRequest;
     const status = apt.status.toLowerCase();
+    const allInspectors = getInspectorNames(apt.inspector, sr.appointmentOfferSecondInspector);
 
     return (
       <div className="appointments-detail">
@@ -264,12 +393,12 @@ export default function AppointmentsPage() {
           </div>
           <div className="info-row">
             <div className="info-item">
-              <span className="info-label">SERVICE ID</span>
-              <span className="info-value">{getServiceId(sr.serviceRequestId)}</span>
+              <span className="info-label">LOCATION</span>
+              <span className="info-value">{sr.strata.town || '-'}</span>
             </div>
             <div className="info-item">
-              <span className="info-label">INSPECTOR</span>
-              <span className="info-value">{getProfileName(apt.inspector)}</span>
+              <span className="info-label">INSPECTOR(S)</span>
+              <span className="info-value">{allInspectors}</span>
             </div>
             <div className="info-item">
               <span className="info-label">APPOINTMENT TYPE</span>
@@ -315,6 +444,7 @@ export default function AppointmentsPage() {
   // ─── Detail view: request ─────────────────────────────────────
   const renderRequestDetail = (req: AppointmentRequest) => {
     const sr = req.serviceRequest;
+    const allInspectors = getInspectorNames(sr?.appointmentOfferInspector, sr?.appointmentOfferSecondInspector);
 
     return (
       <div className="appointments-detail">
@@ -347,8 +477,8 @@ export default function AppointmentsPage() {
               <span className="info-value">{sr?.strata?.strataPlan || '-'}</span>
             </div>
             <div className="info-item">
-              <span className="info-label">SERVICE ID</span>
-              <span className="info-value">{sr ? getServiceId(sr.serviceRequestId) : '-'}</span>
+              <span className="info-label">LOCATION</span>
+              <span className="info-value">{sr?.strata?.town || '-'}</span>
             </div>
           </div>
         </div>
@@ -363,8 +493,8 @@ export default function AppointmentsPage() {
 
           <div className="appointments-detail__kv-grid">
             <div className="appointments-detail__kv">
-              <span className="appointments-detail__kv-label">Service ID</span>
-              <span className="appointments-detail__kv-value">{sr ? getServiceId(sr.serviceRequestId) : '-'}</span>
+              <span className="appointments-detail__kv-label">Inspector(s)</span>
+              <span className="appointments-detail__kv-value">{allInspectors}</span>
             </div>
             <div className="appointments-detail__kv">
               <span className="appointments-detail__kv-label">Appointment Type</span>
@@ -451,24 +581,46 @@ export default function AppointmentsPage() {
                 )}
                 <button
                   className="btn btn-danger"
-                  onClick={handleReject}
-                  disabled={submitting}
+                  onClick={() => setShowRejectSection(true)}
+                  disabled={submitting || showRejectSection}
                 >
-                  {submitting ? 'Processing...' : 'Reject'}
+                  Reject
                 </button>
               </div>
 
-              <div className="appointments-detail__reject-section">
-                <label htmlFor="rejection-reason">Rejection Reason</label>
-                <textarea
-                  id="rejection-reason"
-                  className="appointments-detail__textarea"
-                  placeholder="Required if rejecting..."
-                  value={rejectionReason}
-                  onChange={(e) => setRejectionReason(e.target.value)}
-                  rows={2}
-                />
-              </div>
+              {showRejectSection && (
+                <div className="appointments-detail__reject-section">
+                  <label htmlFor="rejection-reason">Rejection Reason</label>
+                  <textarea
+                    id="rejection-reason"
+                    className="appointments-detail__textarea"
+                    placeholder="Please provide a reason for rejection..."
+                    value={rejectionReason}
+                    onChange={(e) => setRejectionReason(e.target.value)}
+                    rows={2}
+                  />
+                  <div className="appointments-detail__reject-actions">
+                    <button
+                      className="btn btn-danger"
+                      onClick={handleReject}
+                      disabled={submitting}
+                    >
+                      {submitting ? 'Processing...' : 'Confirm Reject'}
+                    </button>
+                    <button
+                      className="btn btn-secondary"
+                      onClick={() => {
+                        setShowRejectSection(false);
+                        setRejectionReason('');
+                        setReviewError(null);
+                      }}
+                      disabled={submitting}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
             </>
           )}
         </div>
@@ -476,72 +628,37 @@ export default function AppointmentsPage() {
     );
   };
 
-  // ─── Mobile card renderers ────────────────────────────────────
-  const renderAppointmentCard = (apt: AppointmentWithDetails) => (
+  // ─── Mobile card renderer ──────────────────────────────────
+  const renderMobileCard = (row: UnifiedRow) => (
     <div
-      key={apt.appointmentId}
+      key={row.id}
       className="appointments-card"
-      onClick={() => setSelectedItem({ type: 'appointment', data: apt })}
+      onClick={() => handleRowClick(row)}
     >
       <div className="appointments-card__header">
-        <span className="appointments-card__title">{apt.serviceRequest.strata.complexName || apt.serviceRequest.strata.strataPlan}</span>
-        <span className={`status-badge ${getStatusClass(apt.status)}`}>{apt.status}</span>
+        <span className="appointments-card__title">{row.strataName !== '-' ? row.strataName : row.strataPlan}</span>
+        <span className={`status-badge ${getStatusClass(row.status)}`}>{row.status}</span>
       </div>
       <div className="appointments-card__body">
         <div className="appointments-card__row">
           <span className="appointments-card__label">Date</span>
-          <span>{formatDateShort(apt.appointmentDate)}</span>
+          <span>{formatDateShort(row.date)}</span>
         </div>
         <div className="appointments-card__row">
           <span className="appointments-card__label">Time</span>
-          <span>{getTimeRange(apt.timeSlot.slotTime, apt.appointmentType)}</span>
+          <span>{row.time === 'TBC' ? <span className="status-badge status-requested">TBC</span> : row.time}</span>
         </div>
         <div className="appointments-card__row">
           <span className="appointments-card__label">Type</span>
-          <span>{apt.appointmentType.typeName}</span>
+          <span>{row.appointmentTypeName}</span>
         </div>
         <div className="appointments-card__row">
-          <span className="appointments-card__label">Service ID</span>
-          <span>{getServiceId(apt.serviceRequest.serviceRequestId)}</span>
+          <span className="appointments-card__label">Location</span>
+          <span>{row.location}</span>
         </div>
         <div className="appointments-card__row">
-          <span className="appointments-card__label">Inspector</span>
-          <span>{getProfileName(apt.inspector)}</span>
-        </div>
-      </div>
-    </div>
-  );
-
-  const renderRequestCard = (req: AppointmentRequest) => (
-    <div
-      key={req.appointmentRequestId}
-      className="appointments-card"
-      onClick={() => setSelectedItem({ type: 'request', data: req })}
-    >
-      <div className="appointments-card__header">
-        <span className="appointments-card__title">{req.serviceRequest?.strata?.complexName || req.serviceRequest?.strata?.strataPlan || '-'}</span>
-        <span className={`status-badge ${getStatusClass(req.status)}`}>{req.status}</span>
-      </div>
-      <div className="appointments-card__body">
-        <div className="appointments-card__row">
-          <span className="appointments-card__label">First Choice</span>
-          <span>{formatDateShort(req.firstChoiceDate)}</span>
-        </div>
-        <div className="appointments-card__row">
-          <span className="appointments-card__label">Time</span>
-          <span>{req.firstChoiceTimeSlot ? getTimeRange(req.firstChoiceTimeSlot.slotTime, req.appointmentType) : '-'}</span>
-        </div>
-        <div className="appointments-card__row">
-          <span className="appointments-card__label">Type</span>
-          <span>{req.appointmentType?.typeName || '-'}</span>
-        </div>
-        <div className="appointments-card__row">
-          <span className="appointments-card__label">Strata Plan</span>
-          <span>{req.serviceRequest?.strata?.strataPlan || '-'}</span>
-        </div>
-        <div className="appointments-card__row">
-          <span className="appointments-card__label">Inspector</span>
-          <span>{getProfileName(req.serviceRequest?.appointmentOfferInspector)}</span>
+          <span className="appointments-card__label">Inspector(s)</span>
+          <span>{row.inspectorNames}</span>
         </div>
       </div>
     </div>
@@ -574,6 +691,8 @@ export default function AppointmentsPage() {
     );
   }
 
+  const isLoading = loading || requestsLoading;
+
   return (
     <div className="appointments-page">
       <div className="page-header">
@@ -582,55 +701,80 @@ export default function AppointmentsPage() {
 
       {error && <div className="error-banner">{error}</div>}
 
-      <Tabs tabs={TABS} activeTab={activeTab} onChange={setActiveTab} />
+      <Tabs
+        tabs={locationTabs}
+        activeTab={filterLocation}
+        onChange={setFilterLocation}
+        variant="pill"
+      />
 
-      {activeTab === 'scheduled' && (
-        <>
-          <div className="appointments-page__desktop">
-            <DataTable
-              columns={appointmentColumns}
-              data={appointments}
-              keyExtractor={(apt) => apt.appointmentId}
-              loading={loading}
-              emptyMessage="No appointments found."
-              onRowClick={(apt) => setSelectedItem({ type: 'appointment', data: apt })}
+      <div className="filters-row appointments-filters">
+        <SingleSelectDropdown
+          label="Strata Name"
+          value={filterStrataName}
+          onChange={(val) => { setFilterStrataName(val); setFilterStrataPlan(val); }}
+          options={strataNameOptions}
+          placeholder="All Strata"
+        />
+        <SingleSelectDropdown
+          label="Strata Plan"
+          value={filterStrataPlan}
+          onChange={(val) => { setFilterStrataPlan(val); setFilterStrataName(val); }}
+          options={strataPlanOptions}
+          placeholder="All Plans"
+        />
+        <SingleSelectDropdown
+          label="Inspector"
+          value={filterInspector}
+          onChange={setFilterInspector}
+          options={inspectorOptions}
+          placeholder="All Inspectors"
+        />
+        <div className="date-range-filter">
+          <InputField
+            label="From"
+            type="date"
+            value={dateFrom}
+            onChange={(e) => setDateFrom(e.target.value)}
+          />
+          <InputField
+            label="To"
+            type="date"
+            value={dateTo}
+            onChange={(e) => setDateTo(e.target.value)}
+          />
+        </div>
+        <div className="form-field archived-toggle">
+          <label>
+            <input
+              type="checkbox"
+              checked={showPastDates}
+              onChange={() => setShowPastDates(prev => !prev)}
             />
-          </div>
-          <div className="appointments-page__mobile">
-            {loading ? (
-              <div className="appointments-page__loading">Loading...</div>
-            ) : appointments.length === 0 ? (
-              <div className="appointments-page__empty">No appointments found.</div>
-            ) : (
-              appointments.map(renderAppointmentCard)
-            )}
-          </div>
-        </>
-      )}
+            Show Past Dates
+          </label>
+        </div>
+      </div>
 
-      {activeTab === 'requests' && (
-        <>
-          <div className="appointments-page__desktop">
-            <DataTable
-              columns={requestColumns}
-              data={requests}
-              keyExtractor={(req) => req.appointmentRequestId}
-              loading={requestsLoading}
-              emptyMessage="No pending requests."
-              onRowClick={(req) => setSelectedItem({ type: 'request', data: req })}
-            />
-          </div>
-          <div className="appointments-page__mobile">
-            {requestsLoading ? (
-              <div className="appointments-page__loading">Loading...</div>
-            ) : requests.length === 0 ? (
-              <div className="appointments-page__empty">No pending requests.</div>
-            ) : (
-              requests.map(renderRequestCard)
-            )}
-          </div>
-        </>
-      )}
+      <div className="appointments-page__desktop">
+        <DataTable
+          columns={unifiedColumns}
+          data={filteredRows}
+          keyExtractor={(row) => row.id}
+          loading={isLoading}
+          emptyMessage="No appointments found."
+          onRowClick={handleRowClick}
+        />
+      </div>
+      <div className="appointments-page__mobile">
+        {isLoading ? (
+          <div className="appointments-page__loading">Loading...</div>
+        ) : filteredRows.length === 0 ? (
+          <div className="appointments-page__empty">No appointments found.</div>
+        ) : (
+          filteredRows.map(renderMobileCard)
+        )}
+      </div>
     </div>
   );
 }

@@ -436,6 +436,7 @@ export interface AppointmentWithDetails extends Appointment {
     serviceRequestId: number;
     strata: StrataBasic;
     service: Service;
+    appointmentOfferSecondInspector?: ProfileBasic | null;
   };
   appointmentRequest?: AppointmentRequest;
   inspector: ProfileBasic | null;

@@ -1,6 +1,6 @@
 import type { ReactNode, InputHTMLAttributes, SelectHTMLAttributes, TextareaHTMLAttributes } from 'react';
 import type { SurveySection } from './survey.types';
-import type { StrataPropertyType, InspectorAvailableDate, CreateInspectorAvailableDateInput, UpdateInspectorAvailableDateInput, CompanyHoliday, AppointmentRequest, AppointmentWithDetails, AppointmentTimeSlot, UserWithStratas } from './entities.types';
+import type { StrataPropertyType, InspectorAvailableDate, CreateInspectorAvailableDateInput, UpdateInspectorAvailableDateInput } from './entities.types';
 
 export interface Column<T> {
   key: string;
@@ -59,7 +59,6 @@ export interface ModalProps {
   onClose: () => void;
   title: string;
   size?: 'small' | 'medium' | 'large' | 'preview';
-  className?: string;
   footer?: ReactNode;
   children: ReactNode;
 }
@@ -101,7 +100,6 @@ export interface MultiSelectDropdownProps extends BaseFieldProps {
   onChange: (values: number[]) => void;
   placeholder?: string;
   disabled?: boolean;
-  searchable?: boolean;
 }
 
 export interface SingleSelectDropdownProps extends BaseFieldProps {
@@ -148,7 +146,6 @@ export interface NavbarProps {
   variant: 'admin' | 'client';
   navItems: NavItem[];
   userInfoRows: UserInfo[];
-  loading?: boolean;
 }
 
 export interface DeleteAvailabilityModalProps {
@@ -158,63 +155,25 @@ export interface DeleteAvailabilityModalProps {
   onDelete: (id: number) => Promise<any>;
 }
 
-export interface CompanyHolidayModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  initialData: CompanyHoliday | null;
-  onSubmitCreate: (input: { holidayName: string; holidayDate: string; isRecurringAnnually?: boolean }) => Promise<CompanyHoliday | null>;
-  onSubmitUpdate: (id: number, input: { holidayName?: string; holidayDate?: string; isRecurringAnnually?: boolean }) => Promise<CompanyHoliday | null>;
-  onDeleteClick?: () => void;
-}
-
 export interface OfferAppointmentModalProps {
   isOpen: boolean;
   onClose: () => void;
   serviceRequestId: number;
   strataPlan: string;
   targetDate: string | null;
-  appointmentTypes: { appointmentTypeId: number; typeName: string; durationType?: string; isDraftMeeting?: boolean }[];
-  inspectors: UserWithStratas[];
-  initialTypeId?: number | null;
-  initialInspectorId?: string | null;
-  initialSecondInspectorId?: string | null;
+  appointmentTypes: import('./entities.types').AppointmentType[];
+  inspectors: import('./entities.types').Profile[];
+  initialTypeId: number | null;
+  initialInspectorId: string | null;
+  initialSecondInspectorId: string | null;
+  locations: import('./entities.types').Location[];
+  initialLocationId: number | null;
+  strataId: number;
   onSubmit: (serviceRequestId: number, data: {
     appointmentTypeId?: number;
     inspectorProfileId?: string;
     secondInspectorProfileId?: string;
   }) => Promise<void>;
   onAddNote?: (message: string) => Promise<void>;
-}
-
-export interface AppointmentRequestReviewModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  request: AppointmentRequest | null;
-  inspectors: UserWithStratas[];
-  onReview: (id: number, data: {
-    approved: boolean;
-    approvedDateChoice?: number;
-    rejectionReason?: string;
-    inspectorProfileId?: string;
-    comments?: string;
-  }) => Promise<{ success: boolean; error?: string }>;
-}
-
-export interface RescheduleAppointmentModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  appointment: AppointmentWithDetails | null;
-  timeSlots: AppointmentTimeSlot[];
-  inspectors: UserWithStratas[];
-  onReschedule: (id: number, date: string, timeSlotId: number, options?: {
-    inspectorProfileId?: string;
-    reason?: string;
-  }) => Promise<boolean>;
-}
-
-export interface CancelAppointmentModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  appointment: AppointmentWithDetails | null;
-  onCancel: (id: number, reason?: string) => Promise<boolean>;
+  onUpdateLocation: (strataId: number, locationId: number) => Promise<void>;
 }
