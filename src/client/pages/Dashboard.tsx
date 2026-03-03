@@ -10,10 +10,10 @@ export const Dashboard = () => {
       <p className="page-subtitle">Welcome to the Strata Reserve Planning (SRP) Client Portal.</p>
 
       {activeRequest?.rebookingRequestedAt && (
-        <div className="inspection-date__card inspection-date__card--info" style={{ marginTop: '1.5rem' }}>
+        <div className="inspection-date__card inspection-date__card--info mt-lg">
           <h3>Please Rebook Your Inspection</h3>
           <p>Your previous appointment was cancelled. Please select a new date for your inspection.</p>
-          <div style={{ marginTop: '1rem' }}>
+          <div className="mt-md">
             <Link to="/client/inspection-date" className="btn btn-primary">
               Book Inspection Date
             </Link>

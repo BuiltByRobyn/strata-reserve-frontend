@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { Modal } from '../../shared/components/Modal';
 import { SingleSelectDropdown } from '../../shared/components/SingleSelectDropdown';
-import { formatDateMedium, formatTime12h } from '../../shared/lib/formatters';
+import { AppointmentInfoDisplay } from './AppointmentInfoDisplay';
+import { formatTime12h, getUserDisplayName } from '../../shared/lib/formatters';
+import { getInspectorOptions } from '../../shared/utils/userUtils';
 import type { RescheduleAppointmentModalProps } from '../../shared/types/component.types';
 
 const RescheduleAppointmentModal = ({
@@ -22,15 +24,10 @@ const RescheduleAppointmentModal = ({
   if (!appointment) return null;
 
   const currentInspector = appointment.inspector
-    ? (appointment.inspector.displayName || `${appointment.inspector.firstName || ''} ${appointment.inspector.lastName || ''}`.trim())
+    ? getUserDisplayName(appointment.inspector)
     : 'Unassigned';
 
-  const inspectorOptions = inspectors
-    .filter(u => u.isAdmin || ['Inspector', 'Admin'].includes(u.userType?.userTypeName ?? ''))
-    .map(u => ({
-      value: u.id,
-      label: u.displayName || `${u.firstName || ''} ${u.lastName || ''}`.trim(),
-    }));
+  const inspectorOptions = getInspectorOptions(inspectors);
 
   const handleSubmit = async () => {
     if (!newDate || !newTimeSlotId) {
@@ -70,16 +67,13 @@ const RescheduleAppointmentModal = ({
       <div className="reschedule-modal">
         {error && <div className="reschedule-modal__error">{error}</div>}
 
-        <div className="appointment-info-row">
-          <div className="appointment-info-row__header">Current Appointment</div>
-          <div className="appointment-info-row__grid">
-            <div><span className="appointment-info-row__label">Date</span><span>{formatDateMedium(appointment.appointmentDate)}</span></div>
-            <div><span className="appointment-info-row__label">Time</span><span>{formatTime12h(appointment.timeSlot.slotTime)}</span></div>
-            <div><span className="appointment-info-row__label">Appointment Type</span><span>{appointment.appointmentType.typeName}</span></div>
-            <div><span className="appointment-info-row__label">Inspector</span><span>{currentInspector}</span></div>
-            <div><span className="appointment-info-row__label">Location</span><span>{(appointment.serviceRequest?.strata as any)?.location?.locationName || '-'}</span></div>
-          </div>
-        </div>
+        <AppointmentInfoDisplay
+          date={appointment.appointmentDate}
+          slotTime={appointment.timeSlot.slotTime}
+          typeName={appointment.appointmentType.typeName}
+          inspectorName={currentInspector}
+          locationName={appointment.serviceRequest?.strata?.location?.locationName}
+        />
 
         <div className="reschedule-modal__form">
           <div className="form-field">

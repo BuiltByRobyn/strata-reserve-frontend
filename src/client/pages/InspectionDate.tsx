@@ -6,7 +6,7 @@ import { useTimelines } from '../../shared/hooks/useTimelines';
 import { useLookups } from '../../shared/hooks/useLookups';
 import { LoadingSpinner } from '../../shared/components/LoadingSpinner';
 import { Modal } from '../../shared/components/Modal';
-import { formatDateLong, formatTime12h } from '../../shared/lib/formatters';
+import { formatDateLong, formatTime12h, getUserDisplayName } from '../../shared/lib/formatters';
 import BookingCalendar from '../components/BookingCalendar';
 import AvailableMeetingDates from '../components/AvailableMeetingDates';
 import BookingConfirmation from '../components/BookingConfirmation';
@@ -484,7 +484,7 @@ const InspectionDate = () => {
               <div className="inspection-date__detail-row">
                 <span className="inspection-date__detail-label">Inspector</span>
                 <span className="inspection-date__detail-value">
-                  {scheduledApt.inspector.displayName || `${scheduledApt.inspector.firstName} ${scheduledApt.inspector.lastName}`}
+                  {getUserDisplayName(scheduledApt.inspector)}
                 </span>
               </div>
             )}

@@ -516,8 +516,8 @@
 
   &__grid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: $spacing-sm;
+    grid-template-columns: repeat(3, 1fr);
+    gap: $spacing-xl;
 
     @include respond-below(md) {
       grid-template-columns: repeat(2, 1fr);

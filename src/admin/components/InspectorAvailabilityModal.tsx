@@ -6,7 +6,8 @@ import { useUsers } from '../../shared/hooks/useUsers';
 import { useCompanyHolidays } from '../../shared/hooks/useCompanyHolidays';
 import type { InspectorAvailabilityModalProps } from '../../shared/types/component.types';
 import { LoadingSpinner } from '../../shared/components/LoadingSpinner';
-import { extractTimeFromISO } from '../../shared/utils/availabilityUtils';
+import { extractTimeFromISO, expandDateRange } from '../../shared/utils/availabilityUtils';
+import { getInspectorOptions } from '../../shared/utils/userUtils';
 import { LOCATION_OPTIONS } from '../../shared/lib/constants';
 
 export const InspectorAvailabilityModal = ({
@@ -84,10 +85,7 @@ export const InspectorAvailabilityModal = ({
 
             if (!skipHolidayCheck) {
                 const holidayDates: string[] = [];
-                const start = new Date(formData.availableStartDate + 'T12:00:00');
-                const end = new Date(effectiveEndDate + 'T12:00:00');
-                for (const d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-                    const dateStr = d.toISOString().slice(0, 10);
+                for (const dateStr of expandDateRange(formData.availableStartDate, effectiveEndDate)) {
                     const isHoliday = await checkIsHoliday(dateStr);
                     if (isHoliday) {
                         holidayDates.push(dateStr);
@@ -106,13 +104,7 @@ export const InspectorAvailabilityModal = ({
             setError(null);
             setHolidayWarning(null);
 
-            // Expand date range into individual per-day records
-            const start = new Date(formData.availableStartDate + 'T12:00:00');
-            const end = new Date(effectiveEndDate + 'T12:00:00');
-            const dates: string[] = [];
-            for (const d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-                dates.push(d.toISOString().slice(0, 10));
-            }
+            const dates = expandDateRange(formData.availableStartDate, effectiveEndDate);
 
             if (initialData) {
                 // Edit mode: single day update
@@ -163,12 +155,7 @@ export const InspectorAvailabilityModal = ({
         });
     };
 
-    const userOptions = users
-        .filter(u => u.isAdmin || ['Inspector', 'Admin'].includes(u.userType?.userTypeName ?? ''))
-        .map(u => ({
-            value: u.id,
-            label: u.displayName || `${u.firstName || ''} ${u.lastName || ''}`.trim() || 'Unknown'
-        }));
+    const userOptions = getInspectorOptions(users);
 
     const footer = holidayWarning ? null : (
         <>

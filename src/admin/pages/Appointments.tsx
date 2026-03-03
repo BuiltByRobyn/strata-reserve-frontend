@@ -14,7 +14,8 @@ import RescheduleAppointmentModal from '../components/RescheduleAppointmentModal
 import CancelAppointmentModal from '../components/CancelAppointmentModal';
 import type { AppointmentWithDetails, AppointmentRequest, ProfileBasic } from '../../shared/types/entities.types';
 import type { UnifiedRow, SelectedItem } from '../../shared/types/appointment.types';
-import { formatDateShort, formatTime12h } from '../../shared/lib/formatters';
+import { formatDateShort, formatTime12h, getUserDisplayName } from '../../shared/lib/formatters';
+import { getInspectorOptions } from '../../shared/utils/userUtils';
 import { getSlotTimeRange } from '../../shared/lib/dateUtils';
 
 const getStatusClass = (status: string): string => {
@@ -30,19 +31,13 @@ const getStatusClass = (status: string): string => {
   }
 };
 
-const getProfileName = (p?: ProfileBasic | null): string => {
-  if (!p) return '-';
-  if (p.displayName) return p.displayName;
-  return `${p.firstName || ''} ${p.lastName || ''}`.trim() || '-';
-};
-
 const getInspectorNames = (
   inspector?: ProfileBasic | null,
   secondInspector?: ProfileBasic | null
 ): string => {
   const names: string[] = [];
-  if (inspector) names.push(getProfileName(inspector));
-  if (secondInspector) names.push(getProfileName(secondInspector));
+  if (inspector) names.push(getUserDisplayName(inspector, '-'));
+  if (secondInspector) names.push(getUserDisplayName(secondInspector, '-'));
   return names.length > 0 ? names.join(', ') : '-';
 };
 
@@ -96,7 +91,7 @@ export default function AppointmentsPage() {
     setShowCreateModal(true);
     fetchServiceRequests({ archived: false });
     const [slots, types] = await Promise.all([fetchTimeSlots(), fetchAppointmentTypes()]);
-    setAllTimeSlots(slots || []);
+    setAllTimeSlots((slots || []).filter((s: any, i: number, arr: any[]) => arr.findIndex((t: any) => t.slotTime === s.slotTime) === i));
     setAllAppointmentTypes(types || []);
   }, [fetchServiceRequests, fetchTimeSlots, fetchAppointmentTypes]);
 
@@ -171,7 +166,7 @@ export default function AppointmentsPage() {
   }, [fetchAppointmentRequests]);
 
   useEffect(() => {
-    fetchTimeSlots().then(slots => setAllTimeSlots(slots || []));
+    fetchTimeSlots().then(slots => setAllTimeSlots((slots || []).filter((s: any, i: number, arr: any[]) => arr.findIndex((t: any) => t.slotTime === s.slotTime) === i)));
   }, [fetchTimeSlots]);
 
   // Pre-fill inspector from offer when selecting a request
@@ -185,15 +180,7 @@ export default function AppointmentsPage() {
     }
   }, [selectedItem]);
 
-  const inspectorOptions = useMemo(() =>
-    users
-      .filter(u => u.isAdmin || ['Inspector', 'Admin'].includes(u.userType?.userTypeName ?? ''))
-      .map(u => ({
-        value: u.id,
-        label: u.displayName || `${u.firstName || ''} ${u.lastName || ''}`.trim(),
-      })),
-    [users]
-  );
+  const inspectorOptions = useMemo(() => getInspectorOptions(users), [users]);
 
   const getTimeRange = (slotTime: string, aptType?: { durationType: string; isDraftMeeting: boolean }) => {
     if (!aptType) return formatTime12h(slotTime);
@@ -216,7 +203,7 @@ export default function AppointmentsPage() {
         strataPlan: sr.strata.strataPlan || '-',
         strataName: sr.strata.complexName || '-',
         strataId: sr.strata.strataId,
-        location: (sr.strata as any).location?.locationName || sr.strata.town || '-',
+        location: sr.strata.location?.locationName || sr.strata.town || '-',
         inspectorNames: getInspectorNames(apt.inspector, sr.appointmentOfferSecondInspector),
         inspectorId: apt.inspectorProfileId,
         status: apt.status,
@@ -237,7 +224,7 @@ export default function AppointmentsPage() {
         strataPlan: sr?.strata?.strataPlan || '-',
         strataName: sr?.strata?.complexName || '-',
         strataId: sr?.strata?.strataId || 0,
-        location: (sr?.strata as any)?.location?.locationName || sr?.strata?.town || '-',
+        location: sr?.strata?.location?.locationName || sr?.strata?.town || '-',
         inspectorNames: getInspectorNames(inspector1, inspector2),
         inspectorId: inspector1?.id || null,
         status: req.status,
@@ -481,7 +468,7 @@ export default function AppointmentsPage() {
           <div className="info-row">
             <div className="info-item">
               <span className="info-label">LOCATION</span>
-              <span className="info-value">{(sr.strata as any).location?.locationName || sr.strata.town || '-'}</span>
+              <span className="info-value">{sr.strata.location?.locationName || sr.strata.town || '-'}</span>
             </div>
             <div className="info-item">
               <span className="info-label">INSPECTOR(S)</span>
@@ -559,7 +546,7 @@ export default function AppointmentsPage() {
             </div>
             <div className="info-item">
               <span className="info-label">REQUESTED BY</span>
-              <span className="info-value">{getProfileName(sr?.requestedBy)}</span>
+              <span className="info-value">{getUserDisplayName(sr?.requestedBy, '-')}</span>
             </div>
           </div>
           <div className="info-row">
@@ -573,7 +560,7 @@ export default function AppointmentsPage() {
             </div>
             <div className="info-item">
               <span className="info-label">LOCATION</span>
-              <span className="info-value">{(sr?.strata as any)?.location?.locationName || sr?.strata?.town || '-'}</span>
+              <span className="info-value">{sr?.strata?.location?.locationName || sr?.strata?.town || '-'}</span>
             </div>
           </div>
         </div>
@@ -941,7 +928,7 @@ export default function AppointmentsPage() {
 
               {createForm.serviceRequestId && (() => {
                 const sr = serviceRequests.find(s => String(s.serviceRequestId) === createForm.serviceRequestId);
-                const loc = (sr?.strata as any)?.location?.locationName;
+                const loc = sr?.strata?.location?.locationName;
                 return loc ? (
                   <div className="form-field">
                     <label>Location</label>

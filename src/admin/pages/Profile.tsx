@@ -164,7 +164,6 @@ export default function ProfilePage() {
       <div className="page-container profile-container">
         <div className="profile-loading">
           <LoadingSpinner />
-          <p>Loading profile...</p>
         </div>
       </div>
     );

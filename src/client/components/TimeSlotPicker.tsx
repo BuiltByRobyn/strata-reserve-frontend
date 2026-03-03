@@ -1,11 +1,6 @@
 import { formatTime12h } from '../../shared/lib/formatters';
+import { SLOT_END_TIMES } from '../../shared/lib/constants';
 import type { TimeSlotPickerProps } from '../../shared/types/appointment.types';
-
-const SLOT_END_TIMES: Record<string, string> = {
-  '10:00': '14:00',
-  '14:00': '18:00',
-  '18:00': '19:00',
-};
 
 const TimeSlotPicker = ({ slots, selectedSlotId, onSelectSlot, label }: TimeSlotPickerProps) => {
   if (slots.length === 0) {

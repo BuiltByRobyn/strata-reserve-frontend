@@ -8,6 +8,7 @@ import { useLookups } from '../../shared/hooks/useLookups';
 import { useAppointments } from '../../shared/hooks/useAppointments';
 import { Modal } from '../../shared/components/Modal';
 import { LoadingSpinner } from '../../shared/components/LoadingSpinner';
+import { getUserDisplayName } from '../../shared/lib/formatters';
 import type { PropertyTypeRequest } from '../../shared/types/entities.types';
 
 export const Dashboard = () => {
@@ -223,7 +224,7 @@ export const Dashboard = () => {
                 const aptDate = new Date(apt.appointmentDate);
                 const dateStr = aptDate.toLocaleDateString('en-CA', { weekday: 'short', month: 'short', day: 'numeric' });
                 const strataName = apt.serviceRequest?.strata?.complexName || apt.serviceRequest?.strata?.strataPlan || 'Unknown';
-                const inspectorName = apt.inspector ? (apt.inspector.displayName || `${apt.inspector.firstName} ${apt.inspector.lastName}`) : 'Unassigned';
+                const inspectorName = apt.inspector ? getUserDisplayName(apt.inspector) : 'Unassigned';
 
                 return (
                   <div key={apt.appointmentId} className="action-card action-card--upcoming">

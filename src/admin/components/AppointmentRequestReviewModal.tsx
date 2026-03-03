@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Modal } from '../../shared/components/Modal';
 import { SingleSelectDropdown } from '../../shared/components/SingleSelectDropdown';
-import { formatDateMedium, formatTime12h } from '../../shared/lib/formatters';
+import { formatDateMedium, formatTime12h, getUserDisplayName } from '../../shared/lib/formatters';
+import { getInspectorOptions } from '../../shared/utils/userUtils';
 import type { AppointmentRequestReviewModalProps } from '../../shared/types/component.types';
 
 const AppointmentRequestReviewModal = ({
@@ -19,15 +20,10 @@ const AppointmentRequestReviewModal = ({
 
   if (!request) return null;
 
-  const sr = (request as any).serviceRequest;
+  const sr = request.serviceRequest;
   const strataName = sr?.strata?.complexName || sr?.strata?.strataPlan || 'Unknown';
 
-  const inspectorOptions = inspectors
-    .filter(u => u.isAdmin || ['Inspector', 'Admin'].includes(u.userType?.userTypeName ?? ''))
-    .map(u => ({
-      value: u.id,
-      label: u.displayName || `${u.firstName || ''} ${u.lastName || ''}`.trim(),
-    }));
+  const inspectorOptions = getInspectorOptions(inspectors);
 
   const handleApprove = async (choiceNum: number) => {
     if (!inspectorId) {
@@ -95,7 +91,7 @@ const AppointmentRequestReviewModal = ({
           <div className="review-modal__row">
             <span className="review-modal__label">Requested By</span>
             <span className="review-modal__value">
-              {request.requestedBy?.displayName || `${request.requestedBy?.firstName || ''} ${request.requestedBy?.lastName || ''}`.trim()}
+              {getUserDisplayName(request.requestedBy, '-')}
             </span>
           </div>
         </div>

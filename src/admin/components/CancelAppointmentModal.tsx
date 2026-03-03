@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Modal } from '../../shared/components/Modal';
-import { formatDateMedium, formatTime12h } from '../../shared/lib/formatters';
+import { AppointmentInfoDisplay } from './AppointmentInfoDisplay';
+import { getUserDisplayName } from '../../shared/lib/formatters';
 import type { CancelAppointmentModalProps } from '../../shared/types/component.types';
 
 const CancelAppointmentModal = ({
@@ -16,7 +17,7 @@ const CancelAppointmentModal = ({
   if (!appointment) return null;
 
   const currentInspector = appointment.inspector
-    ? (appointment.inspector.displayName || `${appointment.inspector.firstName || ''} ${appointment.inspector.lastName || ''}`.trim())
+    ? getUserDisplayName(appointment.inspector)
     : 'Unassigned';
 
   const handleCancel = async () => {
@@ -43,16 +44,13 @@ const CancelAppointmentModal = ({
       <div className="cancel-modal">
         {error && <div className="cancel-modal__error">{error}</div>}
 
-        <div className="appointment-info-row">
-          <div className="appointment-info-row__header">Current Appointment</div>
-          <div className="appointment-info-row__grid">
-            <div><span className="appointment-info-row__label">Date</span><span>{formatDateMedium(appointment.appointmentDate)}</span></div>
-            <div><span className="appointment-info-row__label">Time</span><span>{formatTime12h(appointment.timeSlot.slotTime)}</span></div>
-            <div><span className="appointment-info-row__label">Appointment Type</span><span>{appointment.appointmentType.typeName}</span></div>
-            <div><span className="appointment-info-row__label">Inspector</span><span>{currentInspector}</span></div>
-            <div><span className="appointment-info-row__label">Location</span><span>{(appointment.serviceRequest?.strata as any)?.location?.locationName || '-'}</span></div>
-          </div>
-        </div>
+        <AppointmentInfoDisplay
+          date={appointment.appointmentDate}
+          slotTime={appointment.timeSlot.slotTime}
+          typeName={appointment.appointmentType.typeName}
+          inspectorName={currentInspector}
+          locationName={appointment.serviceRequest?.strata?.location?.locationName}
+        />
 
         <p className="cancel-modal__question">
           Are you sure that you would like to cancel this appointment?
