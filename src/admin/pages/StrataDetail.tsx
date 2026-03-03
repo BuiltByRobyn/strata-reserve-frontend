@@ -107,6 +107,7 @@ export default function StrataDetailPage() {
   const [surveyReqFormData, setSurveyReqFormData] = useState<Record<number, number[]>>({});
 
   const [downloadingDocs, setDownloadingDocs] = useState(false);
+  const [downloadingSurveyPdf, setDownloadingSurveyPdf] = useState(false);
   const [uploadedDocs, setUploadedDocs] = useState<SRUploadedDocument[]>([]);
   const [previewModalOpen, setPreviewModalOpen] = useState(false);
   const [previewDocId, setPreviewDocId] = useState<number | null>(null);
@@ -398,6 +399,54 @@ export default function StrataDetailPage() {
       alert('Download failed. Please try again.');
     } finally {
       setDownloadingDocs(false);
+    }
+  };
+
+  const getFilenameFromDisposition = (value: string | null): string | null => {
+    if (!value) return null;
+    const match = value.match(/filename\*=UTF-8''([^;]+)|filename="?([^";]+)"?/i);
+    const raw = match?.[1] || match?.[2];
+    if (!raw) return null;
+    try {
+      return decodeURIComponent(raw);
+    } catch {
+      return raw;
+    }
+  };
+
+  const handleDownloadSurveyPdf = async () => {
+    if (!activeRequest) return;
+    setDownloadingSurveyPdf(true);
+    try {
+      const res = await api.rawFetch(`/admin/service-requests/${activeRequest.serviceRequestId}/survey/pdf`);
+      if (!res.ok) {
+        let message = `Download failed (${res.status})`;
+        try {
+          const data = await res.json();
+          if (data?.error) message = data.error;
+        } catch {
+          // ignore
+        }
+        throw new Error(message);
+      }
+
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const filename =
+        getFilenameFromDisposition(res.headers.get('Content-Disposition')) ||
+        `Survey-Answers-${strata?.strataPlan || 'SR'}-SR-${activeRequest.serviceRequestId}.pdf`;
+
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch {
+      alert('Download failed. Please try again.');
+    } finally {
+      setDownloadingSurveyPdf(false);
     }
   };
 
@@ -874,10 +923,10 @@ export default function StrataDetailPage() {
                 </button>
               </div>
             ) : (
-              <div className="active-survey">
-                <div className="survey-header">
-                  <div className="survey-header-left">
-                    <h2>Active Survey Answers</h2>
+                <div className="active-survey">
+                  <div className="survey-header">
+                    <div className="survey-header-left">
+                      <h2>Active Survey Answers</h2>
                     <div className="survey-meta">
                       <span>
                         <strong>Status:</strong> {activeRequest.status}
@@ -895,9 +944,19 @@ export default function StrataDetailPage() {
                       </span>
                     </div>
                   </div>
-                  <button className="btn-primary" onClick={openSurveyReqModal}>
-                    Configure Required Surveys
-                  </button>
+                  <div className="survey-header-actions">
+                    <button
+                      type="button"
+                      className="btn-secondary"
+                      onClick={handleDownloadSurveyPdf}
+                      disabled={downloadingSurveyPdf}
+                    >
+                      {downloadingSurveyPdf ? 'Downloading...' : 'Download PDF'}
+                    </button>
+                    <button type="button" className="btn-primary" onClick={openSurveyReqModal}>
+                      Configure Required Surveys
+                    </button>
+                  </div>
                 </div>
 
                 {renderSurveyAnswers(

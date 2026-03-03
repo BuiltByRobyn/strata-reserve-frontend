@@ -217,12 +217,24 @@
       justify-content: space-between;
       margin-bottom: $spacing-md;
 
+      .survey-header-actions {
+        display: flex;
+        align-items: center;
+        gap: $spacing-sm;
+      }
+
       @include respond-below(lg) {
         flex-direction: column;
         gap: $spacing-sm;
 
-        .btn-primary {
+        .survey-header-actions {
           width: 100%;
+          flex-direction: column;
+
+          .btn-primary,
+          .btn-secondary {
+            width: 100%;
+          }
         }
       }
 

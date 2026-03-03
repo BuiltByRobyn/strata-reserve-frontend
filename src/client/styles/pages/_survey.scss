@@ -116,6 +116,20 @@
     background: $color-white;
   }
 
+  .survey-page-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin: $spacing-md 0;
+
+    @include respond-below(lg) {
+      justify-content: stretch;
+
+      .btn-secondary {
+        width: 100%;
+      }
+    }
+  }
+
   .survey-section-item {
     display: grid;
     grid-template-columns: 6fr 1fr;

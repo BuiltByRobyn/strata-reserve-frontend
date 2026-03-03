@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import { useSurvey } from '../../shared/hooks/useSurvey';
 import { useClientServiceRequest } from '../../shared/hooks/useClientServiceRequest';
+import { useApiClient } from '../../shared/hooks/useApiClient';
 import { SurveyProgressBar } from '../../shared/components/SurveyProgressBar';
 import { LoadingSpinner } from '../../shared/components/LoadingSpinner';
 import { Modal } from '../../shared/components/Modal';
@@ -9,14 +11,28 @@ import {
   SURVEY_SECTIONS,
 } from '../../shared/types/survey.types';
 
+const getFilenameFromDisposition = (value: string | null): string | null => {
+  if (!value) return null;
+  const match = value.match(/filename\*=UTF-8''([^;]+)|filename="?([^";]+)"?/i);
+  const raw = match?.[1] || match?.[2];
+  if (!raw) return null;
+  try {
+    return decodeURIComponent(raw);
+  } catch {
+    return raw;
+  }
+};
+
 export default function SurveyPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const { activeRequest, serviceRequestId, loading: srLoading } = useClientServiceRequest();
   const { questions, responses, loading, fetchQuestions, fetchResponses } = useSurvey();
+  const api = useApiClient();
 
   const [showThankYou, setShowThankYou] = useState(false);
   const [showTimelinesMessage, setShowTimelinesMessage] = useState(false);
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
   const isSubmitted = !!activeRequest?.submittedForReviewDate;
 
   useEffect(() => {
@@ -61,6 +77,42 @@ export default function SurveyPage() {
     return total > 0 && answered >= total;
   };
 
+  const handleDownloadPdf = async () => {
+    if (!serviceRequestId) return;
+    setDownloadingPdf(true);
+    try {
+      const res = await api.rawFetch('/client/service-requests/active/survey/pdf');
+      if (!res.ok) {
+        let message = `Download failed (${res.status})`;
+        try {
+          const data = await res.json();
+          if (data?.error) message = data.error;
+        } catch {
+          // ignore
+        }
+        throw new Error(message);
+      }
+
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const filename =
+        getFilenameFromDisposition(res.headers.get('Content-Disposition')) ||
+        `Survey-Answers-${activeRequest?.strata?.strataPlan || 'SR'}-SR-${serviceRequestId}.pdf`;
+
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Download failed');
+    } finally {
+      setDownloadingPdf(false);
+    }
+  };
+
   if (srLoading || loading) return <LoadingSpinner />;
 
   if (!serviceRequestId) {
@@ -91,6 +143,17 @@ export default function SurveyPage() {
           </button>
         </div>
       )}
+
+      <div className="survey-page-actions">
+        <button
+          type="button"
+          className="btn-secondary"
+          onClick={handleDownloadPdf}
+          disabled={!serviceRequestId || downloadingPdf}
+        >
+          {downloadingPdf ? 'Downloading...' : 'Download PDF'}
+        </button>
+      </div>
 
       <SurveyProgressBar answered={totalAnswered} total={totalQuestions} />
 
