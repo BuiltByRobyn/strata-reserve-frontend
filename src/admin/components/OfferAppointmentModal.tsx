@@ -123,17 +123,16 @@ export const OfferAppointmentModal = ({
               {targetDate ? formatDateShort(targetDate) : 'Not set'}
             </span>
           </div>
-        </div>
-
-        <div className="offer-modal__field">
-          <span className="offer-modal__label">Location <span className="offer-modal__required">*</span></span>
-          <SingleSelectDropdown
-            label=""
-            options={locationOptions}
-            value={locationId ?? ''}
-            onChange={(val) => setLocationId(val ? Number(val) : null)}
-            placeholder="Select location..."
-          />
+          <div className="offer-modal__field offer-modal__field--inline">
+            <span className="offer-modal__label">Location <span className="offer-modal__required">*</span></span>
+            <SingleSelectDropdown
+              label=""
+              options={locationOptions}
+              value={locationId ?? ''}
+              onChange={(val) => setLocationId(val ? Number(val) : null)}
+              placeholder="Select location..."
+            />
+          </div>
         </div>
 
         <div className="offer-modal__field">

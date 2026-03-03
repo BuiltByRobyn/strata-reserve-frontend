@@ -31,6 +31,7 @@ import type {
   StrataWithDetails,
   ServiceRequest,
   CreateSRFormData,
+  AppointmentType,
 } from "../../shared/types/entities.types";
 import type { SRDocRequirement, SRUploadedDocument } from "../../shared/types/document.types";
 import { API_BASE } from "../../shared/lib/api";
@@ -68,7 +69,7 @@ export default function StrataDetailPage() {
   const { users: allUsers } = useUsers();
   const api = useApiClient();
 
-  const [appointmentTypes, setAppointmentTypes] = useState<{ appointmentTypeId: number; typeName: string }[]>([]);
+  const [appointmentTypes, setAppointmentTypes] = useState<AppointmentType[]>([]);
   const [filterPropertyTypeIds, setFilterPropertyTypeIds] = useState<number[]>([]);
 
   const [strata, setStrata] = useState<StrataWithDetails | null>(null);
@@ -139,7 +140,7 @@ export default function StrataDetailPage() {
   }, [loadData]);
 
   useEffect(() => {
-    api.get<{ appointmentTypeId: number; typeName: string }[]>('/admin/appointments/types')
+    api.get<AppointmentType[]>('/admin/appointments/types')
       .then(data => setAppointmentTypes(data || []))
       .catch(() => {});
   }, [api]);
