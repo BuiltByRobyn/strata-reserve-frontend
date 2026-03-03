@@ -181,8 +181,13 @@ export const InspectorAvailabilityManager = () => {
 
     return (
         <div className="inspector-availability-manager">
-            <div className="manager-header">
+            <div className="manager-header company-holidays-header">
                 <h3>Inspector Availability</h3>
+                {isDesktop && (
+                    <button className="btn-confirm company-holidays-add-btn" onClick={handleAddNew}>
+                        + Add Available Date
+                    </button>
+                )}
             </div>
 
             <div className="filters-row">
@@ -220,6 +225,12 @@ export const InspectorAvailabilityManager = () => {
             </div>
 
             {error && <div className="alert alert-error">{error}</div>}
+
+            {!isDesktop && (
+                <button className="btn-confirm availability-add-button" onClick={handleAddNew}>
+                    + Add Available Date
+                </button>
+            )}
 
             {isDesktop ? (
                 <DataTable
@@ -269,10 +280,6 @@ export const InspectorAvailabilityManager = () => {
                     )}
                 </>
             )}
-
-            <button className="btn-confirm availability-add-button" onClick={handleAddNew}>
-                + Add Available Date
-            </button>
 
             <Modal
                 isOpen={isViewModalOpen}

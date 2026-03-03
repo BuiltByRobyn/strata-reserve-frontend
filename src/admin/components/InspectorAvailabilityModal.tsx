@@ -50,7 +50,7 @@ export const InspectorAvailabilityModal = ({
                 availableEndDate: '',
                 availableStartTime: '09:00',
                 availableEndTime: '18:00',
-                locationCodes: []
+                locationCodes: LOCATION_OPTIONS.map(l => l.key)
             });
         }
         setError(null);
@@ -65,8 +65,9 @@ export const InspectorAvailabilityModal = ({
                 throw new Error('Please fill in all required fields.');
             }
 
-            if (formData.locationCodes.length === 0) {
-                setError('Please select at least one location.');
+            const hasPhysical = formData.locationCodes.some(c => c !== 'Virtual');
+            if (!hasPhysical) {
+                setError('Please select a physical location.');
                 return;
             }
 
@@ -279,12 +280,9 @@ export const InspectorAvailabilityModal = ({
                         </div>
 
                         <div className="locations-row">
-                            <label className="locations-label">Available Locations</label>
+                            <label className="locations-label">Available Locations <span className="required">*</span></label>
                             {LOCATION_OPTIONS.map(loc => (
-                                <label
-                                    key={loc.key}
-                                    className="location-option"
-                                >
+                                <label key={loc.key} className="location-option">
                                     <input
                                         type="checkbox"
                                         checked={formData.locationCodes.includes(loc.key)}

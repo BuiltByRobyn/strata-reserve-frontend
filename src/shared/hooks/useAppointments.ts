@@ -127,6 +127,18 @@ export const useAppointments = () => {
     }
   }, [api]);
 
+  const createInspectorAvailability = useCallback(async (
+    inspectorProfileId: string,
+    date: string
+  ): Promise<void> => {
+    await api.post('/admin/inspector-availability', {
+      availableStartDate: date,
+      availableEndDate: date,
+      inspectorProfileId,
+      locationCodes: [],
+    });
+  }, [api]);
+
   const createAppointment = useCallback(async (data: {
     serviceRequestId: number;
     appointmentDate: string;
@@ -191,5 +203,6 @@ export const useAppointments = () => {
     fetchAppointmentRequests,
     reviewAppointmentRequest,
     checkInspectorAvailability,
+    createInspectorAvailability,
   };
 };

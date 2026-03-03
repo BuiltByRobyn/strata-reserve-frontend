@@ -113,6 +113,8 @@ export const Dashboard = () => {
 
   const statsLoading = requestsLoading || stratasLoading || usersLoading || appointmentsLoading;
 
+  if (statsLoading) return <LoadingSpinner />;
+
   return (
     <div className="admin-dashboard">
       <div className="dashboard-welcome">
@@ -123,19 +125,19 @@ export const Dashboard = () => {
       <div className="dashboard-overview">
         <div className="stats-row">
           <div className="stat-card">
-            <span className="stat-number">{statsLoading ? '...' : users.length}</span>
+            <span className="stat-number">{users.length}</span>
             <span className="stat-label">Active Users</span>
           </div>
           <div className="stat-card stat-card--warning">
-            <span className="stat-number">{statsLoading ? '...' : requests.length}</span>
+            <span className="stat-number">{requests.length}</span>
             <span className="stat-label">Pending Approvals</span>
           </div>
           <div className="stat-card stat-card--accent">
-            <span className="stat-number">{statsLoading ? '...' : appointmentsThisWeek.length}</span>
+            <span className="stat-number">{appointmentsThisWeek.length}</span>
             <span className="stat-label">Appointments This Week</span>
           </div>
           <div className="stat-card">
-            <span className="stat-number">{statsLoading ? '...' : stratas.length}</span>
+            <span className="stat-number">{stratas.length}</span>
             <span className="stat-label">Total Active Strata</span>
           </div>
 
@@ -154,9 +156,7 @@ export const Dashboard = () => {
       <section className="dashboard-section">
         <h2>Urgent Actions</h2>
 
-        {requestsLoading ? (
-          <LoadingSpinner />
-        ) : requests.length === 0 ? (
+        {requests.length === 0 ? (
           <div className="empty-actions">
             <p>No pending actions at this time.</p>
           </div>
@@ -211,9 +211,7 @@ export const Dashboard = () => {
           </div>
         )}
 
-        {appointmentsLoading ? (
-          <LoadingSpinner />
-        ) : upcomingAppointments.length === 0 ? (
+        {upcomingAppointments.length === 0 ? (
           <div className="empty-actions">
             <p>No upcoming appointments.</p>
           </div>

@@ -1,15 +1,5 @@
 import { formatTime12h } from '../../shared/lib/formatters';
-import type { AvailableDay, AvailableSlot, BookingChoice } from '../../shared/types/appointment.types';
-
-type BookingStep = 'first-date' | 'first-slot' | 'second-date' | 'second-slot' | 'confirm';
-
-interface AvailableMeetingDatesProps {
-  availability: AvailableDay[];
-  onSelectSlot: (date: string, slot: AvailableSlot) => void;
-  firstChoice: BookingChoice | null;
-  secondChoice: BookingChoice | null;
-  bookingStep: BookingStep;
-}
+import type { AvailableMeetingDatesProps } from '../../shared/types/appointment.types';
 
 function formatDayHeading(dateStr: string): string {
   const date = new Date(dateStr + 'T00:00:00');

@@ -39,16 +39,18 @@ const CancelAppointmentModal = ({
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={resetAndClose} title="Cancel Appointment" size="small">
+    <Modal isOpen={isOpen} onClose={resetAndClose} title="Cancel Appointment" size="medium">
       <div className="cancel-modal">
         {error && <div className="cancel-modal__error">{error}</div>}
 
         <div className="appointment-info-row">
+          <div className="appointment-info-row__header">Current Appointment</div>
           <div className="appointment-info-row__grid">
             <div><span className="appointment-info-row__label">Date</span><span>{formatDateMedium(appointment.appointmentDate)}</span></div>
             <div><span className="appointment-info-row__label">Time</span><span>{formatTime12h(appointment.timeSlot.slotTime)}</span></div>
             <div><span className="appointment-info-row__label">Appointment Type</span><span>{appointment.appointmentType.typeName}</span></div>
             <div><span className="appointment-info-row__label">Inspector</span><span>{currentInspector}</span></div>
+            <div><span className="appointment-info-row__label">Location</span><span>{(appointment.serviceRequest?.strata as any)?.location?.locationName || '-'}</span></div>
           </div>
         </div>
 

@@ -5,13 +5,15 @@ import { useUsers } from '../../shared/hooks/useUsers';
 import { useLookups } from '../../shared/hooks/useLookups';
 import { useServiceRequests } from '../../shared/hooks/useServiceRequests';
 import { DataTable, type Column } from '../../shared/components/DataTable';
+import { LoadingSpinner } from '../../shared/components/LoadingSpinner';
 import { SingleSelectDropdown } from '../../shared/components/SingleSelectDropdown';
 import { InputField } from '../../shared/components/FormField';
 import { Tabs } from '../../shared/components/Tabs';
 import { Modal } from '../../shared/components/Modal';
 import RescheduleAppointmentModal from '../components/RescheduleAppointmentModal';
 import CancelAppointmentModal from '../components/CancelAppointmentModal';
-import type { AppointmentWithDetails, AppointmentRequest, AppointmentTimeSlot, ProfileBasic } from '../../shared/types/entities.types';
+import type { AppointmentWithDetails, AppointmentRequest, ProfileBasic } from '../../shared/types/entities.types';
+import type { UnifiedRow, SelectedItem } from '../../shared/types/appointment.types';
 import { formatDateShort, formatTime12h } from '../../shared/lib/formatters';
 import { getSlotTimeRange } from '../../shared/lib/dateUtils';
 
@@ -44,27 +46,6 @@ const getInspectorNames = (
   return names.length > 0 ? names.join(', ') : '-';
 };
 
-// Unified row type for the merged list
-interface UnifiedRow {
-  id: string;
-  type: 'appointment' | 'request';
-  date: string;
-  time: string;
-  appointmentTypeName: string;
-  strataPlan: string;
-  strataName: string;
-  strataId: number;
-  location: string;
-  inspectorNames: string;
-  inspectorId: string | null;
-  status: string;
-  original: AppointmentWithDetails | AppointmentRequest;
-}
-
-type SelectedItem =
-  | { type: 'appointment'; data: AppointmentWithDetails }
-  | { type: 'request'; data: AppointmentRequest };
-
 export default function AppointmentsPage() {
   const {
     appointments, loading, error,
@@ -72,16 +53,15 @@ export default function AppointmentsPage() {
     cancelAppointment, rescheduleAppointment, requestRebooking,
     createAppointment, fetchTimeSlots, fetchAppointmentTypes,
     fetchAppointmentRequests, reviewAppointmentRequest,
-    checkInspectorAvailability,
+    checkInspectorAvailability, createInspectorAvailability,
   } = useAppointments();
-  const { users } = useUsers();
+  const { users, loading: usersLoading } = useUsers();
   const { locations, loading: lookupsLoading } = useLookups();
   const { serviceRequests, refetch: fetchServiceRequests } = useServiceRequests();
 
   const [selectedItem, setSelectedItem] = useState<SelectedItem | null>(null);
   const [rescheduleApt, setRescheduleApt] = useState<AppointmentWithDetails | null>(null);
   const [cancelApt, setCancelApt] = useState<AppointmentWithDetails | null>(null);
-  const [timeSlots, setTimeSlots] = useState<AppointmentTimeSlot[]>([]);
 
   // Review state
   const [inspectorId, setInspectorId] = useState('');
@@ -101,17 +81,18 @@ export default function AppointmentsPage() {
   const [showPastDates, setShowPastDates] = useState(false);
   const [showCancelled, setShowCancelled] = useState(false);
 
-  // Create appointment modal state
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [createForm, setCreateForm] = useState({ serviceRequestId: '', appointmentDate: '', timeSlotId: '', appointmentTypeId: '', inspectorProfileId: '' });
   const [createError, setCreateError] = useState<string | null>(null);
   const [createSubmitting, setCreateSubmitting] = useState(false);
+  const [showAvailabilityWarning, setShowAvailabilityWarning] = useState(false);
   const [allTimeSlots, setAllTimeSlots] = useState<any[]>([]);
   const [allAppointmentTypes, setAllAppointmentTypes] = useState<any[]>([]);
 
   const openCreateModal = useCallback(async () => {
     setCreateForm({ serviceRequestId: '', appointmentDate: '', timeSlotId: '', appointmentTypeId: '', inspectorProfileId: '' });
     setCreateError(null);
+    setShowAvailabilityWarning(false);
     setShowCreateModal(true);
     fetchServiceRequests({ archived: false });
     const [slots, types] = await Promise.all([fetchTimeSlots(), fetchAppointmentTypes()]);
@@ -119,11 +100,17 @@ export default function AppointmentsPage() {
     setAllAppointmentTypes(types || []);
   }, [fetchServiceRequests, fetchTimeSlots, fetchAppointmentTypes]);
 
-  const handleCreateAppointment = useCallback(async () => {
-    if (!createForm.serviceRequestId || !createForm.appointmentDate || !createForm.timeSlotId || !createForm.appointmentTypeId) {
-      setCreateError('Please fill in all required fields');
-      return;
-    }
+  const validateCreateForm = useCallback(() => {
+    const missing: string[] = [];
+    if (!createForm.serviceRequestId) missing.push('Strata');
+    if (!createForm.appointmentTypeId) missing.push('Appointment Type');
+    if (!createForm.appointmentDate) missing.push('Date');
+    if (!createForm.timeSlotId) missing.push('Time Slot');
+    if (!createForm.inspectorProfileId) missing.push('Inspector');
+    return missing;
+  }, [createForm]);
+
+  const submitAppointment = useCallback(async () => {
     setCreateSubmitting(true);
     setCreateError(null);
     try {
@@ -132,9 +119,10 @@ export default function AppointmentsPage() {
         appointmentDate: createForm.appointmentDate,
         timeSlotId: parseInt(createForm.timeSlotId),
         appointmentTypeId: parseInt(createForm.appointmentTypeId),
-        inspectorProfileId: createForm.inspectorProfileId || undefined,
+        inspectorProfileId: createForm.inspectorProfileId,
       });
       setShowCreateModal(false);
+      setShowAvailabilityWarning(false);
       toast.success('Appointment created successfully');
     } catch (err) {
       setCreateError(err instanceof Error ? err.message : 'Failed to create appointment');
@@ -143,22 +131,48 @@ export default function AppointmentsPage() {
     }
   }, [createForm, createAppointment]);
 
+  const handleCreateAppointment = useCallback(async () => {
+    const missing = validateCreateForm();
+    if (missing.length > 0) {
+      setCreateError(`Please select: ${missing.join(', ')}`);
+      return;
+    }
+    setCreateSubmitting(true);
+    setCreateError(null);
+    try {
+      const isAvailable = await checkInspectorAvailability(createForm.inspectorProfileId, createForm.appointmentDate);
+      if (isAvailable) {
+        await submitAppointment();
+      } else {
+        setCreateSubmitting(false);
+        setShowAvailabilityWarning(true);
+      }
+    } catch (err) {
+      setCreateError(err instanceof Error ? err.message : 'Failed to create appointment');
+      setCreateSubmitting(false);
+    }
+  }, [validateCreateForm, checkInspectorAvailability, createForm, submitAppointment]);
+
+  const handleConfirmUnavailable = useCallback(async () => {
+    setCreateSubmitting(true);
+    setCreateError(null);
+    try {
+      await createInspectorAvailability(createForm.inspectorProfileId, createForm.appointmentDate);
+      await submitAppointment();
+    } catch (err) {
+      setCreateError(err instanceof Error ? err.message : 'Failed to create appointment');
+      setCreateSubmitting(false);
+    }
+  }, [createForm, createInspectorAvailability, submitAppointment]);
+
   // Fetch requests on mount (no longer tab-gated)
   useEffect(() => {
     fetchAppointmentRequests('Pending Review');
   }, [fetchAppointmentRequests]);
 
   useEffect(() => {
-    const slotsFromAppointments = appointments.reduce<AppointmentTimeSlot[]>((acc, apt) => {
-      if (!acc.find(s => s.timeSlotId === apt.timeSlot.timeSlotId)) {
-        acc.push(apt.timeSlot);
-      }
-      return acc;
-    }, []);
-    if (slotsFromAppointments.length > 0) {
-      setTimeSlots(slotsFromAppointments);
-    }
-  }, [appointments]);
+    fetchTimeSlots().then(slots => setAllTimeSlots(slots || []));
+  }, [fetchTimeSlots]);
 
   // Pre-fill inspector from offer when selecting a request
   useEffect(() => {
@@ -757,7 +771,7 @@ export default function AppointmentsPage() {
           isOpen={!!rescheduleApt}
           onClose={() => setRescheduleApt(null)}
           appointment={rescheduleApt}
-          timeSlots={timeSlots}
+          timeSlots={allTimeSlots}
           inspectors={users}
           onReschedule={rescheduleAppointment}
         />
@@ -772,7 +786,9 @@ export default function AppointmentsPage() {
     );
   }
 
-  const isLoading = loading || requestsLoading || lookupsLoading;
+  const isLoading = loading || requestsLoading || lookupsLoading || usersLoading;
+
+  if (isLoading) return <LoadingSpinner />;
 
   return (
     <div className="appointments-page">
@@ -787,14 +803,12 @@ export default function AppointmentsPage() {
 
       {error && <div className="error-banner">{error}</div>}
 
-      {!lookupsLoading && (
-        <Tabs
-          tabs={locationTabs}
-          activeTab={filterLocation}
-          onChange={setFilterLocation}
-          variant="pill"
-        />
-      )}
+      <Tabs
+        tabs={locationTabs}
+        activeTab={filterLocation}
+        onChange={setFilterLocation}
+        variant="pill"
+      />
 
       <div className="filters-row appointments-filters">
         <SingleSelectDropdown
@@ -833,22 +847,26 @@ export default function AppointmentsPage() {
           />
         </div>
         <div className="appointments-filters__toggles">
-          <label className="archived-toggle">
-            <input
-              type="checkbox"
-              checked={showPastDates}
-              onChange={() => setShowPastDates(prev => !prev)}
-            />
-            Show Past Dates
-          </label>
-          <label className="archived-toggle">
-            <input
-              type="checkbox"
-              checked={showCancelled}
-              onChange={() => setShowCancelled(prev => !prev)}
-            />
-            Show Cancelled
-          </label>
+          <div className="form-field archived-toggle">
+            <label>
+              <input
+                type="checkbox"
+                checked={showPastDates}
+                onChange={() => setShowPastDates(prev => !prev)}
+              />
+              Show Past Dates
+            </label>
+          </div>
+          <div className="form-field archived-toggle">
+            <label>
+              <input
+                type="checkbox"
+                checked={showCancelled}
+                onChange={() => setShowCancelled(prev => !prev)}
+              />
+              Show Cancelled
+            </label>
+          </div>
         </div>
       </div>
 
@@ -869,9 +887,7 @@ export default function AppointmentsPage() {
         />
       </div>
       <div className="appointments-page__mobile">
-        {isLoading ? (
-          <div className="appointments-page__loading">Loading...</div>
-        ) : filteredRows.length === 0 ? (
+        {filteredRows.length === 0 ? (
           <div className="appointments-page__empty">No appointments found.</div>
         ) : (
           filteredRows.map(renderMobileCard)
@@ -880,75 +896,103 @@ export default function AppointmentsPage() {
 
       <Modal
         isOpen={showCreateModal}
-        onClose={() => setShowCreateModal(false)}
+        onClose={() => { setShowCreateModal(false); setShowAvailabilityWarning(false); }}
         title="Add New Appointment"
         size="medium"
-        footer={
+        footer={showAvailabilityWarning ? undefined : (
           <>
             <button className="btn btn-secondary" onClick={() => setShowCreateModal(false)} disabled={createSubmitting}>
               Cancel
             </button>
             <button className="btn btn-primary" onClick={handleCreateAppointment} disabled={createSubmitting}>
-              {createSubmitting ? 'Saving...' : 'Add Appointment'}
+              {createSubmitting ? 'Checking...' : 'Add Appointment'}
             </button>
           </>
-        }
+        )}
       >
         <div className="offer-modal">
           {createError && <div className="offer-modal__error">{createError}</div>}
 
-          <SingleSelectDropdown
-            label="Strata"
-            required
-            options={serviceRequests.map(sr => ({
-              value: String(sr.serviceRequestId),
-              label: `${sr.strata?.strataPlan || ''} - ${sr.strata?.complexName || 'Unknown'}`,
-            }))}
-            value={createForm.serviceRequestId}
-            onChange={(val) => setCreateForm(prev => ({ ...prev, serviceRequestId: val }))}
-            placeholder="Select a strata..."
-          />
+          {showAvailabilityWarning ? (
+            <div className="offer-modal__warning">
+              <p>Inspector unavailable on the selected date. Are you sure you would like to book this appointment?</p>
+              <div className="offer-modal__warning-actions">
+                <button className="btn btn-secondary" onClick={() => setShowAvailabilityWarning(false)} disabled={createSubmitting}>
+                  Go Back
+                </button>
+                <button className="btn btn-primary" onClick={handleConfirmUnavailable} disabled={createSubmitting}>
+                  {createSubmitting ? 'Booking...' : 'Yes, Book Anyway'}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <SingleSelectDropdown
+                label="Strata"
+                required
+                options={serviceRequests.map(sr => ({
+                  value: String(sr.serviceRequestId),
+                  label: `${sr.strata?.strataPlan || ''} - ${sr.strata?.complexName || 'Unknown'}`,
+                }))}
+                value={createForm.serviceRequestId}
+                onChange={(val) => setCreateForm(prev => ({ ...prev, serviceRequestId: val }))}
+                placeholder="Select a strata..."
+              />
 
-          <SingleSelectDropdown
-            label="Appointment Type"
-            required
-            options={allAppointmentTypes.map((t: any) => ({
-              value: String(t.appointmentTypeId),
-              label: `${t.typeName} (${t.durationType})`,
-            }))}
-            value={createForm.appointmentTypeId}
-            onChange={(val) => setCreateForm(prev => ({ ...prev, appointmentTypeId: val }))}
-            placeholder="Select appointment type..."
-          />
+              {createForm.serviceRequestId && (() => {
+                const sr = serviceRequests.find(s => String(s.serviceRequestId) === createForm.serviceRequestId);
+                const loc = (sr?.strata as any)?.location?.locationName;
+                return loc ? (
+                  <div className="form-field">
+                    <label>Location</label>
+                    <input type="text" value={loc} disabled />
+                  </div>
+                ) : null;
+              })()}
 
-          <div className="offer-modal__field">
-            <label>Date <span className="offer-modal__required">*</span></label>
-            <input
-              type="date"
-              value={createForm.appointmentDate}
-              onChange={(e) => setCreateForm(prev => ({ ...prev, appointmentDate: e.target.value }))}
-            />
-          </div>
+              <SingleSelectDropdown
+                label="Appointment Type"
+                required
+                options={allAppointmentTypes.map((t: any) => ({
+                  value: String(t.appointmentTypeId),
+                  label: `${t.typeName} (${t.durationType})`,
+                }))}
+                value={createForm.appointmentTypeId}
+                onChange={(val) => setCreateForm(prev => ({ ...prev, appointmentTypeId: val }))}
+                placeholder="Select appointment type..."
+              />
 
-          <SingleSelectDropdown
-            label="Time Slot"
-            required
-            options={allTimeSlots.map((s: any) => ({
-              value: String(s.timeSlotId),
-              label: `${s.slotName} (${formatTime12h(s.slotTime)})`,
-            }))}
-            value={createForm.timeSlotId}
-            onChange={(val) => setCreateForm(prev => ({ ...prev, timeSlotId: val }))}
-            placeholder="Select a time slot..."
-          />
+              <div className="offer-modal__field">
+                <label>Date <span className="offer-modal__required">*</span></label>
+                <input
+                  type="date"
+                  value={createForm.appointmentDate}
+                  onChange={(e) => setCreateForm(prev => ({ ...prev, appointmentDate: e.target.value }))}
+                />
+              </div>
 
-          <SingleSelectDropdown
-            label="Inspector (Optional)"
-            options={inspectorOptions}
-            value={createForm.inspectorProfileId}
-            onChange={(val) => setCreateForm(prev => ({ ...prev, inspectorProfileId: val }))}
-            placeholder="Select an inspector..."
-          />
+              <SingleSelectDropdown
+                label="Time Slot"
+                required
+                options={allTimeSlots.map((s: any) => ({
+                  value: String(s.timeSlotId),
+                  label: `${s.slotName} (${formatTime12h(s.slotTime)})`,
+                }))}
+                value={createForm.timeSlotId}
+                onChange={(val) => setCreateForm(prev => ({ ...prev, timeSlotId: val }))}
+                placeholder="Select a time slot..."
+              />
+
+              <SingleSelectDropdown
+                label="Inspector"
+                required
+                options={inspectorOptions}
+                value={createForm.inspectorProfileId}
+                onChange={(val) => setCreateForm(prev => ({ ...prev, inspectorProfileId: val }))}
+                placeholder="Select an inspector..."
+              />
+            </>
+          )}
         </div>
       </Modal>
     </div>

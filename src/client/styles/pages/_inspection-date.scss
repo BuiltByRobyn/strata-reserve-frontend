@@ -7,6 +7,7 @@
 .inspection-date-page {
   max-width: none;
   padding: 1.5rem;
+  overflow-x: hidden;
 
   .loading-container {
     min-height: 50vh;
@@ -42,6 +43,9 @@
 
     &--scheduled {
       border-left: 4px solid $color-primary;
+      max-width: 1000px;
+      width: 100%;
+      box-sizing: border-box;
     }
   }
 
@@ -146,13 +150,9 @@
   }
 
   &__calendar-section {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-
     .booking-calendar {
       max-width: 1000px;
-      width: 90%;
+      width: 100%;
     }
   }
 }
@@ -163,12 +163,9 @@
   border: $border-width-medium solid $color-border-light;
   border-radius: $border-radius-lg;
   padding: $spacing-lg;
-  min-width: 340px;
-  flex-shrink: 0;
+  box-sizing: border-box;
 
   @include respond-below(sm) {
-    min-width: 0;
-    width: 100%;
     padding: $spacing-md;
   }
 
@@ -237,6 +234,7 @@
     cursor: default;
     transition: background-color 0.15s, color 0.15s;
     position: relative;
+    overflow: hidden;
 
     &--empty {
       background: transparent;
@@ -284,6 +282,15 @@
         color: $color-white !important;
       }
     }
+
+    &--booked {
+      border: 2px solid $color-primary;
+      font-weight: 600;
+
+      .booking-calendar__cell-label {
+        color: $color-primary-dark;
+      }
+    }
   }
 
   &__cell-day {
@@ -308,15 +315,11 @@
 
   &__legend {
     display: flex;
-    gap: $spacing-lg;
+    flex-wrap: wrap;
+    gap: $spacing-md;
     margin-top: $spacing-lg;
     padding-top: $spacing-md;
     border-top: $border-width-thin solid $color-border-light;
-
-    @include respond-below(sm) {
-      gap: $spacing-md;
-      flex-wrap: wrap;
-    }
   }
 
   &__legend-item {
@@ -349,6 +352,11 @@
     &--milestone {
       background: $color-accent-yellow-light;
       border: $border-width-thin solid $color-accent-yellow;
+    }
+
+    &--booked {
+      background: $color-white;
+      border: 2px solid $color-primary;
     }
   }
 }
@@ -521,10 +529,7 @@
 // ─── Available Meeting Dates Grid ─────────────────────────────
 .available-meeting-dates {
   margin-top: $spacing-lg;
-  max-width: 600px;
   width: 100%;
-  margin-left: auto;
-  margin-right: auto;
 
   &__title {
     margin: 0 0 $spacing-lg;
@@ -535,7 +540,7 @@
 
   &__grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(3, 1fr);
     gap: $spacing-lg;
 
     @include respond-below(md) {

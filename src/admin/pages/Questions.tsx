@@ -3,6 +3,7 @@ import { useQuestions } from '../../shared/hooks/useQuestions';
 import { useLookups } from '../../shared/hooks/useLookups';
 import { useMediaQuery } from '../../shared/hooks/useMediaQuery';
 import { DataTable, type Column } from '../../shared/components/DataTable';
+import { LoadingSpinner } from '../../shared/components/LoadingSpinner';
 import { Modal } from '../../shared/components/Modal';
 import { InputField, TextareaField, FormRow } from '../../shared/components/FormField';
 import { MultiSelectDropdown } from '../../shared/components/MultiSelectDropdown';
@@ -207,6 +208,8 @@ export default function QuestionsPage() {
       return { ...prev, multipleChoiceOptions: updated };
     });
   };
+
+  if (loading) return <LoadingSpinner />;
 
   return (
     <div className="questions-page">

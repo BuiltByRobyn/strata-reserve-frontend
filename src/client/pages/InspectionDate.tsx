@@ -10,10 +10,8 @@ import { formatDateLong, formatTime12h } from '../../shared/lib/formatters';
 import BookingCalendar from '../components/BookingCalendar';
 import AvailableMeetingDates from '../components/AvailableMeetingDates';
 import BookingConfirmation from '../components/BookingConfirmation';
-import type { AvailableDay, AvailableSlot, BookingChoice, ActiveAppointmentResponse, CalendarMilestone } from '../../shared/types/appointment.types';
+import type { AvailableDay, AvailableSlot, BookingChoice, BookingStep, ActiveAppointmentResponse, CalendarMilestone } from '../../shared/types/appointment.types';
 import type { AppointmentType } from '../../shared/types/entities.types';
-
-type BookingStep = 'first-date' | 'first-slot' | 'second-date' | 'second-slot' | 'confirm';
 
 /** Next anniversary of baseDate strictly after referenceDate */
 function getNextAnniversary(baseDate: Date, referenceDate: Date): Date {
@@ -180,7 +178,7 @@ const InspectionDate = () => {
 
     // "Approved" milestone on the date the appointment was offered
     if (activeRequest?.appointmentOfferedAt) {
-      const offeredDate = activeRequest.appointmentOfferedAt.split('T')[0];
+      const offeredDate = formatYMD(new Date(activeRequest.appointmentOfferedAt));
       result.push({ date: offeredDate, label: 'Approved' });
     }
 
@@ -190,16 +188,17 @@ const InspectionDate = () => {
     let effectiveTargetDate: Date | null = null;
 
     if (timelines.targetDate) {
-      effectiveTargetDate = new Date(timelines.targetDate + 'T00:00:00');
-      result.push({ date: timelines.targetDate, label: 'Target Date' });
+      const targetDateStr = timelines.targetDate.split('T')[0];
+      effectiveTargetDate = new Date(targetDateStr + 'T00:00:00');
+      result.push({ date: targetDateStr, label: 'Target Date' });
     }
 
     // Next Projected AGM
     const lastAgmDate = timelines.lastAgmDate && !timelines.noAgmToDate
-      ? new Date(timelines.lastAgmDate + 'T00:00:00')
+      ? new Date(timelines.lastAgmDate.split('T')[0] + 'T00:00:00')
       : null;
     const fiscalYearEnd = timelines.fiscalYearEnd
-      ? new Date(timelines.fiscalYearEnd + 'T00:00:00')
+      ? new Date(timelines.fiscalYearEnd.split('T')[0] + 'T00:00:00')
       : null;
     const agmBase = lastAgmDate ?? (timelines.noAgmToDate ? fiscalYearEnd : null);
     if (agmBase) {
@@ -558,6 +557,7 @@ const InspectionDate = () => {
               onSelectDate={hasScheduledAppointment ? () => {} : handleDateSelect}
               loading={calendarLoading}
               milestones={milestones}
+              bookedDate={scheduledApt ? (typeof scheduledApt.appointmentDate === 'string' ? scheduledApt.appointmentDate.split('T')[0] : formatYMD(new Date(scheduledApt.appointmentDate))) : null}
             />
           </div>
 

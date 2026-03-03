@@ -19,3 +19,6 @@ export const LOCATION_OPTIONS = [
     { key: 'NB', label: 'NB' },
     { key: 'Virtual', label: 'Virtual' }
 ];
+
+export const PHYSICAL_LOCATION_OPTIONS = LOCATION_OPTIONS.filter(l => l.key !== 'Virtual');
+export const VIRTUAL_LOCATION_OPTION = LOCATION_OPTIONS.find(l => l.key === 'Virtual')!;

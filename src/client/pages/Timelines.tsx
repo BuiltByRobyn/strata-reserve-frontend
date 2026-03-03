@@ -79,7 +79,6 @@ const Timelines = () => {
   const navigate = useNavigate();
   const { activeRequest, serviceRequestId, loading: srLoading } = useClientServiceRequest();
   const { timelines, loading: timelinesLoading, error: loadError, updateTimelines } = useTimelines(serviceRequestId);
-
   const [fiscalYearStart, setFiscalYearStart] = useState('');
   const [lastAGM, setLastAGM] = useState('');
   const [lastDepreciationReport, setLastDepreciationReport] = useState('');
@@ -107,7 +106,7 @@ const Timelines = () => {
     setLastDepreciationReport(toDateInputValue(timelines.lastDepreciationReportDate));
     setNoReportToDate(timelines.noReportToDate);
     setTargetDate(toDateInputValue(timelines.targetDate));
-    if (timelines.targetDate) {
+    if (timelines.fiscalYearEnd || timelines.targetDate) {
       setShowCalculatedResults(true);
     }
   }, [timelines]);

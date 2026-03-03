@@ -1,6 +1,6 @@
 import { Route } from 'react-router-dom';
 import { ProtectedRoute } from '../../shared/routes/ProtectedRoute';
-import { AdminNavbar } from '../components/AdminNavbar';
+import { AdminLayout } from '../components/AdminLayout';
 import { Dashboard } from '../pages/Dashboard';
 import ProfilePage from '../pages/Profile';
 import StrataPage from '../pages/Strata';
@@ -14,92 +14,47 @@ import TimelinesPage from '../pages/Timelines';
 export const adminRoutes = [
   <Route key="admin-dashboard" path="/admin/dashboard" element={
     <ProtectedRoute requireAdmin>
-      <div className="app">
-        <AdminNavbar />
-        <main className="app-main">
-          <Dashboard />
-        </main>
-      </div>
+      <AdminLayout><Dashboard /></AdminLayout>
     </ProtectedRoute>
   } />,
   <Route key="admin-profile" path="/admin/profile" element={
     <ProtectedRoute requireAdmin>
-      <div className="app">
-        <AdminNavbar />
-        <main className="app-main">
-          <ProfilePage />
-        </main>
-      </div>
+      <AdminLayout><ProfilePage /></AdminLayout>
     </ProtectedRoute>
   } />,
   <Route key="admin-strata-detail" path="/admin/strata/:id" element={
     <ProtectedRoute requireAdmin>
-      <div className="app">
-        <AdminNavbar />
-        <main className="app-main">
-          <StrataDetailPage />
-        </main>
-      </div>
+      <AdminLayout><StrataDetailPage /></AdminLayout>
     </ProtectedRoute>
   } />,
   <Route key="admin-strata" path="/admin/strata" element={
     <ProtectedRoute requireAdmin>
-      <div className="app">
-        <AdminNavbar />
-        <main className="app-main">
-          <StrataPage />
-        </main>
-      </div>
+      <AdminLayout><StrataPage /></AdminLayout>
     </ProtectedRoute>
   } />,
   <Route key="admin-users" path="/admin/users" element={
     <ProtectedRoute requireAdmin>
-      <div className="app">
-        <AdminNavbar />
-        <main className="app-main">
-          <UsersPage />
-        </main>
-      </div>
+      <AdminLayout><UsersPage /></AdminLayout>
     </ProtectedRoute>
   } />,
   <Route key="admin-appointments" path="/admin/appointments" element={
     <ProtectedRoute requireAdmin>
-      <div className="app">
-        <AdminNavbar />
-        <main className="app-main">
-          <AppointmentsPage />
-        </main>
-      </div>
+      <AdminLayout><AppointmentsPage /></AdminLayout>
     </ProtectedRoute>
   } />,
   <Route key="admin-documents" path="/admin/documents" element={
     <ProtectedRoute requireAdmin>
-      <div className="app">
-        <AdminNavbar />
-        <main className="app-main">
-          <DocumentsPage />
-        </main>
-      </div>
+      <AdminLayout><DocumentsPage /></AdminLayout>
     </ProtectedRoute>
   } />,
   <Route key="admin-questions" path="/admin/questions" element={
     <ProtectedRoute requireAdmin>
-      <div className="app">
-        <AdminNavbar />
-        <main className="app-main">
-          <QuestionsPage />
-        </main>
-      </div>
+      <AdminLayout><QuestionsPage /></AdminLayout>
     </ProtectedRoute>
   } />,
   <Route key="admin-timelines" path="/admin/timelines" element={
     <ProtectedRoute requireAdmin>
-      <div className="app">
-        <AdminNavbar />
-        <main className="app-main">
-          <TimelinesPage />
-        </main>
-      </div>
+      <AdminLayout><TimelinesPage /></AdminLayout>
     </ProtectedRoute>
   } />,
 ];

@@ -77,6 +77,7 @@ const RescheduleAppointmentModal = ({
             <div><span className="appointment-info-row__label">Time</span><span>{formatTime12h(appointment.timeSlot.slotTime)}</span></div>
             <div><span className="appointment-info-row__label">Appointment Type</span><span>{appointment.appointmentType.typeName}</span></div>
             <div><span className="appointment-info-row__label">Inspector</span><span>{currentInspector}</span></div>
+            <div><span className="appointment-info-row__label">Location</span><span>{(appointment.serviceRequest?.strata as any)?.location?.locationName || '-'}</span></div>
           </div>
         </div>
 
