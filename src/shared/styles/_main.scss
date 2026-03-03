@@ -14,14 +14,12 @@
 @use 'components/filters-row';
 
 @use 'pages/dashboard';
-@use 'pages/upload';
 @use 'pages/login';
 @use 'pages/set-password';
 @use 'pages/profile';
 @use 'pages/legal';
 
 @use '../../admin/styles/pages/appointments';
-@use '../../admin/styles/pages/companies';
 @use '../../admin/styles/pages/documents';
 @use '../../admin/styles/pages/profile' as admin-profile;
 @use '../../admin/styles/pages/strata';

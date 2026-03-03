@@ -38,6 +38,7 @@ import { API_BASE } from "../../shared/lib/api";
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from "../../shared/lib/constants";
 import { formatTypeName, formatDate, getStatusBadgeClass } from "../../shared/lib/formatters";
 import { parseLocalDate, formatDateShort } from "../../shared/lib/dateUtils";
+import { getFilenameFromDisposition, triggerBlobDownload } from "../../shared/utils/fileUtils";
 
 const MAIN_TABS = [
   { key: "active", label: "Active" },
@@ -391,30 +392,11 @@ export default function StrataDetailPage() {
         return;
       }
       const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `Documents - ${strata?.strataPlan || 'SR'}.zip`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      triggerBlobDownload(blob, `Documents - ${strata?.strataPlan || 'SR'}.zip`);
     } catch (err) {
       alert('Download failed. Please try again.');
     } finally {
       setDownloadingDocs(false);
-    }
-  };
-
-  const getFilenameFromDisposition = (value: string | null): string | null => {
-    if (!value) return null;
-    const match = value.match(/filename\*=UTF-8''([^;]+)|filename="?([^";]+)"?/i);
-    const raw = match?.[1] || match?.[2];
-    if (!raw) return null;
-    try {
-      return decodeURIComponent(raw);
-    } catch {
-      return raw;
     }
   };
 
@@ -435,18 +417,10 @@ export default function StrataDetailPage() {
       }
 
       const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
       const filename =
         getFilenameFromDisposition(res.headers.get('Content-Disposition')) ||
-        `Survey-Answers-${strata?.strataPlan || 'SR'}-SR-${activeRequest.serviceRequestId}.pdf`;
-
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+        `Survey-Answers-${strata?.strataPlan || 'Survey'}.pdf`;
+      triggerBlobDownload(blob, filename);
     } catch {
       alert('Download failed. Please try again.');
     } finally {
@@ -838,7 +812,7 @@ export default function StrataDetailPage() {
             <button className="btn-primary" onClick={handleDownloadDocuments} disabled={downloadingDocs}>
               {downloadingDocs ? "Downloading..." : "Download Documents"}
             </button>
-            <button className="btn-primary">Download Survey Answers</button>
+            <button className="btn-primary" style={{ minWidth: '220px' }} onClick={handleDownloadSurveyPdf} disabled={downloadingSurveyPdf}>{downloadingSurveyPdf ? "Downloading..." : "Download Survey Answers"}</button>
             <button className="btn-primary" onClick={() => setOfferModalOpen(true)}>Offer Appointment</button>
           </div>
         )}
@@ -884,7 +858,7 @@ export default function StrataDetailPage() {
           <button className="btn-primary" onClick={handleDownloadDocuments} disabled={downloadingDocs}>
             {downloadingDocs ? "Downloading..." : "Download Documents"}
           </button>
-          <button className="btn-primary">Download Survey Answers</button>
+          <button className="btn-primary" style={{ minWidth: '220px' }} onClick={handleDownloadSurveyPdf} disabled={downloadingSurveyPdf}>{downloadingSurveyPdf ? "Downloading..." : "Download Survey Answers"}</button>
           <button className="btn-primary" onClick={() => setOfferModalOpen(true)}>Offer Appointment</button>
         </div>
       )}
@@ -949,14 +923,6 @@ export default function StrataDetailPage() {
                     </div>
                   </div>
                   <div className="survey-header-actions">
-                    <button
-                      type="button"
-                      className="btn-secondary"
-                      onClick={handleDownloadSurveyPdf}
-                      disabled={downloadingSurveyPdf}
-                    >
-                      {downloadingSurveyPdf ? 'Downloading...' : 'Download PDF'}
-                    </button>
                     <button type="button" className="btn-primary" onClick={openSurveyReqModal}>
                       Configure Required Surveys
                     </button>

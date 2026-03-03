@@ -91,12 +91,6 @@ export interface FetchUsersParams {
   userTypeId?: number;
 }
 
-export interface PropertyTypeContextType {
-  propertyTypes: PropertyType[];
-  loading: boolean;
-  refetch: () => Promise<void>;
-}
-
 export interface UseCrudModalOptions<TItem, TFormData> {
   initialFormData: TFormData;
   itemToFormData: (item: TItem) => TFormData;
