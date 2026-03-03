@@ -107,6 +107,22 @@
     }
   }
 
+  .survey-page-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: $spacing-md;
+
+    h1 {
+      margin: $spacing-lg 0;
+    }
+
+    @include respond-below(lg) {
+      flex-direction: column;
+      align-items: stretch;
+    }
+  }
+
   .survey-section-list {
     display: flex;
     flex-direction: column;
@@ -114,20 +130,6 @@
     border-radius: $border-radius-lg;
     overflow: hidden;
     background: $color-white;
-  }
-
-  .survey-page-actions {
-    display: flex;
-    justify-content: flex-end;
-    margin: $spacing-md 0;
-
-    @include respond-below(lg) {
-      justify-content: stretch;
-
-      .btn-secondary {
-        width: 100%;
-      }
-    }
   }
 
   .survey-section-item {

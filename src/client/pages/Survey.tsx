@@ -7,21 +7,10 @@ import { useApiClient } from '../../shared/hooks/useApiClient';
 import { SurveyProgressBar } from '../../shared/components/SurveyProgressBar';
 import { LoadingSpinner } from '../../shared/components/LoadingSpinner';
 import { Modal } from '../../shared/components/Modal';
+import { getFilenameFromDisposition, triggerBlobDownload } from '../../shared/utils/fileUtils';
 import {
   SURVEY_SECTIONS,
 } from '../../shared/types/survey.types';
-
-const getFilenameFromDisposition = (value: string | null): string | null => {
-  if (!value) return null;
-  const match = value.match(/filename\*=UTF-8''([^;]+)|filename="?([^";]+)"?/i);
-  const raw = match?.[1] || match?.[2];
-  if (!raw) return null;
-  try {
-    return decodeURIComponent(raw);
-  } catch {
-    return raw;
-  }
-};
 
 export default function SurveyPage() {
   const navigate = useNavigate();
@@ -94,18 +83,10 @@ export default function SurveyPage() {
       }
 
       const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
       const filename =
         getFilenameFromDisposition(res.headers.get('Content-Disposition')) ||
-        `Survey-Answers-${activeRequest?.strata?.strataPlan || 'SR'}-SR-${serviceRequestId}.pdf`;
-
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+        `Survey-Answers-${activeRequest?.strata?.strataPlan || 'Survey'}.pdf`;
+      triggerBlobDownload(blob, filename);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Download failed');
     } finally {
@@ -126,7 +107,19 @@ export default function SurveyPage() {
 
   return (
     <div className="survey-page">
-      <h1>Surveys</h1>
+      <div className="survey-page-header">
+        <h1>Surveys</h1>
+        {totalQuestions > 0 && (
+          <button
+            type="button"
+            className="btn-primary"
+            onClick={handleDownloadPdf}
+            disabled={!serviceRequestId || downloadingPdf}
+          >
+            {downloadingPdf ? 'Downloading...' : 'Download Survey'}
+          </button>
+        )}
+      </div>
       <p className="page-subtitle">
         Based on your input information, you will need to complete the following survey sections
       </p>
@@ -143,17 +136,6 @@ export default function SurveyPage() {
           </button>
         </div>
       )}
-
-      <div className="survey-page-actions">
-        <button
-          type="button"
-          className="btn-secondary"
-          onClick={handleDownloadPdf}
-          disabled={!serviceRequestId || downloadingPdf}
-        >
-          {downloadingPdf ? 'Downloading...' : 'Download PDF'}
-        </button>
-      </div>
 
       <SurveyProgressBar answered={totalAnswered} total={totalQuestions} />
 

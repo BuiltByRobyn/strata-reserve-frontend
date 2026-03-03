@@ -3,9 +3,11 @@ import { useParams, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { useSurvey } from '../../shared/hooks/useSurvey';
 import { useClientServiceRequest } from '../../shared/hooks/useClientServiceRequest';
+import { useApiClient } from '../../shared/hooks/useApiClient';
 import { SurveyProgressBar } from '../../shared/components/SurveyProgressBar';
 import { SurveyCategoryNav } from '../../shared/components/SurveyCategoryNav';
 import { LoadingSpinner } from '../../shared/components/LoadingSpinner';
+import { getFilenameFromDisposition, triggerBlobDownload } from '../../shared/utils/fileUtils';
 import {
   SURVEY_SECTIONS,
 } from '../../shared/types/survey.types';
@@ -27,11 +29,13 @@ export default function SurveySectionPage() {
     saveResponses,
     getResponseForQuestion,
   } = useSurvey();
+  const api = useApiClient();
 
   const [page, setPage] = useState(0);
   const [localAnswers, setLocalAnswers] = useState<Record<string, SaveResponsePayload>>({});
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
   const prevPageRef = useRef(page);
   const prevSectionRef = useRef(section);
 
@@ -141,6 +145,31 @@ export default function SurveySectionPage() {
     } else {
       toast.error('Please complete all required questions before submitting.');
       setSubmitError(result.error || 'Failed to submit');
+    }
+  };
+
+  const handleDownloadPdf = async () => {
+    if (!serviceRequestId) return;
+    setDownloadingPdf(true);
+    try {
+      const res = await api.rawFetch('/client/service-requests/active/survey/pdf');
+      if (!res.ok) {
+        let message = `Download failed (${res.status})`;
+        try {
+          const data = await res.json();
+          if (data?.error) message = data.error;
+        } catch { /* ignore */ }
+        throw new Error(message);
+      }
+      const blob = await res.blob();
+      const filename =
+        getFilenameFromDisposition(res.headers.get('Content-Disposition')) ||
+        `Survey-Answers-${activeRequest?.strata?.strataPlan || 'Survey'}.pdf`;
+      triggerBlobDownload(blob, filename);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Download failed');
+    } finally {
+      setDownloadingPdf(false);
     }
   };
 
@@ -438,6 +467,17 @@ export default function SurveySectionPage() {
           </button>
         )}
 
+        {!(isLastPage && isLastSection) && (
+          <button
+            type="button"
+            className="btn-primary btn-nav"
+            onClick={handleDownloadPdf}
+            disabled={!serviceRequestId || downloadingPdf}
+          >
+            {downloadingPdf ? 'Downloading...' : 'Download Survey'}
+          </button>
+        )}
+
         {isLastPage && isLastSection ? (
           <>
             <button
@@ -457,7 +497,7 @@ export default function SurveySectionPage() {
           </>
         ) : (
           <button
-            className="btn-primary btn-nav"
+            className="btn-secondary btn-nav"
             onClick={async () => {
               if (page < totalPages - 1) {
                 await handlePageChange(page + 1);
