@@ -155,7 +155,7 @@ export default function AppointmentsPage() {
         strataPlan: sr.strata.strataPlan || '-',
         strataName: sr.strata.complexName || '-',
         strataId: sr.strata.strataId,
-        location: sr.strata.town || '-',
+        location: (sr.strata as any).location?.locationName || sr.strata.town || '-',
         inspectorNames: getInspectorNames(apt.inspector, sr.appointmentOfferSecondInspector),
         inspectorId: apt.inspectorProfileId,
         status: apt.status,
@@ -176,7 +176,7 @@ export default function AppointmentsPage() {
         strataPlan: sr?.strata?.strataPlan || '-',
         strataName: sr?.strata?.complexName || '-',
         strataId: sr?.strata?.strataId || 0,
-        location: sr?.strata?.town || '-',
+        location: (sr?.strata as any)?.location?.locationName || sr?.strata?.town || '-',
         inspectorNames: getInspectorNames(inspector1, inspector2),
         inspectorId: inspector1?.id || null,
         status: req.status,
@@ -394,7 +394,7 @@ export default function AppointmentsPage() {
           <div className="info-row">
             <div className="info-item">
               <span className="info-label">LOCATION</span>
-              <span className="info-value">{sr.strata.town || '-'}</span>
+              <span className="info-value">{(sr.strata as any).location?.locationName || sr.strata.town || '-'}</span>
             </div>
             <div className="info-item">
               <span className="info-label">INSPECTOR(S)</span>
@@ -478,7 +478,7 @@ export default function AppointmentsPage() {
             </div>
             <div className="info-item">
               <span className="info-label">LOCATION</span>
-              <span className="info-value">{sr?.strata?.town || '-'}</span>
+              <span className="info-value">{(sr?.strata as any)?.location?.locationName || sr?.strata?.town || '-'}</span>
             </div>
           </div>
         </div>

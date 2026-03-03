@@ -510,9 +510,6 @@
 
   &__field--inline {
     @include respond-below(md) {
-      flex-direction: row;
-      justify-content: space-between;
-      align-items: baseline;
       padding: $spacing-sm 0;
       border-bottom: 1px solid $color-border-light;
     }

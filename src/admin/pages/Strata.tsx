@@ -439,6 +439,7 @@ export default function StrataPage() {
                   label: loc.locationName,
                 }))}
               placeholder="Select location"
+              required
             />
           </FormRow>
 
