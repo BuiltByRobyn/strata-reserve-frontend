@@ -104,7 +104,7 @@ const BookingCalendar = ({ availability, selectedDate, onSelectDate, loading, mi
       >
         <span className="booking-calendar__cell-day">{day}</span>
         {bookedDate && dateStr === bookedDate && (
-          <span className="booking-calendar__cell-label">Booked</span>
+          <span className="booking-calendar__cell-label">Appointment Booked</span>
         )}
         {milestoneLabel && (
           <span className="booking-calendar__cell-label">{milestoneLabel}</span>
@@ -163,7 +163,7 @@ const BookingCalendar = ({ availability, selectedDate, onSelectDate, loading, mi
         {bookedDate && (
           <span className="booking-calendar__legend-item">
             <span className="booking-calendar__legend-dot booking-calendar__legend-dot--booked" />
-            Booked
+            Appointment Booked
           </span>
         )}
         {milestonesMap.size > 0 && (

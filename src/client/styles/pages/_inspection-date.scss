@@ -21,6 +21,9 @@
     border-radius: $border-radius-lg;
     padding: $spacing-xl;
     margin-bottom: $spacing-lg;
+    max-width: 1000px;
+    width: 100%;
+    box-sizing: border-box;
 
     h3 {
       margin: 0 0 $spacing-md;
@@ -43,9 +46,6 @@
 
     &--scheduled {
       border-left: 4px solid $color-primary;
-      max-width: 1000px;
-      width: 100%;
-      box-sizing: border-box;
     }
   }
 
@@ -56,6 +56,7 @@
     border-radius: $border-radius-md;
     margin-bottom: $spacing-lg;
     border: $border-width-thin solid #fecaca;
+    max-width: 1000px;
   }
 
   &__success {

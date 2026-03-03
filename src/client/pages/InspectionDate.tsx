@@ -86,13 +86,13 @@ const InspectionDate = () => {
   const hasFetchedAppointment = useRef(false);
   const hasFetchedAvailability = useRef(false);
 
-  // Welcome modal: show once per session per service request
+  // Welcome modal: show once per service request (persists across sessions)
   useEffect(() => {
     if (!serviceRequestId || !isOffered) return;
     const key = `welcome-modal-shown-${serviceRequestId}`;
-    if (!sessionStorage.getItem(key)) {
+    if (!localStorage.getItem(key)) {
       setShowWelcomeModal(true);
-      sessionStorage.setItem(key, '1');
+      localStorage.setItem(key, '1');
     }
   }, [serviceRequestId, isOffered]);
 
@@ -552,7 +552,7 @@ const InspectionDate = () => {
 
           <div className="inspection-date__calendar-section">
             <BookingCalendar
-              availability={availability}
+              availability={hasScheduledAppointment ? [] : availability}
               selectedDate={selectedDate}
               onSelectDate={hasScheduledAppointment ? () => {} : handleDateSelect}
               loading={calendarLoading}
