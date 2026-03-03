@@ -1,90 +1,72 @@
 // Companies Page - Admin management of companies
-import { useState } from 'react';
+import { useCallback } from 'react';
 import { useCompanies } from '../../shared/hooks/useCompanies';
+import { useCrudModal } from '../../shared/hooks/useCrudModal';
 import { DataTable, type Column } from '../../shared/components/DataTable';
 import { Modal } from '../../shared/components/Modal';
 import { InputField } from '../../shared/components/FormField';
 import type { Company, CreateCompanyInput, UpdateCompanyInput } from '../../shared/types/entities.types';
 
+const INITIAL_FORM_DATA: CreateCompanyInput = {
+  companyName: '',
+  companyTelephone: ''
+};
+
 export default function CompaniesPage() {
-  const { 
-    companies, 
-    loading, 
-    error, 
-    createCompany, 
-    updateCompany, 
-    deleteCompany 
+  const {
+    companies,
+    loading,
+    error,
+    createCompany,
+    updateCompany,
+    deleteCompany
   } = useCompanies();
 
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingCompany, setEditingCompany] = useState<Company | null>(null);
-  const [formData, setFormData] = useState<CreateCompanyInput>({
-    companyName: '',
-    companyTelephone: ''
+  const {
+    isModalOpen,
+    editingItem: editingCompany,
+    formData,
+    setFormData,
+    formError,
+    isSubmitting,
+    openCreateModal,
+    openEditModal,
+    closeModal,
+    handleSubmit,
+  } = useCrudModal<Company, CreateCompanyInput>({
+    initialFormData: INITIAL_FORM_DATA,
+    itemToFormData: useCallback((c: Company) => ({
+      companyName: c.companyName,
+      companyTelephone: c.companyTelephone || '',
+    }), []),
+    onSubmit: useCallback(async (data: CreateCompanyInput, editing: Company | null) => {
+      if (!data.companyName.trim()) throw new Error('Company name is required');
+      if (editing) {
+        const updateData: UpdateCompanyInput = {
+          companyName: data.companyName.trim(),
+          companyTelephone: data.companyTelephone?.trim() || null,
+        };
+        await updateCompany(editing.companyId, updateData);
+      } else {
+        await createCompany(data);
+      }
+    }, [createCompany, updateCompany]),
   });
-  const [formError, setFormError] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const columns: Column<Company>[] = [
     { key: 'companyName', header: 'Company Name' },
     { key: 'companyTelephone', header: 'Telephone' },
-    { 
-      key: '_count', 
+    {
+      key: '_count',
       header: 'Properties',
       render: (company) => company._count?.stratas ?? 0
     },
-    { 
-      key: 'createdAt', 
+    {
+      key: 'createdAt',
       header: 'Created',
       render: (company) => new Date(company.createdAt).toLocaleDateString()
     }
   ];
-
-  const openCreateModal = () => {
-    setEditingCompany(null);
-    setFormData({ companyName: '', companyTelephone: '' });
-    setFormError(null);
-    setIsModalOpen(true);
-  };
-
-  const openEditModal = (company: Company) => {
-    setEditingCompany(company);
-    setFormData({
-      companyName: company.companyName,
-      companyTelephone: company.companyTelephone || ''
-    });
-    setFormError(null);
-    setIsModalOpen(true);
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!formData.companyName.trim()) {
-      setFormError('Company name is required');
-      return;
-    }
-
-    setIsSubmitting(true);
-    setFormError(null);
-
-    try {
-      if (editingCompany) {
-        const updateData: UpdateCompanyInput = {
-          companyName: formData.companyName.trim(),
-          companyTelephone: formData.companyTelephone?.trim() || null
-        };
-        await updateCompany(editingCompany.companyId, updateData);
-      } else {
-        await createCompany(formData);
-      }
-      setIsModalOpen(false);
-    } catch (err) {
-      setFormError(err instanceof Error ? err.message : 'An error occurred');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
 
   const handleDelete = async (company: Company) => {
     if (!confirm(`Are you sure you want to delete "${company.companyName}"?`)) {
@@ -121,14 +103,14 @@ export default function CompaniesPage() {
         emptyMessage="No companies found. Click 'Add Company' to create one."
         actions={(company) => (
           <>
-            <button 
-              className="btn-edit" 
+            <button
+              className="btn-edit"
               onClick={() => openEditModal(company)}
             >
               Edit
             </button>
-            <button 
-              className="btn-delete" 
+            <button
+              className="btn-delete"
               onClick={() => handleDelete(company)}
             >
               Delete
@@ -139,19 +121,19 @@ export default function CompaniesPage() {
 
       <Modal
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        onClose={closeModal}
         title={editingCompany ? 'Edit Company' : 'Add Company'}
         size="small"
         footer={
           <>
-            <button 
-              className="btn-secondary" 
-              onClick={() => setIsModalOpen(false)}
+            <button
+              className="btn-secondary"
+              onClick={closeModal}
             >
               Cancel
             </button>
-            <button 
-              className="btn-primary" 
+            <button
+              className="btn-primary"
               onClick={handleSubmit}
               disabled={isSubmitting}
             >
@@ -168,9 +150,9 @@ export default function CompaniesPage() {
             label="Company Name"
             required
             value={formData.companyName}
-            onChange={(e) => setFormData(prev => ({ 
-              ...prev, 
-              companyName: e.target.value 
+            onChange={(e) => setFormData(prev => ({
+              ...prev,
+              companyName: e.target.value
             }))}
             placeholder="Enter company name"
           />
@@ -178,9 +160,9 @@ export default function CompaniesPage() {
             label="Telephone"
             type="tel"
             value={formData.companyTelephone || ''}
-            onChange={(e) => setFormData(prev => ({ 
-              ...prev, 
-              companyTelephone: e.target.value 
+            onChange={(e) => setFormData(prev => ({
+              ...prev,
+              companyTelephone: e.target.value
             }))}
             placeholder="Enter phone number"
           />

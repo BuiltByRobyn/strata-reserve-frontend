@@ -1,14 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useAuthFetch } from './useAuthFetch';
+import { useApiClient } from './useApiClient';
 import { useAuth } from '../contexts/AuthContext';
 import type { DocumentWithDetails, RequiredDocumentChecklist } from '../types/document.types';
-import type { ApiListResponse, ApiSingleResponse } from '../types/entities.types';
-import { API_BASE } from '../lib/api';
-import { supabaseUploadDocument, supabaseDeleteDocument } from '../lib/documentService';
 import type { DocumentsState } from '../types/hooks.types';
+import { supabaseUploadDocument, supabaseDeleteDocument } from '../lib/documentService';
 
 export const useClientDocuments = () => {
-  const authFetch = useAuthFetch();
+  const api = useApiClient();
   const { session } = useAuth();
   const [state, setState] = useState<DocumentsState>({
     documents: [],
@@ -20,16 +18,9 @@ export const useClientDocuments = () => {
 
   const fetchMyDocuments = useCallback(async () => {
     setState(prev => ({ ...prev, loading: true, error: null }));
-
     try {
-      const response = await authFetch(`${API_BASE}/client/documents`);
-      const data: ApiListResponse<DocumentWithDetails> = await response.json();
-
-      if (data.success) {
-        setState({ documents: data.data || [], loading: false, error: null });
-      } else {
-        throw new Error(data.error || 'Failed to fetch documents');
-      }
+      const documents = await api.get<DocumentWithDetails[]>('/client/documents');
+      setState({ documents: documents || [], loading: false, error: null });
     } catch (err) {
       console.error('Error fetching documents:', err);
       setState(prev => ({
@@ -38,50 +29,35 @@ export const useClientDocuments = () => {
         error: err instanceof Error ? err.message : 'Failed to load documents'
       }));
     }
-  }, [authFetch]);
+  }, [api]);
 
   const getDocumentById = useCallback(async (id: number): Promise<DocumentWithDetails | null> => {
     try {
-      const response = await authFetch(`${API_BASE}/client/documents/${id}`);
-      const data: ApiSingleResponse<DocumentWithDetails> = await response.json();
-
-      if (data.success && data.data) {
-        return data.data;
-      }
-      return null;
+      return await api.get<DocumentWithDetails>(`/client/documents/${id}`);
     } catch (error) {
       console.error('Error fetching document:', error);
       return null;
     }
-  }, [authFetch]);
+  }, [api]);
 
   const searchDocuments = useCallback(async (query: string): Promise<DocumentWithDetails[]> => {
     try {
-      const response = await authFetch(`${API_BASE}/client/documents/search?q=${encodeURIComponent(query)}`);
-      const data: ApiListResponse<DocumentWithDetails> = await response.json();
-
-      if (data.success) {
-        return data.data || [];
-      }
-      return [];
+      return await api.get<DocumentWithDetails[]>('/client/documents/search', {
+        params: { q: query },
+      });
     } catch (error) {
       console.error('Error searching documents:', error);
       return [];
     }
-  }, [authFetch]);
+  }, [api]);
 
   const fetchRequiredDocuments = useCallback(async (serviceRequestId: number) => {
     setState(prev => ({ ...prev, loading: true, error: null }));
-
     try {
-      const response = await authFetch(`${API_BASE}/client/service-requests/${serviceRequestId}/required-documents`);
-      const data: ApiListResponse<RequiredDocumentChecklist> = await response.json();
-
-      if (data.success) {
-        setRequiredDocuments(data.data || []);
-      } else {
-        throw new Error(data.error || 'Failed to fetch required documents');
-      }
+      const data = await api.get<RequiredDocumentChecklist[]>(
+        `/client/service-requests/${serviceRequestId}/required-documents`
+      );
+      setRequiredDocuments(data || []);
     } catch (err) {
       console.error('Error fetching required documents:', err);
       setState(prev => ({
@@ -91,13 +67,15 @@ export const useClientDocuments = () => {
     } finally {
       setState(prev => ({ ...prev, loading: false }));
     }
-  }, [authFetch]);
+  }, [api]);
 
   const uploadDocument = useCallback(async (
     file: File,
     documentTypeId: number,
     strataId: string,
-    notes?: string
+    notes?: string,
+    propertyTypeId?: number,
+    propertyTypeName?: string
   ): Promise<boolean> => {
     const token = session?.access_token;
     if (!token) {
@@ -109,7 +87,7 @@ export const useClientDocuments = () => {
     setState(prev => ({ ...prev, error: null }));
 
     try {
-      await supabaseUploadDocument({ token, file, documentTypeId, strataId, notes });
+      await supabaseUploadDocument({ token, file, documentTypeId, strataId, notes, propertyTypeId, propertyTypeName });
       await fetchMyDocuments();
       return true;
     } catch (err) {
@@ -126,18 +104,14 @@ export const useClientDocuments = () => {
 
   const getDocumentsByServiceRequest = useCallback(async (serviceRequestId: number) => {
     try {
-      const response = await authFetch(`${API_BASE}/client/service-requests/${serviceRequestId}/documents`);
-      const data: ApiListResponse<DocumentWithDetails> = await response.json();
-
-      if (data.success) {
-        return data.data || [];
-      }
-      return [];
+      return await api.get<DocumentWithDetails[]>(
+        `/client/service-requests/${serviceRequestId}/documents`
+      );
     } catch (err) {
       console.error('Error fetching service request documents:', err);
       return [];
     }
-  }, [authFetch]);
+  }, [api]);
 
   const deleteDocument = useCallback(async (id: number): Promise<boolean> => {
     const token = session?.access_token;

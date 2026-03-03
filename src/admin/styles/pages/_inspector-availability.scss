@@ -1,0 +1,218 @@
+@use '../../../shared/styles/variables' as *;
+
+.modal-inspector-availability {
+    .modal-header h2 {
+        border-bottom: none;
+        padding-bottom: 0;
+        margin-bottom: 0;
+    }
+
+    .modal-body {
+        overflow-y: visible;
+    }
+}
+
+.inspector-availability-modal {
+    .modal-error {
+        margin-bottom: $spacing-md;
+        color: $color-error;
+        background-color: #ffeeee;
+        padding: 10px;
+        border-radius: $border-radius-sm;
+    }
+
+    .modal-warning {
+        margin-bottom: $spacing-md;
+        color: $color-accent-brown;
+        background-color: transparent;
+        padding: $spacing-md;
+        border-radius: $border-radius-sm;
+        border: 2px solid $color-warning;
+
+        p {
+            margin: 0 0 $spacing-md 0;
+        }
+
+        .modal-warning-actions {
+            display: flex;
+            gap: $spacing-sm;
+
+            button {
+                flex: 1;
+            }
+        }
+    }
+
+    .modal-loading {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        flex: 1;
+    }
+
+    .modal-form {
+        display: flex;
+        flex-direction: column;
+        gap: $spacing-xl;
+    }
+
+    .form-row {
+        width: 100%;
+        display: block;
+    }
+
+    .form-row-dates,
+    .form-row-times {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: $spacing-md;
+
+        @include respond-below(sm) {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .locations-row {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: $spacing-sm $spacing-xl;
+    }
+
+    .locations-label {
+        font-weight: $font-weight-bold;
+        color: #6A7282;
+        font-size: $font-size-sm;
+        white-space: nowrap;
+    }
+
+    .locations-options {
+        display: flex;
+        flex-wrap: wrap;
+        gap: $spacing-sm $spacing-xl;
+    }
+
+    .location-option {
+        display: flex;
+        align-items: center;
+        gap: $spacing-sm;
+        cursor: pointer;
+        font-size: $font-size-sm;
+        color: $color-text-dark;
+
+        input[type="checkbox"] {
+            accent-color: $color-primary;
+            width: 18px;
+            height: 18px;
+        }
+    }
+}
+
+// Manager header
+.manager-header {
+    margin-bottom: $spacing-lg;
+
+    h3 {
+        margin: 0;
+        font-size: 1.125rem;
+        font-weight: $font-weight-bold;
+        color: $color-text-primary;
+    }
+}
+
+// Add button below table - matches profile confirm button
+.availability-add-button {
+    width: 100%;
+    margin: $spacing-lg auto;
+}
+
+// Mobile card view (matches documents mobile pattern)
+.availability-mobile-list {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-lg;
+}
+
+.availability-mobile-card {
+    border: 3px solid $color-border-light;
+    border-radius: $border-radius-lg;
+    overflow: hidden;
+    background: $color-white;
+}
+
+.availability-table-mobile {
+    width: 100%;
+    border-collapse: collapse;
+
+    tbody tr {
+        border-bottom: 1px solid rgba($color-border-light, 0.6);
+
+        &:last-child {
+            border-bottom: none;
+        }
+
+        td {
+            padding: $spacing-lg $spacing-md;
+            vertical-align: top;
+            font-size: $font-size-base;
+        }
+    }
+
+    .mobile-label-col {
+        font-weight: $font-weight-bold;
+        color: $color-text-muted;
+        width: 40%;
+        max-width: 120px;
+    }
+
+    .mobile-value-col {
+        color: $color-text-dark;
+        text-align: right;
+    }
+}
+
+// Delete availability modal body
+.delete-availability-body {
+    padding: 0 $spacing-lg;
+}
+
+.delete-availability-info {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: $spacing-2xl;
+    padding-bottom: $spacing-lg;
+    border-bottom: 1px solid $color-border-light;
+}
+
+.delete-availability-info-right {
+    text-align: right;
+}
+
+.delete-availability-label {
+    font-weight: $font-weight-bold;
+    color: $color-text-muted;
+    font-size: 0.8125rem;
+    margin-bottom: $spacing-xs;
+}
+
+.delete-availability-value {
+    font-size: 0.9375rem;
+    color: $color-text-dark;
+}
+
+.delete-availability-confirm {
+    text-align: center;
+    margin: $spacing-2xl 0;
+
+    h3 {
+        color: $color-text-dark;
+        font-size: 1.25rem;
+        margin-bottom: $spacing-md;
+        font-weight: $font-weight-bold;
+    }
+
+    p {
+        color: $color-text-muted;
+        line-height: 1.5;
+    }
+}

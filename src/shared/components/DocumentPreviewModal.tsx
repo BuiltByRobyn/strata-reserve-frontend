@@ -146,7 +146,6 @@ export function DocumentPreviewModal({ isOpen, onClose, documentId, documentName
         {loading && (
           <div className="document-preview-loading">
             <LoadingSpinner />
-            <p>Loading preview...</p>
           </div>
         )}
 

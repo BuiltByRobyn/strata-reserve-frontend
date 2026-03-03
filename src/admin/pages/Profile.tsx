@@ -8,12 +8,15 @@ import { supabase } from '../../shared/lib/supabaseClient';
 import type { AdminUser } from '../../shared/types/auth.types';
 import type { AdminProfileFormData as ProfileData } from '../../shared/types/entities.types';
 import { API_BASE } from '../../shared/lib/api';
+import { InspectorAvailabilityManager } from '../components/InspectorAvailabilityManager';
+import { CompanyHolidaysManager } from '../components/CompanyHolidaysManager';
+import { MobileDropdown } from '../../shared/components/MobileDropdown';
 import '../../admin/styles/pages/_profile.scss';
 
 export default function ProfilePage() {
   const { user } = useAuth();
   const authFetch = useAuthFetch();
-  
+
   // Profile data state
   const [profileData, setProfileData] = useState<ProfileData>({
     companyName: 'Strata Reserve Planning',
@@ -25,13 +28,13 @@ export default function ProfilePage() {
     postalCode: '',
     email: 'admin@admin.com'
   });
-  
+
   // UI state
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState('profile');
+  const [activeTab, setActiveTab] = useState('holidays');
   const isDesktop = useMediaQuery('(min-width: 750px)');
 
   // Fetch profile on mount
@@ -43,15 +46,15 @@ export default function ProfilePage() {
     try {
       setLoading(true);
       setError(null);
-      
+
       const response = await authFetch(`${API_BASE}/admin/profile`);
-      
+
       if (!response.ok) {
         throw new Error('Failed to fetch profile');
       }
-      
+
       const data = await response.json();
-      
+
       if (data.success) {
         const profile = data.data;
         const userName = user && user.role === 'admin' ? (user as AdminUser).fullName : '';
@@ -91,7 +94,7 @@ export default function ProfilePage() {
       setSaving(true);
       setError(null);
       setSuccessMessage(null);
-      
+
       const response = await authFetch(`${API_BASE}/admin/profile`, {
         method: 'PUT',
         headers: {
@@ -106,13 +109,13 @@ export default function ProfilePage() {
           postalCode: profileData.postalCode
         })
       });
-      
+
       if (!response.ok) {
         throw new Error('Failed to update profile');
       }
-      
+
       const data = await response.json();
-      
+
       if (data.success) {
         setSuccessMessage('Profile updated successfully!');
       } else {
@@ -161,7 +164,6 @@ export default function ProfilePage() {
       <div className="page-container profile-container">
         <div className="profile-loading">
           <LoadingSpinner />
-          <p>Loading profile...</p>
         </div>
       </div>
     );
@@ -171,12 +173,19 @@ export default function ProfilePage() {
     <div className="page-container profile-container">
       {/* Page Header */}
       <div className="profile-page-header">
-        <h1>Administration User Details</h1>
-        <p className="profile-subtitle">Please verify and update your user information</p>
+        <h1>{!isDesktop ? 'System Settings'
+          : activeTab === 'holidays' ? 'Company Holidays'
+          : activeTab === 'availability' ? 'Inspector Availability'
+          : 'Administration User Details'}</h1>
+        <p className="profile-subtitle">
+          {activeTab === 'holidays' ? 'Manage company holiday schedules'
+          : activeTab === 'availability' ? 'Manage inspector availability schedules'
+          : 'Please verify and update your user information'}
+        </p>
       </div>
 
-      {/* Tabs - desktop only */}
-      {isDesktop && (
+      {/* Tabs - desktop tabs, mobile dropdown */}
+      {isDesktop ? (
         <div className="profile-tabs">
           <button
             className={`tab ${activeTab === 'holidays' ? 'active' : ''}`}
@@ -197,31 +206,54 @@ export default function ProfilePage() {
             Profile
           </button>
         </div>
+      ) : (
+        <MobileDropdown
+          label="Categories"
+          value={activeTab}
+          options={[
+            { key: 'holidays', label: 'Company Holidays' },
+            { key: 'availability', label: 'Inspector Availability' },
+            { key: 'profile', label: 'Profile' },
+          ]}
+          onChange={setActiveTab}
+        />
       )}
 
       {/* Company Holidays */}
-      {(!isDesktop || activeTab === 'holidays') && (
+      {activeTab === 'holidays' && (
         <div className="profile-content">
           <section className="profile-section">
-            <h2>Company Holidays</h2>
-            <p className="placeholder-text">Company holidays management coming soon...</p>
+            <CompanyHolidaysManager />
           </section>
         </div>
       )}
 
       {/* Inspector Availability */}
-      {(!isDesktop || activeTab === 'availability') && (
+      {activeTab === 'availability' && (
         <div className="profile-content">
           <section className="profile-section">
-            <h2>Inspector Availability</h2>
-            <p className="placeholder-text">Inspector availability management coming soon...</p>
+            <InspectorAvailabilityManager />
           </section>
         </div>
       )}
 
       {/* Profile */}
-      {(!isDesktop || activeTab === 'profile') && (
+      {activeTab === 'profile' && (
         <div className="profile-content">
+          {isDesktop && (
+            <div className="manager-header company-holidays-header">
+              <h3>Administrator Profile</h3>
+              <button
+                type="button"
+                className="btn-confirm company-holidays-add-btn"
+                onClick={handleSubmit}
+                disabled={saving}
+              >
+                {saving ? 'Saving...' : 'Confirm Profile'}
+              </button>
+            </div>
+          )}
+
           {error && (
             <div className="alert alert-error">
               {error}
@@ -318,23 +350,25 @@ export default function ProfilePage() {
             </div>
           </section>
 
-          <div className="profile-actions">
-            <button
-              type="button"
-              className="btn-confirm"
-              onClick={handleSubmit}
-              disabled={saving}
-            >
-              {saving ? (
-                <>
-                  <LoadingSpinner />
-                  <span>Saving...</span>
-                </>
-              ) : (
-                'Confirm Profile'
-              )}
-            </button>
-          </div>
+          {!isDesktop && (
+            <div className="profile-actions">
+              <button
+                type="button"
+                className="btn-confirm"
+                onClick={handleSubmit}
+                disabled={saving}
+              >
+                {saving ? (
+                  <>
+                    <LoadingSpinner />
+                    <span>Saving...</span>
+                  </>
+                ) : (
+                  'Confirm Profile'
+                )}
+              </button>
+            </div>
+          )}
         </div>
       )}
 

@@ -58,10 +58,9 @@ export function PropertyTypeSelector({ availablePropertyTypes, onRequestSubmitte
       {error && <div className="error-banner">{error}</div>}
 
       <button
-        className="btn-primary"
+        className="btn-primary mt-md"
         disabled={selectedIds.length === 0 || submitting}
         onClick={handleSubmit}
-        style={{ marginTop: '1rem' }}
       >
         {submitting ? 'Submitting...' : 'Submit for Approval'}
       </button>

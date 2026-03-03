@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react';
 import type { ReactNode } from 'react';
 import type { User, Session } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabaseClient';
@@ -13,7 +13,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const fetchUserProfile = async (supabaseUser: User): Promise<AppUser | null> => {
     try {
-      console.log('Fetching profile from Supabase for user ID:', supabaseUser.id);
+      // console.log('Fetching profile from Supabase for user ID:', supabaseUser.id);
       
       const { data: profile, error } = await supabase
         .from('profiles')
@@ -31,7 +31,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         throw new Error('Profile not found');
       }
 
-      console.log('Profile data retrieved:', profile);
+      // console.log('Profile data retrieved:', profile);
 
       if (profile.is_admin) {
         console.log('User is ADMIN');
@@ -40,12 +40,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           email: supabaseUser.email!,
           role: 'admin' as const,
           fullName: profile.display_name || `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || 'Admin User',
+          firstName: profile.first_name || '',
+          lastName: profile.last_name || '',
           permissions: ['read', 'write', 'delete'],
           createdAt: supabaseUser.created_at,
         };
         return adminUser;
       } else {
-        console.log('User is CLIENT');
+        // console.log('User is CLIENT');
 
         let strataId: number | null = null;
         let strataPlan: string | null = null;
@@ -99,7 +101,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setSession(session);
       
       if (session?.user) {
-        console.log('User authenticated, fetching profile for:', session.user.email);
+        // console.log('User authenticated, fetching profile for:', session.user.email);
         try {
           const appUser = await fetchUserProfile(session.user);
           
@@ -111,7 +113,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             setUser(null);
             setSession(null);
           } else {
-            console.log('Profile loaded:', appUser);
+            // console.log('Profile loaded:', appUser);
             setUser(appUser);
           }
         } catch (error) {
@@ -134,8 +136,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // Set up auth state change listener
     // CRITICAL: Do NOT await inside this callback - it causes Navigator.locks deadlock!
     // Use setTimeout(0) to defer execution outside the auth lock context
-    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log('Auth state change:', event, session ? 'has session' : 'no session');
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+      // console.log('Auth state change:', event, session ? 'has session' : 'no session');
       
       // Defer to next tick to break out of Navigator.locks context
       // This prevents deadlock when making Supabase database queries
@@ -147,7 +149,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // Also manually get session on mount as a fallback
     // (in case onAuthStateChange doesn't fire in time)
     supabase.auth.getSession().then(({ data: { session } }) => {
-      console.log('Initial session check:', session ? 'has session' : 'no session');
+      // console.log('Initial session check:', session ? 'has session' : 'no session');
       // Only handle if not already initialized by onAuthStateChange
       if (!isInitialized && isMounted) {
         // Use setTimeout here too for consistency and to avoid potential lock issues
@@ -165,28 +167,28 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
   }, []);
 
-  const signIn = async (email: string, password: string) => {
+  const signIn = useCallback(async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
     return { error };
-  };
+  }, []);
 
-  const signOut = async () => {
+  const signOut = useCallback(async () => {
     await supabase.auth.signOut();
     setUser(null);
     setSession(null);
-  };
+  }, []);
 
-  const updatePassword = async (newPassword: string) => {
+  const updatePassword = useCallback(async (newPassword: string) => {
     const { error } = await supabase.auth.updateUser({
       password: newPassword
     });
     return { error };
-  };
+  }, []);
 
-  const value = {
+  const value = useMemo(() => ({
     user,
     session,
     loading,
@@ -195,7 +197,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     updatePassword,
     isAdmin: user?.role === 'admin',
     isClient: user?.role === 'client',
-  };
+  }), [user, session, loading, signIn, signOut, updatePassword]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

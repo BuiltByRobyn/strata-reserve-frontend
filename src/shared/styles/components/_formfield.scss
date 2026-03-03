@@ -57,7 +57,8 @@
     height: 2.75rem;
   }
 
-  input[type="date"] {
+  input[type="date"],
+  input[type="time"] {
     font-family: inherit;
     color: $color-text-primary;
 
@@ -71,7 +72,10 @@
     &::-webkit-datetime-edit-text,
     &::-webkit-datetime-edit-month-field,
     &::-webkit-datetime-edit-day-field,
-    &::-webkit-datetime-edit-year-field {
+    &::-webkit-datetime-edit-year-field,
+    &::-webkit-datetime-edit-hour-field,
+    &::-webkit-datetime-edit-minute-field,
+    &::-webkit-datetime-edit-ampm-field {
       color: inherit;
     }
   }

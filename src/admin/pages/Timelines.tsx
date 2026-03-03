@@ -3,6 +3,7 @@ import { useServiceRequests } from '../../shared/hooks/useServiceRequests';
 import { useAuthFetch } from '../../shared/hooks/useAuthFetch';
 import { useMediaQuery } from '../../shared/hooks/useMediaQuery';
 import { DataTable, type Column } from '../../shared/components/DataTable';
+import { LoadingSpinner } from '../../shared/components/LoadingSpinner';
 import { Modal } from '../../shared/components/Modal';
 import { InputField } from '../../shared/components/FormField';
 import { Tabs } from '../../shared/components/Tabs';
@@ -10,6 +11,7 @@ import { SingleSelectDropdown } from '../../shared/components/SingleSelectDropdo
 import type { ServiceRequest } from '../../shared/types/entities.types';
 import type { UpdateTimelinesInput, DeadlineType, DeadlineRow, EditFormData } from '../../shared/types/timeline.types';
 import { API_BASE } from '../../shared/lib/api';
+import { parseLocalDate, toDateInputValue } from '../../shared/lib/dateUtils';
 
 function buildAnniversaryDate(year: number, month: number, day: number): Date {
   const candidate = new Date(year, month, day);
@@ -31,25 +33,13 @@ function getNextAnniversary(baseDate: Date, referenceDate: Date): Date {
   return buildAnniversaryDate(referenceDate.getFullYear() + 1, month, day);
 }
 
-function parseLocalDate(iso: string | null | undefined): Date | null {
-  if (!iso) return null;
-  try {
-    const datePart = typeof iso === 'string' ? iso.split('T')[0] : '';
-    if (!datePart || !/^\d{4}-\d{2}-\d{2}$/.test(datePart)) return null;
-    const [y, m, d] = datePart.split('-').map(Number);
-    return new Date(y, m - 1, d);
-  } catch {
-    return null;
-  }
-}
-
-function formatDate(date: Date): string {
+function formatDateDisplay(date: Date): string {
   return date.toLocaleDateString('en-AU', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
-function toDateInputValue(iso: string | null | undefined): string {
-  if (!iso) return '';
-  try { return iso.split('T')[0]; } catch { return ''; }
+function daysBetween(a: Date, b: Date): number {
+  const ms = b.getTime() - a.getTime();
+  return Math.floor(ms / (1000 * 60 * 60 * 24));
 }
 
 function hasConfirmedTimelines(sr: ServiceRequest): boolean {
@@ -70,6 +60,8 @@ export default function TimelinesPage() {
   const isDesktop = useMediaQuery('(min-width: 750px)');
 
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [viewingRow, setViewingRow] = useState<DeadlineRow | null>(null);
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState<ServiceRequest | null>(null);
   const [editingDeadlineType, setEditingDeadlineType] = useState<DeadlineType | null>(null);
   const [formData, setFormData] = useState<EditFormData>({
@@ -78,6 +70,12 @@ export default function TimelinesPage() {
   });
   const [formError, setFormError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
+  const [selectedCreateSrId, setSelectedCreateSrId] = useState('');
+
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [recordToDelete, setRecordToDelete] = useState<ServiceRequest | null>(null);
+  const [deleteSubmitting, setDeleteSubmitting] = useState(false);
 
   const [activeTab, setActiveTab] = useState('all');
   const [filterStrataName, setFilterStrataName] = useState('');
@@ -104,6 +102,10 @@ export default function TimelinesPage() {
     return serviceRequests.filter(hasConfirmedTimelines);
   }, [serviceRequests]);
 
+  const unconfirmedList = useMemo(() => {
+    return serviceRequests.filter(sr => !hasConfirmedTimelines(sr) && !sr.archived);
+  }, [serviceRequests]);
+
   const today = useMemo(() => {
     const d = new Date();
     d.setHours(0, 0, 0, 0);
@@ -123,6 +125,11 @@ export default function TimelinesPage() {
       const lastAgm = parseLocalDate(sr.lastAgmDate);
       const lastReport = parseLocalDate(sr.lastDepreciationReportDate);
       const target = parseLocalDate(sr.targetDate);
+
+      // Fiscal Year Start
+      if (fiscalDate) {
+        rows.push({ id: `${srId}-fiscal-year`, date: fiscalDate, deadlineType: 'Fiscal Year Start', strataPlan, complexName, strataId, serviceRequest: sr });
+      }
 
       // Last AGM Date (historical)
       if (lastAgm) {
@@ -154,6 +161,40 @@ export default function TimelinesPage() {
       // Target Date
       if (target) {
         rows.push({ id: `${srId}-target`, date: target, deadlineType: 'Target Date', strataPlan, complexName, strataId, serviceRequest: sr });
+      }
+
+      // File Opened
+      const fileOpened = parseLocalDate(sr.requestDate);
+      if (fileOpened) {
+        rows.push({ id: `${srId}-file-opened`, date: fileOpened, deadlineType: 'File Opened', strataPlan, complexName, strataId, serviceRequest: sr });
+      }
+
+      // Most Recent Document Upload
+      const latestDocUpload = parseLocalDate(sr.latestDocumentUploadDate);
+      if (latestDocUpload) {
+        rows.push({ id: `${srId}-doc-upload`, date: latestDocUpload, deadlineType: 'Most Recent Document Upload', strataPlan, complexName, strataId, serviceRequest: sr });
+      }
+
+      // Survey Submitted
+      const surveySubmitted = parseLocalDate(sr.submittedForReviewDate);
+      if (surveySubmitted) {
+        rows.push({ id: `${srId}-survey-submitted`, date: surveySubmitted, deadlineType: 'Survey Submitted', strataPlan, complexName, strataId, serviceRequest: sr });
+      }
+
+      // Last Survey Answer Date
+      const latestSurveyAnswer = parseLocalDate(sr.latestSurveyAnswerDate);
+      if (latestSurveyAnswer) {
+        rows.push({ id: `${srId}-survey-answer`, date: latestSurveyAnswer, deadlineType: 'Last Survey Answer Date', strataPlan, complexName, strataId, serviceRequest: sr });
+      }
+
+      // Appointments
+      if (sr.appointments) {
+        for (const apt of sr.appointments) {
+          const aptDate = parseLocalDate(apt.appointmentDate);
+          if (aptDate) {
+            rows.push({ id: `${srId}-apt-${apt.appointmentId}`, date: aptDate, deadlineType: 'Appointment', strataPlan, complexName, strataId, serviceRequest: sr });
+          }
+        }
       }
     }
 
@@ -209,9 +250,15 @@ export default function TimelinesPage() {
     // Deadline Type dropdown
     if (filterDeadlineType) {
       const typeMap: Record<string, string[]> = {
+        fiscalYear: ['Fiscal Year Start'],
         agm: ['Last AGM Date', 'Next Projected AGM'],
         depreciation: ['Last Depreciation Report Date', 'Next Projected Depreciation'],
         target: ['Target Date'],
+        fileOpened: ['File Opened'],
+        documentUpload: ['Most Recent Document Upload'],
+        surveySubmitted: ['Survey Submitted'],
+        surveyAnswer: ['Last Survey Answer Date'],
+        appointment: ['Appointment'],
       };
       const matches = typeMap[filterDeadlineType];
       if (matches) rows = rows.filter(r => matches.includes(r.deadlineType));
@@ -250,10 +297,73 @@ export default function TimelinesPage() {
   ];
 
   const maxDateToday = new Date().toISOString().split('T')[0];
+  const minTargetDate = (() => { const d = new Date(); d.setDate(d.getDate() + 45); return d.toISOString().split('T')[0]; })();
+
+  const getViewTimelineRows = (row: DeadlineRow) => {
+    const opened = parseLocalDate(row.serviceRequest.requestDate);
+    return [
+      { label: 'Strata Plan', value: row.strataPlan },
+      { label: 'Complex Name', value: row.complexName },
+      { label: 'Deadline Type', value: row.deadlineType },
+      { label: 'Date', value: formatDateDisplay(row.date) },
+      { label: 'Days Open', value: opened ? String(daysBetween(opened, today)) : '—' },
+    ];
+  };
 
   const closeModal = () => {
     setIsModalOpen(false);
     setEditingDeadlineType(null);
+    setIsCreating(false);
+    setSelectedCreateSrId('');
+  };
+
+  const openCreateModal = () => {
+    setIsCreating(true);
+    setEditingRecord(null);
+    setEditingDeadlineType(null);
+    setSelectedCreateSrId('');
+    setFormData({
+      fiscalYearEnd: '', lastAgmDate: '', noAgmToDate: false,
+      lastDepreciationReportDate: '', noReportToDate: false, targetDate: '',
+    });
+    setFormError(null);
+    setIsModalOpen(true);
+  };
+
+  const openDeleteModal = (sr: ServiceRequest) => {
+    setRecordToDelete(sr);
+    setDeleteModalOpen(true);
+  };
+
+  const handleDelete = async () => {
+    if (!recordToDelete || !editingDeadlineType) return;
+    setDeleteSubmitting(true);
+    try {
+      const payload: UpdateTimelinesInput = {};
+      if (editingDeadlineType === 'Last AGM Date' || editingDeadlineType === 'Next Projected AGM') {
+        payload.lastAgmDate = null;
+        payload.noAgmToDate = false;
+      } else if (editingDeadlineType === 'Last Depreciation Report Date' || editingDeadlineType === 'Next Projected Depreciation') {
+        payload.lastDepreciationReportDate = null;
+        payload.noReportToDate = false;
+      } else if (editingDeadlineType === 'Target Date') {
+        payload.targetDate = null;
+      }
+      const response = await authFetch(
+        `${API_BASE}/admin/service-requests/${recordToDelete.serviceRequestId}/timelines`,
+        { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }
+      );
+      const data = await response.json();
+      if (!data.success) throw new Error(data.error || 'Failed to delete timeline');
+      closeModal();
+      refetch({ archived: false });
+    } catch (err) {
+      setFormError(err instanceof Error ? err.message : 'An error occurred');
+    } finally {
+      setDeleteSubmitting(false);
+      setDeleteModalOpen(false);
+      setRecordToDelete(null);
+    }
   };
 
   const openEditModal = (sr: ServiceRequest, deadlineType: DeadlineType) => {
@@ -271,12 +381,14 @@ export default function TimelinesPage() {
     setIsModalOpen(true);
   };
 
-  const isAgmType = editingDeadlineType === 'Last AGM Date' || editingDeadlineType === 'Next Projected AGM';
+  const isAgmType = editingDeadlineType === 'Fiscal Year Start' || editingDeadlineType === 'Last AGM Date' || editingDeadlineType === 'Next Projected AGM';
   const isDepreciationType = editingDeadlineType === 'Last Depreciation Report Date' || editingDeadlineType === 'Next Projected Depreciation';
   const isTargetType = editingDeadlineType === 'Target Date';
 
   const getModalTitle = (type: DeadlineType | null): string => {
+    if (isCreating) return 'Add New Date';
     switch (type) {
+      case 'Fiscal Year Start':
       case 'Last AGM Date':
       case 'Next Projected AGM':
         return 'Edit AGM Date';
@@ -295,7 +407,11 @@ export default function TimelinesPage() {
     const todayValidation = new Date();
     todayValidation.setHours(0, 0, 0, 0);
 
-    if (isAgmType) {
+    if (isCreating) {
+      if (!selectedCreateSrId) {
+        setFormError('Please select a service request.');
+        return;
+      }
       if (!formData.fiscalYearEnd.trim()) {
         setFormError('Fiscal year start date is required.');
         return;
@@ -311,56 +427,99 @@ export default function TimelinesPage() {
           return;
         }
       }
-    }
-
-    if (isDepreciationType) {
       if (!formData.noReportToDate && !formData.lastDepreciationReportDate.trim()) {
         setFormError('Date of last depreciation report is required, or check "No report to date".');
         return;
       }
-    }
-
-    if (isTargetType) {
       if (formData.targetDate.trim()) {
         const targetDateObj = new Date(formData.targetDate + 'T00:00:00');
-        if (targetDateObj < todayValidation) {
-          setFormError('Target date cannot be in the past.');
+        const minTarget = new Date(todayValidation);
+        minTarget.setDate(minTarget.getDate() + 45);
+        if (targetDateObj < minTarget) {
+          setFormError('Target date must be at least 45 days from today.');
           return;
+        }
+      }
+    } else {
+      if (isAgmType) {
+        if (!formData.fiscalYearEnd.trim()) {
+          setFormError('Fiscal year start date is required.');
+          return;
+        }
+        if (!formData.noAgmToDate && !formData.lastAgmDate.trim()) {
+          setFormError('Date of last AGM is required, or check "No AGM to date".');
+          return;
+        }
+        if (formData.lastAgmDate.trim()) {
+          const agmDate = new Date(formData.lastAgmDate + 'T00:00:00');
+          if (agmDate > todayValidation) {
+            setFormError('Last AGM date cannot be in the future.');
+            return;
+          }
+        }
+      }
+
+      if (isDepreciationType) {
+        if (!formData.noReportToDate && !formData.lastDepreciationReportDate.trim()) {
+          setFormError('Date of last depreciation report is required, or check "No report to date".');
+          return;
+        }
+      }
+
+      if (isTargetType) {
+        if (formData.targetDate.trim()) {
+          const targetDateObj = new Date(formData.targetDate + 'T00:00:00');
+          const minTarget = new Date(todayValidation);
+          minTarget.setDate(minTarget.getDate() + 45);
+          if (targetDateObj < minTarget) {
+            setFormError('Target date must be at least 45 days from today.');
+            return;
+          }
         }
       }
     }
 
-    if (!editingRecord) return;
+    const targetSrId = isCreating ? parseInt(selectedCreateSrId) : editingRecord?.serviceRequestId;
+    if (!targetSrId) return;
 
     setIsSubmitting(true);
     setFormError(null);
 
-    let payload: UpdateTimelinesInput = {};
+    let payload: UpdateTimelinesInput;
 
-    if (isAgmType) {
+    if (isCreating) {
       payload = {
-        fiscalYearEnd: formData.fiscalYearEnd ? new Date(formData.fiscalYearEnd + 'T00:00:00').toISOString() : null,
-        lastAgmDate: formData.lastAgmDate ? new Date(formData.lastAgmDate + 'T00:00:00').toISOString() : null,
+        fiscalYearEnd: formData.fiscalYearEnd || null,
+        lastAgmDate: formData.lastAgmDate || null,
+        noAgmToDate: formData.noAgmToDate,
+        lastDepreciationReportDate: formData.lastDepreciationReportDate || null,
+        noReportToDate: formData.noReportToDate,
+        targetDate: formData.targetDate || null,
+      };
+    } else if (isAgmType) {
+      payload = {
+        fiscalYearEnd: formData.fiscalYearEnd || null,
+        lastAgmDate: formData.lastAgmDate || null,
         noAgmToDate: formData.noAgmToDate,
       };
     } else if (isDepreciationType) {
       payload = {
-        lastDepreciationReportDate: formData.lastDepreciationReportDate ? new Date(formData.lastDepreciationReportDate + 'T00:00:00').toISOString() : null,
+        lastDepreciationReportDate: formData.lastDepreciationReportDate || null,
         noReportToDate: formData.noReportToDate,
       };
-    } else if (isTargetType) {
+    } else {
       payload = {
-        targetDate: formData.targetDate ? new Date(formData.targetDate + 'T00:00:00').toISOString() : null,
+        targetDate: formData.targetDate || null,
       };
     }
 
     try {
       const response = await authFetch(
-        `${API_BASE}/admin/service-requests/${editingRecord.serviceRequestId}/timelines`,
+        `${API_BASE}/admin/service-requests/${targetSrId}/timelines`,
         { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }
       );
       const data = await response.json();
-      if (!data.success) throw new Error(data.error || 'Failed to update timelines');
+      if (!data.success) throw new Error(data.error || isCreating ? 'Failed to create timeline' : 'Failed to update timelines');
       closeModal();
       refetch({ archived: false });
     } catch (err) {
@@ -374,7 +533,7 @@ export default function TimelinesPage() {
     {
       key: 'date',
       header: 'Date',
-      render: (row) => formatDate(row.date),
+      render: (row) => formatDateDisplay(row.date),
     },
     {
       key: 'deadlineType',
@@ -406,9 +565,18 @@ export default function TimelinesPage() {
     },
   ];
 
+  if (loading) return <LoadingSpinner />;
+
   return (
     <div className="timelines-page">
-      <h1>Timelines & Deadlines</h1>
+      <div className="page-header">
+        <h1>Timelines & Deadlines</h1>
+        <div className="create-user-button-desktop">
+          <button className="btn-primary" onClick={openCreateModal}>
+            + Add New Date
+          </button>
+        </div>
+      </div>
 
       <Tabs
         tabs={deadlineTabs}
@@ -423,23 +591,29 @@ export default function TimelinesPage() {
           value={filterDeadlineType}
           onChange={setFilterDeadlineType}
           options={[
+            { value: 'fiscalYear', label: 'Fiscal Year Start' },
             { value: 'agm', label: 'AGM' },
             { value: 'depreciation', label: 'Depreciation Report' },
             { value: 'target', label: 'Target Date' },
+            { value: 'fileOpened', label: 'File Opened' },
+            { value: 'documentUpload', label: 'Document Upload' },
+            { value: 'surveySubmitted', label: 'Survey Submitted' },
+            { value: 'surveyAnswer', label: 'Last Survey Answer' },
+            { value: 'appointment', label: 'Appointment' },
           ]}
           placeholder="All Types"
         />
         <SingleSelectDropdown
           label="Strata Name"
           value={filterStrataName}
-          onChange={setFilterStrataName}
+          onChange={(val) => { setFilterStrataName(val); setFilterStrataPlan(val); }}
           options={strataNameOptions}
           placeholder="All Strata"
         />
         <SingleSelectDropdown
           label="Strata Plan"
           value={filterStrataPlan}
-          onChange={setFilterStrataPlan}
+          onChange={(val) => { setFilterStrataPlan(val); setFilterStrataName(val); }}
           options={strataPlanOptions}
           placeholder="All Plans"
         />
@@ -469,6 +643,12 @@ export default function TimelinesPage() {
         </div>
       </div>
 
+      <div className="create-user-button">
+        <button className="btn-primary" onClick={openCreateModal}>
+          + Add New Date
+        </button>
+      </div>
+
       {error && (
         <p className="error-message" style={{ marginBottom: '1rem' }}>
           {error}
@@ -482,12 +662,63 @@ export default function TimelinesPage() {
         keyExtractor={(row) => row.id}
         loading={loading}
         emptyMessage="No deadlines found."
-        onRowClick={(row) => openEditModal(row.serviceRequest, row.deadlineType)}
-        actions={(row) => (
+        onRowClick={(row) => {
+          setViewingRow(row);
+          setIsViewModalOpen(true);
+        }}
+        actions={isDesktop ? (row) => (
           <button className="btn-edit" onClick={() => openEditModal(row.serviceRequest, row.deadlineType)}>Edit</button>
-        )}
+        ) : undefined}
         actionsColumnHeader="Action"
       />
+
+      <Modal
+        isOpen={isViewModalOpen}
+        onClose={() => {
+          setIsViewModalOpen(false);
+          setViewingRow(null);
+        }}
+        title="View Timeline"
+        size="medium"
+        footer={
+          <>
+            <button
+              className={isDesktop ? "btn-primary" : "btn-secondary"}
+              onClick={() => {
+                setIsViewModalOpen(false);
+                setViewingRow(null);
+              }}
+            >
+              Close
+            </button>
+            {!isDesktop && viewingRow && (
+              <button
+                className="btn-primary"
+                onClick={() => {
+                  setIsViewModalOpen(false);
+                  openEditModal(viewingRow.serviceRequest, viewingRow.deadlineType);
+                  setViewingRow(null);
+                }}
+              >
+                Edit
+              </button>
+            )}
+          </>
+        }
+      >
+        {viewingRow && (
+          <table className="view-detail-table">
+            <tbody>
+              {getViewTimelineRows(viewingRow).map((row) => (
+                <tr key={row.label}>
+                  <th scope="row">{row.label}</th>
+                  <td>{row.value}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </Modal>
 
       <Modal
         isOpen={isModalOpen}
@@ -499,8 +730,21 @@ export default function TimelinesPage() {
             <button className="btn-secondary" onClick={closeModal}>
               Cancel
             </button>
+            {!isCreating && editingRecord && (
+              editingDeadlineType === 'Last AGM Date' ||
+              editingDeadlineType === 'Last Depreciation Report Date' ||
+              isTargetType
+            ) && (
+              <button
+                className="btn-delete"
+                onClick={() => openDeleteModal(editingRecord)}
+                disabled={isSubmitting}
+              >
+                Delete
+              </button>
+            )}
             <button className="btn-primary" onClick={handleEditSubmit} disabled={isSubmitting}>
-              {isSubmitting ? 'Saving...' : 'Update'}
+              {isSubmitting ? 'Saving...' : isCreating ? 'Add Date' : 'Update'}
             </button>
           </>
         }
@@ -508,7 +752,74 @@ export default function TimelinesPage() {
         <form onSubmit={handleEditSubmit}>
           {formError && <div className="form-error">{formError}</div>}
 
-          {isAgmType && (
+          {isCreating && (
+            <>
+              <SingleSelectDropdown
+                label="Service Request"
+                required
+                value={selectedCreateSrId}
+                onChange={setSelectedCreateSrId}
+                options={unconfirmedList.map(sr => ({
+                  value: sr.serviceRequestId,
+                  label: `${sr.strata?.strataPlan || sr.strata?.complexName || `SR #${sr.serviceRequestId}`} — ${sr.strata?.complexName || ''}`.trim(),
+                }))}
+                placeholder="Select a service request"
+              />
+              <InputField
+                label="Fiscal year start date"
+                type="date"
+                required
+                value={formData.fiscalYearEnd}
+                onChange={(e) => setFormData(prev => ({ ...prev, fiscalYearEnd: e.target.value }))}
+                max={maxDateToday}
+              />
+              <InputField
+                label="Date of last AGM"
+                type="date"
+                required={!formData.noAgmToDate}
+                value={formData.lastAgmDate}
+                onChange={(e) => setFormData(prev => ({ ...prev, lastAgmDate: e.target.value }))}
+                disabled={formData.noAgmToDate}
+                max={maxDateToday}
+              />
+              <div className="timelines-checkbox">
+                <input
+                  type="checkbox"
+                  id="create-no-agm"
+                  checked={formData.noAgmToDate}
+                  onChange={(e) => setFormData(prev => ({ ...prev, noAgmToDate: e.target.checked }))}
+                />
+                <label htmlFor="create-no-agm">No AGM to date</label>
+              </div>
+              <InputField
+                label="Date of last depreciation report"
+                type="date"
+                required={!formData.noReportToDate}
+                value={formData.lastDepreciationReportDate}
+                onChange={(e) => setFormData(prev => ({ ...prev, lastDepreciationReportDate: e.target.value }))}
+                disabled={formData.noReportToDate}
+                max={maxDateToday}
+              />
+              <div className="timelines-checkbox">
+                <input
+                  type="checkbox"
+                  id="create-no-report"
+                  checked={formData.noReportToDate}
+                  onChange={(e) => setFormData(prev => ({ ...prev, noReportToDate: e.target.checked }))}
+                />
+                <label htmlFor="create-no-report">No report to date</label>
+              </div>
+              <InputField
+                label="Target date (optional)"
+                type="date"
+                value={formData.targetDate}
+                onChange={(e) => setFormData(prev => ({ ...prev, targetDate: e.target.value }))}
+                min={minTargetDate}
+              />
+            </>
+          )}
+
+          {!isCreating && isAgmType && (
             <>
               <InputField
                 label="Fiscal year start date"
@@ -539,7 +850,7 @@ export default function TimelinesPage() {
             </>
           )}
 
-          {isDepreciationType && (
+          {!isCreating && isDepreciationType && (
             <>
               <InputField
                 label="Date of last depreciation report"
@@ -562,16 +873,41 @@ export default function TimelinesPage() {
             </>
           )}
 
-          {isTargetType && (
+          {!isCreating && isTargetType && (
             <InputField
               label="Target date"
               type="date"
               value={formData.targetDate}
               onChange={(e) => setFormData(prev => ({ ...prev, targetDate: e.target.value }))}
-              min={maxDateToday}
+              min={minTargetDate}
             />
           )}
         </form>
+      </Modal>
+
+      <Modal
+        isOpen={deleteModalOpen}
+        onClose={() => { setDeleteModalOpen(false); setRecordToDelete(null); }}
+        title="Delete Timeline"
+        size="small"
+        footer={
+          <>
+            <button className="btn-secondary" onClick={() => { setDeleteModalOpen(false); setRecordToDelete(null); }}>
+              Cancel
+            </button>
+            <button
+              className="btn-delete"
+              onClick={handleDelete}
+              disabled={deleteSubmitting}
+            >
+              {deleteSubmitting ? 'Deleting...' : 'Delete Timeline'}
+            </button>
+          </>
+        }
+      >
+        <div className="delete-confirmation">
+          <p>Are you sure you want to delete this {editingDeadlineType?.toLowerCase() || 'date'} for "{recordToDelete?.strata?.complexName || recordToDelete?.strata?.strataPlan || ''}"?</p>
+        </div>
       </Modal>
     </div>
   );

@@ -68,50 +68,807 @@
     }
   }
 
-  // Action Buttons
-  .action-buttons {
+  // Desktop / mobile visibility
+  &__desktop {
+    display: none;
+
+    @include respond-to(desktop) {
+      display: block;
+    }
+  }
+
+  &__mobile {
     display: flex;
-    gap: $spacing-sm;
-    align-items: center;
-  }
+    flex-direction: column;
+    gap: $spacing-md;
 
-  .btn-action {
-    padding: $spacing-xs $spacing-sm;
-    border: none;
-    border-radius: $border-radius-sm;
-    font-size: 0.75rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    background: transparent;
-
-    &.btn-reschedule {
-      color: $color-text-dark;
-
-      &:hover {
-        text-decoration: underline;
-      }
-    }
-
-    &.btn-cancel {
-      color: $color-error;
-
-      &:hover {
-        text-decoration: underline;
-      }
-    }
-
-    &.btn-view {
-      color: $color-text-dark;
-
-      &:hover {
-        text-decoration: underline;
-      }
+    @include respond-to(desktop) {
+      display: none;
     }
   }
 
+  &__loading,
+  &__empty {
+    text-align: center;
+    padding: $spacing-xl;
+    color: $color-text-light;
+  }
+
+  .tabs {
+    margin-bottom: $spacing-lg;
+  }
+
+  // Appointments-specific filter layout
+  .appointments-filters {
+    margin-bottom: $spacing-lg;
+
+    @include respond-below(desktop) {
+      display: flex;
+      flex-direction: column;
+      gap: $spacing-md;
+    }
+
+    // Tablet: 2-column grid (matches Timelines layout)
+    @include respond-to(desktop) {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: $spacing-md $spacing-lg;
+      align-items: end;
+    }
+
+    // Desktop: 3-column grid
+    @include respond-to(lg) {
+      grid-template-columns: repeat(3, 1fr);
+    }
+
+    .date-range-filter {
+      display: flex;
+      gap: $spacing-md;
+      flex: 1 1 0;
+      min-width: 0;
+
+      @include respond-to(desktop) {
+        grid-column: span 2;
+      }
+
+      @include respond-below(desktop) {
+        flex-direction: column;
+      }
+
+      .form-field {
+        flex: 1;
+
+        > label {
+          font-weight: $font-weight-bold;
+          color: $color-text-muted;
+        }
+      }
+    }
+
+    .appointments-filters__toggles {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: $spacing-sm;
+
+      // Tablet: place next to Inspector (row 2, col 2)
+      @include respond-to(desktop) {
+        grid-row: 2;
+        grid-column: 2;
+        flex-direction: row;
+        gap: $spacing-lg;
+        align-self: flex-end;
+      }
+
+      // Desktop: reset to auto-placement (fills col 3, row 2)
+      @include respond-to(lg) {
+        grid-row: auto;
+        grid-column: auto;
+      }
+
+      .archived-toggle {
+        align-self: auto;
+
+        label {
+          font-size: $font-size-sm;
+          font-weight: $font-weight-bold;
+          color: $color-text-light;
+        }
+      }
+    }
+  }
+
+  // Reuse strata-info-card pattern from strata detail
+  .strata-info-card {
+    border: 2px solid $color-border-light;
+    border-radius: $border-radius-lg;
+    padding: $spacing-lg;
+    margin-bottom: $spacing-lg;
+    background: $color-white;
+
+    .info-row {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: $spacing-md;
+      padding: $spacing-sm 0;
+
+      @include respond-to(desktop) {
+        grid-template-columns: 1fr 1fr 1fr;
+      }
+
+      &:first-child {
+        padding-bottom: $spacing-md;
+        border-bottom: 1px solid $color-border-light;
+      }
+
+      &:last-child {
+        padding-top: $spacing-md;
+      }
+    }
+
+    .info-item {
+      display: flex;
+      flex-direction: column;
+      gap: $spacing-xs;
+
+      @include respond-below(desktop) {
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: baseline;
+        padding: $spacing-sm 0;
+        border-bottom: 1px solid $color-border-light;
+
+        &:last-child {
+          border-bottom: none;
+        }
+      }
+    }
+
+    .info-label {
+      font-size: 0.75rem;
+      font-weight: $font-weight-bold;
+      color: $color-text-muted;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .info-value {
+      font-size: $font-size-base;
+      color: $color-text-dark;
+
+      @include respond-below(desktop) {
+        text-align: right;
+      }
+    }
+  }
+
+  .create-user-button-desktop {
+    display: none;
+
+    @include respond-to(desktop) {
+      display: block;
+    }
+  }
+
+  .create-user-button {
+    margin-bottom: $spacing-lg;
+
+    @include respond-to(desktop) {
+      display: none;
+    }
+
+    .btn-primary {
+      width: 100%;
+    }
+  }
 
   @include respond-to(desktop) {
     margin-left: $spacing-xl;
   }
+}
+
+// ─── Detail View ────────────────────────────────────────────────
+.appointments-detail {
+  &__back {
+    display: inline-flex;
+    align-items: center;
+    gap: $spacing-xs;
+    background: none;
+    border: none;
+    color: $color-primary;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    padding: 0;
+    margin-bottom: $spacing-lg;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+
+  &__section {
+    background: $color-white;
+    border: 1px solid $color-border-light;
+    border-radius: $border-radius-lg;
+    padding: $spacing-lg;
+    margin-bottom: $spacing-lg;
+  }
+
+  &__section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: $spacing-lg;
+
+    h3 {
+      margin: 0;
+      font-size: 1.125rem;
+      font-weight: 600;
+      color: $color-text-dark;
+    }
+  }
+
+  &__error {
+    background: rgba($color-error, 0.1);
+    color: $color-error;
+    padding: $spacing-sm $spacing-md;
+    border-radius: $border-radius-sm;
+    margin-bottom: $spacing-md;
+  }
+
+  &__kv-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: $spacing-md;
+    margin-bottom: $spacing-lg;
+
+    @include respond-below(md) {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  &__kv {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-xs;
+    padding: $spacing-sm 0;
+    border-bottom: 1px solid $color-border-light;
+  }
+
+  &__kv-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: $color-text-light;
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+  }
+
+  &__kv-value {
+    font-size: 0.9375rem;
+    color: $color-text-dark;
+    font-weight: 500;
+  }
+
+  &__special {
+    margin-bottom: $spacing-md;
+    padding: $spacing-md;
+    background: $color-background-off-white;
+    border-radius: $border-radius-sm;
+
+    h4 {
+      margin: 0 0 $spacing-xs;
+      font-size: 0.875rem;
+      color: $color-text-dark;
+    }
+
+    p {
+      margin: 0;
+      color: $color-text-secondary;
+      font-size: 0.875rem;
+    }
+  }
+
+  &__inspector {
+    margin-bottom: $spacing-md;
+  }
+
+  &__comments {
+    margin-bottom: $spacing-md;
+
+    label {
+      display: block;
+      font-weight: 600;
+      font-size: 0.875rem;
+      margin-bottom: $spacing-xs;
+      color: $color-text-dark;
+    }
+  }
+
+  &__textarea {
+    width: 100%;
+    padding: $spacing-sm;
+    border: 1px solid $color-border-light;
+    border-radius: $border-radius-sm;
+    font-family: inherit;
+    font-size: 0.875rem;
+    resize: vertical;
+
+    &:focus {
+      outline: none;
+      border-color: $color-primary;
+    }
+  }
+
+  &__actions {
+    display: flex;
+    gap: $spacing-md;
+    flex-wrap: wrap;
+    margin-bottom: $spacing-md;
+
+    @include respond-to(desktop) {
+      max-width: 50%;
+    }
+
+    .btn {
+      flex: 1;
+      text-align: center;
+    }
+
+    &--centered {
+      justify-content: center;
+      max-width: 100%;
+
+      .btn {
+        flex: none;
+        min-width: 200px;
+        max-width: 300px;
+      }
+    }
+  }
+
+  &__reject-section {
+    border-top: 1px solid $color-border-light;
+    padding-top: $spacing-md;
+
+    label {
+      display: block;
+      font-weight: 600;
+      font-size: 0.875rem;
+      margin-bottom: $spacing-xs;
+      color: $color-text-dark;
+    }
+  }
+
+  &__reject-actions {
+    display: flex;
+    gap: $spacing-md;
+    margin-top: $spacing-md;
+  }
+}
+
+// ─── Mobile Cards ───────────────────────────────────────────────
+.appointments-card {
+  background: $color-white;
+  border: 1px solid $color-border-light;
+  border-radius: $border-radius-lg;
+  overflow: hidden;
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+
+  &:hover {
+    border-color: $color-primary;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  }
+
+  &__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: $spacing-md;
+    border-bottom: 1px solid $color-border-light;
+    background: $color-background-off-white;
+  }
+
+  &__title {
+    font-weight: 600;
+    font-size: 0.9375rem;
+    color: $color-text-dark;
+  }
+
+  &__body {
+    padding: $spacing-sm $spacing-md;
+  }
+
+  &__row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: $spacing-sm 0;
+    border-bottom: 1px solid $color-border-light;
+    font-size: 0.875rem;
+
+    &:last-child {
+      border-bottom: none;
+    }
+  }
+
+  &__label {
+    font-weight: 500;
+    color: $color-text-light;
+  }
+}
+
+// ─── Shared Appointment Info Row (used in Reschedule & Cancel modals) ───
+.appointment-info-row {
+  background: $color-background-off-white;
+  border: 1px solid $color-border-light;
+  border-radius: $border-radius-md;
+  padding: $spacing-md;
+  margin-bottom: $spacing-lg;
+
+  &__header {
+    font-weight: 600;
+    font-size: 0.875rem;
+    color: $color-text-dark;
+    margin-bottom: $spacing-sm;
+  }
+
+  &__grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: $spacing-xl;
+
+    @include respond-below(md) {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    > div {
+      display: flex;
+      flex-direction: column;
+      gap: $spacing-xs;
+    }
+  }
+
+  &__label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: $color-text-light;
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+  }
+}
+
+// ─── Offer Appointment Modal ────────────────────────────────────
+.offer-modal {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+
+  &__error {
+    background: rgba($color-error, 0.1);
+    color: $color-error;
+    padding: $spacing-sm $spacing-md;
+    border-radius: $border-radius-sm;
+  }
+
+  &__warning {
+    background: rgba($color-warning, 0.1);
+    color: $color-accent-brown;
+    padding: $spacing-md;
+    border-radius: $border-radius-sm;
+    border: 1px solid $color-warning;
+
+    p {
+      margin: 0 0 $spacing-md 0;
+    }
+  }
+
+  &__warning-actions {
+    display: flex;
+    gap: $spacing-sm;
+
+    button {
+      flex: 1;
+    }
+  }
+
+  &__field {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-xs;
+
+    label {
+      font-weight: 600;
+      font-size: 0.875rem;
+      color: $color-text-dark;
+    }
+
+    input[type="date"] {
+      padding: $spacing-sm;
+      border: 1px solid $color-border-light;
+      border-radius: $border-radius-sm;
+      font-family: inherit;
+      font-size: 0.875rem;
+
+      &:focus {
+        outline: none;
+        border-color: $color-primary;
+      }
+    }
+  }
+
+  &__field--inline {
+    @include respond-below(md) {
+      padding: $spacing-sm 0;
+      border-bottom: 1px solid $color-border-light;
+    }
+  }
+
+  &__label {
+    font-weight: 600;
+    font-size: 0.875rem;
+    color: $color-text-light;
+  }
+
+  &__required {
+    color: $color-error;
+    font-weight: 600;
+  }
+
+  &__value {
+    font-size: 0.875rem;
+    color: $color-text-dark;
+  }
+
+  &__desktop {
+    display: none;
+
+    @include respond-to(md) {
+      display: flex;
+    }
+  }
+
+  &__mobile {
+    display: block;
+
+    @include respond-to(md) {
+      display: none;
+    }
+  }
+
+  &__type-buttons {
+    gap: $spacing-sm;
+  }
+
+  &__row {
+    display: flex;
+    gap: $spacing-lg;
+
+    > .offer-modal__field {
+      flex: 1;
+    }
+
+    @include respond-below(md) {
+      flex-direction: column;
+      gap: 0;
+    }
+  }
+
+  &__type-btn {
+    flex: 1;
+    padding: $spacing-sm $spacing-md;
+    border: 1px solid $color-border-light;
+    border-radius: $border-radius-md;
+    background: $color-background;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    text-align: center;
+    transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+
+    &:hover {
+      border-color: $color-primary;
+      background: rgba($color-primary, 0.05);
+    }
+
+    &--selected {
+      border-color: $color-primary;
+      background: rgba($color-primary, 0.1);
+      color: $color-primary-dark;
+      font-weight: 600;
+    }
+  }
+
+  &__checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: $spacing-sm;
+    font-size: 0.875rem !important;
+    font-weight: 600 !important;
+    color: $color-text-light !important;
+    cursor: pointer;
+
+    input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      accent-color: $color-primary;
+    }
+  }
+
+  &__textarea {
+    width: 100%;
+    padding: $spacing-sm;
+    border: 1px solid $color-border-light;
+    border-radius: $border-radius-sm;
+    font-family: inherit;
+    font-size: 0.875rem;
+    resize: vertical;
+
+    &:focus {
+      outline: none;
+      border-color: $color-primary;
+    }
+  }
+
+  &__actions {
+    display: flex;
+    gap: $spacing-md;
+    justify-content: flex-end;
+    padding-top: $spacing-sm;
+    border-top: 1px solid $color-border-light;
+
+    @include respond-below(md) {
+      flex-direction: column-reverse;
+
+      .btn {
+        width: 100%;
+        text-align: center;
+      }
+    }
+  }
+}
+
+// ─── Reschedule Modal ───────────────────────────────────────────
+.reschedule-modal {
+  &__error {
+    background: rgba($color-error, 0.1);
+    color: $color-error;
+    padding: $spacing-sm $spacing-md;
+    border-radius: $border-radius-sm;
+    margin-bottom: $spacing-md;
+  }
+
+  &__form {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-md;
+    margin-bottom: $spacing-md;
+  }
+
+  &__slot-buttons {
+    display: flex;
+    gap: $spacing-sm;
+    flex-wrap: wrap;
+  }
+
+  &__slot-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: $spacing-xs;
+    padding: $spacing-sm $spacing-md;
+    border: 1px solid $color-border-light;
+    border-radius: $border-radius-md;
+    background: $color-background;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    min-width: 100px;
+
+    &:hover {
+      border-color: $color-primary;
+      background: rgba($color-primary, 0.05);
+    }
+
+    &--selected {
+      border-color: $color-primary;
+      background: rgba($color-primary, 0.1);
+      font-weight: 600;
+    }
+  }
+
+  &__slot-name {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: $color-text-dark;
+  }
+
+  &__slot-time {
+    font-size: 0.75rem;
+    color: $color-text-light;
+  }
+
+  &__textarea {
+    width: 100%;
+    padding: $spacing-sm;
+    border: 1px solid $color-border-light;
+    border-radius: $border-radius-sm;
+    font-family: inherit;
+    font-size: 0.875rem;
+    resize: vertical;
+
+    &:focus {
+      outline: none;
+      border-color: $color-primary;
+    }
+  }
+
+  &__actions {
+    display: flex;
+    gap: $spacing-md;
+    justify-content: flex-end;
+  }
+}
+
+// ─── Cancel Modal ───────────────────────────────────────────────
+.cancel-modal {
+  &__error {
+    background: rgba($color-error, 0.1);
+    color: $color-error;
+    padding: $spacing-sm $spacing-md;
+    border-radius: $border-radius-sm;
+    margin-bottom: $spacing-md;
+  }
+
+  &__question {
+    font-weight: 500;
+    color: $color-text-dark;
+    margin: 0 0 $spacing-md;
+  }
+
+  &__textarea {
+    width: 100%;
+    padding: $spacing-sm;
+    border: 1px solid $color-border-light;
+    border-radius: $border-radius-sm;
+    font-family: inherit;
+    font-size: 0.875rem;
+    resize: vertical;
+
+    &:focus {
+      outline: none;
+      border-color: $color-primary;
+    }
+  }
+
+  &__notice {
+    font-size: 0.8125rem;
+    color: $color-text-light;
+    font-style: italic;
+    margin: $spacing-md 0;
+  }
+
+  &__actions {
+    display: flex;
+    gap: $spacing-md;
+    justify-content: flex-end;
+  }
+}
+
+.btn-danger {
+  background: $color-error;
+  color: $color-white;
+  border: none;
+  padding: $spacing-xs $spacing-md;
+  border-radius: $border-radius-sm;
+  cursor: pointer;
+  font-weight: 500;
+
+  &:hover { background: $color-error-dark; }
+  &:disabled { opacity: 0.6; cursor: not-allowed; }
+}
+
+.btn-sm {
+  padding: $spacing-xs $spacing-sm;
+  font-size: 0.8125rem;
 }

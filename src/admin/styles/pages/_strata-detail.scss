@@ -206,22 +206,43 @@
     .btn-create-sr {
       padding: $spacing-sm $spacing-xl;
       font-size: $font-size-base;
+      min-width: 260px;
     }
   }
 
   .active-survey {
     .survey-header {
-      margin-bottom: $spacing-lg;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: $spacing-md;
 
-      @include respond-below(desktop) {
-        text-align: center;
+      .survey-header-actions {
+        display: flex;
+        align-items: center;
+        gap: $spacing-sm;
+      }
+
+      @include respond-below(lg) {
+        flex-direction: column;
+        gap: $spacing-sm;
+
+        .survey-header-actions {
+          width: 100%;
+          flex-direction: column;
+
+          .btn-primary,
+          .btn-secondary {
+            width: 100%;
+          }
+        }
       }
 
       h2 {
         font-size: 1.25rem;
         font-weight: 600;
         color: $color-text-dark;
-        margin-bottom: $spacing-md;
+        margin: 0;
       }
 
       .survey-meta {
@@ -519,6 +540,51 @@
     }
   }
 
+  .admin-sub-answers {
+    margin-top: $spacing-md;
+    padding: $spacing-sm $spacing-md $spacing-sm $spacing-lg;
+    border-left: 3px solid $color-primary-light;
+    background: $color-background-off-white;
+    border-radius: 0 $border-radius-sm $border-radius-sm 0;
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-sm;
+  }
+
+  .admin-sub-answer-item {
+    .answer-question {
+      display: flex;
+      align-items: baseline;
+      gap: $spacing-xs;
+      font-weight: $font-weight-medium;
+      color: $color-text-dark;
+      margin-bottom: $spacing-xs;
+      font-size: $font-size-sm;
+    }
+
+    .admin-sub-label {
+      font-weight: $font-weight-bold;
+      color: $color-primary;
+      min-width: 1rem;
+      font-size: $font-size-sm;
+    }
+
+    .answer-response {
+      font-size: $font-size-sm;
+      color: $color-text-dark;
+      padding-left: 1.25rem;
+
+      .answer-value {
+        font-weight: $font-weight-medium;
+      }
+
+      .answer-empty {
+        color: $color-text-muted;
+        font-style: italic;
+      }
+    }
+  }
+
   .archived-answer-group {
     .archived-response-entry {
       padding: $spacing-md 0;
@@ -711,6 +777,12 @@
     align-items: center;
     justify-content: space-between;
     gap: $spacing-md;
+
+    @include respond-below(desktop) {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: $spacing-xs;
+    }
   }
 
   .doc-req-item-name {
@@ -742,6 +814,12 @@
     margin-top: $spacing-xs;
     padding-left: $spacing-sm;
 
+    @include respond-below(desktop) {
+      flex-direction: column;
+      align-items: flex-start;
+      padding-left: 0;
+    }
+
     .doc-upload-date {
       font-size: $font-size-sm;
       color: $color-text-muted;
@@ -751,6 +829,10 @@
       font-size: $font-size-sm;
       padding: 2px $spacing-sm;
       margin-left: auto;
+
+      @include respond-below(desktop) {
+        margin-left: 0;
+      }
     }
   }
 

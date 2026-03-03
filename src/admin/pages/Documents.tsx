@@ -213,8 +213,11 @@ export default function DocumentsPage() {
     try {
       const result = await syncDocuments();
       if (result) {
-        if (result.removed > 0) {
-          setSyncMessage(`Sync complete: ${result.removed} orphaned record${result.removed === 1 ? '' : 's'} removed out of ${result.total} checked.`);
+        const parts: string[] = [];
+        if (result.added > 0) parts.push(`${result.added} new document${result.added === 1 ? '' : 's'} added`);
+        if (result.removed > 0) parts.push(`${result.removed} orphaned record${result.removed === 1 ? '' : 's'} removed`);
+        if (parts.length > 0) {
+          setSyncMessage(`Sync complete: ${parts.join(', ')} (${result.total} checked).`);
         } else {
           setSyncMessage(`Sync complete: All ${result.total} documents verified.`);
         }
@@ -279,7 +282,7 @@ export default function DocumentsPage() {
     const selectedPt = strataPropertyTypes.find(pt => pt.propertyTypeId === uploadForm.propertyTypeId);
 
     try {
-      await uploadDocument(
+      const result = await uploadDocument(
         uploadForm.file,
         uploadForm.documentTypeId,
         uploadForm.strataId,
@@ -288,6 +291,24 @@ export default function DocumentsPage() {
         uploadForm.propertyTypeId || undefined,
         selectedPt?.propertyTypeName || undefined
       );
+
+      // Auto-configure document requirement so it appears on the strata Documents tab
+      const srId = result?.document?.service_request_id;
+      if (srId && uploadForm.documentTypeId) {
+        try {
+          await authFetch(`${API_BASE}/admin/service-requests/${srId}/document-requirements/add`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              documentTypeId: uploadForm.documentTypeId,
+              propertyTypeId: uploadForm.propertyTypeId || null,
+            }),
+          });
+        } catch {
+          // Non-critical — document uploaded successfully, requirement config is best-effort
+        }
+      }
+
       setIsUploadModalOpen(false);
     } catch (err) {
       setUploadError(err instanceof Error ? err.message : 'Upload failed');
@@ -295,6 +316,8 @@ export default function DocumentsPage() {
   };
 
   const adminName = user?.role === 'admin' ? user.fullName : '';
+
+  if (loading) return <LoadingSpinner />;
 
   return (
     <div className="documents-page">

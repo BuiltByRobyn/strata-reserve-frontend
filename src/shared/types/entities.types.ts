@@ -30,6 +30,12 @@ export interface Service {
   serviceDescription: string | null;
 }
 
+export interface Location {
+  locationId: number;
+  locationCode: string;
+  locationName: string;
+}
+
 export interface StrataSection {
   strataSectionId: number;
   strataId: number;
@@ -89,18 +95,19 @@ export interface Strata extends StrataBasic {
   legalTypeId: number | null;
   propertyTypeId: number | null;
   companyId: number | null;
+  locationId: number | null;
   fiscalYearEnd: string | null;
   createdAt: string;
   updatedAt: string;
   company?: { companyId: number; companyName: string } | null;
   legalType?: { legalTypeId: number; legalTypeName: string } | null;
   propertyType?: { propertyTypeId: number; propertyTypeName: string } | null;
+  location?: Location | null;
   strataSections?: StrataSection[];
   strataPropertyTypes?: StrataPropertyType[];
   _count?: {
     strataNotes: number;
     strataProfiles: number;
-    strataServices: number;
     serviceRequests: number;
   };
 }
@@ -119,7 +126,6 @@ export interface StrataWithDetails extends Strata {
   propertyType: PropertyType | null;
   strataNotes: StrataNoteWithCreator[];
   strataProfiles: StrataProfileWithProfile[];
-  strataServices: StrataServiceWithDetails[];
   strataSections: StrataSection[];
   serviceRequests?: { serviceRequestDocuments: DocumentNote[] }[];
 }
@@ -159,6 +165,7 @@ export interface CreateStrataInput {
   legalTypeId?: number;
   propertyTypeId?: number;
   companyId?: number;
+  locationId?: number | null;
   sectionIds?: number[];
   propertyTypeIds?: number[];
   fiscalYearEnd?: string;
@@ -227,24 +234,6 @@ export interface CreateStrataEmployeeInput {
   strataPosition?: string;
 }
 
-// ============================================
-// Strata Service Types
-// ============================================
-
-export interface StrataService {
-  strataServiceId: number;
-  strataId: number;
-  serviceId: number;
-  createdAt: string;
-}
-
-export interface StrataServiceWithDetails extends StrataService {
-  service: Service;
-}
-
-export interface CreateStrataServiceInput {
-  serviceId: number;
-}
 
 // ============================================
 // Profile Types (Extended)
@@ -344,10 +333,24 @@ export interface ServiceRequest {
   lastDepreciationReportDate?: string | null;
   noReportToDate?: boolean;
   targetDate?: string | null;
+  appointmentOfferedAt?: string | null;
+  appointmentOfferedByProfileId?: string | null;
+  appointmentOfferTypeId?: number | null;
+  appointmentOfferInspectorId?: string | null;
+  appointmentOfferSecondInspectorId?: string | null;
+  rebookingRequestedAt?: string | null;
   service?: Service;
   strata?: Strata;
   requestedBy?: ProfileBasic;
   clientPropertyTypes?: Array<{ propertyTypeId: number }>;
+  latestDocumentUploadDate?: string | null;
+  latestSurveyAnswerDate?: string | null;
+  appointments?: Array<{
+    appointmentId: number;
+    appointmentDate: string;
+    status: string;
+    timeSlotId: number;
+  }>;
   _count?: {
     questionResponses: number;
     serviceRequestDocuments: number;
@@ -389,6 +392,16 @@ export interface AppointmentRequest {
   firstChoiceTimeSlot?: AppointmentTimeSlot;
   secondChoiceTimeSlot?: AppointmentTimeSlot | null;
   requestedBy?: ProfileBasic;
+  serviceRequest?: {
+    serviceRequestId: number;
+    status: string;
+    requestDate: string;
+    strata: StrataBasic & { location?: Location | null };
+    service: Service;
+    requestedBy?: ProfileBasic;
+    appointmentOfferInspector?: ProfileBasic | null;
+    appointmentOfferSecondInspector?: ProfileBasic | null;
+  };
 }
 
 export interface AppointmentReview {
@@ -422,8 +435,9 @@ export interface AppointmentWithDetails extends Appointment {
   timeSlot: AppointmentTimeSlot;
   serviceRequest: {
     serviceRequestId: number;
-    strata: StrataBasic;
+    strata: StrataBasic & { location?: Location | null };
     service: Service;
+    appointmentOfferSecondInspector?: ProfileBasic | null;
   };
   appointmentRequest?: AppointmentRequest;
   inspector: ProfileBasic | null;
@@ -559,11 +573,6 @@ export interface EditableField {
 
 export interface CreateSRFormData {
   serviceId: string;
-  requestedByFirstName: string;
-  requestedByLastName: string;
-  associatedCompany: string;
-  contactEmail: string;
-  contactPhone: string;
 }
 
 export interface UpdateAdminProfileInput {
@@ -585,3 +594,5 @@ export interface UserFormData {
   companyName: string;
   strataAssociations: StrataAssociation[];
 }
+
+export type AuthFetchFn = (url: string, options?: RequestInit) => Promise<Response>;

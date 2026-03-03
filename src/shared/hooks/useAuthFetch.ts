@@ -20,7 +20,7 @@ export const useAuthFetch = () => {
       ...options,
       headers,
     });
-  }, [session]);
+  }, [session?.access_token]);
 
   return authFetch;
 };

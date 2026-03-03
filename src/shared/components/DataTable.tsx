@@ -50,7 +50,7 @@ export function DataTable<T>({
           )}
         </thead>
         <tbody>
-          {data.map((item) => (
+          {data.map((item, rowIdx) => (
             <tr
               key={keyExtractor(item)}
               onClick={() => onRowClick?.(item)}
@@ -59,7 +59,7 @@ export function DataTable<T>({
               {columns.map((col) => (
                 <td key={col.key}>
                   {col.render
-                    ? col.render(item)
+                    ? col.render(item, rowIdx)
                     : String((item as Record<string, unknown>)[col.key] ?? '')}
                 </td>
               ))}

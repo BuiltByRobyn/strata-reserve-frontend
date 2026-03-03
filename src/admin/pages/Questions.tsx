@@ -1,7 +1,9 @@
 import { useState, useMemo } from 'react';
 import { useQuestions } from '../../shared/hooks/useQuestions';
 import { useLookups } from '../../shared/hooks/useLookups';
+import { useMediaQuery } from '../../shared/hooks/useMediaQuery';
 import { DataTable, type Column } from '../../shared/components/DataTable';
+import { LoadingSpinner } from '../../shared/components/LoadingSpinner';
 import { Modal } from '../../shared/components/Modal';
 import { InputField, TextareaField, FormRow } from '../../shared/components/FormField';
 import { MultiSelectDropdown } from '../../shared/components/MultiSelectDropdown';
@@ -23,7 +25,7 @@ const initialFormData: QuestionFormData = {
 
 const CATEGORIES = [
   'Exterior', 'Interior', 'Services', 'Clubhouse',
-  'Amenity Room', 'Legal', 'Council Concerns',
+  'Amenity Room', 'Legal', 'Council Concerns', 'Septic Fields',
 ];
 
 const FRIENDLY_TYPE_NAMES: Record<string, string> = {
@@ -42,6 +44,7 @@ const formatTypeName = (name: string) =>
 export default function QuestionsPage() {
   const { questions, loading, error, createQuestion, updateQuestion, deleteQuestion } = useQuestions();
   const { questionTypes, services, propertyTypes } = useLookups();
+  const isDesktop = useMediaQuery('(min-width: 750px)');
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState<AdminQuestion | null>(null);
@@ -69,7 +72,7 @@ export default function QuestionsPage() {
   const pageQuestions = filteredQuestions.slice(page * QUESTIONS_PER_PAGE, (page + 1) * QUESTIONS_PER_PAGE);
 
   const columns: Column<AdminQuestion>[] = [
-    { key: 'questionId', header: 'ID', width: '25px', render: (q) => q.questionId },
+    { key: 'questionId', header: '#', width: '25px', render: (_q, index) => page * QUESTIONS_PER_PAGE + index + 1 },
     {
       key: 'questionText', header: 'Question',
       render: (q) => q.questionText.length > 60 ? q.questionText.slice(0, 60) + '...' : q.questionText,
@@ -100,7 +103,6 @@ export default function QuestionsPage() {
       : '—';
 
     return [
-      { label: 'ID', value: String(q.questionId) },
       { label: 'Question Text', value: q.questionText },
       { label: 'Category', value: q.questionCategory },
       { label: 'Question Type', value: q.questionType?.questionTypeName ? formatTypeName(q.questionType.questionTypeName) : '—' },
@@ -207,6 +209,8 @@ export default function QuestionsPage() {
     });
   };
 
+  if (loading) return <LoadingSpinner />;
+
   return (
     <div className="questions-page">
       <div className="page-header">
@@ -252,9 +256,9 @@ export default function QuestionsPage() {
           setViewingQuestion(q);
           setIsViewModalOpen(true);
         }}
-        actions={(q) => (
+        actions={isDesktop ? (q) => (
           <button className="btn-edit" onClick={(e) => { e.stopPropagation(); openEditModal(q); }}>Edit</button>
-        )}
+        ) : undefined}
       />
 
       {totalPages > 1 && (
@@ -401,15 +405,43 @@ export default function QuestionsPage() {
         title="View Question"
         size="medium"
         footer={
-          <button
-            className="btn-primary"
-            onClick={() => {
-              setIsViewModalOpen(false);
-              setViewingQuestion(null);
-            }}
-          >
-            Close
-          </button>
+          <>
+            <button
+              className={isDesktop ? "btn-primary" : "btn-secondary"}
+              onClick={() => {
+                setIsViewModalOpen(false);
+                setViewingQuestion(null);
+              }}
+            >
+              Close
+            </button>
+            {!isDesktop && viewingQuestion && (
+              <>
+                <button
+                  className="btn-delete"
+                  onClick={async () => {
+                    const deleted = await handleDelete(viewingQuestion);
+                    if (deleted) {
+                      setIsViewModalOpen(false);
+                      setViewingQuestion(null);
+                    }
+                  }}
+                >
+                  Delete
+                </button>
+                <button
+                  className="btn-primary"
+                  onClick={() => {
+                    setIsViewModalOpen(false);
+                    openEditModal(viewingQuestion);
+                    setViewingQuestion(null);
+                  }}
+                >
+                  Edit
+                </button>
+              </>
+            )}
+          </>
         }
       >
         {viewingQuestion && (

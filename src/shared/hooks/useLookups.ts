@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useAuthFetch } from './useAuthFetch';
+import { useApiClient } from './useApiClient';
 import type {
   UserType,
   LegalType,
@@ -7,14 +7,13 @@ import type {
   Service,
   Section,
   QuestionType,
-  ApiListResponse
+  Location,
 } from '../types/entities.types';
 import type { DocumentType, ReviewStatus } from '../types/document.types';
 import type { LookupState } from '../types/hooks.types';
-import { API_BASE } from '../lib/api';
 
 export const useLookups = () => {
-  const authFetch = useAuthFetch();
+  const api = useApiClient();
   const [state, setState] = useState<LookupState>({
     userTypes: [],
     legalTypes: [],
@@ -24,6 +23,7 @@ export const useLookups = () => {
     reviewStatuses: [],
     sections: [],
     questionTypes: [],
+    locations: [],
     loading: true,
     error: null
   });
@@ -32,46 +32,38 @@ export const useLookups = () => {
     setState(prev => ({ ...prev, loading: true, error: null }));
 
     try {
-      const [userTypesRes, legalTypesRes, propertyTypesRes, servicesRes, documentTypesRes, reviewStatusesRes, sectionsRes, questionTypesRes] = await Promise.all([
-        authFetch(`${API_BASE}/api/lookups/user-types`),
-        authFetch(`${API_BASE}/api/lookups/legal-types`),
-        authFetch(`${API_BASE}/api/lookups/property-types`),
-        authFetch(`${API_BASE}/api/lookups/services`),
-        authFetch(`${API_BASE}/api/lookups/document-types`),
-        authFetch(`${API_BASE}/api/lookups/review-statuses`),
-        authFetch(`${API_BASE}/api/lookups/sections`),
-        authFetch(`${API_BASE}/api/lookups/question-types`)
-      ]);
-
-      const [userTypesData, legalTypesData, propertyTypesData, servicesData, documentTypesData, reviewStatusesData, sectionsData, questionTypesData]: [
-        ApiListResponse<UserType>,
-        ApiListResponse<LegalType>,
-        ApiListResponse<PropertyType>,
-        ApiListResponse<Service>,
-        ApiListResponse<DocumentType>,
-        ApiListResponse<ReviewStatus>,
-        ApiListResponse<Section>,
-        ApiListResponse<QuestionType>
+      const [
+        userTypes,
+        legalTypes,
+        propertyTypes,
+        services,
+        documentTypes,
+        reviewStatuses,
+        sections,
+        questionTypes,
+        locations,
       ] = await Promise.all([
-        userTypesRes.json(),
-        legalTypesRes.json(),
-        propertyTypesRes.json(),
-        servicesRes.json(),
-        documentTypesRes.json(),
-        reviewStatusesRes.json(),
-        sectionsRes.json(),
-        questionTypesRes.json()
+        api.get<UserType[]>('/api/lookups/user-types'),
+        api.get<LegalType[]>('/api/lookups/legal-types'),
+        api.get<PropertyType[]>('/api/lookups/property-types'),
+        api.get<Service[]>('/api/lookups/services'),
+        api.get<DocumentType[]>('/api/lookups/document-types'),
+        api.get<ReviewStatus[]>('/api/lookups/review-statuses'),
+        api.get<Section[]>('/api/lookups/sections'),
+        api.get<QuestionType[]>('/api/lookups/question-types'),
+        api.get<Location[]>('/api/lookups/locations'),
       ]);
 
       setState({
-        userTypes: userTypesData.data || [],
-        legalTypes: legalTypesData.data || [],
-        propertyTypes: propertyTypesData.data || [],
-        services: servicesData.data || [],
-        documentTypes: documentTypesData.data || [],
-        reviewStatuses: reviewStatusesData.data || [],
-        sections: sectionsData.data || [],
-        questionTypes: questionTypesData.data || [],
+        userTypes: userTypes || [],
+        legalTypes: legalTypes || [],
+        propertyTypes: propertyTypes || [],
+        services: services || [],
+        documentTypes: documentTypes || [],
+        reviewStatuses: reviewStatuses || [],
+        sections: sections || [],
+        questionTypes: questionTypes || [],
+        locations: locations || [],
         loading: false,
         error: null
       });
@@ -83,7 +75,7 @@ export const useLookups = () => {
         error: 'Failed to load lookup data'
       }));
     }
-  }, [authFetch]);
+  }, [api]);
 
   useEffect(() => {
     fetchAllLookups();

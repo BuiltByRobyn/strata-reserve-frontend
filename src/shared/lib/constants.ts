@@ -10,3 +10,21 @@ export const ALLOWED_MIME_TYPES = [
 ];
 
 export const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+
+export const LOCATION_OPTIONS = [
+    { key: 'OK', label: 'OK' },
+    { key: 'TH', label: 'TH' },
+    { key: 'LM', label: 'LM' },
+    { key: 'LLVI', label: 'LLVI' },
+    { key: 'NB', label: 'NB' },
+    { key: 'Virtual', label: 'Virtual' }
+];
+
+export const PHYSICAL_LOCATION_OPTIONS = LOCATION_OPTIONS.filter(l => l.key !== 'Virtual');
+export const VIRTUAL_LOCATION_OPTION = LOCATION_OPTIONS.find(l => l.key === 'Virtual')!;
+
+export const SLOT_END_TIMES: Record<string, string> = {
+  '10:00': '14:00',
+  '14:00': '18:00',
+  '18:00': '19:00',
+};

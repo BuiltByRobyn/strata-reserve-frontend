@@ -20,7 +20,7 @@ export interface UpdateTimelinesInput {
   targetDate?: string | null;
 }
 
-export type DeadlineType = 'Last AGM Date' | 'Next Projected AGM' | 'Last Depreciation Report Date' | 'Next Projected Depreciation' | 'Target Date';
+export type DeadlineType = 'Fiscal Year Start' | 'Last AGM Date' | 'Next Projected AGM' | 'Last Depreciation Report Date' | 'Next Projected Depreciation' | 'Target Date' | 'File Opened' | 'Most Recent Document Upload' | 'Survey Submitted' | 'Last Survey Answer Date' | 'Appointment';
 
 export interface DeadlineRow {
   id: string;

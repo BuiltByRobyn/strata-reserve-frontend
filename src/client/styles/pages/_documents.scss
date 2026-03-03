@@ -82,10 +82,24 @@
   .document-list {
     display: flex;
     flex-direction: column;
+    gap: $spacing-lg;
+  }
+
+  .document-group {
     border: 1px solid $color-border-light;
     border-radius: $border-radius-lg;
     overflow: hidden;
     background: $color-white;
+  }
+
+  .document-group-title {
+    font-size: 1.125rem;
+    font-weight: $font-weight-bold;
+    color: $color-text-dark;
+    margin: 0;
+    padding: $spacing-md $spacing-lg;
+    background: $color-background-off-white;
+    border-bottom: 1px solid $color-border-light;
   }
 
   .document-item {
@@ -151,7 +165,7 @@
     font-weight: $font-weight-bold;
     text-transform: uppercase;
     background: rgba($color-secondary, 0.1);
-    color: $color-secondary-dark;
+    color: $color-primary-dark;
     white-space: nowrap;
   }
 

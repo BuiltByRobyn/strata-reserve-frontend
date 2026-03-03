@@ -1,19 +1,19 @@
+import { formatDate as formatDateSafe, formatDateShort as formatDateShortSafe } from './dateUtils';
+export { formatDateLong, formatDateMedium, formatTime12h } from './dateUtils';
+
 export const formatTypeName = (name: string): string =>
   name.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 
-export const formatDate = (dateString: string): string =>
-  new Date(dateString).toLocaleDateString('en-AU', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-  });
+export const formatDate = formatDateSafe;
 
-export const formatDateShort = (dateString: string): string => {
-  const date = new Date(dateString);
-  const day = date.getDate().toString().padStart(2, '0');
-  const month = date.toLocaleDateString('en-US', { month: 'short' });
-  const year = date.getFullYear().toString().slice(-2);
-  return `${day} ${month} ${year}`;
+export const formatDateShort = formatDateShortSafe;
+
+export const getUserDisplayName = (
+  user: { displayName?: string | null; firstName?: string | null; lastName?: string | null } | null | undefined,
+  fallback = 'Unknown'
+): string => {
+  if (!user) return fallback;
+  return user.displayName || `${user.firstName || ''} ${user.lastName || ''}`.trim() || fallback;
 };
 
 export const getStatusBadgeClass = (statusName?: string): string => {

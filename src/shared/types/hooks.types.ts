@@ -3,6 +3,7 @@ import type {
   Company,
   CompanyHoliday,
   InspectorAvailableDate,
+  Location,
   ServiceRequest,
   Strata,
   UserWithStratas,
@@ -55,6 +56,7 @@ export interface LookupState {
   reviewStatuses: ReviewStatus[];
   sections: Section[];
   questionTypes: QuestionType[];
+  locations: Location[];
   loading: boolean;
   error: string | null;
 }
@@ -93,4 +95,10 @@ export interface PropertyTypeContextType {
   propertyTypes: PropertyType[];
   loading: boolean;
   refetch: () => Promise<void>;
+}
+
+export interface UseCrudModalOptions<TItem, TFormData> {
+  initialFormData: TFormData;
+  itemToFormData: (item: TItem) => TFormData;
+  onSubmit: (formData: TFormData, editingItem: TItem | null) => Promise<void>;
 }

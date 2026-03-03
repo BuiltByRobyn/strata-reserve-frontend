@@ -1,16 +1,14 @@
 import { useState, useCallback } from 'react';
-import { useAuthFetch } from './useAuthFetch';
+import { useApiClient } from './useApiClient';
 import type {
   SurveyQuestion,
   SurveyResponse,
   ArchivedSurveyResponse,
   SaveResponsePayload,
 } from '../types/survey.types';
-import type { ApiResponse } from '../types/entities.types';
-import { API_BASE } from '../lib/api';
 
 export const useSurvey = (routePrefix: 'client' | 'admin' = 'client') => {
-  const authFetch = useAuthFetch();
+  const api = useApiClient();
   const [questions, setQuestions] = useState<SurveyQuestion[]>([]);
   const [responses, setResponses] = useState<SurveyResponse[]>([]);
   const [archivedResponses, setArchivedResponses] = useState<ArchivedSurveyResponse[]>([]);
@@ -22,49 +20,38 @@ export const useSurvey = (routePrefix: 'client' | 'admin' = 'client') => {
     setLoading(true);
     setError(null);
     try {
-      const res = await authFetch(
-        `${API_BASE}/${routePrefix}/service-requests/${serviceRequestId}/survey/questions`
+      const data = await api.get<SurveyQuestion[]>(
+        `/${routePrefix}/service-requests/${serviceRequestId}/survey/questions`
       );
-      const data: ApiResponse<SurveyQuestion[]> = await res.json();
-      if (data.success && data.data) {
-        setQuestions(data.data);
-      } else {
-        throw new Error(data.error || 'Failed to fetch questions');
-      }
+      setQuestions(data || []);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load questions');
     } finally {
       setLoading(false);
     }
-  }, [authFetch, routePrefix]);
+  }, [api, routePrefix]);
 
   const fetchResponses = useCallback(async (serviceRequestId: number) => {
     try {
-      const res = await authFetch(
-        `${API_BASE}/${routePrefix}/service-requests/${serviceRequestId}/survey/responses`
+      const data = await api.get<SurveyResponse[]>(
+        `/${routePrefix}/service-requests/${serviceRequestId}/survey/responses`
       );
-      const data: ApiResponse<SurveyResponse[]> = await res.json();
-      if (data.success && data.data) {
-        setResponses(data.data);
-      }
+      setResponses(data || []);
     } catch {
       // Silently fail - responses might not exist yet
     }
-  }, [authFetch, routePrefix]);
+  }, [api, routePrefix]);
 
   const fetchArchivedResponses = useCallback(async (serviceRequestId: number) => {
     try {
-      const res = await authFetch(
-        `${API_BASE}/${routePrefix}/service-requests/${serviceRequestId}/survey/responses/archived`
+      const data = await api.get<ArchivedSurveyResponse[]>(
+        `/${routePrefix}/service-requests/${serviceRequestId}/survey/responses/archived`
       );
-      const data: ApiResponse<ArchivedSurveyResponse[]> = await res.json();
-      if (data.success && data.data) {
-        setArchivedResponses(data.data);
-      }
+      setArchivedResponses(data || []);
     } catch {
       // Silently fail
     }
-  }, [authFetch, routePrefix]);
+  }, [api, routePrefix]);
 
   const saveResponses = useCallback(async (
     serviceRequestId: number,
@@ -73,20 +60,15 @@ export const useSurvey = (routePrefix: 'client' | 'admin' = 'client') => {
     if (payloads.length === 0) return;
     setSaving(true);
     try {
-      const res = await authFetch(
-        `${API_BASE}/${routePrefix}/service-requests/${serviceRequestId}/survey/responses`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ responses: payloads }),
-        }
+      const data = await api.post<SurveyResponse[]>(
+        `/${routePrefix}/service-requests/${serviceRequestId}/survey/responses`,
+        { responses: payloads }
       );
-      const data: ApiResponse<SurveyResponse[]> = await res.json();
-      if (data.success && data.data) {
+      if (data) {
         setResponses(prev => {
           const updated = [...prev];
-          for (const newResp of data.data!) {
-            const idx = updated.findIndex(r => r.questionId === newResp.questionId);
+          for (const newResp of data) {
+            const idx = updated.findIndex(r => r.questionId === newResp.questionId && r.propertyTypeId === newResp.propertyTypeId);
             if (idx >= 0) {
               updated[idx] = newResp;
             } else {
@@ -101,11 +83,18 @@ export const useSurvey = (routePrefix: 'client' | 'admin' = 'client') => {
     } finally {
       setSaving(false);
     }
-  }, [authFetch, routePrefix]);
+  }, [api, routePrefix]);
 
-  const getResponseForQuestion = useCallback((questionId: number): SurveyResponse | undefined => {
-    return responses.find(r => r.questionId === questionId);
+  const getResponseForQuestion = useCallback((questionId: number, propertyTypeId: number): SurveyResponse | undefined => {
+    return responses.find(r => r.questionId === questionId && r.propertyTypeId === propertyTypeId);
   }, [responses]);
+
+  const clearState = useCallback(() => {
+    setQuestions([]);
+    setResponses([]);
+    setArchivedResponses([]);
+    setError(null);
+  }, []);
 
   return {
     questions,
@@ -119,5 +108,6 @@ export const useSurvey = (routePrefix: 'client' | 'admin' = 'client') => {
     fetchArchivedResponses,
     saveResponses,
     getResponseForQuestion,
+    clearState,
   };
 };

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useAuthFetch } from './useAuthFetch';
+import { useApiClient } from './useApiClient';
 import type {
   Strata,
   StrataWithDetails,
@@ -7,37 +7,24 @@ import type {
   UpdateStrataInput,
   CreateStrataNoteInput,
   CreateStrataEmployeeInput,
-  CreateStrataServiceInput,
   StrataNoteBasic,
   StrataEmployee,
-  StrataService,
-  ApiListResponse,
-  ApiSingleResponse
 } from '../types/entities.types';
 import type { StrataState } from '../types/hooks.types';
-import { API_BASE } from '../lib/api';
 
 export const useStrata = () => {
-  const authFetch = useAuthFetch();
+  const api = useApiClient();
   const [state, setState] = useState<StrataState>({
     stratas: [],
     loading: true,
     error: null
   });
 
-  // Fetch all stratas
   const fetchStratas = useCallback(async () => {
     setState(prev => ({ ...prev, loading: true, error: null }));
-    
     try {
-      const response = await authFetch(`${API_BASE}/admin/strata`);
-      const data: ApiListResponse<Strata> = await response.json();
-      
-      if (data.success) {
-        setState({ stratas: data.data || [], loading: false, error: null });
-      } else {
-        throw new Error(data.error || 'Failed to fetch stratas');
-      }
+      const stratas = await api.get<Strata[]>('/admin/strata');
+      setState({ stratas: stratas || [], loading: false, error: null });
     } catch (error) {
       console.error('Error fetching stratas:', error);
       setState(prev => ({
@@ -46,220 +33,116 @@ export const useStrata = () => {
         error: error instanceof Error ? error.message : 'Failed to load stratas'
       }));
     }
-  }, [authFetch]);
+  }, [api]);
 
-  // Get strata by ID with full details
   const getStrataById = useCallback(async (id: number): Promise<StrataWithDetails | null> => {
     try {
-      const response = await authFetch(`${API_BASE}/admin/strata/${id}`);
-      const data: ApiSingleResponse<StrataWithDetails> = await response.json();
-      
-      if (data.success && data.data) {
-        return data.data;
-      }
-      return null;
+      return await api.get<StrataWithDetails>(`/admin/strata/${id}`);
     } catch (error) {
       console.error('Error fetching strata:', error);
       return null;
     }
-  }, [authFetch]);
+  }, [api]);
 
-  // Create strata
   const createStrata = useCallback(async (input: CreateStrataInput): Promise<Strata | null> => {
     try {
-      const response = await authFetch(`${API_BASE}/admin/strata`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(input)
-      });
-      const data: ApiSingleResponse<Strata> = await response.json();
-      
-      if (data.success && data.data) {
-        await fetchStratas();
-        return data.data;
-      }
-      throw new Error(data.error || 'Failed to create strata');
+      const result = await api.post<Strata>('/admin/strata', input);
+      await fetchStratas();
+      return result;
     } catch (error) {
       console.error('Error creating strata:', error);
       throw error;
     }
-  }, [authFetch, fetchStratas]);
+  }, [api, fetchStratas]);
 
-  // Update strata
   const updateStrata = useCallback(async (id: number, input: UpdateStrataInput): Promise<Strata | null> => {
     try {
-      const response = await authFetch(`${API_BASE}/admin/strata/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(input)
-      });
-      const data: ApiSingleResponse<Strata> = await response.json();
-      
-      if (data.success && data.data) {
-        await fetchStratas();
-        return data.data;
-      }
-      throw new Error(data.error || 'Failed to update strata');
+      const result = await api.put<Strata>(`/admin/strata/${id}`, input);
+      await fetchStratas();
+      return result;
     } catch (error) {
       console.error('Error updating strata:', error);
       throw error;
     }
-  }, [authFetch, fetchStratas]);
+  }, [api, fetchStratas]);
 
-  // Delete strata
   const deleteStrata = useCallback(async (id: number): Promise<boolean> => {
     try {
-      const response = await authFetch(`${API_BASE}/admin/strata/${id}`, {
-        method: 'DELETE'
-      });
-      const data = await response.json();
-      
-      if (data.success) {
-        await fetchStratas();
-        return true;
-      }
-      throw new Error(data.error || 'Failed to delete strata');
+      await api.del(`/admin/strata/${id}`);
+      await fetchStratas();
+      return true;
     } catch (error) {
       console.error('Error deleting strata:', error);
       throw error;
     }
-  }, [authFetch, fetchStratas]);
+  }, [api, fetchStratas]);
 
-  // Search stratas
   const searchStratas = useCallback(async (query: string): Promise<Strata[]> => {
     try {
-      const response = await authFetch(`${API_BASE}/admin/strata/search?q=${encodeURIComponent(query)}`);
-      const data: ApiListResponse<Strata> = await response.json();
-      
-      if (data.success) {
-        return data.data || [];
-      }
-      return [];
+      return await api.get<Strata[]>('/admin/strata/search', {
+        params: { q: query },
+      });
     } catch (error) {
       console.error('Error searching stratas:', error);
       return [];
     }
-  }, [authFetch]);
+  }, [api]);
 
   // ============================================
   // Strata Notes
   // ============================================
   const addNote = useCallback(async (strataId: number, input: CreateStrataNoteInput): Promise<StrataNoteBasic | null> => {
     try {
-      const response = await authFetch(`${API_BASE}/admin/strata/${strataId}/notes`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(input)
-      });
-      const data: ApiSingleResponse<StrataNoteBasic> = await response.json();
-      
-      if (data.success && data.data) {
-        return data.data;
-      }
-      throw new Error(data.error || 'Failed to add note');
+      return await api.post<StrataNoteBasic>(`/admin/strata/${strataId}/notes`, input);
     } catch (error) {
       console.error('Error adding note:', error);
       throw error;
     }
-  }, [authFetch]);
+  }, [api]);
 
   const deleteNote = useCallback(async (strataId: number, noteId: number): Promise<boolean> => {
     try {
-      const response = await authFetch(`${API_BASE}/admin/strata/${strataId}/notes/${noteId}`, {
-        method: 'DELETE'
-      });
-      const data = await response.json();
-      return data.success;
+      await api.del(`/admin/strata/${strataId}/notes/${noteId}`);
+      return true;
     } catch (error) {
       console.error('Error deleting note:', error);
       throw error;
     }
-  }, [authFetch]);
+  }, [api]);
 
   // ============================================
   // Strata Employees
   // ============================================
   const assignEmployee = useCallback(async (strataId: number, input: CreateStrataEmployeeInput): Promise<StrataEmployee | null> => {
     try {
-      const response = await authFetch(`${API_BASE}/admin/strata/${strataId}/employees`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(input)
-      });
-      const data: ApiSingleResponse<StrataEmployee> = await response.json();
-      
-      if (data.success && data.data) {
-        return data.data;
-      }
-      throw new Error(data.error || 'Failed to assign employee');
+      return await api.post<StrataEmployee>(`/admin/strata/${strataId}/employees`, input);
     } catch (error) {
       console.error('Error assigning employee:', error);
       throw error;
     }
-  }, [authFetch]);
+  }, [api]);
 
   const updateEmployeePosition = useCallback(async (strataId: number, employeeId: number, position: string): Promise<boolean> => {
     try {
-      const response = await authFetch(`${API_BASE}/admin/strata/${strataId}/employees/${employeeId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ strataPosition: position })
-      });
-      const data = await response.json();
-      return data.success;
+      await api.put(`/admin/strata/${strataId}/employees/${employeeId}`, { strataPosition: position });
+      return true;
     } catch (error) {
       console.error('Error updating employee position:', error);
       throw error;
     }
-  }, [authFetch]);
+  }, [api]);
 
   const removeEmployee = useCallback(async (strataId: number, employeeId: number): Promise<boolean> => {
     try {
-      const response = await authFetch(`${API_BASE}/admin/strata/${strataId}/employees/${employeeId}`, {
-        method: 'DELETE'
-      });
-      const data = await response.json();
-      return data.success;
+      await api.del(`/admin/strata/${strataId}/employees/${employeeId}`);
+      return true;
     } catch (error) {
       console.error('Error removing employee:', error);
       throw error;
     }
-  }, [authFetch]);
+  }, [api]);
 
-  // ============================================
-  // Strata Services
-  // ============================================
-  const addService = useCallback(async (strataId: number, input: CreateStrataServiceInput): Promise<StrataService | null> => {
-    try {
-      const response = await authFetch(`${API_BASE}/admin/strata/${strataId}/services`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(input)
-      });
-      const data: ApiSingleResponse<StrataService> = await response.json();
-      
-      if (data.success && data.data) {
-        return data.data;
-      }
-      throw new Error(data.error || 'Failed to add service');
-    } catch (error) {
-      console.error('Error adding service:', error);
-      throw error;
-    }
-  }, [authFetch]);
 
-  const removeService = useCallback(async (strataId: number, serviceId: number): Promise<boolean> => {
-    try {
-      const response = await authFetch(`${API_BASE}/admin/strata/${strataId}/services/${serviceId}`, {
-        method: 'DELETE'
-      });
-      const data = await response.json();
-      return data.success;
-    } catch (error) {
-      console.error('Error removing service:', error);
-      throw error;
-    }
-  }, [authFetch]);
 
   useEffect(() => {
     fetchStratas();
@@ -280,8 +163,5 @@ export const useStrata = () => {
     assignEmployee,
     updateEmployeePosition,
     removeEmployee,
-    // Services
-    addService,
-    removeService
   };
 };

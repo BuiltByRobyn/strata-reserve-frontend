@@ -213,6 +213,20 @@
     }
   }
 
+  .pagination-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: $spacing-md;
+    padding: $spacing-sm 0;
+
+    .pagination-info {
+      font-size: $font-size-sm;
+      color: $color-text-muted;
+      font-weight: $font-weight-medium;
+    }
+  }
+
   .checkbox-field {
     display: flex;
     align-items: center;

@@ -4,6 +4,7 @@ import { useUsers } from '../../shared/hooks/useUsers';
 import { useStrata } from '../../shared/hooks/useStrata';
 import { useLookups } from '../../shared/hooks/useLookups';
 import { DataTable, type Column } from '../../shared/components/DataTable';
+import { LoadingSpinner } from '../../shared/components/LoadingSpinner';
 import { Modal } from '../../shared/components/Modal';
 import { InputField, FormRow } from '../../shared/components/FormField';
 import { SingleSelectDropdown } from '../../shared/components/SingleSelectDropdown';
@@ -272,6 +273,8 @@ export default function UsersPage() {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
+  if (loading) return <LoadingSpinner />;
+
   const updateStrataAssociation = (index: number, field: 'strataId' | 'strataPosition', value: string | number) => {
     setFormData(prev => {
       const newAssociations = [...prev.strataAssociations];
@@ -404,11 +407,11 @@ export default function UsersPage() {
         }}
         loading={loading}
         emptyMessage="No users found. Click 'Create New Users' to add one."
-        actions={(user) => (
-          <button className="btn-edit" onClick={() => openEditModal(user)}>
+        actions={isDesktop ? (user) => (
+          <button className="btn-edit" onClick={(e) => { e.stopPropagation(); openEditModal(user); }}>
             Edit
           </button>
-        )}
+        ) : undefined}
         actionsColumnHeader="Action"
       />
 
@@ -605,15 +608,29 @@ export default function UsersPage() {
         title="View User"
         size="medium"
         footer={
-          <button
-            className="btn-primary"
-            onClick={() => {
-              setIsViewModalOpen(false);
-              setViewingUser(null);
-            }}
-          >
-            Close
-          </button>
+          <>
+            <button
+              className={isDesktop ? "btn-primary" : "btn-secondary"}
+              onClick={() => {
+                setIsViewModalOpen(false);
+                setViewingUser(null);
+              }}
+            >
+              Close
+            </button>
+            {!isDesktop && viewingUser && (
+              <button
+                className="btn-primary"
+                onClick={() => {
+                  setIsViewModalOpen(false);
+                  openEditModal(viewingUser);
+                  setViewingUser(null);
+                }}
+              >
+                Edit
+              </button>
+            )}
+          </>
         }
       >
         {viewingUser && (

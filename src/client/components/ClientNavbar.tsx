@@ -1,132 +1,38 @@
-import { useState } from "react";
-import { NavLink, useNavigate } from "react-router-dom";
-import { useAuth } from "../../shared/contexts/AuthContext";
+import { useMemo } from 'react';
+import { useAuth } from '../../shared/contexts/AuthContext';
+import { Navbar } from '../../shared/components/Navbar';
+import type { ServiceRequest } from '../../shared/types/entities.types';
 
-export const ClientNavbar = () => {
-  const { signOut, user } = useAuth();
-  const navigate = useNavigate();
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+const BASE_NAV_ITEMS = [
+  { to: '/client/dashboard', label: 'Dashboard', end: true },
+  { to: '/client/strata-information', label: 'Strata Information' },
+  { to: '/client/strata-members', label: 'Strata Members' },
+  { to: '/client/timelines', label: 'Timelines' },
+  { to: '/client/survey', label: 'Survey' },
+  { to: '/client/documents', label: 'Documents' },
+];
 
-  const handleLogout = async () => {
-    await signOut();
-    navigate('/login');
-  };
-
-  const toggleMobileMenu = () => {
-    setIsMobileMenuOpen(!isMobileMenuOpen);
-  };
-
-  const closeMobileMenu = () => {
-    setIsMobileMenuOpen(false);
-  };
-
-  // Get client user details
+export const ClientNavbar = ({ activeRequest }: { activeRequest: ServiceRequest | null }) => {
+  const { user } = useAuth();
   const clientUser = user?.role === 'client' ? user : null;
 
+  const navItems = useMemo(() => {
+    const items = [...BASE_NAV_ITEMS];
+    if (activeRequest?.appointmentOfferedAt) {
+      items.push({ to: '/client/inspection-date', label: 'Inspection Date' });
+    }
+    return items;
+  }, [activeRequest?.appointmentOfferedAt]);
+
   return (
-    <>
-    <div
-      className={`sidebar-overlay${isMobileMenuOpen ? ' active' : ''}`}
-      onClick={closeMobileMenu}
+    <Navbar
+      variant="client"
+      navItems={navItems}
+      userInfoRows={[
+        { label: 'Strata ID:', value: clientUser?.strataPlan || 'N/A' },
+        { label: 'User:', value: `${clientUser?.firstName || ''} ${clientUser?.lastName || ''}` },
+      ]}
+      loading={false}
     />
-    <nav className={`navbar client-navbar${isMobileMenuOpen ? ' sidebar-open' : ''}`}>
-      <div className="navbar-brand">
-        <img src="/logonobg.svg" alt="Building Icon" />
-        <div className="navbar-brand-titles">
-          <span>Strata Reserve</span>
-          <div className="navbar-brand-text">Information Report Portal</div>
-        </div>
-      </div>
-
-      <div className="navbar-user-info">
-        <div className="navbar-user-title">
-          Strata ID:
-        </div>
-        <div className="navbar-user-details">
-          {clientUser?.strataPlan || 'N/A'}
-        </div>
-        <div className="navbar-user-title">
-          User:
-        </div>
-        <div className="navbar-user-details">
-          {clientUser?.firstName} {clientUser?.lastName}
-        </div>
-      </div>
-      
-      {/* Hamburger Menu Button */}
-      <button 
-        className={`navbar-hamburger ${isMobileMenuOpen ? 'active' : ''}`}
-        onClick={toggleMobileMenu}
-        aria-label="Toggle navigation menu"
-        aria-expanded={isMobileMenuOpen}
-      >
-        <span></span>
-        <span></span>
-        <span></span>
-      </button>
-
-      <div className={`navbar-links ${isMobileMenuOpen ? 'active' : ''}`}>
-        <NavLink
-          to="/client/dashboard"
-          className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
-          onClick={closeMobileMenu}
-          end
-        >
-          Dashboard
-        </NavLink>
-        <NavLink
-          to="/client/strata-information"
-          className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
-          onClick={closeMobileMenu}
-        >
-          Strata Information
-        </NavLink>
-        <NavLink
-          to="/client/strata-members"
-          className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
-          onClick={closeMobileMenu}
-        >
-          Strata Members
-        </NavLink>
-        <NavLink
-          to="/client/timelines"
-          className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
-          onClick={closeMobileMenu}
-        >
-          Timelines
-        </NavLink>
-        <NavLink
-          to="/client/survey"
-          className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
-          onClick={closeMobileMenu}
-        >
-          Survey
-        </NavLink>
-        <NavLink
-          to="/client/documents"
-          className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
-          onClick={closeMobileMenu}
-        >
-          Documents
-        </NavLink>
-        <NavLink
-          to="/client/inspection-date"
-          className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
-          onClick={closeMobileMenu}
-        >
-          Inspection Date
-        </NavLink>
-        <button
-          onClick={() => {
-            handleLogout();
-            closeMobileMenu();
-          }}
-          className="nav-link logout-btn"
-        >
-          <img src="/icons/logout-icon.svg" alt="" />Sign Out
-        </button>
-      </div>
-    </nav>
-    </>
   );
 };

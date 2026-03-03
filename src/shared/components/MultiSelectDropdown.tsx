@@ -1,5 +1,6 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import type { MultiSelectDropdownProps } from '../types/component.types';
+import { useClickOutside } from '../hooks/useClickOutside';
 
 export function MultiSelectDropdown({
   label,
@@ -11,20 +12,14 @@ export function MultiSelectDropdown({
   onChange,
   placeholder = 'Select...',
   disabled = false,
+  searchable = false,
 }: MultiSelectDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [search, setSearch] = useState('');
   const containerRef = useRef<HTMLDivElement>(null);
   const fieldId = `field-${label.toLowerCase().replace(/\s+/g, '-')}`;
 
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setIsOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+  useClickOutside(containerRef, useCallback(() => { setIsOpen(false); setSearch(''); }, []));
 
   const toggleOption = (value: number) => {
     if (selectedValues.includes(value)) {
@@ -34,12 +29,15 @@ export function MultiSelectDropdown({
     }
   };
 
+  const filteredOptions = searchable && search
+    ? options.filter(opt =>
+        selectedValues.includes(opt.value) ||
+        opt.label.toLowerCase().includes(search.toLowerCase())
+      )
+    : options;
+
   const selectedCount = selectedValues.length;
-
-  const displayText = selectedCount > 0
-    ? `${selectedCount} selected`
-    : placeholder;
-
+  const displayText = selectedCount > 0 ? `${selectedCount} selected` : placeholder;
   const triggerClass = `multiselect__trigger${selectedCount === 0 ? ' multiselect__trigger--placeholder' : ''}`;
 
   return (
@@ -60,7 +58,17 @@ export function MultiSelectDropdown({
         </button>
         {isOpen && (
           <div className="multiselect__dropdown">
-            {options.map(opt => (
+            {searchable && (
+              <input
+                type="text"
+                className="multiselect__search"
+                placeholder="Search..."
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                autoFocus
+              />
+            )}
+            {filteredOptions.map(opt => (
               <label
                 key={opt.value}
                 className={`multiselect__option${selectedValues.includes(opt.value) ? ' multiselect__option--selected' : ''}`}
