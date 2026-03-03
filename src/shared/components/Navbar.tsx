@@ -3,7 +3,7 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import type { NavbarProps } from '../types/component.types';
 
-export function Navbar({ variant, navItems, userInfoRows }: NavbarProps) {
+export function Navbar({ variant, navItems, userInfoRows, loading }: NavbarProps) {
   const { signOut } = useAuth();
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -52,23 +52,31 @@ export function Navbar({ variant, navItems, userInfoRows }: NavbarProps) {
         </button>
 
         <div className={`navbar-links ${isMobileMenuOpen ? 'active' : ''}`}>
-          {navItems.map(({ to, label, end }) => (
-            <NavLink
-              key={to}
-              to={to}
-              className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
-              onClick={closeMobileMenu}
-              end={end}
-            >
-              {label}
-            </NavLink>
-          ))}
-          <button
-            onClick={() => { handleLogout(); closeMobileMenu(); }}
-            className="nav-link logout-btn"
-          >
-            <img src="/icons/logout-icon.svg" alt="" />Sign Out
-          </button>
+          {loading ? (
+            <div className="navbar-links__loading">
+              <div className="navbar-links__spinner" />
+            </div>
+          ) : (
+            <>
+              {navItems.map(({ to, label, end }) => (
+                <NavLink
+                  key={to}
+                  to={to}
+                  className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+                  onClick={closeMobileMenu}
+                  end={end}
+                >
+                  {label}
+                </NavLink>
+              ))}
+              <button
+                onClick={() => { handleLogout(); closeMobileMenu(); }}
+                className="nav-link logout-btn"
+              >
+                <img src="/icons/logout-icon.svg" alt="" />Sign Out
+              </button>
+            </>
+          )}
         </div>
       </nav>
     </>

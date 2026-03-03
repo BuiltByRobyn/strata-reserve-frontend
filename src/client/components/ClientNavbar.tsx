@@ -14,7 +14,7 @@ const BASE_NAV_ITEMS = [
 
 export const ClientNavbar = () => {
   const { user } = useAuth();
-  const { activeRequest } = useClientServiceRequest();
+  const { activeRequest, loading } = useClientServiceRequest();
   const clientUser = user?.role === 'client' ? user : null;
 
   const navItems = useMemo(() => {
@@ -33,6 +33,7 @@ export const ClientNavbar = () => {
         { label: 'Strata ID:', value: clientUser?.strataPlan || 'N/A' },
         { label: 'User:', value: `${clientUser?.firstName || ''} ${clientUser?.lastName || ''}` },
       ]}
+      loading={loading}
     />
   );
 };

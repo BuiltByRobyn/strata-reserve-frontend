@@ -44,6 +44,33 @@ export function formatDateMedium(iso: string): string {
   return date.toLocaleDateString('en-CA', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' });
 }
 
+/** Compute the time range for an appointment slot.
+ *  Returns "HH:MM - HH:MM" (e.g. "10:00 - 14:00"). */
+export function getSlotTimeRange(
+  slotTime: string,
+  isDraftMeeting: boolean,
+  isFullDay: boolean
+): string {
+  const [h] = slotTime.split(':');
+  const startHour = parseInt(h);
+  let endHour: number;
+  let endMin = 0;
+
+  if (isDraftMeeting) {
+    endHour = startHour;
+    endMin = 30;
+  } else if (isFullDay) {
+    endHour = 18;
+  } else {
+    endHour = startHour + 4;
+  }
+
+  const fmt = (hr: number, min: number) =>
+    `${hr.toString().padStart(2, '0')}:${min.toString().padStart(2, '0')}`;
+
+  return `${fmt(startHour, 0)} - ${fmt(endHour, endMin)}`;
+}
+
 /** Convert "HH:mm" or "HH:mm:ss" to "H:00 AM/PM" */
 export function formatTime12h(time: string): string {
   const [h] = time.split(':');

@@ -113,6 +113,20 @@ export const useAppointments = () => {
     }
   }, [api, fetchAppointmentRequests, fetchAppointments]);
 
+  const checkInspectorAvailability = useCallback(async (
+    inspectorProfileId: string,
+    date: string
+  ): Promise<boolean> => {
+    try {
+      const data = await api.get<any[]>('/admin/inspector-availability/range', {
+        params: { startDate: date, endDate: date, inspectorProfileId },
+      });
+      return Array.isArray(data) && data.length > 0;
+    } catch {
+      return false;
+    }
+  }, [api]);
+
   useEffect(() => {
     fetchAppointments();
   }, [fetchAppointments]);
@@ -128,5 +142,6 @@ export const useAppointments = () => {
     rescheduleAppointment,
     fetchAppointmentRequests,
     reviewAppointmentRequest,
+    checkInspectorAvailability,
   };
 };

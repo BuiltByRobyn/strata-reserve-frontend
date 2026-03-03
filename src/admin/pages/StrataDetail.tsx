@@ -52,7 +52,7 @@ const INITIAL_SR_FORM: CreateSRFormData = {
 export default function StrataDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { getStrataById, addNote, deleteNote } = useStrata();
+  const { getStrataById, updateStrata, addNote, deleteNote } = useStrata();
   const {
     getActiveByStrata,
     createServiceRequest,
@@ -64,7 +64,7 @@ export default function StrataDetailPage() {
 
   const activeSurvey = useSurvey("admin");
   const { questions: allQuestions } = useQuestions();
-  const { services, documentTypes, reviewStatuses } = useLookups();
+  const { services, documentTypes, reviewStatuses, locations } = useLookups();
   const { users: allUsers } = useUsers();
   const api = useApiClient();
 
@@ -785,9 +785,7 @@ export default function StrataDetailPage() {
               {downloadingDocs ? "Downloading..." : "Download Documents"}
             </button>
             <button className="btn-primary">Download Survey Answers</button>
-            {!activeRequest.appointmentOfferedAt && (
-              <button className="btn-primary" onClick={() => setOfferModalOpen(true)}>Offer Appointment</button>
-            )}
+            <button className="btn-primary" onClick={() => setOfferModalOpen(true)}>Offer Appointment</button>
           </div>
         )}
       </div>
@@ -833,9 +831,7 @@ export default function StrataDetailPage() {
             {downloadingDocs ? "Downloading..." : "Download Documents"}
           </button>
           <button className="btn-primary">Download Survey Answers</button>
-          {!activeRequest.appointmentOfferedAt && (
-            <button className="btn-primary" onClick={() => setOfferModalOpen(true)}>Offer Appointment</button>
-          )}
+          <button className="btn-primary" onClick={() => setOfferModalOpen(true)}>Offer Appointment</button>
         </div>
       )}
 
@@ -1502,10 +1498,8 @@ export default function StrataDetailPage() {
           ) : (
             (strata?.strataPropertyTypes ?? []).map(spt => {
               const ptId = spt.propertyType.propertyTypeId;
-              // Filter questions available for this specific property type
-              const availableQuestions = allQuestions.filter(q => 
-                q.parentQuestionId == null && 
-                q.questionPropertyTypes.some(qpt => qpt.propertyTypeId === ptId)
+              const availableQuestions = allQuestions.filter(q =>
+                q.parentQuestionId == null
               );
 
               const handleSelectAll = () => {
@@ -1534,7 +1528,14 @@ export default function StrataDetailPage() {
                   <MultiSelectDropdown
                     label="Required Questions"
                     searchable
-                    options={availableQuestions.map(q => ({ value: q.questionId, label: `[${q.questionCategory}] ${q.questionText}` })).sort((a, b) => a.label.localeCompare(b.label))}
+                    options={availableQuestions.map(q => ({
+                      value: q.questionId,
+                      label: `[${q.questionCategory}] ${q.questionText}`,
+                      isTemplate: q.questionPropertyTypes.some(qpt => qpt.propertyTypeId === ptId)
+                    })).sort((a, b) => {
+                      if (a.isTemplate !== b.isTemplate) return a.isTemplate ? -1 : 1;
+                      return a.label.localeCompare(b.label);
+                    }).map(({ value, label }) => ({ value, label }))}
                     selectedValues={surveyReqFormData[ptId] ?? []}
                     onChange={(values) => setSurveyReqFormData(prev => ({ ...prev, [ptId]: values }))}
                     placeholder="Select questions for this property type"
@@ -1600,12 +1601,33 @@ export default function StrataDetailPage() {
           isOpen={offerModalOpen}
           onClose={() => setOfferModalOpen(false)}
           serviceRequestId={activeRequest.serviceRequestId}
-          strataName={strata?.complexName || strata?.strataPlan || 'this strata'}
+          strataPlan={strata?.strataPlan || 'N/A'}
+          targetDate={activeRequest.targetDate ?? null}
           appointmentTypes={appointmentTypes}
           inspectors={allUsers}
+          initialTypeId={activeRequest.appointmentOfferTypeId ?? null}
+          initialInspectorId={activeRequest.appointmentOfferInspectorId ?? null}
+          initialSecondInspectorId={activeRequest.appointmentOfferSecondInspectorId ?? null}
+          locations={locations}
+          initialLocationId={strata?.locationId ?? null}
+          strataId={strata?.strataId ?? 0}
           onSubmit={async (srId, data) => {
             await offerAppointment(srId, data);
             await loadData();
+          }}
+          onAddNote={async (message: string) => {
+            if (!strataId) return;
+            await addNote(strataId, {
+              noteMessage: message,
+              createdByProfileId: user?.id,
+            });
+            const updated = await getStrataById(strataId);
+            if (updated) setStrata(updated);
+          }}
+          onUpdateLocation={async (sId, locId) => {
+            await updateStrata(sId, { locationId: locId });
+            const updated = await getStrataById(sId);
+            if (updated) setStrata(updated);
           }}
         />
       )}

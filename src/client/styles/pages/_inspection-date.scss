@@ -1,5 +1,13 @@
 @use '../../../shared/styles/variables' as *;
 
+.page-container--wide {
+  max-width: 1100px;
+}
+
+.inspection-date-page {
+  max-width: none;
+}
+
 .inspection-date {
   &__card {
     background: $color-white;
@@ -134,11 +142,12 @@
 
   &__calendar-section {
     display: flex;
-    gap: $spacing-xl;
-    align-items: flex-start;
+    flex-direction: column;
+    align-items: center;
 
-    @include respond-below(lg) {
-      flex-direction: column;
+    .booking-calendar {
+      max-width: 600px;
+      width: 100%;
     }
   }
 }
@@ -499,5 +508,98 @@
 
   &:hover {
     color: $color-secondary-dark;
+  }
+}
+
+// ─── Available Meeting Dates Grid ─────────────────────────────
+.available-meeting-dates {
+  margin-top: $spacing-lg;
+
+  &__title {
+    margin: 0 0 $spacing-lg;
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: $color-text-dark;
+  }
+
+  &__grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: $spacing-lg;
+
+    @include respond-below(md) {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  &__card {
+    background: $color-white;
+    border: $border-width-thin solid $color-border-light;
+    border-radius: $border-radius-lg;
+    overflow: hidden;
+  }
+
+  &__card-header {
+    padding: $spacing-md $spacing-lg;
+    background: $color-background-off-white;
+    border-bottom: $border-width-thin solid $color-border-light;
+    font-weight: 600;
+    font-size: 0.9375rem;
+    color: $color-text-dark;
+  }
+
+  &__slots {
+    display: flex;
+    gap: $spacing-sm;
+    padding: $spacing-md $spacing-lg;
+    flex-wrap: wrap;
+  }
+
+  &__slot-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: $spacing-xs;
+    padding: $spacing-sm $spacing-md;
+    border: $border-width-thin solid $color-border-light;
+    border-radius: $border-radius-md;
+    background: $color-white;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    min-width: 100px;
+
+    &:hover:not(:disabled) {
+      border-color: $color-primary;
+      background: $color-primary-lightest;
+    }
+
+    &--first {
+      border-color: $color-success;
+      background: rgba($color-success, 0.1);
+      color: $color-success;
+      font-weight: 600;
+    }
+
+    &--second {
+      border-color: $color-primary;
+      background: rgba($color-primary, 0.1);
+      color: $color-primary-dark;
+      font-weight: 600;
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  }
+
+  &__slot-name {
+    font-weight: 600;
+    font-size: 0.875rem;
+  }
+
+  &__slot-time {
+    font-size: 0.75rem;
+    opacity: 0.8;
   }
 }

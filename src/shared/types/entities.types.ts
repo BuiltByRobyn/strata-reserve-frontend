@@ -335,6 +335,9 @@ export interface ServiceRequest {
   targetDate?: string | null;
   appointmentOfferedAt?: string | null;
   appointmentOfferedByProfileId?: string | null;
+  appointmentOfferTypeId?: number | null;
+  appointmentOfferInspectorId?: string | null;
+  appointmentOfferSecondInspectorId?: string | null;
   service?: Service;
   strata?: Strata;
   requestedBy?: ProfileBasic;
@@ -388,6 +391,16 @@ export interface AppointmentRequest {
   firstChoiceTimeSlot?: AppointmentTimeSlot;
   secondChoiceTimeSlot?: AppointmentTimeSlot | null;
   requestedBy?: ProfileBasic;
+  serviceRequest?: {
+    serviceRequestId: number;
+    status: string;
+    requestDate: string;
+    strata: StrataBasic;
+    service: Service;
+    requestedBy?: ProfileBasic;
+    appointmentOfferInspector?: ProfileBasic | null;
+    appointmentOfferSecondInspector?: ProfileBasic | null;
+  };
 }
 
 export interface AppointmentReview {
@@ -423,6 +436,7 @@ export interface AppointmentWithDetails extends Appointment {
     serviceRequestId: number;
     strata: StrataBasic;
     service: Service;
+    appointmentOfferSecondInspector?: ProfileBasic | null;
   };
   appointmentRequest?: AppointmentRequest;
   inspector: ProfileBasic | null;
