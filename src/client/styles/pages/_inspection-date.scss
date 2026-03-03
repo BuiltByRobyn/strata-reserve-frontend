@@ -315,6 +315,10 @@
     .booking-calendar__cell--selected & {
       color: $color-white;
     }
+
+    @include respond-to(md) {
+      font-size: 0.8rem;
+    }
   }
 
   &__legend {

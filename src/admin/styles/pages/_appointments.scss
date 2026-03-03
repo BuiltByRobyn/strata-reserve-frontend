@@ -45,7 +45,7 @@
 
     &.status-requested {
       background: rgba($color-warning, 0.1);
-      color: $color-warning;
+      color: $color-accent-brown;
       border-color: $color-warning;
     }
 
@@ -406,8 +406,8 @@
     flex-wrap: wrap;
     margin-bottom: $spacing-md;
 
-    @include respond-to(desktop) {
-      max-width: 50%;
+    @include respond-below(desktop) {
+      flex-direction: column;
     }
 
     .btn {
