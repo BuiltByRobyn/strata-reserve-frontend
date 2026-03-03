@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { useAuth } from '../../shared/contexts/AuthContext';
-import { useClientServiceRequest } from '../../shared/hooks/useClientServiceRequest';
 import { Navbar } from '../../shared/components/Navbar';
+import type { ServiceRequest } from '../../shared/types/entities.types';
 
 const BASE_NAV_ITEMS = [
   { to: '/client/dashboard', label: 'Dashboard', end: true },
@@ -12,9 +12,8 @@ const BASE_NAV_ITEMS = [
   { to: '/client/documents', label: 'Documents' },
 ];
 
-export const ClientNavbar = () => {
+export const ClientNavbar = ({ activeRequest }: { activeRequest: ServiceRequest | null }) => {
   const { user } = useAuth();
-  const { activeRequest, loading } = useClientServiceRequest();
   const clientUser = user?.role === 'client' ? user : null;
 
   const navItems = useMemo(() => {
@@ -33,7 +32,7 @@ export const ClientNavbar = () => {
         { label: 'Strata ID:', value: clientUser?.strataPlan || 'N/A' },
         { label: 'User:', value: `${clientUser?.firstName || ''} ${clientUser?.lastName || ''}` },
       ]}
-      loading={loading}
+      loading={false}
     />
   );
 };

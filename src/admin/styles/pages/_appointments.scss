@@ -102,17 +102,23 @@
   .appointments-filters {
     margin-bottom: $spacing-lg;
 
-    @include respond-to(desktop) {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: $spacing-md $spacing-lg;
-      align-items: end;
-    }
-
     @include respond-below(desktop) {
       display: flex;
       flex-direction: column;
       gap: $spacing-md;
+    }
+
+    // Tablet: 2-column grid (matches Timelines layout)
+    @include respond-to(desktop) {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: $spacing-md $spacing-lg;
+      align-items: end;
+    }
+
+    // Desktop: 3-column grid
+    @include respond-to(lg) {
+      grid-template-columns: repeat(3, 1fr);
     }
 
     .date-range-filter {
@@ -125,6 +131,10 @@
         grid-column: span 2;
       }
 
+      @include respond-below(desktop) {
+        flex-direction: column;
+      }
+
       .form-field {
         flex: 1;
 
@@ -135,8 +145,36 @@
       }
     }
 
-    .archived-toggle {
-      align-self: flex-end;
+    .appointments-filters__toggles {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: $spacing-sm;
+
+      // Tablet: place next to Inspector (row 2, col 2)
+      @include respond-to(desktop) {
+        grid-row: 2;
+        grid-column: 2;
+        flex-direction: row;
+        gap: $spacing-lg;
+        align-self: flex-end;
+      }
+
+      // Desktop: reset to auto-placement (fills col 3, row 2)
+      @include respond-to(lg) {
+        grid-row: auto;
+        grid-column: auto;
+      }
+
+      .archived-toggle {
+        align-self: auto;
+
+        label {
+          font-size: $font-size-sm;
+          font-weight: $font-weight-bold;
+          color: $color-text-light;
+        }
+      }
     }
   }
 
@@ -201,6 +239,26 @@
       @include respond-below(desktop) {
         text-align: right;
       }
+    }
+  }
+
+  .create-user-button-desktop {
+    display: none;
+
+    @include respond-to(desktop) {
+      display: block;
+    }
+  }
+
+  .create-user-button {
+    margin-bottom: $spacing-lg;
+
+    @include respond-to(desktop) {
+      display: none;
+    }
+
+    .btn-primary {
+      width: 100%;
     }
   }
 
@@ -356,6 +414,17 @@
       flex: 1;
       text-align: center;
     }
+
+    &--centered {
+      justify-content: center;
+      max-width: 100%;
+
+      .btn {
+        flex: none;
+        min-width: 200px;
+        max-width: 300px;
+      }
+    }
   }
 
   &__reject-section {
@@ -447,8 +516,8 @@
 
   &__grid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: $spacing-sm;
+    grid-template-columns: repeat(3, 1fr);
+    gap: $spacing-xl;
 
     @include respond-below(md) {
       grid-template-columns: repeat(2, 1fr);
@@ -481,6 +550,27 @@
     color: $color-error;
     padding: $spacing-sm $spacing-md;
     border-radius: $border-radius-sm;
+  }
+
+  &__warning {
+    background: rgba($color-warning, 0.1);
+    color: $color-accent-brown;
+    padding: $spacing-md;
+    border-radius: $border-radius-sm;
+    border: 1px solid $color-warning;
+
+    p {
+      margin: 0 0 $spacing-md 0;
+    }
+  }
+
+  &__warning-actions {
+    display: flex;
+    gap: $spacing-sm;
+
+    button {
+      flex: 1;
+    }
   }
 
   &__field {

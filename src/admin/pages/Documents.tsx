@@ -317,6 +317,8 @@ export default function DocumentsPage() {
 
   const adminName = user?.role === 'admin' ? user.fullName : '';
 
+  if (loading) return <LoadingSpinner />;
+
   return (
     <div className="documents-page">
         <div className="page-header">

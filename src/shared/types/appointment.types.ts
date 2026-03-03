@@ -1,4 +1,4 @@
-import type { AppointmentRequest, Appointment, AppointmentType, AppointmentTimeSlot, ProfileBasic } from './entities.types';
+import type { AppointmentRequest, AppointmentWithDetails, Appointment, AppointmentType, AppointmentTimeSlot, ProfileBasic } from './entities.types';
 
 export interface AvailableSlot {
   timeSlotId: number;
@@ -61,6 +61,7 @@ export interface BookingCalendarProps {
   onSelectDate: (date: string) => void;
   loading: boolean;
   milestones?: CalendarMilestone[];
+  bookedDate?: string | null;
 }
 
 export interface TimeSlotPickerProps {
@@ -79,3 +80,33 @@ export interface BookingConfirmationProps {
   onBack: () => void;
   submitting: boolean;
 }
+
+export type BookingStep = 'first-date' | 'first-slot' | 'second-date' | 'second-slot' | 'confirm';
+
+export interface AvailableMeetingDatesProps {
+  availability: AvailableDay[];
+  onSelectSlot: (date: string, slot: AvailableSlot) => void;
+  firstChoice: BookingChoice | null;
+  secondChoice: BookingChoice | null;
+  bookingStep: BookingStep;
+}
+
+export interface UnifiedRow {
+  id: string;
+  type: 'appointment' | 'request';
+  date: string;
+  time: string;
+  appointmentTypeName: string;
+  strataPlan: string;
+  strataName: string;
+  strataId: number;
+  location: string;
+  inspectorNames: string;
+  inspectorId: string | null;
+  status: string;
+  original: AppointmentWithDetails | AppointmentRequest;
+}
+
+export type SelectedItem =
+  | { type: 'appointment'; data: AppointmentWithDetails }
+  | { type: 'request'; data: AppointmentRequest };

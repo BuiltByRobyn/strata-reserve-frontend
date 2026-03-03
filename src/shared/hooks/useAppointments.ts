@@ -127,6 +127,62 @@ export const useAppointments = () => {
     }
   }, [api]);
 
+  const createInspectorAvailability = useCallback(async (
+    inspectorProfileId: string,
+    date: string
+  ): Promise<void> => {
+    await api.post('/admin/inspector-availability', {
+      availableStartDate: date,
+      availableEndDate: date,
+      inspectorProfileId,
+      locationCodes: [],
+    });
+  }, [api]);
+
+  const createAppointment = useCallback(async (data: {
+    serviceRequestId: number;
+    appointmentDate: string;
+    timeSlotId: number;
+    appointmentTypeId: number;
+    inspectorProfileId?: string;
+  }): Promise<boolean> => {
+    try {
+      await api.post('/admin/appointments', data);
+      await fetchAppointments();
+      return true;
+    } catch (error) {
+      console.error('Error creating appointment:', error);
+      throw error;
+    }
+  }, [api, fetchAppointments]);
+
+  const fetchTimeSlots = useCallback(async () => {
+    try {
+      return await api.get<any[]>('/admin/appointments/time-slots');
+    } catch {
+      return [];
+    }
+  }, [api]);
+
+  const fetchAppointmentTypes = useCallback(async () => {
+    try {
+      return await api.get<any[]>('/admin/appointments/types');
+    } catch {
+      return [];
+    }
+  }, [api]);
+
+  const requestRebooking = useCallback(async (appointmentId: number): Promise<boolean> => {
+    try {
+      await api.post(`/admin/appointments/${appointmentId}/request-rebooking`, {});
+      await fetchAppointments();
+      return true;
+    } catch (error) {
+      console.error('Error requesting rebooking:', error);
+      throw error;
+    }
+  }, [api, fetchAppointments]);
+
   useEffect(() => {
     fetchAppointments();
   }, [fetchAppointments]);
@@ -140,8 +196,13 @@ export const useAppointments = () => {
     updateStatus,
     cancelAppointment,
     rescheduleAppointment,
+    createAppointment,
+    fetchTimeSlots,
+    fetchAppointmentTypes,
+    requestRebooking,
     fetchAppointmentRequests,
     reviewAppointmentRequest,
     checkInspectorAvailability,
+    createInspectorAvailability,
   };
 };

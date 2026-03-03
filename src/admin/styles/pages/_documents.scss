@@ -1,3 +1,4 @@
+@use 'sass:color';
 @use '../../../shared/styles/variables' as *;
 
 .documents-page {
@@ -218,13 +219,14 @@
 .btn-link {
   background: none;
   border: none;
-  color: $color-primary;
+  color: $color-success;
   cursor: pointer;
   text-decoration: underline;
   padding: 0;
   font: inherit;
+  text-align: left;
 
   &:hover {
-    color: $color-primary-dark;
+    color: color.adjust($color-success, $lightness: -10%);
   }
 }

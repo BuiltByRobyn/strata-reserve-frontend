@@ -235,7 +235,7 @@ Use for navigation, links, secondary buttons:
   color: $color-text-white;
   
   &:hover {
-    background-color: $color-secondary-dark;
+    background-color: $color-primary-dark;
   }
 }
 ```

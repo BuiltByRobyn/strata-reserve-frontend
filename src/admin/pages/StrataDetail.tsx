@@ -74,6 +74,7 @@ export default function StrataDetailPage() {
 
   const [strata, setStrata] = useState<StrataWithDetails | null>(null);
   const [loading, setLoading] = useState(true);
+  const [dataReady, setDataReady] = useState(false);
   const [activeRequest, setActiveRequest] = useState<ServiceRequest | null>(null);
   const [activeTab, setActiveTab] = useState("active");
 
@@ -183,12 +184,15 @@ export default function StrataDetailPage() {
 
   useEffect(() => {
     if (activeRequest) {
-      activeSurvey.fetchQuestions(activeRequest.serviceRequestId);
-      activeSurvey.fetchResponses(activeRequest.serviceRequestId);
-      activeSurvey.fetchArchivedResponses(activeRequest.serviceRequestId);
-      fetchDocRequirements(activeRequest.serviceRequestId);
-      fetchSurveyRequirements(activeRequest.serviceRequestId);
-      fetchUploadedDocs(activeRequest.serviceRequestId);
+      setDataReady(false);
+      Promise.all([
+        activeSurvey.fetchQuestions(activeRequest.serviceRequestId),
+        activeSurvey.fetchResponses(activeRequest.serviceRequestId),
+        activeSurvey.fetchArchivedResponses(activeRequest.serviceRequestId),
+        fetchDocRequirements(activeRequest.serviceRequestId),
+        fetchSurveyRequirements(activeRequest.serviceRequestId),
+        fetchUploadedDocs(activeRequest.serviceRequestId),
+      ]).finally(() => setDataReady(true));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeRequest?.serviceRequestId]);
@@ -757,7 +761,7 @@ export default function StrataDetailPage() {
 
   const showSurveyNav = dynamicSections.length > 0;
 
-  if (loading) return <LoadingSpinner />;
+  if (loading || (activeRequest && !dataReady)) return <LoadingSpinner />;
 
   if (!strata) {
     return (

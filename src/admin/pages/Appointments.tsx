@@ -1,16 +1,21 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import { useAppointments } from '../../shared/hooks/useAppointments';
 import { useUsers } from '../../shared/hooks/useUsers';
 import { useLookups } from '../../shared/hooks/useLookups';
+import { useServiceRequests } from '../../shared/hooks/useServiceRequests';
 import { DataTable, type Column } from '../../shared/components/DataTable';
+import { LoadingSpinner } from '../../shared/components/LoadingSpinner';
 import { SingleSelectDropdown } from '../../shared/components/SingleSelectDropdown';
 import { InputField } from '../../shared/components/FormField';
 import { Tabs } from '../../shared/components/Tabs';
+import { Modal } from '../../shared/components/Modal';
 import RescheduleAppointmentModal from '../components/RescheduleAppointmentModal';
 import CancelAppointmentModal from '../components/CancelAppointmentModal';
-import type { AppointmentWithDetails, AppointmentRequest, AppointmentTimeSlot, ProfileBasic } from '../../shared/types/entities.types';
-import { formatDateShort, formatTime12h } from '../../shared/lib/formatters';
+import type { AppointmentWithDetails, AppointmentRequest, ProfileBasic } from '../../shared/types/entities.types';
+import type { UnifiedRow, SelectedItem } from '../../shared/types/appointment.types';
+import { formatDateShort, formatTime12h, getUserDisplayName } from '../../shared/lib/formatters';
+import { getInspectorOptions } from '../../shared/utils/userUtils';
 import { getSlotTimeRange } from '../../shared/lib/dateUtils';
 
 const getStatusClass = (status: string): string => {
@@ -26,58 +31,32 @@ const getStatusClass = (status: string): string => {
   }
 };
 
-const getProfileName = (p?: ProfileBasic | null): string => {
-  if (!p) return '-';
-  if (p.displayName) return p.displayName;
-  return `${p.firstName || ''} ${p.lastName || ''}`.trim() || '-';
-};
-
 const getInspectorNames = (
   inspector?: ProfileBasic | null,
   secondInspector?: ProfileBasic | null
 ): string => {
   const names: string[] = [];
-  if (inspector) names.push(getProfileName(inspector));
-  if (secondInspector) names.push(getProfileName(secondInspector));
+  if (inspector) names.push(getUserDisplayName(inspector, '-'));
+  if (secondInspector) names.push(getUserDisplayName(secondInspector, '-'));
   return names.length > 0 ? names.join(', ') : '-';
 };
-
-// Unified row type for the merged list
-interface UnifiedRow {
-  id: string;
-  type: 'appointment' | 'request';
-  date: string;
-  time: string;
-  appointmentTypeName: string;
-  strataPlan: string;
-  strataName: string;
-  strataId: number;
-  location: string;
-  inspectorNames: string;
-  inspectorId: string | null;
-  status: string;
-  original: AppointmentWithDetails | AppointmentRequest;
-}
-
-type SelectedItem =
-  | { type: 'appointment'; data: AppointmentWithDetails }
-  | { type: 'request'; data: AppointmentRequest };
 
 export default function AppointmentsPage() {
   const {
     appointments, loading, error,
     requests, requestsLoading,
-    cancelAppointment, rescheduleAppointment,
+    cancelAppointment, rescheduleAppointment, requestRebooking,
+    createAppointment, fetchTimeSlots, fetchAppointmentTypes,
     fetchAppointmentRequests, reviewAppointmentRequest,
-    checkInspectorAvailability,
+    checkInspectorAvailability, createInspectorAvailability,
   } = useAppointments();
-  const { users } = useUsers();
-  const { locations } = useLookups();
+  const { users, loading: usersLoading } = useUsers();
+  const { locations, loading: lookupsLoading } = useLookups();
+  const { serviceRequests, refetch: fetchServiceRequests } = useServiceRequests();
 
   const [selectedItem, setSelectedItem] = useState<SelectedItem | null>(null);
   const [rescheduleApt, setRescheduleApt] = useState<AppointmentWithDetails | null>(null);
   const [cancelApt, setCancelApt] = useState<AppointmentWithDetails | null>(null);
-  const [timeSlots, setTimeSlots] = useState<AppointmentTimeSlot[]>([]);
 
   // Review state
   const [inspectorId, setInspectorId] = useState('');
@@ -95,6 +74,91 @@ export default function AppointmentsPage() {
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [showPastDates, setShowPastDates] = useState(false);
+  const [showCancelled, setShowCancelled] = useState(false);
+
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [createForm, setCreateForm] = useState({ serviceRequestId: '', appointmentDate: '', timeSlotId: '', appointmentTypeId: '', inspectorProfileId: '' });
+  const [createError, setCreateError] = useState<string | null>(null);
+  const [createSubmitting, setCreateSubmitting] = useState(false);
+  const [showAvailabilityWarning, setShowAvailabilityWarning] = useState(false);
+  const [allTimeSlots, setAllTimeSlots] = useState<any[]>([]);
+  const [allAppointmentTypes, setAllAppointmentTypes] = useState<any[]>([]);
+
+  const openCreateModal = useCallback(async () => {
+    setCreateForm({ serviceRequestId: '', appointmentDate: '', timeSlotId: '', appointmentTypeId: '', inspectorProfileId: '' });
+    setCreateError(null);
+    setShowAvailabilityWarning(false);
+    setShowCreateModal(true);
+    fetchServiceRequests({ archived: false });
+    const [slots, types] = await Promise.all([fetchTimeSlots(), fetchAppointmentTypes()]);
+    setAllTimeSlots((slots || []).filter((s: any, i: number, arr: any[]) => arr.findIndex((t: any) => t.slotTime === s.slotTime) === i));
+    setAllAppointmentTypes(types || []);
+  }, [fetchServiceRequests, fetchTimeSlots, fetchAppointmentTypes]);
+
+  const validateCreateForm = useCallback(() => {
+    const missing: string[] = [];
+    if (!createForm.serviceRequestId) missing.push('Strata');
+    if (!createForm.appointmentTypeId) missing.push('Appointment Type');
+    if (!createForm.appointmentDate) missing.push('Date');
+    if (!createForm.timeSlotId) missing.push('Time Slot');
+    if (!createForm.inspectorProfileId) missing.push('Inspector');
+    return missing;
+  }, [createForm]);
+
+  const submitAppointment = useCallback(async () => {
+    setCreateSubmitting(true);
+    setCreateError(null);
+    try {
+      await createAppointment({
+        serviceRequestId: parseInt(createForm.serviceRequestId),
+        appointmentDate: createForm.appointmentDate,
+        timeSlotId: parseInt(createForm.timeSlotId),
+        appointmentTypeId: parseInt(createForm.appointmentTypeId),
+        inspectorProfileId: createForm.inspectorProfileId,
+      });
+      setShowCreateModal(false);
+      setShowAvailabilityWarning(false);
+      toast.success('Appointment created successfully');
+    } catch (err) {
+      setCreateError(err instanceof Error ? err.message : 'Failed to create appointment');
+    } finally {
+      setCreateSubmitting(false);
+    }
+  }, [createForm, createAppointment]);
+
+  const handleCreateAppointment = useCallback(async () => {
+    const missing = validateCreateForm();
+    if (missing.length > 0) {
+      setCreateError(`Please select: ${missing.join(', ')}`);
+      return;
+    }
+    setCreateSubmitting(true);
+    setCreateError(null);
+    try {
+      const isAvailable = await checkInspectorAvailability(createForm.inspectorProfileId, createForm.appointmentDate);
+      if (isAvailable) {
+        await submitAppointment();
+      } else {
+        setCreateSubmitting(false);
+        setShowAvailabilityWarning(true);
+      }
+    } catch (err) {
+      setCreateError(err instanceof Error ? err.message : 'Failed to create appointment');
+      setCreateSubmitting(false);
+    }
+  }, [validateCreateForm, checkInspectorAvailability, createForm, submitAppointment]);
+
+  const handleConfirmUnavailable = useCallback(async () => {
+    setCreateSubmitting(true);
+    setCreateError(null);
+    try {
+      await createInspectorAvailability(createForm.inspectorProfileId, createForm.appointmentDate);
+      await submitAppointment();
+    } catch (err) {
+      setCreateError(err instanceof Error ? err.message : 'Failed to create appointment');
+      setCreateSubmitting(false);
+    }
+  }, [createForm, createInspectorAvailability, submitAppointment]);
 
   // Fetch requests on mount (no longer tab-gated)
   useEffect(() => {
@@ -102,16 +166,8 @@ export default function AppointmentsPage() {
   }, [fetchAppointmentRequests]);
 
   useEffect(() => {
-    const slotsFromAppointments = appointments.reduce<AppointmentTimeSlot[]>((acc, apt) => {
-      if (!acc.find(s => s.timeSlotId === apt.timeSlot.timeSlotId)) {
-        acc.push(apt.timeSlot);
-      }
-      return acc;
-    }, []);
-    if (slotsFromAppointments.length > 0) {
-      setTimeSlots(slotsFromAppointments);
-    }
-  }, [appointments]);
+    fetchTimeSlots().then(slots => setAllTimeSlots((slots || []).filter((s: any, i: number, arr: any[]) => arr.findIndex((t: any) => t.slotTime === s.slotTime) === i)));
+  }, [fetchTimeSlots]);
 
   // Pre-fill inspector from offer when selecting a request
   useEffect(() => {
@@ -124,15 +180,7 @@ export default function AppointmentsPage() {
     }
   }, [selectedItem]);
 
-  const inspectorOptions = useMemo(() =>
-    users
-      .filter(u => u.isAdmin || ['Inspector', 'Admin'].includes(u.userType?.userTypeName ?? ''))
-      .map(u => ({
-        value: u.id,
-        label: u.displayName || `${u.firstName || ''} ${u.lastName || ''}`.trim(),
-      })),
-    [users]
-  );
+  const inspectorOptions = useMemo(() => getInspectorOptions(users), [users]);
 
   const getTimeRange = (slotTime: string, aptType?: { durationType: string; isDraftMeeting: boolean }) => {
     if (!aptType) return formatTime12h(slotTime);
@@ -155,7 +203,7 @@ export default function AppointmentsPage() {
         strataPlan: sr.strata.strataPlan || '-',
         strataName: sr.strata.complexName || '-',
         strataId: sr.strata.strataId,
-        location: (sr.strata as any).location?.locationName || sr.strata.town || '-',
+        location: sr.strata.location?.locationName || sr.strata.town || '-',
         inspectorNames: getInspectorNames(apt.inspector, sr.appointmentOfferSecondInspector),
         inspectorId: apt.inspectorProfileId,
         status: apt.status,
@@ -176,7 +224,7 @@ export default function AppointmentsPage() {
         strataPlan: sr?.strata?.strataPlan || '-',
         strataName: sr?.strata?.complexName || '-',
         strataId: sr?.strata?.strataId || 0,
-        location: (sr?.strata as any)?.location?.locationName || sr?.strata?.town || '-',
+        location: sr?.strata?.location?.locationName || sr?.strata?.town || '-',
         inspectorNames: getInspectorNames(inspector1, inspector2),
         inspectorId: inspector1?.id || null,
         status: req.status,
@@ -184,7 +232,6 @@ export default function AppointmentsPage() {
       });
     }
 
-    rows.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
     return rows;
   }, [appointments, requests]);
 
@@ -236,6 +283,10 @@ export default function AppointmentsPage() {
       rows = rows.filter(r => new Date(r.date) >= today);
     }
 
+    if (!showCancelled) {
+      rows = rows.filter(r => r.status.toLowerCase() !== 'cancelled');
+    }
+
     if (filterStrataName) {
       const id = parseInt(filterStrataName);
       rows = rows.filter(r => r.strataId === id);
@@ -264,8 +315,21 @@ export default function AppointmentsPage() {
       rows = rows.filter(r => new Date(r.date) <= to);
     }
 
+    // Sort: future dates soonest-first, past dates most-recent-first
+    const now = today.getTime();
+    rows = [...rows].sort((a, b) => {
+      const aTime = new Date(a.date).getTime();
+      const bTime = new Date(b.date).getTime();
+      const aFuture = aTime >= now;
+      const bFuture = bTime >= now;
+
+      if (aFuture !== bFuture) return aFuture ? -1 : 1;
+      if (aFuture) return aTime - bTime;
+      return bTime - aTime;
+    });
+
     return rows;
-  }, [unifiedRows, showPastDates, filterStrataName, filterStrataPlan, filterInspector, filterLocation, dateFrom, dateTo, today]);
+  }, [unifiedRows, showPastDates, showCancelled, filterStrataName, filterStrataPlan, filterInspector, filterLocation, dateFrom, dateTo, today]);
 
   // ─── Columns ────────────────────────────────────────────────
   const unifiedColumns: Column<UnifiedRow>[] = [
@@ -274,7 +338,7 @@ export default function AppointmentsPage() {
       key: 'time', header: 'Time',
       render: (r) => r.time === 'TBC'
         ? <span className="status-badge status-requested">TBC</span>
-        : <strong>{r.time}</strong>
+        : <span>{r.time}</span>
     },
     { key: 'type', header: 'Type', render: (r) => r.appointmentTypeName },
     { key: 'strataPlan', header: 'Strata Plan', render: (r) => r.strataPlan },
@@ -364,6 +428,16 @@ export default function AppointmentsPage() {
     setShowRejectSection(false);
   };
 
+  const handleRequestRebooking = async (apt: AppointmentWithDetails) => {
+    try {
+      await requestRebooking(apt.appointmentId);
+      toast.success('Rebooking request sent — the client will see a reminder to rebook.');
+      resetDetail();
+    } catch {
+      toast.error('Failed to send rebooking request');
+    }
+  };
+
   // ─── Detail view: appointment ─────────────────────────────────
   const renderAppointmentDetail = (apt: AppointmentWithDetails) => {
     const sr = apt.serviceRequest;
@@ -394,7 +468,7 @@ export default function AppointmentsPage() {
           <div className="info-row">
             <div className="info-item">
               <span className="info-label">LOCATION</span>
-              <span className="info-value">{(sr.strata as any).location?.locationName || sr.strata.town || '-'}</span>
+              <span className="info-value">{sr.strata.location?.locationName || sr.strata.town || '-'}</span>
             </div>
             <div className="info-item">
               <span className="info-label">INSPECTOR(S)</span>
@@ -437,6 +511,14 @@ export default function AppointmentsPage() {
             </button>
           </div>
         )}
+
+        {status === 'cancelled' && (
+          <div className="appointments-detail__actions appointments-detail__actions--centered">
+            <button className="btn btn-primary" onClick={() => handleRequestRebooking(apt)}>
+              Request Rebooking
+            </button>
+          </div>
+        )}
       </div>
     );
   };
@@ -464,7 +546,7 @@ export default function AppointmentsPage() {
             </div>
             <div className="info-item">
               <span className="info-label">REQUESTED BY</span>
-              <span className="info-value">{getProfileName(sr?.requestedBy)}</span>
+              <span className="info-value">{getUserDisplayName(sr?.requestedBy, '-')}</span>
             </div>
           </div>
           <div className="info-row">
@@ -478,7 +560,7 @@ export default function AppointmentsPage() {
             </div>
             <div className="info-item">
               <span className="info-label">LOCATION</span>
-              <span className="info-value">{(sr?.strata as any)?.location?.locationName || sr?.strata?.town || '-'}</span>
+              <span className="info-value">{sr?.strata?.location?.locationName || sr?.strata?.town || '-'}</span>
             </div>
           </div>
         </div>
@@ -676,7 +758,7 @@ export default function AppointmentsPage() {
           isOpen={!!rescheduleApt}
           onClose={() => setRescheduleApt(null)}
           appointment={rescheduleApt}
-          timeSlots={timeSlots}
+          timeSlots={allTimeSlots}
           inspectors={users}
           onReschedule={rescheduleAppointment}
         />
@@ -691,12 +773,19 @@ export default function AppointmentsPage() {
     );
   }
 
-  const isLoading = loading || requestsLoading;
+  const isLoading = loading || requestsLoading || lookupsLoading || usersLoading;
+
+  if (isLoading) return <LoadingSpinner />;
 
   return (
     <div className="appointments-page">
       <div className="page-header">
         <h1>Appointments</h1>
+        <div className="create-user-button-desktop">
+          <button className="btn-primary" onClick={openCreateModal}>
+            + Add New Appointment
+          </button>
+        </div>
       </div>
 
       {error && <div className="error-banner">{error}</div>}
@@ -744,16 +833,34 @@ export default function AppointmentsPage() {
             onChange={(e) => setDateTo(e.target.value)}
           />
         </div>
-        <div className="form-field archived-toggle">
-          <label>
-            <input
-              type="checkbox"
-              checked={showPastDates}
-              onChange={() => setShowPastDates(prev => !prev)}
-            />
-            Show Past Dates
-          </label>
+        <div className="appointments-filters__toggles">
+          <div className="form-field archived-toggle">
+            <label>
+              <input
+                type="checkbox"
+                checked={showPastDates}
+                onChange={() => setShowPastDates(prev => !prev)}
+              />
+              Show Past Dates
+            </label>
+          </div>
+          <div className="form-field archived-toggle">
+            <label>
+              <input
+                type="checkbox"
+                checked={showCancelled}
+                onChange={() => setShowCancelled(prev => !prev)}
+              />
+              Show Cancelled
+            </label>
+          </div>
         </div>
+      </div>
+
+      <div className="create-user-button">
+        <button className="btn-primary" onClick={openCreateModal}>
+          + Add New Appointment
+        </button>
       </div>
 
       <div className="appointments-page__desktop">
@@ -767,14 +874,114 @@ export default function AppointmentsPage() {
         />
       </div>
       <div className="appointments-page__mobile">
-        {isLoading ? (
-          <div className="appointments-page__loading">Loading...</div>
-        ) : filteredRows.length === 0 ? (
+        {filteredRows.length === 0 ? (
           <div className="appointments-page__empty">No appointments found.</div>
         ) : (
           filteredRows.map(renderMobileCard)
         )}
       </div>
+
+      <Modal
+        isOpen={showCreateModal}
+        onClose={() => { setShowCreateModal(false); setShowAvailabilityWarning(false); }}
+        title="Add New Appointment"
+        size="medium"
+        footer={showAvailabilityWarning ? undefined : (
+          <>
+            <button className="btn btn-secondary" onClick={() => setShowCreateModal(false)} disabled={createSubmitting}>
+              Cancel
+            </button>
+            <button className="btn btn-primary" onClick={handleCreateAppointment} disabled={createSubmitting}>
+              {createSubmitting ? 'Checking...' : 'Add Appointment'}
+            </button>
+          </>
+        )}
+      >
+        <div className="offer-modal">
+          {createError && <div className="offer-modal__error">{createError}</div>}
+
+          {showAvailabilityWarning ? (
+            <div className="offer-modal__warning">
+              <p>Inspector unavailable on the selected date. Are you sure you would like to book this appointment?</p>
+              <div className="offer-modal__warning-actions">
+                <button className="btn btn-secondary" onClick={() => setShowAvailabilityWarning(false)} disabled={createSubmitting}>
+                  Go Back
+                </button>
+                <button className="btn btn-primary" onClick={handleConfirmUnavailable} disabled={createSubmitting}>
+                  {createSubmitting ? 'Booking...' : 'Yes, Book Anyway'}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <SingleSelectDropdown
+                label="Strata"
+                required
+                options={serviceRequests.map(sr => ({
+                  value: String(sr.serviceRequestId),
+                  label: `${sr.strata?.strataPlan || ''} - ${sr.strata?.complexName || 'Unknown'}`,
+                }))}
+                value={createForm.serviceRequestId}
+                onChange={(val) => setCreateForm(prev => ({ ...prev, serviceRequestId: val }))}
+                placeholder="Select a strata..."
+              />
+
+              {createForm.serviceRequestId && (() => {
+                const sr = serviceRequests.find(s => String(s.serviceRequestId) === createForm.serviceRequestId);
+                const loc = sr?.strata?.location?.locationName;
+                return loc ? (
+                  <div className="form-field">
+                    <label>Location</label>
+                    <input type="text" value={loc} disabled />
+                  </div>
+                ) : null;
+              })()}
+
+              <SingleSelectDropdown
+                label="Appointment Type"
+                required
+                options={allAppointmentTypes.map((t: any) => ({
+                  value: String(t.appointmentTypeId),
+                  label: `${t.typeName} (${t.durationType})`,
+                }))}
+                value={createForm.appointmentTypeId}
+                onChange={(val) => setCreateForm(prev => ({ ...prev, appointmentTypeId: val }))}
+                placeholder="Select appointment type..."
+              />
+
+              <div className="offer-modal__field">
+                <label>Date <span className="offer-modal__required">*</span></label>
+                <input
+                  type="date"
+                  value={createForm.appointmentDate}
+                  onChange={(e) => setCreateForm(prev => ({ ...prev, appointmentDate: e.target.value }))}
+                />
+              </div>
+
+              <SingleSelectDropdown
+                label="Time Slot"
+                required
+                options={allTimeSlots.map((s: any) => ({
+                  value: String(s.timeSlotId),
+                  label: `${s.slotName} (${formatTime12h(s.slotTime)})`,
+                }))}
+                value={createForm.timeSlotId}
+                onChange={(val) => setCreateForm(prev => ({ ...prev, timeSlotId: val }))}
+                placeholder="Select a time slot..."
+              />
+
+              <SingleSelectDropdown
+                label="Inspector"
+                required
+                options={inspectorOptions}
+                value={createForm.inspectorProfileId}
+                onChange={(val) => setCreateForm(prev => ({ ...prev, inspectorProfileId: val }))}
+                placeholder="Select an inspector..."
+              />
+            </>
+          )}
+        </div>
+      </Modal>
     </div>
   );
 }

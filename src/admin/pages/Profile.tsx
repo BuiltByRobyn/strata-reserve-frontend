@@ -164,7 +164,6 @@ export default function ProfilePage() {
       <div className="page-container profile-container">
         <div className="profile-loading">
           <LoadingSpinner />
-          <p>Loading profile...</p>
         </div>
       </div>
     );
@@ -241,6 +240,20 @@ export default function ProfilePage() {
       {/* Profile */}
       {activeTab === 'profile' && (
         <div className="profile-content">
+          {isDesktop && (
+            <div className="manager-header company-holidays-header">
+              <h3>Administrator Profile</h3>
+              <button
+                type="button"
+                className="btn-confirm company-holidays-add-btn"
+                onClick={handleSubmit}
+                disabled={saving}
+              >
+                {saving ? 'Saving...' : 'Confirm Profile'}
+              </button>
+            </div>
+          )}
+
           {error && (
             <div className="alert alert-error">
               {error}
@@ -337,23 +350,25 @@ export default function ProfilePage() {
             </div>
           </section>
 
-          <div className="profile-actions">
-            <button
-              type="button"
-              className="btn-confirm"
-              onClick={handleSubmit}
-              disabled={saving}
-            >
-              {saving ? (
-                <>
-                  <LoadingSpinner />
-                  <span>Saving...</span>
-                </>
-              ) : (
-                'Confirm Profile'
-              )}
-            </button>
-          </div>
+          {!isDesktop && (
+            <div className="profile-actions">
+              <button
+                type="button"
+                className="btn-confirm"
+                onClick={handleSubmit}
+                disabled={saving}
+              >
+                {saving ? (
+                  <>
+                    <LoadingSpinner />
+                    <span>Saving...</span>
+                  </>
+                ) : (
+                  'Confirm Profile'
+                )}
+              </button>
+            </div>
+          )}
         </div>
       )}
 

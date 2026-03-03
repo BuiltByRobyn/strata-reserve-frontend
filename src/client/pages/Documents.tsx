@@ -172,13 +172,9 @@ export default function ClientDocumentsPage() {
 
   if (!serviceRequestId) {
     return (
-      <div className="client-documents-page">
-        <div className="page-header">
-          <h1>Documents</h1>
-        </div>
-        <div className="no-service-request">
-          <p>No active service request found. Please contact your administrator.</p>
-        </div>
+      <div className="page-container">
+        <h1>Documents</h1>
+        <p>No active service request found. Please contact your administrator.</p>
       </div>
     );
   }

@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { Modal } from '../../shared/components/Modal';
 import { SingleSelectDropdown } from '../../shared/components/SingleSelectDropdown';
 import { formatDateShort } from '../../shared/lib/formatters';
+import { getInspectorOptions } from '../../shared/utils/userUtils';
 import type { OfferAppointmentModalProps } from '../../shared/types/component.types';
 
 export const OfferAppointmentModal = ({
@@ -49,12 +50,7 @@ export const OfferAppointmentModal = ({
     }
   }, [isOpen, initialTypeId, initialInspectorId, initialSecondInspectorId, initialLocationId]);
 
-  const inspectorOptions = inspectors
-    .filter(u => u.isAdmin || ['Inspector', 'Admin'].includes(u.userType?.userTypeName ?? ''))
-    .map(u => ({
-      value: u.id,
-      label: u.displayName || `${u.firstName || ''} ${u.lastName || ''}`.trim(),
-    }));
+  const inspectorOptions = getInspectorOptions(inspectors);
 
   const secondInspectorOptions = inspectorOptions.filter(o => o.value !== inspectorId);
 

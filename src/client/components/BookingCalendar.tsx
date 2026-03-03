@@ -20,7 +20,7 @@ const MONTH_NAMES = [
   'July', 'August', 'September', 'October', 'November', 'December'
 ];
 
-const BookingCalendar = ({ availability, selectedDate, onSelectDate, loading, milestones }: BookingCalendarProps) => {
+const BookingCalendar = ({ availability, selectedDate, onSelectDate, loading, milestones, bookedDate }: BookingCalendarProps) => {
   const today = new Date();
   const [viewYear, setViewYear] = useState(today.getFullYear());
   const [viewMonth, setViewMonth] = useState(today.getMonth());
@@ -90,6 +90,9 @@ const BookingCalendar = ({ availability, selectedDate, onSelectDate, loading, mi
     if (milestoneLabel) {
       cellClass += ' booking-calendar__cell--milestone';
     }
+    if (bookedDate && dateStr === bookedDate) {
+      cellClass += ' booking-calendar__cell--booked';
+    }
 
     cells.push(
       <div
@@ -100,6 +103,9 @@ const BookingCalendar = ({ availability, selectedDate, onSelectDate, loading, mi
         }}
       >
         <span className="booking-calendar__cell-day">{day}</span>
+        {bookedDate && dateStr === bookedDate && (
+          <span className="booking-calendar__cell-label">Appointment Booked</span>
+        )}
         {milestoneLabel && (
           <span className="booking-calendar__cell-label">{milestoneLabel}</span>
         )}
@@ -154,6 +160,12 @@ const BookingCalendar = ({ availability, selectedDate, onSelectDate, loading, mi
           <span className="booking-calendar__legend-dot booking-calendar__legend-dot--selected" />
           Selected
         </span>
+        {bookedDate && (
+          <span className="booking-calendar__legend-item">
+            <span className="booking-calendar__legend-dot booking-calendar__legend-dot--booked" />
+            Appointment Booked
+          </span>
+        )}
         {milestonesMap.size > 0 && (
           <span className="booking-calendar__legend-item">
             <span className="booking-calendar__legend-dot booking-calendar__legend-dot--milestone" />

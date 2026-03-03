@@ -1,6 +1,6 @@
 import { Route } from 'react-router-dom';
 import { ProtectedRoute } from '../../shared/routes/ProtectedRoute';
-import { ClientNavbar } from '../components/ClientNavbar';
+import { ClientLayout } from '../components/ClientLayout';
 import { Dashboard } from '../pages/Dashboard';
 import DocumentsPage from '../pages/Documents';
 import SurveyPage from '../pages/Survey';
@@ -13,91 +13,52 @@ import InspectionDate from '../pages/InspectionDate';
 export const clientRoutes = [
   <Route key="client-dashboard" path="/client/dashboard" element={
     <ProtectedRoute requireClient>
-      <div className="app">
-        <ClientNavbar />
-        <Dashboard />
-      </div>
+      <ClientLayout><Dashboard /></ClientLayout>
     </ProtectedRoute>
   } />,
   <Route key="client-strata-information" path="/client/strata-information" element={
     <ProtectedRoute requireClient>
-      <div className="app">
-        <ClientNavbar />
-        <main className="app-main">
-          <StrataInformation />
-        </main>
-      </div>
+      <ClientLayout><StrataInformation /></ClientLayout>
     </ProtectedRoute>
   } />,
   <Route key="client-strata-members" path="/client/strata-members" element={
     <ProtectedRoute requireClient>
-      <div className="app">
-        <ClientNavbar />
-        <main className="app-main">
-          <StrataMembers />
-        </main>
-      </div>
+      <ClientLayout><StrataMembers /></ClientLayout>
     </ProtectedRoute>
   } />,
   <Route key="client-documents" path="/client/documents" element={
     <ProtectedRoute requireClient>
-      <div className="app">
-        <ClientNavbar />
-        <main className="app-main">
-          <DocumentsPage />
-        </main>
-      </div>
+      <ClientLayout><DocumentsPage /></ClientLayout>
     </ProtectedRoute>
   } />,
   <Route key="client-survey-section" path="/client/survey/:section" element={
     <ProtectedRoute requireClient>
-      <div className="app">
-        <ClientNavbar />
-        <main className="app-main">
-          <SurveySectionPage />
-        </main>
-      </div>
+      <ClientLayout><SurveySectionPage /></ClientLayout>
     </ProtectedRoute>
   } />,
   <Route key="client-survey" path="/client/survey" element={
     <ProtectedRoute requireClient>
-      <div className="app">
-        <ClientNavbar />
-        <main className="app-main">
-          <SurveyPage />
-        </main>
-      </div>
+      <ClientLayout><SurveyPage /></ClientLayout>
     </ProtectedRoute>
   } />,
   <Route key="client-timelines" path="/client/timelines" element={
     <ProtectedRoute requireClient>
-      <div className="app">
-        <ClientNavbar />
-        <main className="app-main">
-          <Timelines />
-        </main>
-      </div>
+      <ClientLayout><Timelines /></ClientLayout>
     </ProtectedRoute>
   } />,
   <Route key="client-inspection-date" path="/client/inspection-date" element={
     <ProtectedRoute requireClient>
-      <div className="app">
-        <ClientNavbar />
-        <main className="app-main">
-          <InspectionDate />
-        </main>
-      </div>
+      <ClientLayout><InspectionDate /></ClientLayout>
     </ProtectedRoute>
   } />,
   <Route key="client-reports" path="/client/reports" element={
     <ProtectedRoute requireClient>
-      <div className="app">
-        <ClientNavbar />
+      <ClientLayout>
         <div className="page-container">
           <h1>My Reports</h1>
           <p>View your depreciation reports (Coming Soon)</p>
         </div>
-      </div>
+      </ClientLayout>
     </ProtectedRoute>
   } />,
 ];

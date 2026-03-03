@@ -7,6 +7,7 @@ import {
   DataTable,
   type Column,
 } from "../../shared/components/DataTable";
+import { LoadingSpinner } from "../../shared/components/LoadingSpinner";
 import { Modal } from "../../shared/components/Modal";
 import {
   InputField,
@@ -185,6 +186,8 @@ export default function StrataPage() {
   ) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
+
+  if (loading) return <LoadingSpinner />;
 
   return (
     <div className="strata-page">

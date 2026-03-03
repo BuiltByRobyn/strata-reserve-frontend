@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Modal } from '../../shared/components/Modal';
 import type { DeleteAvailabilityModalProps } from '../../shared/types/component.types';
-import { formatDateShort } from '../../shared/lib/formatters';
+import { formatDateShort, getUserDisplayName } from '../../shared/lib/formatters';
 
 export const DeleteAvailabilityModal = ({
     isOpen,
@@ -48,7 +48,7 @@ export const DeleteAvailabilityModal = ({
                 <div className="delete-availability-info">
                     <div>
                         <div className="delete-availability-label">INSPECTOR NAME</div>
-                        <div className="delete-availability-value">{block.inspectorProfile?.displayName || `${block.inspectorProfile?.firstName || ''} ${block.inspectorProfile?.lastName || ''}`.trim() || 'Unknown'}</div>
+                        <div className="delete-availability-value">{getUserDisplayName(block.inspectorProfile)}</div>
                     </div>
                     <div className="delete-availability-info-right">
                         <div className="delete-availability-label">AVAILABLE DATE</div>

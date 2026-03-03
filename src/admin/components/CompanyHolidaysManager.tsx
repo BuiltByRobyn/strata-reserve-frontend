@@ -151,6 +151,12 @@ export const CompanyHolidaysManager = () => {
 
       {error && <div className="alert alert-error">{error}</div>}
 
+      {!isDesktop && (
+        <button className="btn-confirm availability-add-button" onClick={handleAddNew}>
+          + Add Holiday
+        </button>
+      )}
+
       {isDesktop ? (
         <DataTable
           columns={columns}
@@ -214,12 +220,6 @@ export const CompanyHolidaysManager = () => {
           Load More ({maxYear + 1})
         </button>
       </div>
-
-      {!isDesktop && (
-        <button className="btn-confirm availability-add-button" onClick={handleAddNew}>
-          + Add Holiday
-        </button>
-      )}
 
       <Modal
         isOpen={isViewModalOpen}

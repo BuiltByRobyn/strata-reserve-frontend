@@ -338,6 +338,7 @@ export interface ServiceRequest {
   appointmentOfferTypeId?: number | null;
   appointmentOfferInspectorId?: string | null;
   appointmentOfferSecondInspectorId?: string | null;
+  rebookingRequestedAt?: string | null;
   service?: Service;
   strata?: Strata;
   requestedBy?: ProfileBasic;
@@ -395,7 +396,7 @@ export interface AppointmentRequest {
     serviceRequestId: number;
     status: string;
     requestDate: string;
-    strata: StrataBasic;
+    strata: StrataBasic & { location?: Location | null };
     service: Service;
     requestedBy?: ProfileBasic;
     appointmentOfferInspector?: ProfileBasic | null;
@@ -434,7 +435,7 @@ export interface AppointmentWithDetails extends Appointment {
   timeSlot: AppointmentTimeSlot;
   serviceRequest: {
     serviceRequestId: number;
-    strata: StrataBasic;
+    strata: StrataBasic & { location?: Location | null };
     service: Service;
     appointmentOfferSecondInspector?: ProfileBasic | null;
   };

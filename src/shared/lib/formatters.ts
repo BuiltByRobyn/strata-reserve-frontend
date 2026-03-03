@@ -8,6 +8,14 @@ export const formatDate = formatDateSafe;
 
 export const formatDateShort = formatDateShortSafe;
 
+export const getUserDisplayName = (
+  user: { displayName?: string | null; firstName?: string | null; lastName?: string | null } | null | undefined,
+  fallback = 'Unknown'
+): string => {
+  if (!user) return fallback;
+  return user.displayName || `${user.firstName || ''} ${user.lastName || ''}`.trim() || fallback;
+};
+
 export const getStatusBadgeClass = (statusName?: string): string => {
   if (!statusName) return 'status-badge pending';
   switch (statusName.toLowerCase()) {
