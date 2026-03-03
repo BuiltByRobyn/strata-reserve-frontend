@@ -67,6 +67,7 @@ export const useServiceRequests = () => {
     dueDate?: string;
     appointmentTypeId?: number;
     inspectorProfileId?: string;
+    secondInspectorProfileId?: string;
     notes?: string;
   }): Promise<void> => {
     await api.put(`/admin/service-requests/${id}/offer-appointment`, data || {});

@@ -148,6 +148,7 @@ export interface NavbarProps {
   variant: 'admin' | 'client';
   navItems: NavItem[];
   userInfoRows: UserInfo[];
+  loading?: boolean;
 }
 
 export interface DeleteAvailabilityModalProps {
@@ -170,15 +171,19 @@ export interface OfferAppointmentModalProps {
   isOpen: boolean;
   onClose: () => void;
   serviceRequestId: number;
-  strataName: string;
-  appointmentTypes: { appointmentTypeId: number; typeName: string }[];
+  strataPlan: string;
+  targetDate: string | null;
+  appointmentTypes: { appointmentTypeId: number; typeName: string; durationType?: string; isDraftMeeting?: boolean }[];
   inspectors: UserWithStratas[];
+  initialTypeId?: number | null;
+  initialInspectorId?: string | null;
+  initialSecondInspectorId?: string | null;
   onSubmit: (serviceRequestId: number, data: {
-    dueDate?: string;
     appointmentTypeId?: number;
     inspectorProfileId?: string;
-    notes?: string;
+    secondInspectorProfileId?: string;
   }) => Promise<void>;
+  onAddNote?: (message: string) => Promise<void>;
 }
 
 export interface AppointmentRequestReviewModalProps {

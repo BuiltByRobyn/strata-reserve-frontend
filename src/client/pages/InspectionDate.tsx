@@ -230,6 +230,11 @@ const InspectionDate = () => {
   const handleSubmit = async () => {
     if (!firstChoice || !serviceRequestId) return;
 
+    if (!secondChoice) {
+      setErrorMsg('Please select a second choice date and time slot');
+      return;
+    }
+
     const selectedType = bookingDraftMeeting
       ? appointmentTypes.find(t => t.isDraftMeeting) || appointmentTypes[0]
       : appointmentTypes[0];
@@ -455,7 +460,7 @@ const InspectionDate = () => {
     : 'Select your preferred inspection dates and times';
 
   return (
-    <div className="page-container">
+    <div className="page-container page-container--wide">
       <h1>{bookingTitle}</h1>
       <p className="page-subtitle">{bookingSubtitle}</p>
 

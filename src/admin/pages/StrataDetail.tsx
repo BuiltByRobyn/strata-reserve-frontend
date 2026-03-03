@@ -733,9 +733,7 @@ export default function StrataDetailPage() {
               {downloadingDocs ? "Downloading..." : "Download Documents"}
             </button>
             <button className="btn-primary">Download Survey Answers</button>
-            {!activeRequest.appointmentOfferedAt && (
-              <button className="btn-primary" onClick={() => setOfferModalOpen(true)}>Offer Appointment</button>
-            )}
+            <button className="btn-primary" onClick={() => setOfferModalOpen(true)}>Offer Appointment</button>
           </div>
         )}
       </div>
@@ -781,9 +779,7 @@ export default function StrataDetailPage() {
             {downloadingDocs ? "Downloading..." : "Download Documents"}
           </button>
           <button className="btn-primary">Download Survey Answers</button>
-          {!activeRequest.appointmentOfferedAt && (
-            <button className="btn-primary" onClick={() => setOfferModalOpen(true)}>Offer Appointment</button>
-          )}
+          <button className="btn-primary" onClick={() => setOfferModalOpen(true)}>Offer Appointment</button>
         </div>
       )}
 
@@ -1523,12 +1519,25 @@ export default function StrataDetailPage() {
           isOpen={offerModalOpen}
           onClose={() => setOfferModalOpen(false)}
           serviceRequestId={activeRequest.serviceRequestId}
-          strataName={strata?.complexName || strata?.strataPlan || 'this strata'}
+          strataPlan={strata?.strataPlan || 'N/A'}
+          targetDate={activeRequest.targetDate ?? null}
           appointmentTypes={appointmentTypes}
           inspectors={allUsers}
+          initialTypeId={activeRequest.appointmentOfferTypeId ?? null}
+          initialInspectorId={activeRequest.appointmentOfferInspectorId ?? null}
+          initialSecondInspectorId={activeRequest.appointmentOfferSecondInspectorId ?? null}
           onSubmit={async (srId, data) => {
             await offerAppointment(srId, data);
             await loadData();
+          }}
+          onAddNote={async (message: string) => {
+            if (!strataId) return;
+            await addNote(strataId, {
+              noteMessage: message,
+              createdByProfileId: user?.id,
+            });
+            const updated = await getStrataById(strataId);
+            if (updated) setStrata(updated);
           }}
         />
       )}

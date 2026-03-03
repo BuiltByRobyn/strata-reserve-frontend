@@ -1,5 +1,9 @@
 @use '../../../shared/styles/variables' as *;
 
+.page-container--wide {
+  max-width: 1100px;
+}
+
 .inspection-date {
   &__card {
     background: $color-white;

@@ -1,23 +1,47 @@
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Modal } from '../../shared/components/Modal';
 import { SingleSelectDropdown } from '../../shared/components/SingleSelectDropdown';
+import { formatDateShort } from '../../shared/lib/formatters';
 import type { OfferAppointmentModalProps } from '../../shared/types/component.types';
 
 export const OfferAppointmentModal = ({
   isOpen,
   onClose,
   serviceRequestId,
-  strataName: _strataName,
+  strataPlan,
+  targetDate,
   appointmentTypes,
   inspectors,
+  initialTypeId,
+  initialInspectorId,
+  initialSecondInspectorId,
   onSubmit,
+  onAddNote,
 }: OfferAppointmentModalProps) => {
-  const [dueDate, setDueDate] = useState('');
   const [selectedTypeId, setSelectedTypeId] = useState<number | null>(null);
   const [inspectorId, setInspectorId] = useState('');
+  const [addSecondInspector, setAddSecondInspector] = useState(false);
+  const [secondInspectorId, setSecondInspectorId] = useState('');
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Pre-populate with existing offer data when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setSelectedTypeId(initialTypeId ?? null);
+      setInspectorId(initialInspectorId ?? '');
+      if (initialSecondInspectorId) {
+        setAddSecondInspector(true);
+        setSecondInspectorId(initialSecondInspectorId);
+      } else {
+        setAddSecondInspector(false);
+        setSecondInspectorId('');
+      }
+      setNotes('');
+      setError(null);
+    }
+  }, [isOpen, initialTypeId, initialInspectorId, initialSecondInspectorId]);
 
   const inspectorOptions = inspectors
     .filter(u => u.isAdmin || ['Inspector', 'Admin'].includes(u.userType?.userTypeName ?? ''))
@@ -26,17 +50,36 @@ export const OfferAppointmentModal = ({
       label: u.displayName || `${u.firstName || ''} ${u.lastName || ''}`.trim(),
     }));
 
+  const secondInspectorOptions = inspectorOptions.filter(o => o.value !== inspectorId);
+
+  const sortedTypes = useMemo(() =>
+    [...appointmentTypes].sort((a, b) => {
+      if (a.isDraftMeeting !== b.isDraftMeeting) return a.isDraftMeeting ? 1 : -1;
+      const order: Record<string, number> = { 'half day': 0, 'full day': 1 };
+      return (order[a.durationType?.toLowerCase() ?? ''] ?? 2) - (order[b.durationType?.toLowerCase() ?? ''] ?? 2);
+    }),
+    [appointmentTypes]
+  );
+
+  const isValid = selectedTypeId != null && inspectorId !== '';
+
   const handleSubmit = async () => {
+    if (!isValid) {
+      setError('Please select an appointment type and assign an inspector');
+      return;
+    }
     setSaving(true);
     setError(null);
     try {
+      if (notes.trim() && onAddNote) {
+        await onAddNote(notes.trim());
+      }
       await onSubmit(serviceRequestId, {
-        dueDate: dueDate || undefined,
         appointmentTypeId: selectedTypeId ?? undefined,
         inspectorProfileId: inspectorId || undefined,
-        notes: notes.trim() || undefined,
+        secondInspectorProfileId: addSecondInspector && secondInspectorId ? secondInspectorId : undefined,
       });
-      resetAndClose();
+      onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to offer appointment');
     } finally {
@@ -44,39 +87,29 @@ export const OfferAppointmentModal = ({
     }
   };
 
-  const resetAndClose = () => {
-    setDueDate('');
-    setSelectedTypeId(null);
-    setInspectorId('');
-    setNotes('');
-    setError(null);
-    onClose();
-  };
-
   return (
-    <Modal isOpen={isOpen} onClose={resetAndClose} title="Offer Appointment" size="medium">
+    <Modal isOpen={isOpen} onClose={onClose} title="Offer Appointment" size="medium">
       <div className="offer-modal">
         {error && <div className="offer-modal__error">{error}</div>}
 
-        <div className="offer-modal__field">
-          <span className="offer-modal__label">Strata ID</span>
-          <span className="offer-modal__value">SR {serviceRequestId}</span>
+        <div className="offer-modal__row">
+          <div className="offer-modal__field offer-modal__field--inline">
+            <span className="offer-modal__label">Strata Plan</span>
+            <span className="offer-modal__value">{strataPlan}</span>
+          </div>
+          <div className="offer-modal__field offer-modal__field--inline">
+            <span className="offer-modal__label">Target Date</span>
+            <span className="offer-modal__value">
+              {targetDate ? formatDateShort(targetDate) : 'Not set'}
+            </span>
+          </div>
         </div>
 
         <div className="offer-modal__field">
-          <label htmlFor="offer-due-date">Due Date *</label>
-          <input
-            id="offer-due-date"
-            type="date"
-            value={dueDate}
-            onChange={(e) => setDueDate(e.target.value)}
-          />
-        </div>
-
-        <div className="offer-modal__field">
-          <label>Appointment Type</label>
-          <div className="offer-modal__type-buttons">
-            {appointmentTypes.map(t => (
+          <span className="offer-modal__label">Appointment Type <span className="offer-modal__required">*</span></span>
+          {/* Desktop: buttons */}
+          <div className="offer-modal__type-buttons offer-modal__desktop">
+            {sortedTypes.map(t => (
               <button
                 key={t.appointmentTypeId}
                 type="button"
@@ -87,18 +120,61 @@ export const OfferAppointmentModal = ({
               </button>
             ))}
           </div>
+          {/* Mobile: dropdown */}
+          <div className="offer-modal__mobile">
+            <SingleSelectDropdown
+              label=""
+              options={sortedTypes.map(t => ({ value: t.appointmentTypeId, label: t.typeName }))}
+              value={selectedTypeId ?? ''}
+              onChange={(val) => setSelectedTypeId(val ? Number(val) : null)}
+              placeholder="Select appointment type..."
+            />
+          </div>
         </div>
 
-        <SingleSelectDropdown
-          label="Assign Inspector"
-          options={inspectorOptions}
-          value={inspectorId}
-          onChange={setInspectorId}
-          placeholder="Select inspector..."
-        />
+        <div className="offer-modal__field">
+          <span className="offer-modal__label">Assign Inspector <span className="offer-modal__required">*</span></span>
+          <SingleSelectDropdown
+            label=""
+            options={inspectorOptions}
+            value={inspectorId}
+            onChange={(val) => {
+              setInspectorId(val);
+              if (val === secondInspectorId) setSecondInspectorId('');
+            }}
+            placeholder="Select inspector..."
+          />
+        </div>
 
         <div className="offer-modal__field">
-          <label htmlFor="offer-notes">Admin Notes (optional) *</label>
+          <label className="offer-modal__checkbox-label">
+            <input
+              type="checkbox"
+              checked={addSecondInspector}
+              onChange={(e) => {
+                setAddSecondInspector(e.target.checked);
+                if (!e.target.checked) setSecondInspectorId('');
+              }}
+            />
+            Add additional inspector
+          </label>
+        </div>
+
+        {addSecondInspector && (
+          <div className="offer-modal__field">
+            <span className="offer-modal__label">Additional Inspector</span>
+            <SingleSelectDropdown
+              label=""
+              options={secondInspectorOptions}
+              value={secondInspectorId}
+              onChange={setSecondInspectorId}
+              placeholder="Select additional inspector..."
+            />
+          </div>
+        )}
+
+        <div className="offer-modal__field">
+          <span className="offer-modal__label">Admin Notes (optional)</span>
           <textarea
             id="offer-notes"
             className="offer-modal__textarea"
@@ -110,10 +186,15 @@ export const OfferAppointmentModal = ({
         </div>
 
         <div className="offer-modal__actions">
-          <button type="button" className="btn btn-secondary" onClick={resetAndClose} disabled={saving}>
+          <button type="button" className="btn btn-secondary" onClick={onClose} disabled={saving}>
             Cancel
           </button>
-          <button type="button" className="btn btn-primary" onClick={handleSubmit} disabled={saving}>
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={handleSubmit}
+            disabled={saving || !isValid}
+          >
             {saving ? 'Sending...' : 'Offer Appointment'}
           </button>
         </div>

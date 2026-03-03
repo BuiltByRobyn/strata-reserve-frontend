@@ -68,51 +68,98 @@
     }
   }
 
-  // Action Buttons
-  .action-buttons {
+  // Desktop / mobile visibility
+  &__desktop {
+    display: none;
+
+    @include respond-to(desktop) {
+      display: block;
+    }
+  }
+
+  &__mobile {
     display: flex;
-    gap: $spacing-sm;
-    align-items: center;
-  }
+    flex-direction: column;
+    gap: $spacing-md;
 
-  .btn-action {
-    padding: $spacing-xs $spacing-sm;
-    border: none;
-    border-radius: $border-radius-sm;
-    font-size: 0.75rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    background: transparent;
-
-    &.btn-reschedule {
-      color: $color-text-dark;
-
-      &:hover {
-        text-decoration: underline;
-      }
-    }
-
-    &.btn-cancel {
-      color: $color-error;
-
-      &:hover {
-        text-decoration: underline;
-      }
-    }
-
-    &.btn-view {
-      color: $color-text-dark;
-
-      &:hover {
-        text-decoration: underline;
-      }
+    @include respond-to(desktop) {
+      display: none;
     }
   }
 
+  &__loading,
+  &__empty {
+    text-align: center;
+    padding: $spacing-xl;
+    color: $color-text-light;
+  }
 
   .tabs {
     margin-bottom: $spacing-lg;
+  }
+
+  // Reuse strata-info-card pattern from strata detail
+  .strata-info-card {
+    border: 2px solid $color-border-light;
+    border-radius: $border-radius-lg;
+    padding: $spacing-lg;
+    margin-bottom: $spacing-lg;
+    background: $color-white;
+
+    .info-row {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: $spacing-md;
+      padding: $spacing-sm 0;
+
+      @include respond-to(desktop) {
+        grid-template-columns: 1fr 1fr 1fr;
+      }
+
+      &:first-child {
+        padding-bottom: $spacing-md;
+        border-bottom: 1px solid $color-border-light;
+      }
+
+      &:last-child {
+        padding-top: $spacing-md;
+      }
+    }
+
+    .info-item {
+      display: flex;
+      flex-direction: column;
+      gap: $spacing-xs;
+
+      @include respond-below(desktop) {
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: baseline;
+        padding: $spacing-sm 0;
+        border-bottom: 1px solid $color-border-light;
+
+        &:last-child {
+          border-bottom: none;
+        }
+      }
+    }
+
+    .info-label {
+      font-size: 0.75rem;
+      font-weight: $font-weight-bold;
+      color: $color-text-muted;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .info-value {
+      font-size: $font-size-base;
+      color: $color-text-dark;
+
+      @include respond-below(desktop) {
+        text-align: right;
+      }
+    }
   }
 
   @include respond-to(desktop) {
@@ -120,8 +167,48 @@
   }
 }
 
-// Review Modal
-.review-modal {
+// ─── Detail View ────────────────────────────────────────────────
+.appointments-detail {
+  &__back {
+    display: inline-flex;
+    align-items: center;
+    gap: $spacing-xs;
+    background: none;
+    border: none;
+    color: $color-primary;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    padding: 0;
+    margin-bottom: $spacing-lg;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+
+  &__section {
+    background: $color-white;
+    border: 1px solid $color-border-light;
+    border-radius: $border-radius-lg;
+    padding: $spacing-lg;
+    margin-bottom: $spacing-lg;
+  }
+
+  &__section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: $spacing-lg;
+
+    h3 {
+      margin: 0;
+      font-size: 1.125rem;
+      font-weight: 600;
+      color: $color-text-dark;
+    }
+  }
+
   &__error {
     background: rgba($color-error, 0.1);
     color: $color-error;
@@ -130,29 +217,7 @@
     margin-bottom: $spacing-md;
   }
 
-  &__info {
-    margin-bottom: $spacing-lg;
-  }
-
-  &__row {
-    display: flex;
-    padding: $spacing-xs 0;
-    border-bottom: 1px solid $color-border-light;
-
-    &:last-child { border-bottom: none; }
-  }
-
-  &__label {
-    font-weight: 600;
-    min-width: 120px;
-    color: $color-text-dark;
-  }
-
-  &__value {
-    color: $color-text-secondary;
-  }
-
-  &__choices {
+  &__kv-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: $spacing-md;
@@ -163,34 +228,58 @@
     }
   }
 
-  &__choice {
-    background: $color-background-off-white;
-    padding: $spacing-md;
-    border-radius: $border-radius-md;
-
-    h4 {
-      margin: 0 0 $spacing-sm;
-      font-size: 0.875rem;
-      text-transform: uppercase;
-      color: $color-text-dark;
-    }
-
-    p { margin: 0 0 $spacing-xs; color: $color-text-secondary; }
-
-    .btn { margin-top: $spacing-sm; }
+  &__kv {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-xs;
+    padding: $spacing-sm 0;
+    border-bottom: 1px solid $color-border-light;
   }
 
-  &__section {
+  &__kv-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: $color-text-light;
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+  }
+
+  &__kv-value {
+    font-size: 0.9375rem;
+    color: $color-text-dark;
+    font-weight: 500;
+  }
+
+  &__special {
     margin-bottom: $spacing-md;
+    padding: $spacing-md;
+    background: $color-background-off-white;
+    border-radius: $border-radius-sm;
 
     h4 {
-      margin: 0 0 $spacing-sm;
+      margin: 0 0 $spacing-xs;
+      font-size: 0.875rem;
       color: $color-text-dark;
     }
+
+    p {
+      margin: 0;
+      color: $color-text-secondary;
+      font-size: 0.875rem;
+    }
+  }
+
+  &__inspector {
+    margin-bottom: $spacing-md;
+  }
+
+  &__comments {
+    margin-bottom: $spacing-md;
 
     label {
       display: block;
       font-weight: 600;
+      font-size: 0.875rem;
       margin-bottom: $spacing-xs;
       color: $color-text-dark;
     }
@@ -211,21 +300,80 @@
     }
   }
 
+  &__actions {
+    display: flex;
+    gap: $spacing-md;
+    flex-wrap: wrap;
+    margin-bottom: $spacing-md;
+  }
+
   &__reject-section {
     border-top: 1px solid $color-border-light;
     padding-top: $spacing-md;
-    margin-top: $spacing-md;
 
-    h4 {
-      margin: 0 0 $spacing-sm;
-      color: $color-error;
+    label {
+      display: block;
+      font-weight: 600;
+      font-size: 0.875rem;
+      margin-bottom: $spacing-xs;
+      color: $color-text-dark;
     }
-
-    .btn { margin-top: $spacing-sm; }
   }
 }
 
-// Shared Appointment Info Row (used in Reschedule & Cancel modals)
+// ─── Mobile Cards ───────────────────────────────────────────────
+.appointments-card {
+  background: $color-white;
+  border: 1px solid $color-border-light;
+  border-radius: $border-radius-lg;
+  overflow: hidden;
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+
+  &:hover {
+    border-color: $color-primary;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  }
+
+  &__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: $spacing-md;
+    border-bottom: 1px solid $color-border-light;
+    background: $color-background-off-white;
+  }
+
+  &__title {
+    font-weight: 600;
+    font-size: 0.9375rem;
+    color: $color-text-dark;
+  }
+
+  &__body {
+    padding: $spacing-sm $spacing-md;
+  }
+
+  &__row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: $spacing-sm 0;
+    border-bottom: 1px solid $color-border-light;
+    font-size: 0.875rem;
+
+    &:last-child {
+      border-bottom: none;
+    }
+  }
+
+  &__label {
+    font-weight: 500;
+    color: $color-text-light;
+  }
+}
+
+// ─── Shared Appointment Info Row (used in Reschedule & Cancel modals) ───
 .appointment-info-row {
   background: $color-background-off-white;
   border: 1px solid $color-border-light;
@@ -265,7 +413,7 @@
   }
 }
 
-// Offer Appointment Modal
+// ─── Offer Appointment Modal ────────────────────────────────────
 .offer-modal {
   display: flex;
   flex-direction: column;
@@ -303,10 +451,25 @@
     }
   }
 
+  &__field--inline {
+    @include respond-below(md) {
+      flex-direction: row;
+      justify-content: space-between;
+      align-items: baseline;
+      padding: $spacing-sm 0;
+      border-bottom: 1px solid $color-border-light;
+    }
+  }
+
   &__label {
     font-weight: 600;
     font-size: 0.875rem;
     color: $color-text-light;
+  }
+
+  &__required {
+    color: $color-error;
+    font-weight: 600;
   }
 
   &__value {
@@ -314,20 +477,51 @@
     color: $color-text-dark;
   }
 
+  &__desktop {
+    display: none;
+
+    @include respond-to(md) {
+      display: flex;
+    }
+  }
+
+  &__mobile {
+    display: block;
+
+    @include respond-to(md) {
+      display: none;
+    }
+  }
+
   &__type-buttons {
-    display: flex;
     gap: $spacing-sm;
-    flex-wrap: wrap;
+  }
+
+  &__row {
+    display: flex;
+    gap: $spacing-lg;
+
+    > .offer-modal__field {
+      flex: 1;
+    }
+
+    @include respond-below(md) {
+      flex-direction: column;
+      gap: 0;
+    }
   }
 
   &__type-btn {
+    flex: 1;
     padding: $spacing-sm $spacing-md;
     border: 1px solid $color-border-light;
     border-radius: $border-radius-md;
     background: $color-background;
     font-size: 0.875rem;
+    font-weight: 500;
     cursor: pointer;
-    transition: all 0.15s ease;
+    text-align: center;
+    transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 
     &:hover {
       border-color: $color-primary;
@@ -339,6 +533,21 @@
       background: rgba($color-primary, 0.1);
       color: $color-primary-dark;
       font-weight: 600;
+    }
+  }
+
+  &__checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: $spacing-sm;
+    font-size: 0.875rem;
+    color: $color-text-dark;
+    cursor: pointer;
+
+    input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      accent-color: $color-primary;
     }
   }
 
@@ -363,10 +572,19 @@
     justify-content: flex-end;
     padding-top: $spacing-sm;
     border-top: 1px solid $color-border-light;
+
+    @include respond-below(md) {
+      flex-direction: column-reverse;
+
+      .btn {
+        width: 100%;
+        text-align: center;
+      }
+    }
   }
 }
 
-// Reschedule Modal
+// ─── Reschedule Modal ───────────────────────────────────────────
 .reschedule-modal {
   &__error {
     background: rgba($color-error, 0.1);
@@ -447,7 +665,7 @@
   }
 }
 
-// Cancel Modal
+// ─── Cancel Modal ───────────────────────────────────────────────
 .cancel-modal {
   &__error {
     background: rgba($color-error, 0.1);
