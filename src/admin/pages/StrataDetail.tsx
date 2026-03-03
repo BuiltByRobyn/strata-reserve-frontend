@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useStrata } from "../../shared/hooks/useStrata";
 import { useAuthFetch } from "../../shared/hooks/useAuthFetch";
@@ -702,7 +702,59 @@ export default function StrataDetailPage() {
     return undefined;
   };
 
-  const showSurveyNav = (activeTab === "active" && activeRequest) || (activeTab === "archived" && activeSurvey.archivedResponses.length > 0);
+  const dynamicSections = useMemo(() => {
+    if (!strata) return [];
+    
+    // Valid property types to consider
+    const validPropertyTypes = (strata.strataPropertyTypes ?? [])
+      .map(spt => spt.propertyType.propertyTypeId)
+      .filter(ptId => {
+        if (!surveyRequirements.some(req => req.propertyTypeId === ptId)) return false;
+        if (filterPropertyTypeIds.length > 0 && !filterPropertyTypeIds.includes(ptId)) return false;
+        return true;
+      });
+
+    if (validPropertyTypes.length === 0) return [];
+
+    let availableSectionLabels = new Set<string>();
+
+    if (activeTab === "active" && activeRequest) {
+      // Find all top-level questions configured for this survey across the matched property types
+      for (const q of activeSurvey.questions) {
+        if (q.parentQuestionId == null && validPropertyTypes.includes(q.propertyTypeId)) {
+          availableSectionLabels.add(q.questionCategory);
+        }
+      }
+    } else if (activeTab === "archived") {
+      for (const r of activeSurvey.archivedResponses) {
+        if (r.question && validPropertyTypes.includes(r.propertyTypeId)) {
+          availableSectionLabels.add(r.question.questionCategory);
+        }
+      }
+    }
+
+    return SURVEY_SECTIONS.filter(s => availableSectionLabels.has(s.label));
+  }, [
+    activeTab, 
+    activeRequest, 
+    strata, 
+    surveyRequirements, 
+    filterPropertyTypeIds, 
+    activeSurvey.questions, 
+    activeSurvey.archivedResponses
+  ]);
+
+  useEffect(() => {
+    if (dynamicSections.length > 0) {
+      if (activeTab === 'active' && !dynamicSections.some(s => s.key === activeSurveySection)) {
+        setActiveSurveySection(dynamicSections[0].key);
+      } else if (activeTab === 'archived' && !dynamicSections.some(s => s.key === archivedSurveySection)) {
+        setArchivedSurveySection(dynamicSections[0].key);
+      }
+    }
+  }, [dynamicSections, activeTab, activeSurveySection, archivedSurveySection]);
+
+  const showSurveyNav = dynamicSections.length > 0;
 
   if (loading) return <LoadingSpinner />;
 
@@ -803,7 +855,7 @@ export default function StrataDetailPage() {
 
       {showSurveyNav && (
         <SurveyCategoryNav
-          sections={SURVEY_SECTIONS}
+          sections={dynamicSections}
           activeSection={getCurrentSurveySection()!}
           onSelect={getCurrentSurveyOnSectionChange()!}
           completionMap={getCurrentCompletionMap()}
@@ -1446,10 +1498,35 @@ export default function StrataDetailPage() {
           ) : (
             (strata?.strataPropertyTypes ?? []).map(spt => {
               const ptId = spt.propertyType.propertyTypeId;
-              const availableQuestions = allQuestions.filter(q => q.parentQuestionId == null);
+              // Filter questions available for this specific property type
+              const availableQuestions = allQuestions.filter(q => 
+                q.parentQuestionId == null && 
+                q.questionPropertyTypes.some(qpt => qpt.propertyTypeId === ptId)
+              );
+
+              const handleSelectAll = () => {
+                setSurveyReqFormData(prev => ({
+                  ...prev,
+                  [ptId]: availableQuestions.map(q => q.questionId)
+                }));
+              };
+
+              const handleDeselectAll = () => {
+                setSurveyReqFormData(prev => ({
+                  ...prev,
+                  [ptId]: []
+                }));
+              };
+
               return (
                 <div key={ptId} className="doc-req-section">
-                  <h3 className="doc-req-section-title">{spt.propertyType.propertyTypeName}</h3>
+                  <div className="doc-req-section-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                    <h3 className="doc-req-section-title" style={{ margin: 0 }}>{spt.propertyType.propertyTypeName}</h3>
+                    <div className="doc-req-section-actions">
+                      <button className="btn-text-primary" style={{ marginRight: '0.5rem' }} onClick={handleSelectAll}>Select All</button>
+                      <button className="btn-text-primary" onClick={handleDeselectAll}>Deselect All</button>
+                    </div>
+                  </div>
                   <MultiSelectDropdown
                     label="Required Questions"
                     searchable
