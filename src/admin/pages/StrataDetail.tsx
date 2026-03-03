@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
 import { useStrata } from "../../shared/hooks/useStrata";
 import { useAuthFetch } from "../../shared/hooks/useAuthFetch";
 import { useServiceRequests } from "../../shared/hooks/useServiceRequests";
@@ -421,8 +422,8 @@ export default function StrataDetailPage() {
         getFilenameFromDisposition(res.headers.get('Content-Disposition')) ||
         `Survey-Answers-${strata?.strataPlan || 'Survey'}.pdf`;
       triggerBlobDownload(blob, filename);
-    } catch {
-      alert('Download failed. Please try again.');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Download failed');
     } finally {
       setDownloadingSurveyPdf(false);
     }
