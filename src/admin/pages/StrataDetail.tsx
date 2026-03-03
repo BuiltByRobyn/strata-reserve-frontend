@@ -1498,10 +1498,8 @@ export default function StrataDetailPage() {
           ) : (
             (strata?.strataPropertyTypes ?? []).map(spt => {
               const ptId = spt.propertyType.propertyTypeId;
-              // Filter questions available for this specific property type
-              const availableQuestions = allQuestions.filter(q => 
-                q.parentQuestionId == null && 
-                q.questionPropertyTypes.some(qpt => qpt.propertyTypeId === ptId)
+              const availableQuestions = allQuestions.filter(q =>
+                q.parentQuestionId == null
               );
 
               const handleSelectAll = () => {
@@ -1530,7 +1528,14 @@ export default function StrataDetailPage() {
                   <MultiSelectDropdown
                     label="Required Questions"
                     searchable
-                    options={availableQuestions.map(q => ({ value: q.questionId, label: `[${q.questionCategory}] ${q.questionText}` })).sort((a, b) => a.label.localeCompare(b.label))}
+                    options={availableQuestions.map(q => ({
+                      value: q.questionId,
+                      label: `[${q.questionCategory}] ${q.questionText}`,
+                      isTemplate: q.questionPropertyTypes.some(qpt => qpt.propertyTypeId === ptId)
+                    })).sort((a, b) => {
+                      if (a.isTemplate !== b.isTemplate) return a.isTemplate ? -1 : 1;
+                      return a.label.localeCompare(b.label);
+                    }).map(({ value, label }) => ({ value, label }))}
                     selectedValues={surveyReqFormData[ptId] ?? []}
                     onChange={(values) => setSurveyReqFormData(prev => ({ ...prev, [ptId]: values }))}
                     placeholder="Select questions for this property type"
