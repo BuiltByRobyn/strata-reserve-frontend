@@ -32,10 +32,8 @@ export default function AvailableMeetingDates({
   const isFirstStep = bookingStep === 'first-date' || bookingStep === 'first-slot';
 
   return (
+
     <div className="available-meeting-dates">
-      <h3 className="available-meeting-dates__title">
-        {isFirstStep ? 'Select your first preferred date and time' : 'Select a second preferred date and time'}
-      </h3>
       <div className="available-meeting-dates__grid">
         {availability.map((day) => (
           <div key={day.date} className="available-meeting-dates__card">

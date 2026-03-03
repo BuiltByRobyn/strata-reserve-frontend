@@ -1,12 +1,14 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import { useAppointments } from '../../shared/hooks/useAppointments';
 import { useUsers } from '../../shared/hooks/useUsers';
 import { useLookups } from '../../shared/hooks/useLookups';
+import { useServiceRequests } from '../../shared/hooks/useServiceRequests';
 import { DataTable, type Column } from '../../shared/components/DataTable';
 import { SingleSelectDropdown } from '../../shared/components/SingleSelectDropdown';
 import { InputField } from '../../shared/components/FormField';
 import { Tabs } from '../../shared/components/Tabs';
+import { Modal } from '../../shared/components/Modal';
 import RescheduleAppointmentModal from '../components/RescheduleAppointmentModal';
 import CancelAppointmentModal from '../components/CancelAppointmentModal';
 import type { AppointmentWithDetails, AppointmentRequest, AppointmentTimeSlot, ProfileBasic } from '../../shared/types/entities.types';
@@ -67,12 +69,14 @@ export default function AppointmentsPage() {
   const {
     appointments, loading, error,
     requests, requestsLoading,
-    cancelAppointment, rescheduleAppointment,
+    cancelAppointment, rescheduleAppointment, requestRebooking,
+    createAppointment, fetchTimeSlots, fetchAppointmentTypes,
     fetchAppointmentRequests, reviewAppointmentRequest,
     checkInspectorAvailability,
   } = useAppointments();
   const { users } = useUsers();
-  const { locations } = useLookups();
+  const { locations, loading: lookupsLoading } = useLookups();
+  const { serviceRequests, refetch: fetchServiceRequests } = useServiceRequests();
 
   const [selectedItem, setSelectedItem] = useState<SelectedItem | null>(null);
   const [rescheduleApt, setRescheduleApt] = useState<AppointmentWithDetails | null>(null);
@@ -95,6 +99,49 @@ export default function AppointmentsPage() {
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [showPastDates, setShowPastDates] = useState(false);
+  const [showCancelled, setShowCancelled] = useState(false);
+
+  // Create appointment modal state
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [createForm, setCreateForm] = useState({ serviceRequestId: '', appointmentDate: '', timeSlotId: '', appointmentTypeId: '', inspectorProfileId: '' });
+  const [createError, setCreateError] = useState<string | null>(null);
+  const [createSubmitting, setCreateSubmitting] = useState(false);
+  const [allTimeSlots, setAllTimeSlots] = useState<any[]>([]);
+  const [allAppointmentTypes, setAllAppointmentTypes] = useState<any[]>([]);
+
+  const openCreateModal = useCallback(async () => {
+    setCreateForm({ serviceRequestId: '', appointmentDate: '', timeSlotId: '', appointmentTypeId: '', inspectorProfileId: '' });
+    setCreateError(null);
+    setShowCreateModal(true);
+    fetchServiceRequests({ archived: false });
+    const [slots, types] = await Promise.all([fetchTimeSlots(), fetchAppointmentTypes()]);
+    setAllTimeSlots(slots || []);
+    setAllAppointmentTypes(types || []);
+  }, [fetchServiceRequests, fetchTimeSlots, fetchAppointmentTypes]);
+
+  const handleCreateAppointment = useCallback(async () => {
+    if (!createForm.serviceRequestId || !createForm.appointmentDate || !createForm.timeSlotId || !createForm.appointmentTypeId) {
+      setCreateError('Please fill in all required fields');
+      return;
+    }
+    setCreateSubmitting(true);
+    setCreateError(null);
+    try {
+      await createAppointment({
+        serviceRequestId: parseInt(createForm.serviceRequestId),
+        appointmentDate: createForm.appointmentDate,
+        timeSlotId: parseInt(createForm.timeSlotId),
+        appointmentTypeId: parseInt(createForm.appointmentTypeId),
+        inspectorProfileId: createForm.inspectorProfileId || undefined,
+      });
+      setShowCreateModal(false);
+      toast.success('Appointment created successfully');
+    } catch (err) {
+      setCreateError(err instanceof Error ? err.message : 'Failed to create appointment');
+    } finally {
+      setCreateSubmitting(false);
+    }
+  }, [createForm, createAppointment]);
 
   // Fetch requests on mount (no longer tab-gated)
   useEffect(() => {
@@ -184,7 +231,6 @@ export default function AppointmentsPage() {
       });
     }
 
-    rows.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
     return rows;
   }, [appointments, requests]);
 
@@ -236,6 +282,10 @@ export default function AppointmentsPage() {
       rows = rows.filter(r => new Date(r.date) >= today);
     }
 
+    if (!showCancelled) {
+      rows = rows.filter(r => r.status.toLowerCase() !== 'cancelled');
+    }
+
     if (filterStrataName) {
       const id = parseInt(filterStrataName);
       rows = rows.filter(r => r.strataId === id);
@@ -264,8 +314,21 @@ export default function AppointmentsPage() {
       rows = rows.filter(r => new Date(r.date) <= to);
     }
 
+    // Sort: future dates soonest-first, past dates most-recent-first
+    const now = today.getTime();
+    rows = [...rows].sort((a, b) => {
+      const aTime = new Date(a.date).getTime();
+      const bTime = new Date(b.date).getTime();
+      const aFuture = aTime >= now;
+      const bFuture = bTime >= now;
+
+      if (aFuture !== bFuture) return aFuture ? -1 : 1;
+      if (aFuture) return aTime - bTime;
+      return bTime - aTime;
+    });
+
     return rows;
-  }, [unifiedRows, showPastDates, filterStrataName, filterStrataPlan, filterInspector, filterLocation, dateFrom, dateTo, today]);
+  }, [unifiedRows, showPastDates, showCancelled, filterStrataName, filterStrataPlan, filterInspector, filterLocation, dateFrom, dateTo, today]);
 
   // ─── Columns ────────────────────────────────────────────────
   const unifiedColumns: Column<UnifiedRow>[] = [
@@ -274,7 +337,7 @@ export default function AppointmentsPage() {
       key: 'time', header: 'Time',
       render: (r) => r.time === 'TBC'
         ? <span className="status-badge status-requested">TBC</span>
-        : <strong>{r.time}</strong>
+        : <span>{r.time}</span>
     },
     { key: 'type', header: 'Type', render: (r) => r.appointmentTypeName },
     { key: 'strataPlan', header: 'Strata Plan', render: (r) => r.strataPlan },
@@ -364,6 +427,16 @@ export default function AppointmentsPage() {
     setShowRejectSection(false);
   };
 
+  const handleRequestRebooking = async (apt: AppointmentWithDetails) => {
+    try {
+      await requestRebooking(apt.appointmentId);
+      toast.success('Rebooking request sent — the client will see a reminder to rebook.');
+      resetDetail();
+    } catch {
+      toast.error('Failed to send rebooking request');
+    }
+  };
+
   // ─── Detail view: appointment ─────────────────────────────────
   const renderAppointmentDetail = (apt: AppointmentWithDetails) => {
     const sr = apt.serviceRequest;
@@ -434,6 +507,14 @@ export default function AppointmentsPage() {
             </button>
             <button className="btn btn-danger" onClick={() => setCancelApt(apt)}>
               Cancel Appointment
+            </button>
+          </div>
+        )}
+
+        {status === 'cancelled' && (
+          <div className="appointments-detail__actions appointments-detail__actions--centered">
+            <button className="btn btn-primary" onClick={() => handleRequestRebooking(apt)}>
+              Request Rebooking
             </button>
           </div>
         )}
@@ -691,22 +772,29 @@ export default function AppointmentsPage() {
     );
   }
 
-  const isLoading = loading || requestsLoading;
+  const isLoading = loading || requestsLoading || lookupsLoading;
 
   return (
     <div className="appointments-page">
       <div className="page-header">
         <h1>Appointments</h1>
+        <div className="create-user-button-desktop">
+          <button className="btn-primary" onClick={openCreateModal}>
+            + Add New Appointment
+          </button>
+        </div>
       </div>
 
       {error && <div className="error-banner">{error}</div>}
 
-      <Tabs
-        tabs={locationTabs}
-        activeTab={filterLocation}
-        onChange={setFilterLocation}
-        variant="pill"
-      />
+      {!lookupsLoading && (
+        <Tabs
+          tabs={locationTabs}
+          activeTab={filterLocation}
+          onChange={setFilterLocation}
+          variant="pill"
+        />
+      )}
 
       <div className="filters-row appointments-filters">
         <SingleSelectDropdown
@@ -744,8 +832,8 @@ export default function AppointmentsPage() {
             onChange={(e) => setDateTo(e.target.value)}
           />
         </div>
-        <div className="form-field archived-toggle">
-          <label>
+        <div className="appointments-filters__toggles">
+          <label className="archived-toggle">
             <input
               type="checkbox"
               checked={showPastDates}
@@ -753,7 +841,21 @@ export default function AppointmentsPage() {
             />
             Show Past Dates
           </label>
+          <label className="archived-toggle">
+            <input
+              type="checkbox"
+              checked={showCancelled}
+              onChange={() => setShowCancelled(prev => !prev)}
+            />
+            Show Cancelled
+          </label>
         </div>
+      </div>
+
+      <div className="create-user-button">
+        <button className="btn-primary" onClick={openCreateModal}>
+          + Add New Appointment
+        </button>
       </div>
 
       <div className="appointments-page__desktop">
@@ -775,6 +877,80 @@ export default function AppointmentsPage() {
           filteredRows.map(renderMobileCard)
         )}
       </div>
+
+      <Modal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        title="Add New Appointment"
+        size="medium"
+        footer={
+          <>
+            <button className="btn btn-secondary" onClick={() => setShowCreateModal(false)} disabled={createSubmitting}>
+              Cancel
+            </button>
+            <button className="btn btn-primary" onClick={handleCreateAppointment} disabled={createSubmitting}>
+              {createSubmitting ? 'Saving...' : 'Add Appointment'}
+            </button>
+          </>
+        }
+      >
+        <div className="offer-modal">
+          {createError && <div className="offer-modal__error">{createError}</div>}
+
+          <SingleSelectDropdown
+            label="Strata"
+            required
+            options={serviceRequests.map(sr => ({
+              value: String(sr.serviceRequestId),
+              label: `${sr.strata?.strataPlan || ''} - ${sr.strata?.complexName || 'Unknown'}`,
+            }))}
+            value={createForm.serviceRequestId}
+            onChange={(val) => setCreateForm(prev => ({ ...prev, serviceRequestId: val }))}
+            placeholder="Select a strata..."
+          />
+
+          <SingleSelectDropdown
+            label="Appointment Type"
+            required
+            options={allAppointmentTypes.map((t: any) => ({
+              value: String(t.appointmentTypeId),
+              label: `${t.typeName} (${t.durationType})`,
+            }))}
+            value={createForm.appointmentTypeId}
+            onChange={(val) => setCreateForm(prev => ({ ...prev, appointmentTypeId: val }))}
+            placeholder="Select appointment type..."
+          />
+
+          <div className="offer-modal__field">
+            <label>Date <span className="offer-modal__required">*</span></label>
+            <input
+              type="date"
+              value={createForm.appointmentDate}
+              onChange={(e) => setCreateForm(prev => ({ ...prev, appointmentDate: e.target.value }))}
+            />
+          </div>
+
+          <SingleSelectDropdown
+            label="Time Slot"
+            required
+            options={allTimeSlots.map((s: any) => ({
+              value: String(s.timeSlotId),
+              label: `${s.slotName} (${formatTime12h(s.slotTime)})`,
+            }))}
+            value={createForm.timeSlotId}
+            onChange={(val) => setCreateForm(prev => ({ ...prev, timeSlotId: val }))}
+            placeholder="Select a time slot..."
+          />
+
+          <SingleSelectDropdown
+            label="Inspector (Optional)"
+            options={inspectorOptions}
+            value={createForm.inspectorProfileId}
+            onChange={(val) => setCreateForm(prev => ({ ...prev, inspectorProfileId: val }))}
+            placeholder="Select an inspector..."
+          />
+        </div>
+      </Modal>
     </div>
   );
 }

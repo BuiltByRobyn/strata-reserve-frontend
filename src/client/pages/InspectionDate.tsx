@@ -66,7 +66,7 @@ const InspectionDate = () => {
   const [activeAppointment, setActiveAppointment] = useState<ActiveAppointmentResponse>(null);
   const [appointmentTypes, setAppointmentTypes] = useState<AppointmentType[]>([]);
   const [availability, setAvailability] = useState<AvailableDay[]>([]);
-  const [calendarLoading, setCalendarLoading] = useState(false);
+  const [calendarLoading, setCalendarLoading] = useState(true);
   const [pageLoading, setPageLoading] = useState(true);
 
   const [bookingStep, setBookingStep] = useState<BookingStep>('first-date');
@@ -105,9 +105,19 @@ const InspectionDate = () => {
 
   // Effect 1: Load active appointment (once, when service request loads)
   useEffect(() => {
-    if (srLoading || !activeRequest || hasFetchedAppointment.current) return;
+    if (srLoading) return;
+    if (!activeRequest) {
+      setPageLoading(false);
+      setCalendarLoading(false);
+      return;
+    }
+    if (hasFetchedAppointment.current) return;
     hasFetchedAppointment.current = true;
-    loadActiveAppointment().finally(() => setPageLoading(false));
+    loadActiveAppointment().then(() => {
+      if (!activeRequest.appointmentOfferedAt) {
+        setCalendarLoading(false);
+      }
+    }).finally(() => setPageLoading(false));
   }, [srLoading, activeRequest, loadActiveAppointment]);
 
   const loadAvailability = useCallback(async (isDraft = false) => {
@@ -136,14 +146,30 @@ const InspectionDate = () => {
     ]);
   }, [activeRequest, services]);
 
-  // Effect 2: Load availability + check eligibility (once, when offered and no active appointment)
+  // Effect 2: Load availability + check eligibility (once, when offered)
   useEffect(() => {
-    if (!isOffered || activeAppointment || !serviceRequestId || hasFetchedAvailability.current) return;
+    if (!isOffered || !serviceRequestId || hasFetchedAvailability.current) return;
+    // Skip if there's a pending request (no calendar shown)
+    if (activeAppointment?.type === 'pending_request') {
+      setCalendarLoading(false);
+      return;
+    }
     hasFetchedAvailability.current = true;
     loadAvailability(bookingDraftMeeting);
     loadAppointmentTypes();
     checkDraftMeetingEligibility(serviceRequestId).then(setDraftMeetingEligible);
   }, [isOffered, activeAppointment, serviceRequestId, loadAvailability, bookingDraftMeeting, loadAppointmentTypes, checkDraftMeetingEligibility]);
+
+  // Re-fetch availability when user returns to the tab (handles inspector changes by admin)
+  useEffect(() => {
+    const handleFocus = () => {
+      if (isOffered && serviceRequestId && activeAppointment?.type !== 'pending_request') {
+        loadAvailability(bookingDraftMeeting);
+      }
+    };
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [isOffered, activeAppointment, serviceRequestId, loadAvailability, bookingDraftMeeting]);
 
   // Compute timeline milestones for the calendar
   const milestones = useMemo((): CalendarMilestone[] => {
@@ -245,11 +271,6 @@ const InspectionDate = () => {
     }
   };
 
-  const handleSkipSecondChoice = () => {
-    setSecondChoice(null);
-    setBookingStep('confirm');
-  };
-
   const handleBackFromConfirm = () => {
     setBookingStep('second-date');
     setSelectedDate(null);
@@ -337,12 +358,8 @@ const InspectionDate = () => {
     setSpecialRequirements('');
   };
 
-  if (srLoading || pageLoading) {
-    return (
-      <div className="page-container">
-        <LoadingSpinner />
-      </div>
-    );
+  if (srLoading || pageLoading || calendarLoading) {
+    return <LoadingSpinner />;
   }
 
   if (!activeRequest) {
@@ -421,14 +438,25 @@ const InspectionDate = () => {
     );
   }
 
-  // State 4: Scheduled
-  if (activeAppointment?.type === 'scheduled') {
-    const apt = activeAppointment.data;
-    return (
-      <div className="page-container">
-        <h1>Inspection Date</h1>
-        {errorMsg && <div className="inspection-date__error">{errorMsg}</div>}
-        {successMsg && <div className="inspection-date__success">{successMsg}</div>}
+  const hasScheduledAppointment = activeAppointment?.type === 'scheduled';
+  const scheduledApt = hasScheduledAppointment ? activeAppointment.data : null;
+
+  // State 2: Ready to Book
+  const bookingTitle = hasScheduledAppointment
+    ? 'Inspection Date'
+    : bookingDraftMeeting ? 'Schedule Draft Meeting' : 'Pick a date for your inspection';
+  const bookingSubtitle = hasScheduledAppointment
+    ? null
+    : bookingDraftMeeting
+      ? 'Select your preferred draft meeting date and time'
+      : 'Select a date and time that works for you';
+
+  return (
+    <div className="page-container inspection-date-page">
+      <h1>{bookingTitle}</h1>
+      {bookingSubtitle && <p className="page-subtitle">{bookingSubtitle}</p>}
+
+      {scheduledApt && (
         <div className="inspection-date__card inspection-date__card--scheduled">
           <h3>Appointment Scheduled</h3>
 
@@ -436,35 +464,35 @@ const InspectionDate = () => {
             <div className="inspection-date__detail-row">
               <span className="inspection-date__detail-label">Date</span>
               <span className="inspection-date__detail-value">
-                {formatDateLong(typeof apt.appointmentDate === 'string'
-                  ? apt.appointmentDate.split('T')[0]
-                  : new Date(apt.appointmentDate).toISOString().split('T')[0])}
+                {formatDateLong(typeof scheduledApt.appointmentDate === 'string'
+                  ? scheduledApt.appointmentDate.split('T')[0]
+                  : new Date(scheduledApt.appointmentDate).toISOString().split('T')[0])}
               </span>
             </div>
             <div className="inspection-date__detail-row">
               <span className="inspection-date__detail-label">Time</span>
               <span className="inspection-date__detail-value">
-                {apt.timeSlot.slotName} ({formatTime12h(apt.timeSlot.slotTime)})
+                {scheduledApt.timeSlot.slotName} ({formatTime12h(scheduledApt.timeSlot.slotTime)})
               </span>
             </div>
             <div className="inspection-date__detail-row">
               <span className="inspection-date__detail-label">Type</span>
               <span className="inspection-date__detail-value">
-                {apt.appointmentType.typeName}
+                {scheduledApt.appointmentType.typeName}
               </span>
             </div>
-            {apt.inspector && (
+            {scheduledApt.inspector && (
               <div className="inspection-date__detail-row">
                 <span className="inspection-date__detail-label">Inspector</span>
                 <span className="inspection-date__detail-value">
-                  {apt.inspector.displayName || `${apt.inspector.firstName} ${apt.inspector.lastName}`}
+                  {scheduledApt.inspector.displayName || `${scheduledApt.inspector.firstName} ${scheduledApt.inspector.lastName}`}
                 </span>
               </div>
             )}
             <div className="inspection-date__detail-row">
               <span className="inspection-date__detail-label">Status</span>
               <span className="inspection-date__detail-value inspection-date__status--scheduled">
-                {apt.status}
+                {scheduledApt.status}
               </span>
             </div>
           </div>
@@ -473,7 +501,7 @@ const InspectionDate = () => {
             <button
               type="button"
               className="btn btn-secondary"
-              onClick={() => handleCancelAppointment(apt.appointmentId)}
+              onClick={() => handleCancelAppointment(scheduledApt.appointmentId)}
             >
               Cancel Appointment
             </button>
@@ -484,22 +512,9 @@ const InspectionDate = () => {
             For changes within 48 hours, please call SRP at (604) 638-4960.
           </p>
         </div>
-      </div>
-    );
-  }
+      )}
 
-  // State 2: Ready to Book
-  const bookingTitle = bookingDraftMeeting ? 'Schedule Draft Meeting' : 'Pick a date for your inspection';
-  const bookingSubtitle = bookingDraftMeeting
-    ? 'Select your preferred draft meeting date and time (evening slots only)'
-    : 'Select a date and time that works for you';
-
-  return (
-    <div className="page-container inspection-date-page">
-      <h1>{bookingTitle}</h1>
-      <p className="page-subtitle">{bookingSubtitle}</p>
-
-      {draftMeetingEligible && !bookingDraftMeeting && (
+      {draftMeetingEligible && !bookingDraftMeeting && !hasScheduledAppointment && (
         <div className="inspection-date__card inspection-date__card--info">
           <h3>Draft Meeting Available</h3>
           <p>Your inspection has been completed. You can now schedule a draft meeting.</p>
@@ -509,10 +524,16 @@ const InspectionDate = () => {
         </div>
       )}
 
+      {activeRequest?.rebookingRequestedAt && (
+        <div className="inspection-date__card inspection-date__card--info" style={{ marginBottom: '1rem' }}>
+          <p>Your previous appointment was cancelled. Please select a new inspection date below.</p>
+        </div>
+      )}
+
       {errorMsg && <div className="inspection-date__error">{errorMsg}</div>}
       {successMsg && <div className="inspection-date__success">{successMsg}</div>}
 
-      {bookingStep === 'confirm' && firstChoice ? (
+      {!hasScheduledAppointment && bookingStep === 'confirm' && firstChoice ? (
         <BookingConfirmation
           firstChoice={firstChoice}
           secondChoice={secondChoice}
@@ -524,45 +545,31 @@ const InspectionDate = () => {
         />
       ) : (
         <div className="inspection-date__booking">
-          <div className="inspection-date__step-indicator">
-            {bookingStep === 'first-date' || bookingStep === 'first-slot' ? (
-              <h3>Step 1: Select your first preferred date and time</h3>
-            ) : (
-              <div>
-                <h3>Step 2: Select a second preferred date and time</h3>
-                {firstChoice && (
-                  <div className="inspection-date__first-choice-summary">
-                    First Choice: {formatDateLong(firstChoice.date)} - {firstChoice.slotName} ({formatTime12h(firstChoice.slotTime)})
-                  </div>
-                )}
-                <button
-                  type="button"
-                  className="btn btn-link"
-                  onClick={handleSkipSecondChoice}
-                >
-                  Skip - proceed with first choice only
-                </button>
-              </div>
-            )}
-          </div>
+          {!hasScheduledAppointment && bookingStep !== 'first-date' && bookingStep !== 'first-slot' && firstChoice && (
+            <div className="inspection-date__first-choice-summary">
+              First Choice: {formatDateLong(firstChoice.date)} - {firstChoice.slotName} ({formatTime12h(firstChoice.slotTime)})
+            </div>
+          )}
 
           <div className="inspection-date__calendar-section">
             <BookingCalendar
               availability={availability}
               selectedDate={selectedDate}
-              onSelectDate={handleDateSelect}
+              onSelectDate={hasScheduledAppointment ? () => {} : handleDateSelect}
               loading={calendarLoading}
               milestones={milestones}
             />
           </div>
 
-          <AvailableMeetingDates
-            availability={availability}
-            onSelectSlot={handleCardSlotSelect}
-            firstChoice={firstChoice}
-            secondChoice={secondChoice}
-            bookingStep={bookingStep}
-          />
+          {!hasScheduledAppointment && (
+            <AvailableMeetingDates
+              availability={availability}
+              onSelectSlot={handleCardSlotSelect}
+              firstChoice={firstChoice}
+              secondChoice={secondChoice}
+              bookingStep={bookingStep}
+            />
+          )}
         </div>
       )}
 

@@ -6,6 +6,11 @@
 
 .inspection-date-page {
   max-width: none;
+  padding: 1.5rem;
+
+  .loading-container {
+    min-height: 50vh;
+  }
 }
 
 .inspection-date {
@@ -146,8 +151,8 @@
     align-items: center;
 
     .booking-calendar {
-      max-width: 600px;
-      width: 100%;
+      max-width: 1000px;
+      width: 90%;
     }
   }
 }
@@ -155,7 +160,7 @@
 // Booking Calendar
 .booking-calendar {
   background: $color-white;
-  border: $border-width-thin solid $color-border-light;
+  border: $border-width-medium solid $color-border-light;
   border-radius: $border-radius-lg;
   padding: $spacing-lg;
   min-width: 340px;
@@ -416,7 +421,7 @@
   background: $color-white;
   border: $border-width-thin solid $color-border-light;
   border-radius: $border-radius-lg;
-  padding: $spacing-xl;
+  padding: $spacing-lg;
 
   &__title {
     margin: 0 0 $spacing-lg;
@@ -473,6 +478,7 @@
   &__textarea {
     width: 100%;
     padding: $spacing-sm $spacing-md;
+    box-sizing: border-box;
     border: $border-width-thin solid $color-border-light;
     border-radius: $border-radius-md;
     font-family: inherit;
@@ -495,25 +501,30 @@
       flex-direction: column-reverse;
     }
   }
-}
+
 
 .btn-link {
   background: none;
   border: none;
-  color: $color-secondary;
+  color: $color-primary;
   cursor: pointer;
   padding: 0;
   font-size: 0.875rem;
   text-decoration: underline;
 
   &:hover {
-    color: $color-secondary-dark;
+    color: $color-primary-dark;
   }
+}
 }
 
 // ─── Available Meeting Dates Grid ─────────────────────────────
 .available-meeting-dates {
   margin-top: $spacing-lg;
+  max-width: 600px;
+  width: 100%;
+  margin-left: auto;
+  margin-right: auto;
 
   &__title {
     margin: 0 0 $spacing-lg;

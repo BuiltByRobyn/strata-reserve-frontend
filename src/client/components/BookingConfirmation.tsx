@@ -25,7 +25,7 @@ const BookingConfirmation = ({
 
         {secondChoice && (
           <div className="booking-confirmation__choice">
-            <h4>Second Choice (Optional)</h4>
+            <h4>Second Choice</h4>
             <p className="booking-confirmation__date">{formatDateLong(secondChoice.date)}</p>
             <p className="booking-confirmation__time">
               {secondChoice.slotName} ({formatTime12h(secondChoice.slotTime)})

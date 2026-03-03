@@ -338,6 +338,7 @@ export interface ServiceRequest {
   appointmentOfferTypeId?: number | null;
   appointmentOfferInspectorId?: string | null;
   appointmentOfferSecondInspectorId?: string | null;
+  rebookingRequestedAt?: string | null;
   service?: Service;
   strata?: Strata;
   requestedBy?: ProfileBasic;
