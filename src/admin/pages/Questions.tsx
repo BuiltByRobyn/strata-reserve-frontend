@@ -59,6 +59,7 @@ export default function QuestionsPage() {
 
   const filteredQuestions = useMemo(() => {
     return questions.filter(q => {
+      if (q.parentQuestionId) return false;
       if (searchTerm) {
         const search = searchTerm.toLowerCase();
         if (!q.questionText.toLowerCase().includes(search)) return false;

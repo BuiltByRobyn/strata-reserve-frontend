@@ -4,7 +4,7 @@ import type {
   CompanyHoliday,
   InspectorAvailableDate,
   Location,
-  ServiceRequest,
+  FileNumber,
   Strata,
   UserWithStratas,
   UserType,
@@ -73,8 +73,8 @@ export interface UsersState {
   error: string | null;
 }
 
-export interface ServiceRequestsState {
-  serviceRequests: ServiceRequest[];
+export interface FileNumbersState {
+  fileNumbers: FileNumber[];
   loading: boolean;
   error: string | null;
 }

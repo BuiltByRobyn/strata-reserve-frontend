@@ -49,7 +49,8 @@ const CancelAppointmentModal = ({
           slotTime={appointment.timeSlot.slotTime}
           typeName={appointment.appointmentType.typeName}
           inspectorName={currentInspector}
-          locationName={appointment.serviceRequest?.strata?.location?.locationName}
+          secondInspectorName={appointment.fileNumber?.appointmentOfferSecondInspector ? getUserDisplayName(appointment.fileNumber.appointmentOfferSecondInspector) : null}
+          locationName={appointment.fileNumber?.strata?.location?.locationName}
         />
 
         <p className="cancel-modal__question">

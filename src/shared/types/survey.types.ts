@@ -1,5 +1,5 @@
 export interface SurveyQuestion {
-  srSurveyQuestionId: number;
+  fnSurveyQuestionId: number;
   propertyTypeId: number;
   propertyTypeName: string;
   questionId: number;
@@ -29,7 +29,7 @@ export interface SurveyResponse {
   questionId: number;
   propertyTypeId: number;
   multipleChoiceOptionId: number | null;
-  serviceRequestId: number;
+  fileNumberId: number;
   answeredByProfileId: string;
   createdAt: string;
   updatedAt: string;

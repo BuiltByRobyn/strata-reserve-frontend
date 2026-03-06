@@ -19,7 +19,7 @@ export interface BookingChoice {
 }
 
 export interface BookingFormData {
-  serviceRequestId: number;
+  fileNumberId: number;
   appointmentTypeId: number;
   firstChoice: BookingChoice;
   secondChoice: BookingChoice | null;

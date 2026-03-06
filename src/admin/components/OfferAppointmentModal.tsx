@@ -4,11 +4,12 @@ import { SingleSelectDropdown } from '../../shared/components/SingleSelectDropdo
 import { formatDateShort } from '../../shared/lib/formatters';
 import { getInspectorOptions } from '../../shared/utils/userUtils';
 import type { OfferAppointmentModalProps } from '../../shared/types/component.types';
+import { LOCATION_DISPLAY_ORDER } from '../../shared/lib/constants';
 
 export const OfferAppointmentModal = ({
   isOpen,
   onClose,
-  serviceRequestId,
+  fileNumberId,
   strataPlan,
   targetDate,
   appointmentTypes,
@@ -56,7 +57,11 @@ export const OfferAppointmentModal = ({
 
   const locationOptions = useMemo(() =>
     locations.map(l => ({ value: l.locationId, label: l.locationCode }))
-      .sort((a, b) => a.label.localeCompare(b.label)),
+      .sort((a, b) => {
+        const ai = LOCATION_DISPLAY_ORDER.indexOf(a.label);
+        const bi = LOCATION_DISPLAY_ORDER.indexOf(b.label);
+        return (ai === -1 ? 999 : ai) - (bi === -1 ? 999 : bi);
+      }),
     [locations]
   );
 
@@ -90,7 +95,7 @@ export const OfferAppointmentModal = ({
       if (notes.trim() && onAddNote) {
         await onAddNote(notes.trim());
       }
-      await onSubmit(serviceRequestId, {
+      await onSubmit(fileNumberId, {
         appointmentTypeId: selectedTypeId ?? undefined,
         inspectorProfileId: inspectorId || undefined,
         secondInspectorProfileId: addSecondInspector && secondInspectorId ? secondInspectorId : undefined,

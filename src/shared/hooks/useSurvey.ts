@@ -16,12 +16,12 @@ export const useSurvey = (routePrefix: 'client' | 'admin' = 'client') => {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchQuestions = useCallback(async (serviceRequestId: number) => {
+  const fetchQuestions = useCallback(async (fileNumberId: number) => {
     setLoading(true);
     setError(null);
     try {
       const data = await api.get<SurveyQuestion[]>(
-        `/${routePrefix}/service-requests/${serviceRequestId}/survey/questions`
+        `/${routePrefix}/file-numbers/${fileNumberId}/survey/questions`
       );
       setQuestions(data || []);
     } catch (err) {
@@ -31,10 +31,10 @@ export const useSurvey = (routePrefix: 'client' | 'admin' = 'client') => {
     }
   }, [api, routePrefix]);
 
-  const fetchResponses = useCallback(async (serviceRequestId: number) => {
+  const fetchResponses = useCallback(async (fileNumberId: number) => {
     try {
       const data = await api.get<SurveyResponse[]>(
-        `/${routePrefix}/service-requests/${serviceRequestId}/survey/responses`
+        `/${routePrefix}/file-numbers/${fileNumberId}/survey/responses`
       );
       setResponses(data || []);
     } catch {
@@ -42,10 +42,10 @@ export const useSurvey = (routePrefix: 'client' | 'admin' = 'client') => {
     }
   }, [api, routePrefix]);
 
-  const fetchArchivedResponses = useCallback(async (serviceRequestId: number) => {
+  const fetchArchivedResponses = useCallback(async (fileNumberId: number) => {
     try {
       const data = await api.get<ArchivedSurveyResponse[]>(
-        `/${routePrefix}/service-requests/${serviceRequestId}/survey/responses/archived`
+        `/${routePrefix}/file-numbers/${fileNumberId}/survey/responses/archived`
       );
       setArchivedResponses(data || []);
     } catch {
@@ -54,14 +54,14 @@ export const useSurvey = (routePrefix: 'client' | 'admin' = 'client') => {
   }, [api, routePrefix]);
 
   const saveResponses = useCallback(async (
-    serviceRequestId: number,
+    fileNumberId: number,
     payloads: SaveResponsePayload[]
   ) => {
     if (payloads.length === 0) return;
     setSaving(true);
     try {
       const data = await api.post<SurveyResponse[]>(
-        `/${routePrefix}/service-requests/${serviceRequestId}/survey/responses`,
+        `/${routePrefix}/file-numbers/${fileNumberId}/survey/responses`,
         { responses: payloads }
       );
       if (data) {

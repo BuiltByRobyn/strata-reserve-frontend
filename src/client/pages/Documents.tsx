@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useClientDocuments } from '../../shared/hooks/useClientDocuments';
-import { useClientServiceRequest } from '../../shared/hooks/useClientServiceRequest';
+import { useClientFileNumber } from '../../shared/hooks/useClientFileNumber';
 import { useAuth } from '../../shared/contexts/AuthContext';
 import { LoadingSpinner } from '../../shared/components/LoadingSpinner';
 import { Modal } from '../../shared/components/Modal';
@@ -16,7 +16,7 @@ const DOCS_PER_PAGE = 5;
 export default function ClientDocumentsPage() {
   const navigate = useNavigate();
   const { session } = useAuth();
-  const { activeRequest, serviceRequestId, loading: srLoading, submitForReview } = useClientServiceRequest();
+  const { activeRequest, fileNumberId, loading: srLoading, submitForReview } = useClientFileNumber();
   const {
     requiredDocuments,
     loading,
@@ -72,10 +72,10 @@ export default function ClientDocumentsPage() {
   }, [filteredDocuments]);
 
   useEffect(() => {
-    if (serviceRequestId) {
-      fetchRequiredDocuments(serviceRequestId).then(() => setRequiredDocsReady(true));
+    if (fileNumberId) {
+      fetchRequiredDocuments(fileNumberId).then(() => setRequiredDocsReady(true));
     }
-  }, [serviceRequestId, fetchRequiredDocuments]);
+  }, [fileNumberId, fetchRequiredDocuments]);
 
   useEffect(() => {
     if (isSubmitted) {
@@ -111,15 +111,15 @@ export default function ClientDocumentsPage() {
     setUploadError(null);
     const success = await uploadDocument(file, uploadingTypeId, strataPlan, undefined, uploadingPropertyTypeId, uploadingPropertyTypeName);
 
-    if (success && serviceRequestId) {
-      await fetchRequiredDocuments(serviceRequestId);
+    if (success && fileNumberId) {
+      await fetchRequiredDocuments(fileNumberId);
     }
 
     setUploadingTypeId(null);
     setUploadingPropertyTypeId(undefined);
     setUploadingPropertyTypeName(undefined);
     if (fileInputRef.current) fileInputRef.current.value = '';
-  }, [uploadingTypeId, uploadingPropertyTypeId, uploadingPropertyTypeName, strataPlan, uploadDocument, serviceRequestId, fetchRequiredDocuments]);
+  }, [uploadingTypeId, uploadingPropertyTypeId, uploadingPropertyTypeName, strataPlan, uploadDocument, fileNumberId, fetchRequiredDocuments]);
 
   const handlePageChange = (newPage: number) => {
     setPage(newPage);
@@ -157,7 +157,7 @@ export default function ClientDocumentsPage() {
 
   const handlePreview = (doc: RequiredDocumentChecklist) => {
     if (!doc.uploadedDocument) return;
-    setPreviewDocId(doc.uploadedDocument.serviceRequestDocumentId);
+    setPreviewDocId(doc.uploadedDocument.fileNumberDocumentId);
     setPreviewDocName(doc.uploadedDocument.fileName);
     setPreviewOpen(true);
   };
@@ -168,13 +168,13 @@ export default function ClientDocumentsPage() {
     setPreviewDocName('');
   };
 
-  if (srLoading || loading || (serviceRequestId && !requiredDocsReady)) return <LoadingSpinner />;
+  if (srLoading || loading || (fileNumberId && !requiredDocsReady)) return <LoadingSpinner />;
 
-  if (!serviceRequestId) {
+  if (!fileNumberId) {
     return (
       <div className="page-container">
         <h1>Documents</h1>
-        <p>No active service request found. Please contact your administrator.</p>
+        <p>No active file number found. Please contact your administrator.</p>
       </div>
     );
   }
@@ -218,7 +218,7 @@ export default function ClientDocumentsPage() {
 
       {filteredDocuments.length === 0 ? (
         <div className="empty-state">
-          <p>No required documents found for this service request.</p>
+          <p>No required documents found for this file number.</p>
         </div>
       ) : (
         <>

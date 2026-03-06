@@ -101,8 +101,8 @@ export default function DocumentsPage() {
       const search = searchQuery.toLowerCase().trim();
       result = result.filter(d => {
         const fileName = (d.fileName || '').toLowerCase();
-        const strataPlan = (d.serviceRequest.strata.strataPlan || '').toLowerCase();
-        const complexName = (d.serviceRequest.strata.complexName || '').toLowerCase();
+        const strataPlan = (d.fileNumber.strata.strataPlan || '').toLowerCase();
+        const complexName = (d.fileNumber.strata.complexName || '').toLowerCase();
         const typeName = formatTypeName(d.documentType.typeName || '').toLowerCase();
         const statusName = (d.reviewStatus?.statusName || '').toLowerCase();
         return (
@@ -120,11 +120,11 @@ export default function DocumentsPage() {
     }
 
     if (filterStrataName) {
-      result = result.filter(d => d.serviceRequest.strata.strataId === parseInt(filterStrataName));
+      result = result.filter(d => d.fileNumber.strata.strataId === parseInt(filterStrataName));
     }
 
     if (filterStrataPlan) {
-      result = result.filter(d => d.serviceRequest.strata.strataId === parseInt(filterStrataPlan));
+      result = result.filter(d => d.fileNumber.strata.strataId === parseInt(filterStrataPlan));
     }
 
     setFilteredDocuments(result);
@@ -143,12 +143,12 @@ export default function DocumentsPage() {
     {
       key: 'strata',
       header: 'Strata',
-      render: (doc) => doc.serviceRequest.strata.complexName || doc.serviceRequest.strata.strataPlan || '-'
+      render: (doc) => doc.fileNumber.strata.complexName || doc.fileNumber.strata.strataPlan || '-'
     },
     {
       key: 'strataId',
       header: 'Strata ID',
-      render: (doc) => doc.serviceRequest.strata.strataPlan || '-'
+      render: (doc) => doc.fileNumber.strata.strataPlan || '-'
     },
     {
       key: 'documentType',
@@ -185,7 +185,7 @@ export default function DocumentsPage() {
 
     try {
       await updateDocumentStatus(
-        selectedDocument.serviceRequestDocumentId,
+        selectedDocument.fileNumberDocumentId,
         parseInt(statusForm.reviewStatusId),
         statusForm.notes || undefined
       );
@@ -200,7 +200,7 @@ export default function DocumentsPage() {
     if (!confirm(`Are you sure you want to delete "${doc.fileName}"?`)) return;
 
     try {
-      await deleteDocument(doc.serviceRequestDocumentId);
+      await deleteDocument(doc.fileNumberDocumentId);
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Failed to delete document');
     }
@@ -231,7 +231,7 @@ export default function DocumentsPage() {
   };
 
   const handlePreview = (doc: DocumentWithDetails) => {
-    setPreviewDocumentId(doc.serviceRequestDocumentId);
+    setPreviewDocumentId(doc.fileNumberDocumentId);
     setPreviewDocumentName(doc.fileName);
     setPreviewDocument(doc);
     setPreviewModalOpen(true);
@@ -293,10 +293,10 @@ export default function DocumentsPage() {
       );
 
       // Auto-configure document requirement so it appears on the strata Documents tab
-      const srId = result?.document?.service_request_id;
+      const srId = result?.document?.file_number_id;
       if (srId && uploadForm.documentTypeId) {
         try {
-          await authFetch(`${API_BASE}/admin/service-requests/${srId}/document-requirements/add`, {
+          await authFetch(`${API_BASE}/admin/file-numbers/${srId}/document-requirements/add`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -394,7 +394,7 @@ export default function DocumentsPage() {
         <DataTable
           columns={columns}
           data={filteredDocuments}
-          keyExtractor={(d) => d.serviceRequestDocumentId}
+          keyExtractor={(d) => d.fileNumberDocumentId}
           loading={loading}
           emptyMessage="No documents found."
           onRowClick={(doc) => handlePreview(doc)}
@@ -417,7 +417,7 @@ export default function DocumentsPage() {
             <div className="documents-mobile-list">
               {filteredDocuments.map((doc) => (
                 <div
-                  key={doc.serviceRequestDocumentId}
+                  key={doc.fileNumberDocumentId}
                   className="documents-mobile-table-wrap clickable"
                   onClick={() => handlePreview(doc)}
                 >
@@ -430,12 +430,12 @@ export default function DocumentsPage() {
                       <tr>
                         <td className="mobile-label-col">Strata</td>
                         <td className="mobile-value-col">
-                          {doc.serviceRequest.strata.complexName || doc.serviceRequest.strata.strataPlan || '-'}
+                          {doc.fileNumber.strata.complexName || doc.fileNumber.strata.strataPlan || '-'}
                         </td>
                       </tr>
                       <tr>
                         <td className="mobile-label-col">Strata ID</td>
-                        <td className="mobile-value-col">{doc.serviceRequest.strata.strataPlan || '-'}</td>
+                        <td className="mobile-value-col">{doc.fileNumber.strata.strataPlan || '-'}</td>
                       </tr>
                       <tr>
                         <td className="mobile-label-col">Document Type</td>
@@ -487,7 +487,7 @@ export default function DocumentsPage() {
           <div className="review-form">
             <p><strong>File:</strong> {selectedDocument.fileName}</p>
             <p><strong>Type:</strong> {formatTypeName(selectedDocument.documentType.typeName)}</p>
-            <p><strong>Strata:</strong> {selectedDocument.serviceRequest.strata.complexName || selectedDocument.serviceRequest.strata.strataPlan}</p>
+            <p><strong>Strata:</strong> {selectedDocument.fileNumber.strata.complexName || selectedDocument.fileNumber.strata.strataPlan}</p>
 
             <SingleSelectDropdown
               label="Status"

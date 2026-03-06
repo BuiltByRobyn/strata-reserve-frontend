@@ -1,7 +1,7 @@
-import type { ServiceRequest } from './entities.types';
+import type { FileNumber } from './entities.types';
 
 export interface TimelineData {
-  serviceRequestId: number;
+  fileNumberId: number;
   requestDate: string;
   fiscalYearEnd: string | null;
   lastAgmDate: string | null;
@@ -29,7 +29,7 @@ export interface DeadlineRow {
   strataPlan: string;
   complexName: string;
   strataId: number;
-  serviceRequest: ServiceRequest;
+  fileNumber: FileNumber;
 }
 
 export interface EditFormData {

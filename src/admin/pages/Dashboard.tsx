@@ -223,7 +223,7 @@ export const Dashboard = () => {
               {upcomingAppointments.map((apt) => {
                 const aptDate = new Date(apt.appointmentDate);
                 const dateStr = aptDate.toLocaleDateString('en-CA', { weekday: 'short', month: 'short', day: 'numeric' });
-                const strataName = apt.serviceRequest?.strata?.complexName || apt.serviceRequest?.strata?.strataPlan || 'Unknown';
+                const strataName = apt.fileNumber?.strata?.complexName || apt.fileNumber?.strata?.strataPlan || 'Unknown';
                 const inspectorName = apt.inspector ? getUserDisplayName(apt.inspector) : 'Unassigned';
 
                 return (

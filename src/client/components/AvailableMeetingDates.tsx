@@ -1,3 +1,4 @@
+import { forwardRef } from 'react';
 import { formatTime12h } from '../../shared/lib/formatters';
 import type { AvailableMeetingDatesProps } from '../../shared/types/appointment.types';
 
@@ -10,20 +11,20 @@ function formatDayHeading(dateStr: string): string {
   });
 }
 
-export default function AvailableMeetingDates({
+const AvailableMeetingDates = forwardRef<HTMLDivElement, AvailableMeetingDatesProps>(({
   availability,
   onSelectSlot,
   firstChoice,
   secondChoice,
   bookingStep,
-}: AvailableMeetingDatesProps) {
+}, ref) => {
   if (availability.length === 0) return null;
 
   const isFirstStep = bookingStep === 'first-date' || bookingStep === 'first-slot';
 
   return (
 
-    <div className="available-meeting-dates">
+    <div className="available-meeting-dates" ref={ref}>
       <div className="available-meeting-dates__grid">
         {availability.map((day) => (
           <div key={day.date} className="available-meeting-dates__card">
@@ -59,4 +60,6 @@ export default function AvailableMeetingDates({
       </div>
     </div>
   );
-}
+});
+
+export default AvailableMeetingDates;

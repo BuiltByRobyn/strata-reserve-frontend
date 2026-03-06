@@ -1,6 +1,6 @@
-export interface ServiceRequestDocumentRequirement {
-  srDocRequirementId: number;
-  serviceRequestId: number;
+export interface FileNumberDocumentRequirement {
+  fnDocRequirementId: number;
+  fileNumberId: number;
   documentTypeId: number;
   propertyTypeId: number | null;
   isRequired: boolean;

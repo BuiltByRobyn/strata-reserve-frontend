@@ -20,7 +20,7 @@ const AppointmentRequestReviewModal = ({
 
   if (!request) return null;
 
-  const sr = request.serviceRequest;
+  const sr = request.fileNumber;
   const strataName = sr?.strata?.complexName || sr?.strata?.strataPlan || 'Unknown';
 
   const inspectorOptions = getInspectorOptions(inspectors);

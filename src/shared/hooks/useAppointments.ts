@@ -63,7 +63,7 @@ export const useAppointments = () => {
     id: number,
     appointmentDate: string,
     timeSlotId: number,
-    options?: { inspectorProfileId?: string; reason?: string }
+    options?: { inspectorProfileId?: string; secondInspectorProfileId?: string; reason?: string }
   ): Promise<boolean> => {
     try {
       await api.put(`/admin/appointments/${id}/reschedule`, {
@@ -140,11 +140,12 @@ export const useAppointments = () => {
   }, [api]);
 
   const createAppointment = useCallback(async (data: {
-    serviceRequestId: number;
+    fileNumberId: number;
     appointmentDate: string;
     timeSlotId: number;
     appointmentTypeId: number;
     inspectorProfileId?: string;
+    secondInspectorProfileId?: string;
   }): Promise<boolean> => {
     try {
       await api.post('/admin/appointments', data);

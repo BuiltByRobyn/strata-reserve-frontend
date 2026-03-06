@@ -18,7 +18,7 @@ export interface DocumentType {
 }
 
 export interface UploadedDocument {
-  serviceRequestDocumentId: number;
+  fileNumberDocumentId: number;
   fileName: string;
   filePath: string;
   fileSize: number;
@@ -31,15 +31,15 @@ export interface UploadedDocument {
 }
 
 export interface DocumentWithDetails {
-  serviceRequestDocumentId: number;
+  fileNumberDocumentId: number;
   fileName: string;
   filePath: string;
   fileSize: number;
   uploadedAt: string;
   notes?: string;
   documentType: { documentTypeId: number; typeName: string };
-  serviceRequest: {
-    serviceRequestId: number;
+  fileNumber: {
+    fileNumberId: number;
     strata: { strataId: number; strataPlan: string | null; complexName: string | null };
   };
   uploadedBy: { id: string; firstName?: string | null; lastName?: string | null; displayName?: string | null };
@@ -72,8 +72,8 @@ export interface DocumentPreviewModalProps {
 }
 
 export interface SRDocRequirement {
-  srDocRequirementId: number;
-  serviceRequestId: number;
+  fnDocRequirementId: number;
+  fileNumberId: number;
   documentTypeId: number;
   propertyTypeId: number | null;
   isRequired: boolean;
@@ -95,7 +95,7 @@ export interface UploadDocumentParams {
 }
 
 export interface SRUploadedDocument {
-  serviceRequestDocumentId: number;
+  fileNumberDocumentId: number;
   fileName: string;
   filePath: string;
   fileSize: number;

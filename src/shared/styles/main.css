@@ -2294,19 +2294,19 @@ h3 {
   color: #FF0000;
   font-size: 0.875rem;
 }
-.strata-page .service-request-details {
+.strata-page .file-number-details {
   text-align: left;
 }
-.strata-page .service-request-details .sr-detail-row {
+.strata-page .file-number-details .fn-detail-row {
   padding: 0.25rem 0;
   font-size: 1em;
   color: #1C1917;
 }
-.strata-page .service-request-details .sr-detail-row strong {
+.strata-page .file-number-details .fn-detail-row strong {
   color: #4A5565;
   margin-right: 0.25rem;
 }
-.strata-page .service-request-details .sr-counts {
+.strata-page .file-number-details .fn-counts {
   display: flex;
   gap: 1.5rem;
   margin-top: 1rem;
@@ -2314,15 +2314,15 @@ h3 {
   font-size: 0.875rem;
   color: #4A5565;
 }
-.strata-page .service-request-details .sr-actions {
+.strata-page .file-number-details .fn-actions {
   margin-top: 1.5rem;
   padding-top: 1rem;
   border-top: 1px solid #E5E7EB;
 }
-.strata-page .service-request-create {
+.strata-page .file-number-create {
   text-align: left;
 }
-.strata-page .service-request-create label {
+.strata-page .file-number-create label {
   font-size: 1em;
   font-weight: 700;
   color: #4A5565;
@@ -2848,7 +2848,7 @@ h3 {
   border-radius: 4px;
   color: #FF0000;
 }
-.client-documents-page .no-service-request,
+.client-documents-page .no-file-number,
 .client-documents-page .empty-state {
   text-align: center;
   padding: 2rem;
