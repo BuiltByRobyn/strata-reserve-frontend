@@ -3,7 +3,7 @@ import toast from 'react-hot-toast';
 import { useAppointments } from '../../shared/hooks/useAppointments';
 import { useUsers } from '../../shared/hooks/useUsers';
 import { useLookups } from '../../shared/hooks/useLookups';
-import { useServiceRequests } from '../../shared/hooks/useServiceRequests';
+import { useFileNumbers } from '../../shared/hooks/useFileNumbers';
 import { DataTable, type Column } from '../../shared/components/DataTable';
 import { LoadingSpinner } from '../../shared/components/LoadingSpinner';
 import { SingleSelectDropdown } from '../../shared/components/SingleSelectDropdown';
@@ -17,6 +17,7 @@ import type { UnifiedRow, SelectedItem } from '../../shared/types/appointment.ty
 import { formatDateShort, formatTime12h, getUserDisplayName } from '../../shared/lib/formatters';
 import { getInspectorOptions } from '../../shared/utils/userUtils';
 import { getSlotTimeRange } from '../../shared/lib/dateUtils';
+import { LOCATION_DISPLAY_ORDER } from '../../shared/lib/constants';
 
 const getStatusClass = (status: string): string => {
   switch (status.toLowerCase()) {
@@ -52,7 +53,7 @@ export default function AppointmentsPage() {
   } = useAppointments();
   const { users, loading: usersLoading } = useUsers();
   const { locations, loading: lookupsLoading } = useLookups();
-  const { serviceRequests, refetch: fetchServiceRequests } = useServiceRequests();
+  const { fileNumbers, refetch: fetchFileNumbers } = useFileNumbers();
 
   const [selectedItem, setSelectedItem] = useState<SelectedItem | null>(null);
   const [rescheduleApt, setRescheduleApt] = useState<AppointmentWithDetails | null>(null);
@@ -77,7 +78,9 @@ export default function AppointmentsPage() {
   const [showCancelled, setShowCancelled] = useState(false);
 
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [createForm, setCreateForm] = useState({ serviceRequestId: '', appointmentDate: '', timeSlotId: '', appointmentTypeId: '', inspectorProfileId: '' });
+  const [createForm, setCreateForm] = useState({ fileNumberId: '', appointmentDate: '', timeSlotId: '', appointmentTypeId: '', inspectorProfileId: '' });
+  const [addSecondInspector, setAddSecondInspector] = useState(false);
+  const [secondInspectorId, setSecondInspectorId] = useState('');
   const [createError, setCreateError] = useState<string | null>(null);
   const [createSubmitting, setCreateSubmitting] = useState(false);
   const [showAvailabilityWarning, setShowAvailabilityWarning] = useState(false);
@@ -85,19 +88,21 @@ export default function AppointmentsPage() {
   const [allAppointmentTypes, setAllAppointmentTypes] = useState<any[]>([]);
 
   const openCreateModal = useCallback(async () => {
-    setCreateForm({ serviceRequestId: '', appointmentDate: '', timeSlotId: '', appointmentTypeId: '', inspectorProfileId: '' });
+    setCreateForm({ fileNumberId: '', appointmentDate: '', timeSlotId: '', appointmentTypeId: '', inspectorProfileId: '' });
+    setAddSecondInspector(false);
+    setSecondInspectorId('');
     setCreateError(null);
     setShowAvailabilityWarning(false);
     setShowCreateModal(true);
-    fetchServiceRequests({ archived: false });
+    fetchFileNumbers({ archived: false });
     const [slots, types] = await Promise.all([fetchTimeSlots(), fetchAppointmentTypes()]);
     setAllTimeSlots((slots || []).filter((s: any, i: number, arr: any[]) => arr.findIndex((t: any) => t.slotTime === s.slotTime) === i));
     setAllAppointmentTypes(types || []);
-  }, [fetchServiceRequests, fetchTimeSlots, fetchAppointmentTypes]);
+  }, [fetchFileNumbers, fetchTimeSlots, fetchAppointmentTypes]);
 
   const validateCreateForm = useCallback(() => {
     const missing: string[] = [];
-    if (!createForm.serviceRequestId) missing.push('Strata');
+    if (!createForm.fileNumberId) missing.push('Strata');
     if (!createForm.appointmentTypeId) missing.push('Appointment Type');
     if (!createForm.appointmentDate) missing.push('Date');
     if (!createForm.timeSlotId) missing.push('Time Slot');
@@ -110,11 +115,12 @@ export default function AppointmentsPage() {
     setCreateError(null);
     try {
       await createAppointment({
-        serviceRequestId: parseInt(createForm.serviceRequestId),
+        fileNumberId: parseInt(createForm.fileNumberId),
         appointmentDate: createForm.appointmentDate,
         timeSlotId: parseInt(createForm.timeSlotId),
         appointmentTypeId: parseInt(createForm.appointmentTypeId),
         inspectorProfileId: createForm.inspectorProfileId,
+        secondInspectorProfileId: addSecondInspector && secondInspectorId ? secondInspectorId : undefined,
       });
       setShowCreateModal(false);
       setShowAvailabilityWarning(false);
@@ -172,7 +178,7 @@ export default function AppointmentsPage() {
   // Pre-fill inspector from offer when selecting a request
   useEffect(() => {
     if (selectedItem?.type === 'request') {
-      const sr = selectedItem.data.serviceRequest;
+      const sr = selectedItem.data.fileNumber;
       const offerInspector = sr?.appointmentOfferInspector;
       if (offerInspector?.id) {
         setInspectorId(offerInspector.id);
@@ -193,7 +199,7 @@ export default function AppointmentsPage() {
     const rows: UnifiedRow[] = [];
 
     for (const apt of appointments) {
-      const sr = apt.serviceRequest;
+      const sr = apt.fileNumber;
       rows.push({
         id: `apt-${apt.appointmentId}`,
         type: 'appointment',
@@ -212,7 +218,7 @@ export default function AppointmentsPage() {
     }
 
     for (const req of requests) {
-      const sr = req.serviceRequest;
+      const sr = req.fileNumber;
       const inspector1 = sr?.appointmentOfferInspector;
       const inspector2 = sr?.appointmentOfferSecondInspector;
       rows.push({
@@ -262,7 +268,11 @@ export default function AppointmentsPage() {
 
   const locationTabs = useMemo(() => {
     const tabs = [{ key: 'all', label: 'All Locations' }];
-    const sorted = [...locations].sort((a, b) => a.locationName.localeCompare(b.locationName));
+    const sorted = [...locations].sort((a, b) => {
+      const ai = LOCATION_DISPLAY_ORDER.indexOf(a.locationCode ?? a.locationName);
+      const bi = LOCATION_DISPLAY_ORDER.indexOf(b.locationCode ?? b.locationName);
+      return (ai === -1 ? 999 : ai) - (bi === -1 ? 999 : bi);
+    });
     for (const l of sorted) {
       tabs.push({ key: l.locationName, label: l.locationName });
     }
@@ -440,7 +450,7 @@ export default function AppointmentsPage() {
 
   // ─── Detail view: appointment ─────────────────────────────────
   const renderAppointmentDetail = (apt: AppointmentWithDetails) => {
-    const sr = apt.serviceRequest;
+    const sr = apt.fileNumber;
     const status = apt.status.toLowerCase();
     const allInspectors = getInspectorNames(apt.inspector, sr.appointmentOfferSecondInspector);
 
@@ -525,7 +535,7 @@ export default function AppointmentsPage() {
 
   // ─── Detail view: request ─────────────────────────────────────
   const renderRequestDetail = (req: AppointmentRequest) => {
-    const sr = req.serviceRequest;
+    const sr = req.fileNumber;
     const allInspectors = getInspectorNames(sr?.appointmentOfferInspector, sr?.appointmentOfferSecondInspector);
 
     return (
@@ -917,17 +927,17 @@ export default function AppointmentsPage() {
               <SingleSelectDropdown
                 label="Strata"
                 required
-                options={serviceRequests.map(sr => ({
-                  value: String(sr.serviceRequestId),
+                options={fileNumbers.map(sr => ({
+                  value: String(sr.fileNumberId),
                   label: `${sr.strata?.strataPlan || ''} - ${sr.strata?.complexName || 'Unknown'}`,
                 }))}
-                value={createForm.serviceRequestId}
-                onChange={(val) => setCreateForm(prev => ({ ...prev, serviceRequestId: val }))}
+                value={createForm.fileNumberId}
+                onChange={(val) => setCreateForm(prev => ({ ...prev, fileNumberId: val }))}
                 placeholder="Select a strata..."
               />
 
-              {createForm.serviceRequestId && (() => {
-                const sr = serviceRequests.find(s => String(s.serviceRequestId) === createForm.serviceRequestId);
+              {createForm.fileNumberId && (() => {
+                const sr = fileNumbers.find(s => String(s.fileNumberId) === createForm.fileNumberId);
                 const loc = sr?.strata?.location?.locationName;
                 return loc ? (
                   <div className="form-field">
@@ -975,9 +985,36 @@ export default function AppointmentsPage() {
                 required
                 options={inspectorOptions}
                 value={createForm.inspectorProfileId}
-                onChange={(val) => setCreateForm(prev => ({ ...prev, inspectorProfileId: val }))}
+                onChange={(val) => {
+                  setCreateForm(prev => ({ ...prev, inspectorProfileId: val }));
+                  if (val === secondInspectorId) setSecondInspectorId('');
+                }}
                 placeholder="Select an inspector..."
               />
+
+              {addSecondInspector && (
+                <SingleSelectDropdown
+                  label="Additional Inspector"
+                  options={inspectorOptions.filter(o => o.value !== createForm.inspectorProfileId)}
+                  value={secondInspectorId}
+                  onChange={setSecondInspectorId}
+                  placeholder="Select additional inspector..."
+                />
+              )}
+
+              <div className="offer-modal__field">
+                <label className="offer-modal__checkbox-label">
+                  <input
+                    type="checkbox"
+                    checked={addSecondInspector}
+                    onChange={(e) => {
+                      setAddSecondInspector(e.target.checked);
+                      if (!e.target.checked) setSecondInspectorId('');
+                    }}
+                  />
+                  Add additional inspector
+                </label>
+              </div>
             </>
           )}
         </div>

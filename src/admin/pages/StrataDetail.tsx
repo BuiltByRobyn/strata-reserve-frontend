@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import { useStrata } from "../../shared/hooks/useStrata";
 import { useAuthFetch } from "../../shared/hooks/useAuthFetch";
-import { useServiceRequests } from "../../shared/hooks/useServiceRequests";
+import { useFileNumbers } from "../../shared/hooks/useFileNumbers";
 import { useLookups } from "../../shared/hooks/useLookups";
 import { useAuth } from "../../shared/contexts/AuthContext";
 import { useSurvey } from "../../shared/hooks/useSurvey";
@@ -30,7 +30,7 @@ import {
 import type { SurveyQuestion, ArchivedSurveyResponse } from "../../shared/types/survey.types";
 import type {
   StrataWithDetails,
-  ServiceRequest,
+  FileNumber,
   CreateSRFormData,
   AppointmentType,
 } from "../../shared/types/entities.types";
@@ -49,6 +49,7 @@ const MAIN_TABS = [
 ];
 
 const INITIAL_SR_FORM: CreateSRFormData = {
+  fileNumber: "",
   serviceId: "",
 };
 
@@ -58,10 +59,10 @@ export default function StrataDetailPage() {
   const { getStrataById, updateStrata, addNote, deleteNote } = useStrata();
   const {
     getActiveByStrata,
-    createServiceRequest,
-    deleteServiceRequest,
+    createFileNumber,
+    deleteFileNumber,
     offerAppointment,
-  } = useServiceRequests();
+  } = useFileNumbers();
   const { user, session } = useAuth();
   const authFetch = useAuthFetch();
 
@@ -77,7 +78,7 @@ export default function StrataDetailPage() {
   const [strata, setStrata] = useState<StrataWithDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [dataReady, setDataReady] = useState(false);
-  const [activeRequest, setActiveRequest] = useState<ServiceRequest | null>(null);
+  const [activeRequest, setActiveRequest] = useState<FileNumber | null>(null);
   const [activeTab, setActiveTab] = useState("active");
 
   const [activeSurveySection, setActiveSurveySection] = useState("exterior");
@@ -119,7 +120,6 @@ export default function StrataDetailPage() {
   const [statusDoc, setStatusDoc] = useState<SRUploadedDocument | null>(null);
   const [statusForm, setStatusForm] = useState({ reviewStatusId: '', notes: '' });
   const [offerModalOpen, setOfferModalOpen] = useState(false);
-
   const strataId = id ? parseInt(id) : null;
 
   const loadData = useCallback(async () => {
@@ -149,9 +149,9 @@ export default function StrataDetailPage() {
       .catch(() => {});
   }, [api]);
 
-  const fetchDocRequirements = useCallback(async (serviceRequestId: number) => {
+  const fetchDocRequirements = useCallback(async (fileNumberId: number) => {
     try {
-      const res = await authFetch(`${API_BASE}/admin/service-requests/${serviceRequestId}/document-requirements`);
+      const res = await authFetch(`${API_BASE}/admin/file-numbers/${fileNumberId}/document-requirements`);
       const data = await res.json();
       if (data.success && data.data) {
         setDocRequirements(data.data);
@@ -161,9 +161,9 @@ export default function StrataDetailPage() {
     }
   }, [authFetch]);
 
-  const fetchSurveyRequirements = useCallback(async (serviceRequestId: number) => {
+  const fetchSurveyRequirements = useCallback(async (fileNumberId: number) => {
     try {
-      const res = await authFetch(`${API_BASE}/admin/service-requests/${serviceRequestId}/survey-requirements`);
+      const res = await authFetch(`${API_BASE}/admin/file-numbers/${fileNumberId}/survey-requirements`);
       const data = await res.json();
       if (data.success && data.data) {
         setSurveyRequirements(data.data);
@@ -173,9 +173,9 @@ export default function StrataDetailPage() {
     }
   }, [authFetch]);
 
-  const fetchUploadedDocs = useCallback(async (serviceRequestId: number) => {
+  const fetchUploadedDocs = useCallback(async (fileNumberId: number) => {
     try {
-      const res = await authFetch(`${API_BASE}/admin/service-requests/${serviceRequestId}/documents`);
+      const res = await authFetch(`${API_BASE}/admin/file-numbers/${fileNumberId}/documents`);
       const data = await res.json();
       if (data.success && data.data) {
         setUploadedDocs(data.data);
@@ -189,60 +189,60 @@ export default function StrataDetailPage() {
     if (activeRequest) {
       setDataReady(false);
       Promise.all([
-        activeSurvey.fetchQuestions(activeRequest.serviceRequestId),
-        activeSurvey.fetchResponses(activeRequest.serviceRequestId),
-        activeSurvey.fetchArchivedResponses(activeRequest.serviceRequestId),
-        fetchDocRequirements(activeRequest.serviceRequestId),
-        fetchSurveyRequirements(activeRequest.serviceRequestId),
-        fetchUploadedDocs(activeRequest.serviceRequestId),
+        activeSurvey.fetchQuestions(activeRequest.fileNumberId),
+        activeSurvey.fetchResponses(activeRequest.fileNumberId),
+        activeSurvey.fetchArchivedResponses(activeRequest.fileNumberId),
+        fetchDocRequirements(activeRequest.fileNumberId),
+        fetchSurveyRequirements(activeRequest.fileNumberId),
+        fetchUploadedDocs(activeRequest.fileNumberId),
       ]).finally(() => setDataReady(true));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeRequest?.serviceRequestId]);
+  }, [activeRequest?.fileNumberId]);
 
   // Re-fetch documents data when switching to Documents tab (picks up uploads from Documents page)
   useEffect(() => {
     if (activeTab === 'documents' && activeRequest) {
-      fetchDocRequirements(activeRequest.serviceRequestId);
-      fetchUploadedDocs(activeRequest.serviceRequestId);
+      fetchDocRequirements(activeRequest.fileNumberId);
+      fetchUploadedDocs(activeRequest.fileNumberId);
     }
-  }, [activeTab, activeRequest?.serviceRequestId, fetchDocRequirements, fetchUploadedDocs]);
+  }, [activeTab, activeRequest?.fileNumberId, fetchDocRequirements, fetchUploadedDocs]);
 
   const handleOpenCreateModal = () => {
-    setSrFormData({ ...INITIAL_SR_FORM });
+    setSrFormData({ ...INITIAL_SR_FORM, fileNumber: String(strata?.strataId).padStart(9, '0') });
     setSrFormError(null);
     setCreateModalOpen(true);
   };
 
-  const handleCreateServiceRequest = async (e: React.FormEvent) => {
+  const handleCreateFileNumber = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!strata || !srFormData.serviceId || !user) return;
+    if (!strata || !srFormData.serviceId || !srFormData.fileNumber.trim() || !user) return;
 
     setSrSubmitting(true);
     setSrFormError(null);
 
     try {
-      const result = await createServiceRequest({
+      const result = await createFileNumber({
         serviceId: parseInt(srFormData.serviceId),
         strataId: strata.strataId,
         requestedByProfileId: user.id,
-        notes: `Requested by: ${user && 'fullName' in user ? user.fullName : 'Unknown'}`,
+        notes: srFormData.fileNumber || String(strata?.strataId).padStart(9, '0'),
       });
       setActiveRequest(result);
       setCreateModalOpen(false);
     } catch (err) {
-      setSrFormError(err instanceof Error ? err.message : "Failed to create service request");
+      setSrFormError(err instanceof Error ? err.message : "Failed to create file number");
     } finally {
       setSrSubmitting(false);
     }
   };
 
-  const handleDeleteServiceRequest = async () => {
+  const handleDeleteFileNumber = async () => {
     if (!activeRequest) return;
 
     setDeleteSubmitting(true);
     try {
-      await deleteServiceRequest(activeRequest.serviceRequestId);
+      await deleteFileNumber(activeRequest.fileNumberId);
       activeSurvey.clearState();
       setActiveRequest(null);
       setDeleteModalOpen(false);
@@ -328,7 +328,7 @@ export default function StrataDetailPage() {
   };
 
   const handleDocPreview = (doc: SRUploadedDocument) => {
-    setPreviewDocId(doc.serviceRequestDocumentId);
+    setPreviewDocId(doc.fileNumberDocumentId);
     setPreviewDocName(doc.fileName);
     setPreviewModalOpen(true);
   };
@@ -351,14 +351,14 @@ export default function StrataDetailPage() {
   const handleStatusUpdate = async () => {
     if (!statusDoc || !statusForm.reviewStatusId) return;
     try {
-      await authFetch(`${API_BASE}/admin/documents/${statusDoc.serviceRequestDocumentId}/status`, {
+      await authFetch(`${API_BASE}/admin/documents/${statusDoc.fileNumberDocumentId}/status`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ reviewStatusId: parseInt(statusForm.reviewStatusId), notes: statusForm.notes || undefined }),
       });
       setStatusModalOpen(false);
       setStatusDoc(null);
-      if (activeRequest) fetchUploadedDocs(activeRequest.serviceRequestId);
+      if (activeRequest) fetchUploadedDocs(activeRequest.fileNumberId);
     } catch {
       // silently fail
     }
@@ -367,7 +367,7 @@ export default function StrataDetailPage() {
   const handleDeleteDoc = async (docId: number) => {
     try {
       await authFetch(`${API_BASE}/admin/documents/${docId}`, { method: 'DELETE' });
-      if (activeRequest) fetchUploadedDocs(activeRequest.serviceRequestId);
+      if (activeRequest) fetchUploadedDocs(activeRequest.fileNumberId);
     } catch {
       // silently fail
     }
@@ -377,14 +377,14 @@ export default function StrataDetailPage() {
     if (!activeRequest || !session?.access_token) return;
     setDownloadingDocs(true);
     try {
-      const res = await fetch(`${SUPABASE_URL}/functions/v1/download-sr-documents`, {
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/download-fn-documents`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${session.access_token}`,
           'apikey': SUPABASE_ANON_KEY,
         },
-        body: JSON.stringify({ serviceRequestId: activeRequest.serviceRequestId }),
+        body: JSON.stringify({ fileNumberId: activeRequest.fileNumberId }),
       });
       if (!res.ok) {
         const err = await res.json().catch(() => null);
@@ -405,7 +405,7 @@ export default function StrataDetailPage() {
     if (!activeRequest) return;
     setDownloadingSurveyPdf(true);
     try {
-      const res = await api.rawFetch(`/admin/service-requests/${activeRequest.serviceRequestId}/survey/pdf`);
+      const res = await api.rawFetch(`/admin/file-numbers/${activeRequest.fileNumberId}/survey/pdf`);
       if (!res.ok) {
         let message = `Download failed (${res.status})`;
         try {
@@ -440,7 +440,7 @@ export default function StrataDetailPage() {
         }
       }
       const res = await authFetch(
-        `${API_BASE}/admin/service-requests/${activeRequest.serviceRequestId}/document-requirements`,
+        `${API_BASE}/admin/file-numbers/${activeRequest.fileNumberId}/document-requirements`,
         {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
@@ -471,7 +471,7 @@ export default function StrataDetailPage() {
         }));
 
       const res = await authFetch(
-        `${API_BASE}/admin/service-requests/${activeRequest.serviceRequestId}/survey-requirements`,
+        `${API_BASE}/admin/file-numbers/${activeRequest.fileNumberId}/survey-requirements`,
         {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
@@ -480,8 +480,8 @@ export default function StrataDetailPage() {
       );
       const data = await res.json();
       if (data.success) {
-        fetchSurveyRequirements(activeRequest.serviceRequestId);
-        activeSurvey.fetchQuestions(activeRequest.serviceRequestId);
+        fetchSurveyRequirements(activeRequest.fileNumberId);
+        activeSurvey.fetchQuestions(activeRequest.fileNumberId);
       }
       setSurveyReqModalOpen(false);
     } catch {
@@ -634,7 +634,7 @@ export default function StrataDetailPage() {
 
   const renderSurveyAnswers = (
     questions: SurveyQuestion[],
-    responses: { questionId: number }[],
+    responses: { questionId: number; propertyTypeId: number }[],
     sectionKey: string,
     getResponse: (questionId: number, propertyTypeId: number) => ReturnType<typeof activeSurvey.getResponseForQuestion>,
     surveyLoading: boolean,
@@ -651,7 +651,14 @@ export default function StrataDetailPage() {
 
     return (
       <>
-        <SurveyProgressBar answered={responses.length} total={questions.filter(q => q.parentQuestionId == null).length} />
+        <SurveyProgressBar
+          answered={filterPropertyTypeIds.length > 0
+            ? responses.filter(r => filterPropertyTypeIds.includes(r.propertyTypeId)).length
+            : responses.length}
+          total={filterPropertyTypeIds.length > 0
+            ? questions.filter(q => filterPropertyTypeIds.includes(q.propertyTypeId) && q.parentQuestionId == null).length
+            : questions.filter(q => q.parentQuestionId == null).length}
+        />
 
         {surveyLoading ? (
           <LoadingSpinner />
@@ -674,13 +681,13 @@ export default function StrataDetailPage() {
                     ptQuestions.map((q) => {
                       const subQuestions = subQuestionsMap.get(`${q.questionId}-${ptId}`) ?? [];
                       return (
-                        <div key={q.srSurveyQuestionId} className="admin-answer-item">
+                        <div key={q.fnSurveyQuestionId} className="admin-answer-item">
                           <div className="answer-question">{q.questionText}</div>
                           <div className="answer-response">{renderAnswerValue(q, getResponse)}</div>
                           {subQuestions.length > 0 && (
                             <div className="admin-sub-answers">
                               {subQuestions.map((sq, i) => (
-                                <div key={sq.srSurveyQuestionId} className="admin-sub-answer-item">
+                                <div key={sq.fnSurveyQuestionId} className="admin-sub-answer-item">
                                   <div className="answer-question">
                                     <span className="admin-sub-label">{String.fromCharCode(97 + i)}.</span>
                                     {sq.questionText}
@@ -798,7 +805,6 @@ export default function StrataDetailPage() {
     );
   }
 
-  const nextRequestId = `SR ${1000 + strata.strataId}`;
 
   return (
     <div className="strata-detail-page">
@@ -830,11 +836,9 @@ export default function StrataDetailPage() {
             <span className="info-value">{strata.complexName || "N/A"}</span>
           </div>
           <div className="info-item">
-            <span className="info-label">PROPERTY TYPES</span>
+            <span className="info-label">FILE NUMBER</span>
             <span className="info-value">
-              {strata.strataPropertyTypes && strata.strataPropertyTypes.length > 0
-                ? strata.strataPropertyTypes.map(spt => spt.propertyType.propertyTypeName).join(', ')
-                : "N/A"}
+              {activeRequest ? String(100000000 + activeRequest.fileNumberId).slice(0, 9) : "N/A"}
             </span>
           </div>
         </div>
@@ -844,8 +848,12 @@ export default function StrataDetailPage() {
             <span className="info-value">{formatAddress()}</span>
           </div>
           <div className="info-item">
-            <span className="info-label">MANAGEMENT COMPANY</span>
-            <span className="info-value">{strata.company?.companyName || "N/A"}</span>
+            <span className="info-label">PROPERTY TYPES</span>
+            <span className="info-value">
+              {strata.strataPropertyTypes && strata.strataPropertyTypes.length > 0
+                ? strata.strataPropertyTypes.map(spt => spt.propertyType.propertyTypeName).join(', ')
+                : "N/A"}
+            </span>
           </div>
           <div className="info-item">
             <span className="info-label">FISCAL YEAR START</span>
@@ -898,7 +906,7 @@ export default function StrataDetailPage() {
               <div className="empty-state">
                 <h2>No Active Reports Found</h2>
                 <button className="btn-primary btn-create-sr" onClick={handleOpenCreateModal}>
-                  Create New Survey Request
+                  Create a New File
                 </button>
               </div>
             ) : (
@@ -919,7 +927,13 @@ export default function StrataDetailPage() {
                       </span>
                       <span>
                         <strong>Answered:</strong>{" "}
-                        {activeSurvey.responses.length}/{activeSurvey.questions.length}
+                        {filterPropertyTypeIds.length > 0
+                          ? activeSurvey.responses.filter(r => filterPropertyTypeIds.includes(r.propertyTypeId)).length
+                          : activeSurvey.responses.length}
+                        /
+                        {filterPropertyTypeIds.length > 0
+                          ? activeSurvey.questions.filter(q => filterPropertyTypeIds.includes(q.propertyTypeId) && q.parentQuestionId == null).length
+                          : activeSurvey.questions.filter(q => q.parentQuestionId == null).length}
                       </span>
                     </div>
                   </div>
@@ -959,7 +973,7 @@ export default function StrataDetailPage() {
                   <h2>No Archived Answers</h2>
                   {!activeRequest && (
                     <button className="btn-primary btn-create-sr" onClick={handleOpenCreateModal}>
-                      Create New Survey Request
+                      Create a New File
                     </button>
                   )}
                 </div>
@@ -1033,7 +1047,7 @@ export default function StrataDetailPage() {
               <div className="empty-state">
                 <h2>No Active Reports Found</h2>
                 <button className="btn-primary btn-create-sr" onClick={handleOpenCreateModal}>
-                  Create New Survey Request
+                  Create a New File
                 </button>
               </div>
             ) : (
@@ -1065,7 +1079,7 @@ export default function StrataDetailPage() {
                               );
                               const hasUpload = matchedDocs.length > 0;
                               return (
-                                <div key={r.srDocRequirementId} className="doc-req-item">
+                                <div key={r.fnDocRequirementId} className="doc-req-item">
                                   {hasUpload ? (
                                     <div className="doc-req-item-header">
                                       <button
@@ -1126,11 +1140,11 @@ export default function StrataDetailPage() {
             deleteId: note.noteId,
           }));
 
-          const docNoteRows = (strata.serviceRequests ?? []).flatMap(sr =>
-            sr.serviceRequestDocuments
+          const docNoteRows = (strata.fileNumbers ?? []).flatMap(sr =>
+            sr.fileNumberDocuments
               .filter(doc => doc.notes)
               .map(doc => ({
-                key: `doc-${doc.serviceRequestDocumentId}`,
+                key: `doc-${doc.fileNumberDocumentId}`,
                 date: new Date(doc.uploadedAt),
                 userName: doc.uploadedBy
                   ? `${doc.uploadedBy.firstName || ""} ${doc.uploadedBy.lastName || ""}`.trim()
@@ -1138,7 +1152,7 @@ export default function StrataDetailPage() {
                 source: `Document: ${doc.fileName}`,
                 message: doc.notes!,
                 deleteType: "doc" as const,
-                deleteId: doc.serviceRequestDocumentId,
+                deleteId: doc.fileNumberDocumentId,
               }))
           );
 
@@ -1263,7 +1277,7 @@ export default function StrataDetailPage() {
       <Modal
         isOpen={createModalOpen}
         onClose={() => setCreateModalOpen(false)}
-        title="Create New Survey Request"
+        title="Create a New File"
         size="large"
         className="modal-create-sr"
         footer={
@@ -1273,23 +1287,23 @@ export default function StrataDetailPage() {
             </button>
             <button
               className="btn-primary"
-              onClick={handleCreateServiceRequest}
-              disabled={srSubmitting || !srFormData.serviceId}
+              onClick={handleCreateFileNumber}
+              disabled={srSubmitting || !srFormData.serviceId || !srFormData.fileNumber.trim()}
             >
               {srSubmitting ? "Creating..." : "Create Request"}
             </button>
           </>
         }
       >
-        <form onSubmit={handleCreateServiceRequest}>
+        <form onSubmit={handleCreateFileNumber}>
           {srFormError && <div className="form-error">{srFormError}</div>}
 
           <FormRow>
             <InputField
-              label="Request ID"
-              value={nextRequestId}
-              onChange={() => {}}
-              disabled
+              label="File Number"
+              value={srFormData.fileNumber}
+              onChange={(e) => updateSrField("fileNumber", e.target.value)}
+              required
             />
             <InputField
               label="Strata ID"
@@ -1334,7 +1348,7 @@ export default function StrataDetailPage() {
             </button>
             <button
               className="btn-delete"
-              onClick={handleDeleteServiceRequest}
+              onClick={handleDeleteFileNumber}
               disabled={deleteSubmitting}
             >
               {deleteSubmitting ? "Deleting..." : "Delete Responses"}
@@ -1631,7 +1645,7 @@ export default function StrataDetailPage() {
         <OfferAppointmentModal
           isOpen={offerModalOpen}
           onClose={() => setOfferModalOpen(false)}
-          serviceRequestId={activeRequest.serviceRequestId}
+          fileNumberId={activeRequest.fileNumberId}
           strataPlan={strata?.strataPlan || 'N/A'}
           targetDate={activeRequest.targetDate ?? null}
           appointmentTypes={appointmentTypes}

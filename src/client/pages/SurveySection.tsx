@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { useSurvey } from '../../shared/hooks/useSurvey';
-import { useClientServiceRequest } from '../../shared/hooks/useClientServiceRequest';
+import { useClientFileNumber } from '../../shared/hooks/useClientFileNumber';
 import { useApiClient } from '../../shared/hooks/useApiClient';
 import { SurveyProgressBar } from '../../shared/components/SurveyProgressBar';
 import { SurveyCategoryNav } from '../../shared/components/SurveyCategoryNav';
@@ -18,7 +18,7 @@ const QUESTIONS_PER_PAGE = 5;
 export default function SurveySectionPage() {
   const { section } = useParams<{ section: string }>();
   const navigate = useNavigate();
-  const { activeRequest, serviceRequestId, loading: srLoading, submitForReview } = useClientServiceRequest();
+  const { activeRequest, fileNumberId, loading: srLoading, submitForReview } = useClientFileNumber();
   const {
     questions: allQuestions,
     responses,
@@ -40,11 +40,11 @@ export default function SurveySectionPage() {
   const prevSectionRef = useRef(section);
 
   useEffect(() => {
-    if (serviceRequestId) {
-      fetchQuestions(serviceRequestId);
-      fetchResponses(serviceRequestId);
+    if (fileNumberId) {
+      fetchQuestions(fileNumberId);
+      fetchResponses(fileNumberId);
     }
-  }, [serviceRequestId, fetchQuestions, fetchResponses]);
+  }, [fileNumberId, fetchQuestions, fetchResponses]);
 
   const sectionConfig = SURVEY_SECTIONS.find(s => s.key === section);
 
@@ -96,13 +96,13 @@ export default function SurveySectionPage() {
   }, [localAnswers]);
 
   const saveCurrent = useCallback(async () => {
-    if (!serviceRequestId) return;
+    if (!fileNumberId) return;
     const payloads = buildPendingPayloads();
     if (payloads.length > 0) {
-      await saveResponses(serviceRequestId, payloads);
+      await saveResponses(fileNumberId, payloads);
       setLocalAnswers({});
     }
-  }, [serviceRequestId, buildPendingPayloads, saveResponses]);
+  }, [fileNumberId, buildPendingPayloads, saveResponses]);
 
   useEffect(() => {
     if (prevPageRef.current !== page || prevSectionRef.current !== section) {
@@ -149,10 +149,10 @@ export default function SurveySectionPage() {
   };
 
   const handleDownloadPdf = async () => {
-    if (!serviceRequestId) return;
+    if (!fileNumberId) return;
     setDownloadingPdf(true);
     try {
-      const res = await api.rawFetch('/client/service-requests/active/survey/pdf');
+      const res = await api.rawFetch('/client/file-numbers/active/survey/pdf');
       if (!res.ok) {
         let message = `Download failed (${res.status})`;
         try {
@@ -215,7 +215,7 @@ export default function SurveySectionPage() {
   const renderSubQuestion = (q: SurveyQuestion, index: number) => {
     const answer = getAnswer(q.questionId, q.propertyTypeId);
     return (
-      <div key={q.srSurveyQuestionId} className="survey-sub-question">
+      <div key={q.fnSurveyQuestionId} className="survey-sub-question">
         <label className="question-label">
           <span className="sub-label-badge">{String.fromCharCode(97 + index)}.</span> {q.questionText}
           {q.isRequired && <span className="required-mark">*</span>}
@@ -265,7 +265,7 @@ export default function SurveySectionPage() {
     );
 
     return (
-      <div key={q.srSurveyQuestionId} className="survey-question">
+      <div key={q.fnSurveyQuestionId} className="survey-question">
         <label className="question-label">
           {questionNumber}. {q.questionText}
           {q.isRequired && <span className="required-mark">*</span>}
@@ -310,7 +310,7 @@ export default function SurveySectionPage() {
             <label>
               <input
                 type="radio"
-                name={`q-${q.srSurveyQuestionId}`}
+                name={`q-${q.fnSurveyQuestionId}`}
                 checked={answer.responseBoolean === true}
                 onChange={() => updateAnswer(q.questionId, q.propertyTypeId, 'responseBoolean', true)}
               />
@@ -319,7 +319,7 @@ export default function SurveySectionPage() {
             <label>
               <input
                 type="radio"
-                name={`q-${q.srSurveyQuestionId}`}
+                name={`q-${q.fnSurveyQuestionId}`}
                 checked={answer.responseBoolean === false}
                 onChange={() => updateAnswer(q.questionId, q.propertyTypeId, 'responseBoolean', false)}
               />
@@ -343,7 +343,7 @@ export default function SurveySectionPage() {
               <label key={opt.optionId} className="choice-option">
                 <input
                   type="radio"
-                  name={`q-${q.srSurveyQuestionId}`}
+                  name={`q-${q.fnSurveyQuestionId}`}
                   checked={answer.multipleChoiceOptionId === opt.optionId}
                   onChange={() => updateAnswer(q.questionId, q.propertyTypeId, 'multipleChoiceOptionId', opt.optionId)}
                 />
@@ -410,10 +410,10 @@ export default function SurveySectionPage() {
 
   if (srLoading || loading) return <LoadingSpinner />;
 
-  if (!serviceRequestId) {
+  if (!fileNumberId) {
     return (
       <div className="survey-section-page">
-        <p>No active service request found. Please contact your administrator.</p>
+        <p>No active file number found. Please contact your administrator.</p>
       </div>
     );
   }
@@ -472,7 +472,7 @@ export default function SurveySectionPage() {
             type="button"
             className="btn-primary btn-nav"
             onClick={handleDownloadPdf}
-            disabled={!serviceRequestId || downloadingPdf}
+            disabled={!fileNumberId || downloadingPdf}
           >
             {downloadingPdf ? 'Downloading...' : 'Download Survey'}
           </button>

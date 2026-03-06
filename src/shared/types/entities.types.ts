@@ -108,12 +108,12 @@ export interface Strata extends StrataBasic {
   _count?: {
     strataNotes: number;
     strataProfiles: number;
-    serviceRequests: number;
+    fileNumbers: number;
   };
 }
 
 export interface DocumentNote {
-  serviceRequestDocumentId: number;
+  fileNumberDocumentId: number;
   notes: string | null;
   uploadedAt: string;
   fileName: string;
@@ -127,7 +127,7 @@ export interface StrataWithDetails extends Strata {
   strataNotes: StrataNoteWithCreator[];
   strataProfiles: StrataProfileWithProfile[];
   strataSections: StrataSection[];
-  serviceRequests?: { serviceRequestDocuments: DocumentNote[] }[];
+  fileNumbers?: { fileNumberDocuments: DocumentNote[] }[];
 }
 
 export type StrataInfo = Pick<
@@ -316,8 +316,8 @@ export interface AppointmentType {
   service?: Service;
 }
 
-export interface ServiceRequest {
-  serviceRequestId: number;
+export interface FileNumber {
+  fileNumberId: number;
   requestDate: string;
   status: string; // Draft, Pending Approval, Approved, Rejected, Appointment Scheduled, Completed
   submittedForReviewDate: string | null;
@@ -353,23 +353,23 @@ export interface ServiceRequest {
   }>;
   _count?: {
     questionResponses: number;
-    serviceRequestDocuments: number;
+    fileNumberDocuments: number;
     appointments: number;
   };
 }
 
-export interface ServiceRequestWithDetails extends ServiceRequest {
+export interface FileNumberWithDetails extends FileNumber {
   service: Service;
   strata: Strata;
   requestedBy: ProfileBasic;
   _count?: {
     questionResponses: number;
-    serviceRequestDocuments: number;
+    fileNumberDocuments: number;
     appointments: number;
   };
 }
 
-export interface CreateServiceRequestInput {
+export interface CreateFileNumberInput {
   serviceId: number;
   strataId: number;
   requestedByProfileId: string;
@@ -383,7 +383,7 @@ export interface AppointmentRequest {
   specialRequirements: string | null;
   status: string; // Pending Review, Approved, Rejected, Cancelled
   requestDate: string;
-  serviceRequestId: number;
+  fileNumberId: number;
   appointmentTypeId: number;
   firstChoiceTimeSlotId: number;
   secondChoiceTimeSlotId: number | null;
@@ -392,8 +392,8 @@ export interface AppointmentRequest {
   firstChoiceTimeSlot?: AppointmentTimeSlot;
   secondChoiceTimeSlot?: AppointmentTimeSlot | null;
   requestedBy?: ProfileBasic;
-  serviceRequest?: {
-    serviceRequestId: number;
+  fileNumber?: {
+    fileNumberId: number;
     status: string;
     requestDate: string;
     strata: StrataBasic & { location?: Location | null };
@@ -424,7 +424,7 @@ export interface Appointment {
   completionNote: string | null;
   completedAt: string | null;
   appointmentRequestId: number;
-  serviceRequestId: number;
+  fileNumberId: number;
   appointmentTypeId: number;
   timeSlotId: number;
   inspectorProfileId: string | null;
@@ -433,8 +433,8 @@ export interface Appointment {
 export interface AppointmentWithDetails extends Appointment {
   appointmentType: AppointmentType;
   timeSlot: AppointmentTimeSlot;
-  serviceRequest: {
-    serviceRequestId: number;
+  fileNumber: {
+    fileNumberId: number;
     strata: StrataBasic & { location?: Location | null };
     service: Service;
     appointmentOfferSecondInspector?: ProfileBasic | null;
@@ -572,6 +572,7 @@ export interface EditableField {
 }
 
 export interface CreateSRFormData {
+  fileNumber: string;
   serviceId: string;
 }
 

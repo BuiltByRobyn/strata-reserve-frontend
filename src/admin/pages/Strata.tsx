@@ -21,6 +21,7 @@ import type {
   UpdateStrataInput,
 } from "../../shared/types/entities.types";
 import { formatStrataId, validateStrataId } from "../../shared/utils/strataUtils";
+import { LOCATION_DISPLAY_ORDER } from "../../shared/lib/constants";
 
 export default function StrataPage() {
   const { stratas, loading, error, createStrata, updateStrata, deleteStrata } =
@@ -54,7 +55,7 @@ export default function StrataPage() {
     let result = stratas;
 
     if (!showArchived) {
-      result = result.filter((s) => (s._count?.serviceRequests ?? 0) > 0);
+      result = result.filter((s) => (s._count?.fileNumbers ?? 0) > 0);
     }
 
     if (filterStrataName) {
@@ -435,8 +436,13 @@ export default function StrataPage() {
               onChange={(val) =>
                 updateField("locationId", val ? parseInt(val) : null)
               }
-              options={locations
+              options={[...locations]
                 .filter((loc) => loc.locationCode !== "Virtual")
+                .sort((a, b) => {
+                  const ai = LOCATION_DISPLAY_ORDER.indexOf(a.locationCode);
+                  const bi = LOCATION_DISPLAY_ORDER.indexOf(b.locationCode);
+                  return (ai === -1 ? 999 : ai) - (bi === -1 ? 999 : bi);
+                })
                 .map((loc) => ({
                   value: loc.locationId,
                   label: loc.locationName,

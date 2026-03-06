@@ -2,14 +2,14 @@ import { useState, useEffect, useCallback } from 'react';
 import { useApiClient } from './useApiClient';
 import type { TimelineData, UpdateTimelinesInput } from '../types/timeline.types';
 
-export const useTimelines = (serviceRequestId: number | null) => {
+export const useTimelines = (fileNumberId: number | null) => {
   const api = useApiClient();
   const [timelines, setTimelines] = useState<TimelineData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const fetchTimelines = useCallback(async () => {
-    if (!serviceRequestId) {
+    if (!fileNumberId) {
       setTimelines(null);
       setLoading(false);
       return;
@@ -19,7 +19,7 @@ export const useTimelines = (serviceRequestId: number | null) => {
     setError(null);
     try {
       const data = await api.get<TimelineData>(
-        `/client/service-requests/${serviceRequestId}/timelines`
+        `/client/file-numbers/${fileNumberId}/timelines`
       );
       setTimelines(data || null);
     } catch (err) {
@@ -27,17 +27,17 @@ export const useTimelines = (serviceRequestId: number | null) => {
     } finally {
       setLoading(false);
     }
-  }, [api, serviceRequestId]);
+  }, [api, fileNumberId]);
 
   const updateTimelines = useCallback(async (input: UpdateTimelinesInput): Promise<TimelineData | null> => {
-    if (!serviceRequestId) return null;
+    if (!fileNumberId) return null;
     const data = await api.put<TimelineData>(
-      `/client/service-requests/${serviceRequestId}/timelines`,
+      `/client/file-numbers/${fileNumberId}/timelines`,
       input
     );
     setTimelines(data);
     return data;
-  }, [api, serviceRequestId]);
+  }, [api, fileNumberId]);
 
   useEffect(() => {
     fetchTimelines();
@@ -69,9 +69,9 @@ export const useAdminStrataTimelines = (strataId: number | null) => {
     }
   }, [api, strataId]);
 
-  const updateTimelines = useCallback(async (serviceRequestId: number, input: UpdateTimelinesInput): Promise<TimelineData | null> => {
+  const updateTimelines = useCallback(async (fileNumberId: number, input: UpdateTimelinesInput): Promise<TimelineData | null> => {
     const data = await api.put<TimelineData>(
-      `/admin/service-requests/${serviceRequestId}/timelines`,
+      `/admin/file-numbers/${fileNumberId}/timelines`,
       input
     );
     setTimelines(data);

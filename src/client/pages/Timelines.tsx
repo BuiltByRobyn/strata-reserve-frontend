@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { InputField, FormRow } from '../../shared/components/FormField';
-import { useClientServiceRequest } from '../../shared/hooks/useClientServiceRequest';
+import { useClientFileNumber } from '../../shared/hooks/useClientFileNumber';
 import { useTimelines } from '../../shared/hooks/useTimelines';
 import { LoadingSpinner } from '../../shared/components/LoadingSpinner';
 import { parseLocalDate, toDateInputValue } from '../../shared/lib/dateUtils';
@@ -77,8 +77,8 @@ function getMostRecentAnniversary(baseDate: Date, referenceDate: Date): Date {
 
 const Timelines = () => {
   const navigate = useNavigate();
-  const { activeRequest, serviceRequestId, loading: srLoading } = useClientServiceRequest();
-  const { timelines, loading: timelinesLoading, error: loadError, updateTimelines } = useTimelines(serviceRequestId);
+  const { activeRequest, fileNumberId, loading: srLoading } = useClientFileNumber();
+  const { timelines, loading: timelinesLoading, error: loadError, updateTimelines } = useTimelines(fileNumberId);
   const [fiscalYearStart, setFiscalYearStart] = useState('');
   const [lastAGM, setLastAGM] = useState('');
   const [lastDepreciationReport, setLastDepreciationReport] = useState('');
@@ -183,7 +183,7 @@ const Timelines = () => {
     }
   };
 
-  const loading = srLoading || (!!serviceRequestId && timelinesLoading);
+  const loading = srLoading || (!!fileNumberId && timelinesLoading);
   const fileOpenedDate = timelines?.requestDate ?? activeRequest?.requestDate;
   const maxDateToday = new Date().toISOString().split('T')[0];
   const minTargetDate = addDays(new Date(), 45).toISOString().split('T')[0];
@@ -228,11 +228,11 @@ const Timelines = () => {
     return <LoadingSpinner />;
   }
 
-  if (!serviceRequestId) {
+  if (!fileNumberId) {
     return (
       <div className="page-container">
         <h1>Timelines</h1>
-        <p>No active service request found. Please contact your administrator.</p>
+        <p>No active file number found. Please contact your administrator.</p>
       </div>
     );
   }

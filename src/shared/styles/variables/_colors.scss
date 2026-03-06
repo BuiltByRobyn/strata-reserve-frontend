@@ -28,7 +28,15 @@ $color-error-light: #E7000B;          // Light error red
 $color-error-dark: #A90000;           // Dark red
 $color-error-darker: #900000;         // Darker red/maroon
 $color-warning: #FCEF00;              // Warning yellow
+$color-warning-light: #FEF3C7;        // Warning background
+$color-warning-border: #F59E0B;       // Warning border
+$color-warning-text: #B45309;         // Warning text
+$color-warning-text-dark: #92400E;    // Dark warning text
 $color-info: #155DFC;                 // Info (secondary blue)
+$color-error-bg: #FEE2E2;            // Error background
+$color-error-border: #FCA5A5;        // Error border
+$color-error-text: #B91C1C;          // Error text
+$color-success-medium: #10B981;      // Medium green (password strength)
 
 // Neutral Colors - Grays & Whites
 
@@ -39,6 +47,8 @@ $color-cream: #FAF8EA;                // Cream/beige
 $color-gray-lightest: #E5E7EB;        // Light gray
 $color-gray-light: #6A7282;           // Medium gray
 $color-gray: #4A5565;                 // Dark gray
+$color-gray-medium: #9CA3AF;          // Medium-light gray
+$color-gray-subtle: #F3F4F6;          // Very subtle gray background
 $color-gray-dark: #1C1917;            // Very dark gray
 
 // Text Colors
@@ -72,6 +82,11 @@ $color-btn-primary-hover: #55724c;    // Primary button hover
 $color-btn-primary-text: #FFFFFF;     // Primary button text
 $color-btn-secondary: #155DFC;        // Secondary button (blue)
 $color-btn-secondary-hover: #0f46c1;  // Secondary button hover
+
+// Shadows & Overlays
+$shadow-color: rgba(0, 0, 0, 0.1);           // Standard shadow
+$shadow-color-medium: rgba(0, 0, 0, 0.2);    // Medium shadow
+$overlay-color: rgba(0, 0, 0, 0.4);          // Overlay backdrop
 
 // Component-Specific Colors
 $color-upload-bg: #155DFC;            // Upload component background

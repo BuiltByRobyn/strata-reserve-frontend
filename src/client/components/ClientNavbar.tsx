@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { useAuth } from '../../shared/contexts/AuthContext';
 import { Navbar } from '../../shared/components/Navbar';
-import type { ServiceRequest } from '../../shared/types/entities.types';
+import type { FileNumber } from '../../shared/types/entities.types';
 
 const BASE_NAV_ITEMS = [
   { to: '/client/dashboard', label: 'Dashboard', end: true },
@@ -12,7 +12,7 @@ const BASE_NAV_ITEMS = [
   { to: '/client/documents', label: 'Documents' },
 ];
 
-export const ClientNavbar = ({ activeRequest }: { activeRequest: ServiceRequest | null }) => {
+export const ClientNavbar = ({ activeRequest }: { activeRequest: FileNumber | null }) => {
   const { user } = useAuth();
   const clientUser = user?.role === 'client' ? user : null;
 

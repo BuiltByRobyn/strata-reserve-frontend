@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useServiceRequests } from '../../shared/hooks/useServiceRequests';
+import { useFileNumbers } from '../../shared/hooks/useFileNumbers';
 import { useAuthFetch } from '../../shared/hooks/useAuthFetch';
 import { useMediaQuery } from '../../shared/hooks/useMediaQuery';
 import { DataTable, type Column } from '../../shared/components/DataTable';
@@ -8,7 +8,7 @@ import { Modal } from '../../shared/components/Modal';
 import { InputField } from '../../shared/components/FormField';
 import { Tabs } from '../../shared/components/Tabs';
 import { SingleSelectDropdown } from '../../shared/components/SingleSelectDropdown';
-import type { ServiceRequest } from '../../shared/types/entities.types';
+import type { FileNumber } from '../../shared/types/entities.types';
 import type { UpdateTimelinesInput, DeadlineType, DeadlineRow, EditFormData } from '../../shared/types/timeline.types';
 import { API_BASE } from '../../shared/lib/api';
 import { parseLocalDate, toDateInputValue } from '../../shared/lib/dateUtils';
@@ -42,7 +42,7 @@ function daysBetween(a: Date, b: Date): number {
   return Math.floor(ms / (1000 * 60 * 60 * 24));
 }
 
-function hasConfirmedTimelines(sr: ServiceRequest): boolean {
+function hasConfirmedTimelines(sr: FileNumber): boolean {
   return (
     sr.fiscalYearEnd != null ||
     sr.lastAgmDate != null ||
@@ -55,14 +55,14 @@ function hasConfirmedTimelines(sr: ServiceRequest): boolean {
 
 
 export default function TimelinesPage() {
-  const { serviceRequests, loading, error, refetch } = useServiceRequests();
+  const { fileNumbers, loading, error, refetch } = useFileNumbers();
   const authFetch = useAuthFetch();
   const isDesktop = useMediaQuery('(min-width: 750px)');
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [viewingRow, setViewingRow] = useState<DeadlineRow | null>(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
-  const [editingRecord, setEditingRecord] = useState<ServiceRequest | null>(null);
+  const [editingRecord, setEditingRecord] = useState<FileNumber | null>(null);
   const [editingDeadlineType, setEditingDeadlineType] = useState<DeadlineType | null>(null);
   const [formData, setFormData] = useState<EditFormData>({
     fiscalYearEnd: '', lastAgmDate: '', noAgmToDate: false,
@@ -74,7 +74,7 @@ export default function TimelinesPage() {
   const [selectedCreateSrId, setSelectedCreateSrId] = useState('');
 
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
-  const [recordToDelete, setRecordToDelete] = useState<ServiceRequest | null>(null);
+  const [recordToDelete, setRecordToDelete] = useState<FileNumber | null>(null);
   const [deleteSubmitting, setDeleteSubmitting] = useState(false);
 
   const [activeTab, setActiveTab] = useState('all');
@@ -99,12 +99,12 @@ export default function TimelinesPage() {
   }, [refetch]);
 
   const confirmedList = useMemo(() => {
-    return serviceRequests.filter(hasConfirmedTimelines);
-  }, [serviceRequests]);
+    return fileNumbers.filter(hasConfirmedTimelines);
+  }, [fileNumbers]);
 
   const unconfirmedList = useMemo(() => {
-    return serviceRequests.filter(sr => !hasConfirmedTimelines(sr) && !sr.archived);
-  }, [serviceRequests]);
+    return fileNumbers.filter(sr => !hasConfirmedTimelines(sr) && !sr.archived);
+  }, [fileNumbers]);
 
   const today = useMemo(() => {
     const d = new Date();
@@ -119,7 +119,7 @@ export default function TimelinesPage() {
       const strataId = sr.strata?.strataId ?? 0;
       const strataPlan = sr.strata?.strataPlan || '—';
       const complexName = sr.strata?.complexName || '—';
-      const srId = sr.serviceRequestId;
+      const srId = sr.fileNumberId;
 
       const fiscalDate = parseLocalDate(sr.fiscalYearEnd);
       const lastAgm = parseLocalDate(sr.lastAgmDate);
@@ -128,12 +128,12 @@ export default function TimelinesPage() {
 
       // Fiscal Year Start
       if (fiscalDate) {
-        rows.push({ id: `${srId}-fiscal-year`, date: fiscalDate, deadlineType: 'Fiscal Year Start', strataPlan, complexName, strataId, serviceRequest: sr });
+        rows.push({ id: `${srId}-fiscal-year`, date: fiscalDate, deadlineType: 'Fiscal Year Start', strataPlan, complexName, strataId, fileNumber: sr });
       }
 
       // Last AGM Date (historical)
       if (lastAgm) {
-        rows.push({ id: `${srId}-last-agm`, date: lastAgm, deadlineType: 'Last AGM Date', strataPlan, complexName, strataId, serviceRequest: sr });
+        rows.push({ id: `${srId}-last-agm`, date: lastAgm, deadlineType: 'Last AGM Date', strataPlan, complexName, strataId, fileNumber: sr });
       }
 
       // Next Projected AGM
@@ -144,47 +144,47 @@ export default function TimelinesPage() {
         nextAgm = getNextAnniversary(fiscalDate, today);
       }
       if (nextAgm) {
-        rows.push({ id: `${srId}-agm`, date: nextAgm, deadlineType: 'Next Projected AGM', strataPlan, complexName, strataId, serviceRequest: sr });
+        rows.push({ id: `${srId}-agm`, date: nextAgm, deadlineType: 'Next Projected AGM', strataPlan, complexName, strataId, fileNumber: sr });
       }
 
       // Last Depreciation Report Date (historical)
       if (lastReport) {
-        rows.push({ id: `${srId}-last-dep`, date: lastReport, deadlineType: 'Last Depreciation Report Date', strataPlan, complexName, strataId, serviceRequest: sr });
+        rows.push({ id: `${srId}-last-dep`, date: lastReport, deadlineType: 'Last Depreciation Report Date', strataPlan, complexName, strataId, fileNumber: sr });
       }
 
       // Next Projected Depreciation
       if (lastReport) {
         const nextReport = getNextAnniversary(lastReport, today);
-        rows.push({ id: `${srId}-dep`, date: nextReport, deadlineType: 'Next Projected Depreciation', strataPlan, complexName, strataId, serviceRequest: sr });
+        rows.push({ id: `${srId}-dep`, date: nextReport, deadlineType: 'Next Projected Depreciation', strataPlan, complexName, strataId, fileNumber: sr });
       }
 
       // Target Date
       if (target) {
-        rows.push({ id: `${srId}-target`, date: target, deadlineType: 'Target Date', strataPlan, complexName, strataId, serviceRequest: sr });
+        rows.push({ id: `${srId}-target`, date: target, deadlineType: 'Target Date', strataPlan, complexName, strataId, fileNumber: sr });
       }
 
       // File Opened
       const fileOpened = parseLocalDate(sr.requestDate);
       if (fileOpened) {
-        rows.push({ id: `${srId}-file-opened`, date: fileOpened, deadlineType: 'File Opened', strataPlan, complexName, strataId, serviceRequest: sr });
+        rows.push({ id: `${srId}-file-opened`, date: fileOpened, deadlineType: 'File Opened', strataPlan, complexName, strataId, fileNumber: sr });
       }
 
       // Most Recent Document Upload
       const latestDocUpload = parseLocalDate(sr.latestDocumentUploadDate);
       if (latestDocUpload) {
-        rows.push({ id: `${srId}-doc-upload`, date: latestDocUpload, deadlineType: 'Most Recent Document Upload', strataPlan, complexName, strataId, serviceRequest: sr });
+        rows.push({ id: `${srId}-doc-upload`, date: latestDocUpload, deadlineType: 'Most Recent Document Upload', strataPlan, complexName, strataId, fileNumber: sr });
       }
 
       // Survey Submitted
       const surveySubmitted = parseLocalDate(sr.submittedForReviewDate);
       if (surveySubmitted) {
-        rows.push({ id: `${srId}-survey-submitted`, date: surveySubmitted, deadlineType: 'Survey Submitted', strataPlan, complexName, strataId, serviceRequest: sr });
+        rows.push({ id: `${srId}-survey-submitted`, date: surveySubmitted, deadlineType: 'Survey Submitted', strataPlan, complexName, strataId, fileNumber: sr });
       }
 
       // Last Survey Answer Date
       const latestSurveyAnswer = parseLocalDate(sr.latestSurveyAnswerDate);
       if (latestSurveyAnswer) {
-        rows.push({ id: `${srId}-survey-answer`, date: latestSurveyAnswer, deadlineType: 'Last Survey Answer Date', strataPlan, complexName, strataId, serviceRequest: sr });
+        rows.push({ id: `${srId}-survey-answer`, date: latestSurveyAnswer, deadlineType: 'Last Survey Answer Date', strataPlan, complexName, strataId, fileNumber: sr });
       }
 
       // Appointments
@@ -192,7 +192,7 @@ export default function TimelinesPage() {
         for (const apt of sr.appointments) {
           const aptDate = parseLocalDate(apt.appointmentDate);
           if (aptDate) {
-            rows.push({ id: `${srId}-apt-${apt.appointmentId}`, date: aptDate, deadlineType: 'Appointment', strataPlan, complexName, strataId, serviceRequest: sr });
+            rows.push({ id: `${srId}-apt-${apt.appointmentId}`, date: aptDate, deadlineType: 'Appointment', strataPlan, complexName, strataId, fileNumber: sr });
           }
         }
       }
@@ -300,10 +300,11 @@ export default function TimelinesPage() {
   const minTargetDate = (() => { const d = new Date(); d.setDate(d.getDate() + 45); return d.toISOString().split('T')[0]; })();
 
   const getViewTimelineRows = (row: DeadlineRow) => {
-    const opened = parseLocalDate(row.serviceRequest.requestDate);
+    const opened = parseLocalDate(row.fileNumber.requestDate);
     return [
       { label: 'Strata Plan', value: row.strataPlan },
       { label: 'Complex Name', value: row.complexName },
+      { label: 'File Number', value: `FN ${String(row.fileNumber.fileNumberId).padStart(9, '0')}` },
       { label: 'Deadline Type', value: row.deadlineType },
       { label: 'Date', value: formatDateDisplay(row.date) },
       { label: 'Days Open', value: opened ? String(daysBetween(opened, today)) : '—' },
@@ -330,7 +331,7 @@ export default function TimelinesPage() {
     setIsModalOpen(true);
   };
 
-  const openDeleteModal = (sr: ServiceRequest) => {
+  const openDeleteModal = (sr: FileNumber) => {
     setRecordToDelete(sr);
     setDeleteModalOpen(true);
   };
@@ -350,7 +351,7 @@ export default function TimelinesPage() {
         payload.targetDate = null;
       }
       const response = await authFetch(
-        `${API_BASE}/admin/service-requests/${recordToDelete.serviceRequestId}/timelines`,
+        `${API_BASE}/admin/file-numbers/${recordToDelete.fileNumberId}/timelines`,
         { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }
       );
       const data = await response.json();
@@ -366,7 +367,7 @@ export default function TimelinesPage() {
     }
   };
 
-  const openEditModal = (sr: ServiceRequest, deadlineType: DeadlineType) => {
+  const openEditModal = (sr: FileNumber, deadlineType: DeadlineType) => {
     setEditingRecord(sr);
     setEditingDeadlineType(deadlineType);
     setFormData({
@@ -409,7 +410,7 @@ export default function TimelinesPage() {
 
     if (isCreating) {
       if (!selectedCreateSrId) {
-        setFormError('Please select a service request.');
+        setFormError('Please select a file number.');
         return;
       }
       if (!formData.fiscalYearEnd.trim()) {
@@ -479,7 +480,7 @@ export default function TimelinesPage() {
       }
     }
 
-    const targetSrId = isCreating ? parseInt(selectedCreateSrId) : editingRecord?.serviceRequestId;
+    const targetSrId = isCreating ? parseInt(selectedCreateSrId) : editingRecord?.fileNumberId;
     if (!targetSrId) return;
 
     setIsSubmitting(true);
@@ -515,7 +516,7 @@ export default function TimelinesPage() {
 
     try {
       const response = await authFetch(
-        `${API_BASE}/admin/service-requests/${targetSrId}/timelines`,
+        `${API_BASE}/admin/file-numbers/${targetSrId}/timelines`,
         { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }
       );
       const data = await response.json();
@@ -667,7 +668,7 @@ export default function TimelinesPage() {
           setIsViewModalOpen(true);
         }}
         actions={isDesktop ? (row) => (
-          <button className="btn-edit" onClick={() => openEditModal(row.serviceRequest, row.deadlineType)}>Edit</button>
+          <button className="btn-edit" onClick={() => openEditModal(row.fileNumber, row.deadlineType)}>Edit</button>
         ) : undefined}
         actionsColumnHeader="Action"
       />
@@ -696,7 +697,7 @@ export default function TimelinesPage() {
                 className="btn-primary"
                 onClick={() => {
                   setIsViewModalOpen(false);
-                  openEditModal(viewingRow.serviceRequest, viewingRow.deadlineType);
+                  openEditModal(viewingRow.fileNumber, viewingRow.deadlineType);
                   setViewingRow(null);
                 }}
               >
@@ -755,15 +756,15 @@ export default function TimelinesPage() {
           {isCreating && (
             <>
               <SingleSelectDropdown
-                label="Service Request"
+                label="File Number"
                 required
                 value={selectedCreateSrId}
                 onChange={setSelectedCreateSrId}
                 options={unconfirmedList.map(sr => ({
-                  value: sr.serviceRequestId,
-                  label: `${sr.strata?.strataPlan || sr.strata?.complexName || `SR #${sr.serviceRequestId}`} — ${sr.strata?.complexName || ''}`.trim(),
+                  value: sr.fileNumberId,
+                  label: `${sr.strata?.strataPlan || sr.strata?.complexName || `SR #${sr.fileNumberId}`} — ${sr.strata?.complexName || ''}`.trim(),
                 }))}
-                placeholder="Select a service request"
+                placeholder="Select a file number"
               />
               <InputField
                 label="Fiscal year start date"

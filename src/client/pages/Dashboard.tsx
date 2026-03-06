@@ -1,8 +1,8 @@
 import { Link } from 'react-router-dom';
-import { useClientServiceRequest } from '../../shared/hooks/useClientServiceRequest';
+import { useClientFileNumber } from '../../shared/hooks/useClientFileNumber';
 
 export const Dashboard = () => {
-  const { activeRequest } = useClientServiceRequest();
+  const { activeRequest } = useClientFileNumber();
 
   return (
     <div className="page-container">

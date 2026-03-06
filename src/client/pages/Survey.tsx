@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { useSurvey } from '../../shared/hooks/useSurvey';
-import { useClientServiceRequest } from '../../shared/hooks/useClientServiceRequest';
+import { useClientFileNumber } from '../../shared/hooks/useClientFileNumber';
 import { useApiClient } from '../../shared/hooks/useApiClient';
 import { SurveyProgressBar } from '../../shared/components/SurveyProgressBar';
 import { LoadingSpinner } from '../../shared/components/LoadingSpinner';
@@ -15,7 +15,7 @@ import {
 export default function SurveyPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { activeRequest, serviceRequestId, loading: srLoading } = useClientServiceRequest();
+  const { activeRequest, fileNumberId, loading: srLoading } = useClientFileNumber();
   const { questions, responses, loading, fetchQuestions, fetchResponses } = useSurvey();
   const api = useApiClient();
 
@@ -38,11 +38,11 @@ export default function SurveyPage() {
   }, [location.state]);
 
   useEffect(() => {
-    if (serviceRequestId) {
-      fetchQuestions(serviceRequestId);
-      fetchResponses(serviceRequestId);
+    if (fileNumberId) {
+      fetchQuestions(fileNumberId);
+      fetchResponses(fileNumberId);
     }
-  }, [serviceRequestId, fetchQuestions, fetchResponses]);
+  }, [fileNumberId, fetchQuestions, fetchResponses]);
 
   const getSectionQuestionCount = (sectionKey: string) => {
     const sectionConfig = SURVEY_SECTIONS.find(s => s.key === sectionKey);
@@ -67,10 +67,10 @@ export default function SurveyPage() {
   };
 
   const handleDownloadPdf = async () => {
-    if (!serviceRequestId) return;
+    if (!fileNumberId) return;
     setDownloadingPdf(true);
     try {
-      const res = await api.rawFetch('/client/service-requests/active/survey/pdf');
+      const res = await api.rawFetch('/client/file-numbers/active/survey/pdf');
       if (!res.ok) {
         let message = `Download failed (${res.status})`;
         try {
@@ -96,11 +96,11 @@ export default function SurveyPage() {
 
   if (srLoading || loading) return <LoadingSpinner />;
 
-  if (!serviceRequestId) {
+  if (!fileNumberId) {
     return (
       <div className="survey-page">
         <h1>Surveys</h1>
-        <p>No active service request found. Please contact your administrator.</p>
+        <p>No active file number found. Please contact your administrator.</p>
       </div>
     );
   }
@@ -114,7 +114,7 @@ export default function SurveyPage() {
             type="button"
             className="btn-primary"
             onClick={handleDownloadPdf}
-            disabled={!serviceRequestId || downloadingPdf}
+            disabled={!fileNumberId || downloadingPdf}
           >
             {downloadingPdf ? 'Downloading...' : 'Download Survey'}
           </button>

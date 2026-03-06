@@ -1,9 +1,9 @@
-import { useClientServiceRequest } from '../../shared/hooks/useClientServiceRequest';
+import { useClientFileNumber } from '../../shared/hooks/useClientFileNumber';
 import { LoadingSpinner } from '../../shared/components/LoadingSpinner';
 import { ClientNavbar } from './ClientNavbar';
 
 export const ClientLayout = ({ children }: { children: React.ReactNode }) => {
-  const { activeRequest, loading } = useClientServiceRequest();
+  const { activeRequest, loading } = useClientFileNumber();
 
   if (loading) return <LoadingSpinner />;
 

@@ -8,12 +8,12 @@ export const useClientAppointments = () => {
   const getAvailability = useCallback(async (
     startDate: string,
     endDate: string,
-    serviceRequestId: number,
+    fileNumberId: number,
     isDraftMeeting = false
   ): Promise<AvailableDay[]> => {
     try {
       const data = await api.get<AvailableDay[]>('/client/appointments/availability', {
-        params: { startDate, endDate, serviceRequestId, isDraftMeeting }
+        params: { startDate, endDate, fileNumberId, isDraftMeeting }
       });
       return data || [];
     } catch {
@@ -22,7 +22,7 @@ export const useClientAppointments = () => {
   }, [api]);
 
   const createRequest = useCallback(async (data: {
-    serviceRequestId: number;
+    fileNumberId: number;
     appointmentTypeId: number;
     firstChoiceDate: string;
     firstChoiceTimeSlotId: number;
@@ -77,10 +77,10 @@ export const useClientAppointments = () => {
     }
   }, [api]);
 
-  const checkDraftMeetingEligibility = useCallback(async (serviceRequestId: number): Promise<boolean> => {
+  const checkDraftMeetingEligibility = useCallback(async (fileNumberId: number): Promise<boolean> => {
     try {
       const result = await api.get<{ eligible: boolean }>('/client/appointments/draft-meeting-eligibility', {
-        params: { serviceRequestId }
+        params: { fileNumberId }
       });
       return result?.eligible ?? false;
     } catch {

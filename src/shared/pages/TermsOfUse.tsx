@@ -103,7 +103,7 @@ export const TermsOfUse: React.FC = () => {
                     <li>Completing and submitting survey questionnaires and assessment responses.</li>
                     <li>Uploading, downloading, and managing strata-related documents.</li>
                     <li>Scheduling and managing property inspection appointments.</li>
-                    <li>Tracking service request status and project timelines.</li>
+                    <li>Tracking file number status and project timelines.</li>
                     <li>Communicating with SRP regarding Services provided through the Portal.</li>
                 </ul>
                 <p>

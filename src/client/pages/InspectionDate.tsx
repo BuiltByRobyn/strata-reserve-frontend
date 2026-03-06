@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Navigate } from 'react-router-dom';
-import { useClientServiceRequest } from '../../shared/hooks/useClientServiceRequest';
+import { useClientFileNumber } from '../../shared/hooks/useClientFileNumber';
 import { useClientAppointments } from '../../shared/hooks/useClientAppointments';
 import { useTimelines } from '../../shared/hooks/useTimelines';
 import { useLookups } from '../../shared/hooks/useLookups';
@@ -47,7 +47,7 @@ function formatYMD(d: Date): string {
 }
 
 const InspectionDate = () => {
-  const { activeRequest, loading: srLoading } = useClientServiceRequest();
+  const { activeRequest, loading: srLoading } = useClientFileNumber();
   const {
     getAvailability,
     getActiveAppointment,
@@ -58,8 +58,8 @@ const InspectionDate = () => {
   } = useClientAppointments();
   const { services } = useLookups();
 
-  const serviceRequestId = activeRequest?.serviceRequestId ?? null;
-  const { timelines } = useTimelines(serviceRequestId);
+  const fileNumberId = activeRequest?.fileNumberId ?? null;
+  const { timelines } = useTimelines(fileNumberId);
 
   const [activeAppointment, setActiveAppointment] = useState<ActiveAppointmentResponse>(null);
   const [appointmentTypes, setAppointmentTypes] = useState<AppointmentType[]>([]);
@@ -85,23 +85,24 @@ const InspectionDate = () => {
   // Ref guards to prevent duplicate effect execution
   const hasFetchedAppointment = useRef(false);
   const hasFetchedAvailability = useRef(false);
+  const meetingDatesRef = useRef<HTMLDivElement>(null);
 
-  // Welcome modal: show once per service request (persists across sessions)
+  // Welcome modal: show once per file number (persists across sessions)
   useEffect(() => {
-    if (!serviceRequestId || !isOffered) return;
-    const key = `welcome-modal-shown-${serviceRequestId}`;
+    if (!fileNumberId || !isOffered) return;
+    const key = `welcome-modal-shown-${fileNumberId}`;
     if (!localStorage.getItem(key)) {
       setShowWelcomeModal(true);
       localStorage.setItem(key, '1');
     }
-  }, [serviceRequestId, isOffered]);
+  }, [fileNumberId, isOffered]);
 
   const loadActiveAppointment = useCallback(async () => {
     const data = await getActiveAppointment();
     setActiveAppointment(data);
   }, [getActiveAppointment]);
 
-  // Effect 1: Load active appointment (once, when service request loads)
+  // Effect 1: Load active appointment (once, when file number loads)
   useEffect(() => {
     if (srLoading) return;
     if (!activeRequest) {
@@ -119,7 +120,7 @@ const InspectionDate = () => {
   }, [srLoading, activeRequest, loadActiveAppointment]);
 
   const loadAvailability = useCallback(async (isDraft = false) => {
-    if (!serviceRequestId) return;
+    if (!fileNumberId) return;
     setCalendarLoading(true);
     const today = new Date();
     const start = new Date(today);
@@ -129,10 +130,10 @@ const InspectionDate = () => {
 
     const startStr = start.toISOString().split('T')[0];
     const endStr = end.toISOString().split('T')[0];
-    const data = await getAvailability(startStr, endStr, serviceRequestId, isDraft);
+    const data = await getAvailability(startStr, endStr, fileNumberId, isDraft);
     setAvailability(data);
     setCalendarLoading(false);
-  }, [serviceRequestId, getAvailability]);
+  }, [fileNumberId, getAvailability]);
 
   const loadAppointmentTypes = useCallback(() => {
     const svc = activeRequest?.service || services.find(s => s.serviceId === activeRequest?.serviceId);
@@ -146,7 +147,7 @@ const InspectionDate = () => {
 
   // Effect 2: Load availability + check eligibility (once, when offered)
   useEffect(() => {
-    if (!isOffered || !serviceRequestId || hasFetchedAvailability.current) return;
+    if (!isOffered || !fileNumberId || hasFetchedAvailability.current) return;
     // Skip if there's a pending request (no calendar shown)
     if (activeAppointment?.type === 'pending_request') {
       setCalendarLoading(false);
@@ -155,19 +156,19 @@ const InspectionDate = () => {
     hasFetchedAvailability.current = true;
     loadAvailability(bookingDraftMeeting);
     loadAppointmentTypes();
-    checkDraftMeetingEligibility(serviceRequestId).then(setDraftMeetingEligible);
-  }, [isOffered, activeAppointment, serviceRequestId, loadAvailability, bookingDraftMeeting, loadAppointmentTypes, checkDraftMeetingEligibility]);
+    checkDraftMeetingEligibility(fileNumberId).then(setDraftMeetingEligible);
+  }, [isOffered, activeAppointment, fileNumberId, loadAvailability, bookingDraftMeeting, loadAppointmentTypes, checkDraftMeetingEligibility]);
 
   // Re-fetch availability when user returns to the tab (handles inspector changes by admin)
   useEffect(() => {
     const handleFocus = () => {
-      if (isOffered && serviceRequestId && activeAppointment?.type !== 'pending_request') {
+      if (isOffered && fileNumberId && activeAppointment?.type !== 'pending_request') {
         loadAvailability(bookingDraftMeeting);
       }
     };
     window.addEventListener('focus', handleFocus);
     return () => window.removeEventListener('focus', handleFocus);
-  }, [isOffered, activeAppointment, serviceRequestId, loadAvailability, bookingDraftMeeting]);
+  }, [isOffered, activeAppointment, fileNumberId, loadAvailability, bookingDraftMeeting]);
 
   // Compute timeline milestones for the calendar
   const milestones = useMemo((): CalendarMilestone[] => {
@@ -248,6 +249,9 @@ const InspectionDate = () => {
   const handleDateSelect = (date: string) => {
     setSelectedDate(date);
     setErrorMsg(null);
+    setTimeout(() => {
+      meetingDatesRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 50);
   };
 
   // One-click slot selection from AvailableMeetingDates cards
@@ -283,7 +287,7 @@ const InspectionDate = () => {
   };
 
   const handleSubmit = async () => {
-    if (!firstChoice || !serviceRequestId) return;
+    if (!firstChoice || !fileNumberId) return;
 
     if (!secondChoice) {
       setErrorMsg('Please select a second choice date and time slot');
@@ -302,7 +306,7 @@ const InspectionDate = () => {
     setErrorMsg(null);
 
     const result = await createRequest({
-      serviceRequestId,
+      fileNumberId,
       appointmentTypeId: selectedType.appointmentTypeId,
       firstChoiceDate: firstChoice.date,
       firstChoiceTimeSlotId: firstChoice.timeSlotId,
@@ -366,7 +370,7 @@ const InspectionDate = () => {
       <div className="page-container">
         <h1>Inspection Date</h1>
         <div className="inspection-date__card">
-          <p>No active service request found.</p>
+          <p>No active file number found.</p>
         </div>
       </div>
     );
@@ -563,6 +567,7 @@ const InspectionDate = () => {
 
           {!hasScheduledAppointment && (
             <AvailableMeetingDates
+              ref={meetingDatesRef}
               availability={availability}
               onSelectSlot={handleCardSlotSelect}
               firstChoice={firstChoice}

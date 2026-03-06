@@ -8,11 +8,11 @@ export const useSurveyQuestions = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchQuestions = useCallback(async (serviceRequestId: number) => {
+  const fetchQuestions = useCallback(async (fileNumberId: number) => {
     setLoading(true);
     setError(null);
     try {
-      const data = await api.get<SurveyQuestion[]>(`/admin/service-requests/${serviceRequestId}/survey-questions`);
+      const data = await api.get<SurveyQuestion[]>(`/admin/file-numbers/${fileNumberId}/survey-questions`);
       setQuestions(data || []);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch questions');
@@ -21,10 +21,10 @@ export const useSurveyQuestions = () => {
     }
   }, [api]);
 
-  const addQuestion = useCallback(async (serviceRequestId: number, questionId: number, propertyTypeId: number) => {
+  const addQuestion = useCallback(async (fileNumberId: number, questionId: number, propertyTypeId: number) => {
     try {
-      await api.post(`/admin/service-requests/${serviceRequestId}/survey-questions`, { questionId, propertyTypeId });
-      await fetchQuestions(serviceRequestId);
+      await api.post(`/admin/file-numbers/${fileNumberId}/survey-questions`, { questionId, propertyTypeId });
+      await fetchQuestions(fileNumberId);
       return true;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to add question');
@@ -32,10 +32,10 @@ export const useSurveyQuestions = () => {
     }
   }, [api, fetchQuestions]);
 
-  const removeQuestion = useCallback(async (serviceRequestId: number, srSurveyQuestionId: number) => {
+  const removeQuestion = useCallback(async (fileNumberId: number, fnSurveyQuestionId: number) => {
     try {
-      await api.del(`/admin/service-requests/${serviceRequestId}/survey-questions/${srSurveyQuestionId}`);
-      await fetchQuestions(serviceRequestId);
+      await api.del(`/admin/file-numbers/${fileNumberId}/survey-questions/${fnSurveyQuestionId}`);
+      await fetchQuestions(fileNumberId);
       return true;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to remove question');

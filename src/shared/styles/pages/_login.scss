@@ -27,7 +27,7 @@
   padding: $spacing-2xl;
   width: 100%;
   max-width: 440px;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 10px 25px $shadow-color;
   text-align: center;
 
   // Tablet responsive
@@ -45,8 +45,8 @@
 }
 
 .dev-warning {
-  background-color: #FEF3C7;
-  border: 2px solid #F59E0B;
+  background-color: $color-warning-light;
+  border: 2px solid $color-warning-border;
   border-radius: $border-radius-md;
   padding: $spacing-md;
   margin-bottom: $spacing-lg;
@@ -54,18 +54,18 @@
 
   strong {
     display: block;
-    color: #B45309;
+    color: $color-warning-text;
     font-size: $font-size-base;
     margin-bottom: $spacing-xs;
   }
 
   p {
-    color: #92400E;
+    color: $color-warning-text-dark;
     font-size: $font-size-sm;
     margin: $spacing-xs 0;
 
     code {
-      background-color: #FBBF24;
+      background-color: $color-accent-yellow-light;
       padding: 2px 6px;
       border-radius: 3px;
       font-family: monospace;
@@ -146,15 +146,15 @@
   }
 
   .admin-badge {
-    background-color: #FEE2E2;
-    color: #991B1B;
-    border: 1px solid #FCA5A5;
+    background-color: $color-error-bg;
+    color: $color-error-text;
+    border: 1px solid $color-error-border;
   }
 
   .client-badge {
-    background-color: #DBEAFE;
-    color: #1E40AF;
-    border: 1px solid #93C5FD;
+    background-color: $color-secondary-lightest;
+    color: $color-secondary-dark;
+    border: 1px solid $color-secondary-light;
   }
 }
 
@@ -173,7 +173,7 @@
       display: block;
       font-size: $font-size-sm;
       font-weight: $font-weight-medium;
-      color: #4B5563;
+      color: $color-gray;
       margin-bottom: $spacing-xs;
     }
 
@@ -182,9 +182,9 @@
       padding: 12px 16px;
       font-size: $font-size-base;
       font-family: inherit;
-      border: $border-width-thin solid #E5E7EB;
+      border: $border-width-thin solid $color-border-light;
       border-radius: $border-radius-lg;
-      background-color: #F9FAFB;
+      background-color: $color-off-white;
       transition: all 0.2s ease;
       box-sizing: border-box;
 
@@ -196,7 +196,7 @@
       }
 
       &::placeholder {
-        color: #9CA3AF;
+        color: $color-gray-medium;
       }
 
       &:disabled {
@@ -235,7 +235,7 @@
         margin: 0;
         padding: 4px;
         cursor: pointer;
-        color: #6B7280;
+        color: $color-gray-light;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -270,13 +270,13 @@
   }
 
   .error-message {
-    background-color: #FEE2E2;
-    color: #B91C1C;
+    background-color: $color-error-bg;
+    color: $color-error-text;
     padding: $spacing-sm $spacing-md;
     border-radius: $border-radius-md;
     font-size: $font-size-sm;
     margin-bottom: $spacing-md;
-    border: $border-width-thin solid #FCA5A5;
+    border: $border-width-thin solid $color-error-border;
 
     // Mobile responsive
     @include respond-below(sm) {
@@ -314,10 +314,10 @@
     }
 
     &.admin-btn {
-      background: linear-gradient(135deg, #DC2626 0%, #991B1B 100%);
-      
+      background: linear-gradient(135deg, $color-error 0%, $color-error-text 100%);
+
       &:hover:not(:disabled) {
-        background: linear-gradient(135deg, #B91C1C 0%, #7F1D1D 100%);
+        background: linear-gradient(135deg, $color-error-text 0%, $color-error-darker 100%);
       }
     }
 
@@ -348,7 +348,7 @@
 
 .login-divider {
   height: 1px;
-  background-color: #E5E7EB;
+  background-color: $color-gray-lightest;
   margin: $spacing-xl 0 $spacing-lg;
 
   // Mobile responsive
@@ -401,7 +401,7 @@
     }
 
     span {
-      color: #E5E7EB;
+      color: $color-gray-lightest;
     }
 
     // Mobile responsive

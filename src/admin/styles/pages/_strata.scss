@@ -124,10 +124,10 @@
     font-size: 0.875rem;
   }
 
-  .service-request-details {
+  .file-number-details {
     text-align: left;
 
-    .sr-detail-row {
+    .fn-detail-row {
       padding: $spacing-xs 0;
       font-size: $font-size-base;
       color: $color-text-dark;
@@ -138,7 +138,7 @@
       }
     }
 
-    .sr-counts {
+    .fn-counts {
       display: flex;
       gap: $spacing-lg;
       margin-top: $spacing-md;
@@ -147,14 +147,14 @@
       color: $color-text-muted;
     }
 
-    .sr-actions {
+    .fn-actions {
       margin-top: $spacing-lg;
       padding-top: $spacing-md;
       border-top: 1px solid $color-border-light;
     }
   }
 
-  .service-request-create {
+  .file-number-create {
     text-align: left;
 
     label {

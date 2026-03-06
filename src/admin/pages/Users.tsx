@@ -286,13 +286,6 @@ export default function UsersPage() {
     });
   };
 
-  const addStrataAssociation = () => {
-    setFormData(prev => ({
-      ...prev,
-      strataAssociations: [...prev.strataAssociations, { strataId: 0, strataPosition: '', sectionIds: [], propertyTypeIds: [] }]
-    }));
-  };
-
   const updateStrataAssociationSections = (index: number, sectionIds: number[]) => {
     setFormData(prev => {
       const newAssociations = [...prev.strataAssociations];
@@ -307,14 +300,6 @@ export default function UsersPage() {
       newAssociations[index] = { ...newAssociations[index], propertyTypeIds };
       return { ...prev, strataAssociations: newAssociations };
     });
-  };
-
-  const removeStrataAssociation = (index: number) => {
-    if (formData.strataAssociations.length <= 1) return;
-    setFormData(prev => ({
-      ...prev,
-      strataAssociations: prev.strataAssociations.filter((_, i) => i !== index)
-    }));
   };
 
   const openDeleteModal = (user: UserWithStratas) => {
@@ -554,48 +539,10 @@ export default function UsersPage() {
                   onChange={(values) => updateStrataAssociationPropertyTypes(index, values)}
                   placeholder="Select property types"
                 />
-                {index > 0 && (
-                  <button
-                    type="button"
-                    className="btn-remove-strata"
-                    onClick={() => removeStrataAssociation(index)}
-                  >
-                    Remove
-                  </button>
-                )}
               </div>
             );
           })}
 
-          <div className="add-strata-checkbox">
-            <label className="checkbox-label">
-              <input
-                type="checkbox"
-                checked={formData.strataAssociations.length > 1}
-                onChange={(e) => {
-                  if (e.target.checked && formData.strataAssociations.length === 1) {
-                    addStrataAssociation();
-                  } else if (!e.target.checked && formData.strataAssociations.length > 1) {
-                    setFormData(prev => ({
-                      ...prev,
-                      strataAssociations: [prev.strataAssociations[0]]
-                    }));
-                  }
-                }}
-              />
-              <span>Add Another Strata Association?</span>
-            </label>
-          </div>
-
-          {formData.strataAssociations.length > 1 && (
-            <button
-              type="button"
-              className="btn-add-strata"
-              onClick={addStrataAssociation}
-            >
-              + Add Another Strata
-            </button>
-          )}
         </form>
       </Modal>
 

@@ -161,7 +161,7 @@ export interface DeleteAvailabilityModalProps {
 export interface OfferAppointmentModalProps {
   isOpen: boolean;
   onClose: () => void;
-  serviceRequestId: number;
+  fileNumberId: number;
   strataPlan: string;
   targetDate: string | null;
   appointmentTypes: import('./entities.types').AppointmentType[];
@@ -172,7 +172,7 @@ export interface OfferAppointmentModalProps {
   locations: import('./entities.types').Location[];
   initialLocationId: number | null;
   strataId: number;
-  onSubmit: (serviceRequestId: number, data: {
+  onSubmit: (fileNumberId: number, data: {
     appointmentTypeId?: number;
     inspectorProfileId?: string;
     secondInspectorProfileId?: string;
@@ -219,6 +219,7 @@ export interface RescheduleAppointmentModalProps {
   inspectors: Profile[];
   onReschedule: (appointmentId: number, newDate: string, newTimeSlotId: number, options: {
     inspectorProfileId?: string;
+    secondInspectorProfileId?: string;
     reason?: string;
   }) => Promise<any>;
 }

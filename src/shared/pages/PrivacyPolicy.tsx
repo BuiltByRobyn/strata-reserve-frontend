@@ -106,7 +106,7 @@ export const PrivacyPolicy: React.FC = () => {
                     <li>Document metadata including file name, file size, upload date, document type, and any notes provided</li>
                 </ul>
 
-                <h3>2.6 Service Request and Appointment Information</h3>
+                <h3>2.6 File Number and Appointment Information</h3>
                 <ul>
                     <li>Service request details and status information</li>
                     <li>Appointment dates, times, and scheduling preferences</li>
@@ -143,9 +143,9 @@ export const PrivacyPolicy: React.FC = () => {
                     <li>Facilitating inspection scheduling and appointment management</li>
                     <li>Processing, storing, and organizing strata property documentation</li>
                     <li>Administering survey questionnaires and collecting assessment data</li>
-                    <li>Communicating with you regarding your account, service requests, and technical support</li>
+                    <li>Communicating with you regarding your account, file numbers, and technical support</li>
                     <li>Managing strata property profiles and member associations</li>
-                    <li>Tracking service request status, timelines, and project milestones</li>
+                    <li>Tracking file number status, timelines, and project milestones</li>
                     <li>Monitoring and analyzing usage trends to improve Portal functionality and user experience</li>
                     <li>Ensuring the security, integrity, and proper functioning of the Portal</li>
                     <li>Complying with legal obligations under the <em>Strata Property Act</em> (BC), PIPEDA, BC PIPA, and other applicable legislation</li>
@@ -266,7 +266,7 @@ export const PrivacyPolicy: React.FC = () => {
                         depreciation report lifecycle and associated record-keeping requirements.
                     </li>
                     <li>
-                        <strong>Service Request Records:</strong> Retained for record-keeping, audit,
+                        <strong>File Number Records:</strong> Retained for record-keeping, audit,
                         and compliance purposes.
                     </li>
                     <li>

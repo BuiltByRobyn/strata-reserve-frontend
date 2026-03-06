@@ -51,11 +51,11 @@ export const useClientDocuments = () => {
     }
   }, [api]);
 
-  const fetchRequiredDocuments = useCallback(async (serviceRequestId: number) => {
+  const fetchRequiredDocuments = useCallback(async (fileNumberId: number) => {
     setState(prev => ({ ...prev, loading: true, error: null }));
     try {
       const data = await api.get<RequiredDocumentChecklist[]>(
-        `/client/service-requests/${serviceRequestId}/required-documents`
+        `/client/file-numbers/${fileNumberId}/required-documents`
       );
       setRequiredDocuments(data || []);
     } catch (err) {
@@ -102,13 +102,13 @@ export const useClientDocuments = () => {
     }
   }, [session, fetchMyDocuments]);
 
-  const getDocumentsByServiceRequest = useCallback(async (serviceRequestId: number) => {
+  const getDocumentsByFileNumber = useCallback(async (fileNumberId: number) => {
     try {
       return await api.get<DocumentWithDetails[]>(
-        `/client/service-requests/${serviceRequestId}/documents`
+        `/client/file-numbers/${fileNumberId}/documents`
       );
     } catch (err) {
-      console.error('Error fetching service request documents:', err);
+      console.error('Error fetching file number documents:', err);
       return [];
     }
   }, [api]);
@@ -141,7 +141,7 @@ export const useClientDocuments = () => {
     searchDocuments,
     fetchRequiredDocuments,
     uploadDocument,
-    getDocumentsByServiceRequest,
+    getDocumentsByFileNumber,
     deleteDocument
   };
 };

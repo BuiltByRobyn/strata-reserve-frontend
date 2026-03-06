@@ -17,6 +17,8 @@ const RescheduleAppointmentModal = ({
   const [newDate, setNewDate] = useState('');
   const [newTimeSlotId, setNewTimeSlotId] = useState<number | null>(null);
   const [inspectorId, setInspectorId] = useState('');
+  const [addSecondInspector, setAddSecondInspector] = useState(false);
+  const [secondInspectorId, setSecondInspectorId] = useState('');
   const [reason, setReason] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -27,7 +29,12 @@ const RescheduleAppointmentModal = ({
     ? getUserDisplayName(appointment.inspector)
     : 'Unassigned';
 
+  const existingSecondInspector = appointment.fileNumber?.appointmentOfferSecondInspector;
+  const hasExistingSecondInspector = !!existingSecondInspector;
+
   const inspectorOptions = getInspectorOptions(inspectors);
+  const effectivePrimaryId = inspectorId || appointment.inspectorProfileId || '';
+  const secondInspectorOptions = inspectorOptions.filter(o => o.value !== effectivePrimaryId);
 
   const handleSubmit = async () => {
     if (!newDate || !newTimeSlotId) {
@@ -37,8 +44,12 @@ const RescheduleAppointmentModal = ({
     setSubmitting(true);
     setError(null);
     try {
+      const secondId = hasExistingSecondInspector
+        ? (secondInspectorId || existingSecondInspector.id)
+        : (addSecondInspector && secondInspectorId ? secondInspectorId : undefined);
       await onReschedule(appointment.appointmentId, newDate, newTimeSlotId, {
         inspectorProfileId: inspectorId || undefined,
+        secondInspectorProfileId: secondId,
         reason: reason.trim() || undefined,
       });
       resetAndClose();
@@ -53,6 +64,8 @@ const RescheduleAppointmentModal = ({
     setNewDate('');
     setNewTimeSlotId(null);
     setInspectorId('');
+    setAddSecondInspector(false);
+    setSecondInspectorId('');
     setReason('');
     setError(null);
     onClose();
@@ -72,7 +85,8 @@ const RescheduleAppointmentModal = ({
           slotTime={appointment.timeSlot.slotTime}
           typeName={appointment.appointmentType.typeName}
           inspectorName={currentInspector}
-          locationName={appointment.serviceRequest?.strata?.location?.locationName}
+          secondInspectorName={existingSecondInspector ? getUserDisplayName(existingSecondInspector) : null}
+          locationName={appointment.fileNumber?.strata?.location?.locationName}
         />
 
         <div className="reschedule-modal__form">
@@ -108,9 +122,47 @@ const RescheduleAppointmentModal = ({
             label="Reassign Inspector (optional)"
             options={inspectorOptions}
             value={inspectorId}
-            onChange={setInspectorId}
+            onChange={(val) => {
+              setInspectorId(val);
+              if (val === secondInspectorId) setSecondInspectorId('');
+            }}
             placeholder={`${currentInspector} (current)`}
           />
+
+          {hasExistingSecondInspector ? (
+            <SingleSelectDropdown
+              label="Reassign Additional Inspector (optional)"
+              options={secondInspectorOptions}
+              value={secondInspectorId}
+              onChange={setSecondInspectorId}
+              placeholder={`${getUserDisplayName(existingSecondInspector)} (current)`}
+            />
+          ) : (
+            <>
+              {addSecondInspector && (
+                <SingleSelectDropdown
+                  label="Additional Inspector"
+                  options={secondInspectorOptions}
+                  value={secondInspectorId}
+                  onChange={setSecondInspectorId}
+                  placeholder="Select additional inspector..."
+                />
+              )}
+              <div className="offer-modal__field">
+                <label className="offer-modal__checkbox-label">
+                  <input
+                    type="checkbox"
+                    checked={addSecondInspector}
+                    onChange={(e) => {
+                      setAddSecondInspector(e.target.checked);
+                      if (!e.target.checked) setSecondInspectorId('');
+                    }}
+                  />
+                  Add additional inspector
+                </label>
+              </div>
+            </>
+          )}
 
           <div className="form-field">
             <label htmlFor="reschedule-reason">Reason for Rescheduling (optional)</label>

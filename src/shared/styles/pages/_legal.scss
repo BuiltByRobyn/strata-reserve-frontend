@@ -81,7 +81,7 @@
     max-width: 780px;
     padding: $spacing-2xl;
     border-radius: $border-radius-xl;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 10px 40px $shadow-color-medium;
 
     h1 {
         font-size: $font-size-lg;

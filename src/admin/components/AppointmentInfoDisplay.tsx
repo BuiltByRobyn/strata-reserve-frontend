@@ -5,6 +5,7 @@ interface AppointmentInfoDisplayProps {
   slotTime: string;
   typeName: string;
   inspectorName: string;
+  secondInspectorName?: string | null;
   locationName?: string | null;
 }
 
@@ -13,6 +14,7 @@ export const AppointmentInfoDisplay = ({
   slotTime,
   typeName,
   inspectorName,
+  secondInspectorName,
   locationName,
 }: AppointmentInfoDisplayProps) => (
   <div className="appointment-info-row">
@@ -22,6 +24,9 @@ export const AppointmentInfoDisplay = ({
       <div><span className="appointment-info-row__label">Time</span><span>{formatTime12h(slotTime)}</span></div>
       <div><span className="appointment-info-row__label">Appointment Type</span><span>{typeName}</span></div>
       <div><span className="appointment-info-row__label">Inspector</span><span>{inspectorName}</span></div>
+      {secondInspectorName && (
+        <div><span className="appointment-info-row__label">Additional Inspector</span><span>{secondInspectorName}</span></div>
+      )}
       <div><span className="appointment-info-row__label">Location</span><span>{locationName || '-'}</span></div>
     </div>
   </div>
