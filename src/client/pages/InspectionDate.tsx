@@ -7,7 +7,7 @@ import { useLookups } from '../../shared/hooks/useLookups';
 import { LoadingSpinner } from '../../shared/components/LoadingSpinner';
 import { Modal } from '../../shared/components/Modal';
 import { formatDateLong, formatTime12h, getUserDisplayName } from '../../shared/lib/formatters';
-import BookingCalendar from '../components/BookingCalendar';
+import BookingCalendar from '../../shared/components/BookingCalendar';
 import AvailableMeetingDates from '../components/AvailableMeetingDates';
 import BookingConfirmation from '../components/BookingConfirmation';
 import type { AvailableDay, AvailableSlot, BookingChoice, BookingStep, ActiveAppointmentResponse, CalendarMilestone } from '../../shared/types/appointment.types';

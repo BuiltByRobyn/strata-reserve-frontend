@@ -8,8 +8,10 @@ import { Modal } from '../../shared/components/Modal';
 import { InputField } from '../../shared/components/FormField';
 import { Tabs } from '../../shared/components/Tabs';
 import { SingleSelectDropdown } from '../../shared/components/SingleSelectDropdown';
+import BookingCalendar from '../../shared/components/BookingCalendar';
 import type { FileNumber } from '../../shared/types/entities.types';
 import type { UpdateTimelinesInput, DeadlineType, DeadlineRow, EditFormData } from '../../shared/types/timeline.types';
+import type { CalendarMilestone } from '../../shared/types/appointment.types';
 import { API_BASE } from '../../shared/lib/api';
 import { parseLocalDate, toDateInputValue } from '../../shared/lib/dateUtils';
 
@@ -35,6 +37,20 @@ function getNextAnniversary(baseDate: Date, referenceDate: Date): Date {
 
 function formatDateDisplay(date: Date): string {
   return date.toLocaleDateString('en-AU', { day: '2-digit', month: '2-digit', year: 'numeric' });
+}
+
+function formatYMD(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+function getDeadlineAbbrev(deadlineType: DeadlineType): 'D' | 'I' | 'O' | 'T' {
+  if (deadlineType === 'Target Date') return 'T';
+  if (deadlineType === 'Appointment') return 'I';
+  if (deadlineType === 'File Opened' || deadlineType === 'Most Recent Document Upload') return 'D';
+  return 'O';
 }
 
 function daysBetween(a: Date, b: Date): number {
@@ -85,6 +101,8 @@ export default function TimelinesPage() {
   const [showPastDates, setShowPastDates] = useState(false);
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
+
+  const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
 
   useEffect(() => {
     refetch({ archived: false });
@@ -295,6 +313,13 @@ export default function TimelinesPage() {
     { key: 'next7', label: 'Next 7 Days' },
     { key: 'next30', label: 'Next 30 Days' },
   ];
+
+  const calendarMilestones = useMemo((): CalendarMilestone[] => {
+    return filteredRows.map(row => ({
+      date: formatYMD(row.date),
+      label: `${String(row.fileNumber.fileNumberId).padStart(9, '0')}:${row.strataPlan}:${getDeadlineAbbrev(row.deadlineType)}`,
+    }));
+  }, [filteredRows]);
 
   const maxDateToday = new Date().toISOString().split('T')[0];
   const minTargetDate = (() => { const d = new Date(); d.setDate(d.getDate() + 45); return d.toISOString().split('T')[0]; })();
@@ -572,13 +597,49 @@ export default function TimelinesPage() {
     <div className="timelines-page">
       <div className="page-header">
         <h1>Timelines & Deadlines</h1>
-        <div className="create-user-button-desktop">
+        <div className="create-user-button-desktop timelines-view-actions">
+          <button
+            type="button"
+            className={`timelines-view-toggle ${viewMode === 'list' ? 'btn-primary' : 'btn-secondary'}`}
+            onClick={() => setViewMode('list')}
+          >
+            List View
+          </button>
+          <button
+            type="button"
+            className={`timelines-view-toggle ${viewMode === 'calendar' ? 'btn-primary' : 'btn-secondary'}`}
+            onClick={() => setViewMode('calendar')}
+          >
+            Calendar View
+          </button>
           <button className="btn-primary" onClick={openCreateModal}>
             + Add New Date
           </button>
         </div>
       </div>
 
+      <div className="create-user-button timelines-view-actions">
+        <button
+          type="button"
+          className={`timelines-view-toggle ${viewMode === 'list' ? 'btn-primary' : 'btn-secondary'}`}
+          onClick={() => setViewMode('list')}
+        >
+          List View
+        </button>
+        <button
+          type="button"
+          className={`timelines-view-toggle ${viewMode === 'calendar' ? 'btn-primary' : 'btn-secondary'}`}
+          onClick={() => setViewMode('calendar')}
+        >
+          Calendar View
+        </button>
+        <button className="btn-primary" onClick={openCreateModal}>
+          + Add New Date
+        </button>
+      </div>
+
+      {viewMode === 'list' && (
+      <>
       <Tabs
         tabs={deadlineTabs}
         activeTab={activeTab}
@@ -644,12 +705,6 @@ export default function TimelinesPage() {
         </div>
       </div>
 
-      <div className="create-user-button">
-        <button className="btn-primary" onClick={openCreateModal}>
-          + Add New Date
-        </button>
-      </div>
-
       {error && (
         <p className="error-message" style={{ marginBottom: '1rem' }}>
           {error}
@@ -672,6 +727,29 @@ export default function TimelinesPage() {
         ) : undefined}
         actionsColumnHeader="Action"
       />
+      </>
+      )}
+
+      {viewMode === 'calendar' && (
+        <div className="timelines-calendar-wrap">
+          <BookingCalendar
+            variant="timelines"
+            availability={[]}
+            selectedDate={null}
+            onSelectDate={() => {}}
+            loading={false}
+            milestones={calendarMilestones}
+            bookedDate={null}
+            onMilestoneCellClick={(date) => {
+              const rowsForDate = filteredRows.filter(r => formatYMD(r.date) === date);
+              if (rowsForDate.length > 0) {
+                setViewingRow(rowsForDate[0]);
+                setIsViewModalOpen(true);
+              }
+            }}
+          />
+        </div>
+      )}
 
       <Modal
         isOpen={isViewModalOpen}
@@ -684,7 +762,7 @@ export default function TimelinesPage() {
         footer={
           <>
             <button
-              className={isDesktop ? "btn-primary" : "btn-secondary"}
+              className={isDesktop ? "btn-secondary" : "btn-secondary"}
               onClick={() => {
                 setIsViewModalOpen(false);
                 setViewingRow(null);
@@ -692,7 +770,7 @@ export default function TimelinesPage() {
             >
               Close
             </button>
-            {!isDesktop && viewingRow && (
+            {viewingRow && (
               <button
                 className="btn-primary"
                 onClick={() => {
