@@ -62,6 +62,8 @@ export interface BookingCalendarProps {
   loading: boolean;
   milestones?: CalendarMilestone[];
   bookedDate?: string | null;
+  variant?: 'booking' | 'timelines';
+  onMilestoneCellClick?: (date: string) => void;
 }
 
 export interface TimeSlotPickerProps {

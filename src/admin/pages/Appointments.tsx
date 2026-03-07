@@ -10,10 +10,12 @@ import { SingleSelectDropdown } from '../../shared/components/SingleSelectDropdo
 import { InputField } from '../../shared/components/FormField';
 import { Tabs } from '../../shared/components/Tabs';
 import { Modal } from '../../shared/components/Modal';
+import BookingCalendar from '../../shared/components/BookingCalendar';
 import RescheduleAppointmentModal from '../components/RescheduleAppointmentModal';
 import CancelAppointmentModal from '../components/CancelAppointmentModal';
 import type { AppointmentWithDetails, AppointmentRequest, ProfileBasic } from '../../shared/types/entities.types';
 import type { UnifiedRow, SelectedItem } from '../../shared/types/appointment.types';
+import type { CalendarMilestone } from '../../shared/types/appointment.types';
 import { formatDateShort, formatTime12h, getUserDisplayName } from '../../shared/lib/formatters';
 import { getInspectorOptions } from '../../shared/utils/userUtils';
 import { getSlotTimeRange } from '../../shared/lib/dateUtils';
@@ -41,6 +43,14 @@ const getInspectorNames = (
   if (secondInspector) names.push(getUserDisplayName(secondInspector, '-'));
   return names.length > 0 ? names.join(', ') : '-';
 };
+
+function formatYMD(dateStr: string): string {
+  const d = new Date(dateStr);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
 
 export default function AppointmentsPage() {
   const {
@@ -76,6 +86,10 @@ export default function AppointmentsPage() {
   const [dateTo, setDateTo] = useState('');
   const [showPastDates, setShowPastDates] = useState(false);
   const [showCancelled, setShowCancelled] = useState(false);
+
+  const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
+  const [viewModalRow, setViewModalRow] = useState<UnifiedRow | null>(null);
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [createForm, setCreateForm] = useState({ fileNumberId: '', appointmentDate: '', timeSlotId: '', appointmentTypeId: '', inspectorProfileId: '' });
@@ -340,6 +354,28 @@ export default function AppointmentsPage() {
 
     return rows;
   }, [unifiedRows, showPastDates, showCancelled, filterStrataName, filterStrataPlan, filterInspector, filterLocation, dateFrom, dateTo, today]);
+
+  const appointmentCalendarMilestones = useMemo((): CalendarMilestone[] => {
+    return filteredRows.map(row => {
+      const fileNumberId = (row.original as { fileNumber?: { fileNumberId: number } }).fileNumber?.fileNumberId ?? 0;
+      const abbrev = row.type === 'appointment' ? 'A' : 'R';
+      return {
+        date: formatYMD(row.date),
+        label: `${String(fileNumberId).padStart(9, '0')}:${row.strataPlan}:${abbrev}`,
+      };
+    });
+  }, [filteredRows]);
+
+  const getViewAppointmentRows = (row: UnifiedRow) => [
+    { label: 'Date', value: formatDateShort(row.date) },
+    { label: 'Time', value: row.time },
+    { label: 'Type', value: row.appointmentTypeName },
+    { label: 'Strata Plan', value: row.strataPlan },
+    { label: 'Strata Name', value: row.strataName },
+    { label: 'Location', value: row.location },
+    { label: 'Inspector(s)', value: row.inspectorNames },
+    { label: 'Status', value: row.status },
+  ];
 
   // ─── Columns ────────────────────────────────────────────────
   const unifiedColumns: Column<UnifiedRow>[] = [
@@ -791,15 +827,51 @@ export default function AppointmentsPage() {
     <div className="appointments-page">
       <div className="page-header">
         <h1>Appointments</h1>
-        <div className="create-user-button-desktop">
+        <div className="create-user-button-desktop timelines-view-actions">
+          <button
+            type="button"
+            className={`timelines-view-toggle ${viewMode === 'list' ? 'btn-primary' : 'btn-secondary'}`}
+            onClick={() => setViewMode('list')}
+          >
+            List View
+          </button>
+          <button
+            type="button"
+            className={`timelines-view-toggle ${viewMode === 'calendar' ? 'btn-primary' : 'btn-secondary'}`}
+            onClick={() => setViewMode('calendar')}
+          >
+            Calendar View
+          </button>
           <button className="btn-primary" onClick={openCreateModal}>
             + Add New Appointment
           </button>
         </div>
       </div>
 
+      <div className="create-user-button timelines-view-actions">
+        <button
+          type="button"
+          className={`timelines-view-toggle ${viewMode === 'list' ? 'btn-primary' : 'btn-secondary'}`}
+          onClick={() => setViewMode('list')}
+        >
+          List View
+        </button>
+        <button
+          type="button"
+          className={`timelines-view-toggle ${viewMode === 'calendar' ? 'btn-primary' : 'btn-secondary'}`}
+          onClick={() => setViewMode('calendar')}
+        >
+          Calendar View
+        </button>
+        <button className="btn-primary" onClick={openCreateModal}>
+          + Add New Appointment
+        </button>
+      </div>
+
       {error && <div className="error-banner">{error}</div>}
 
+      {viewMode === 'list' && (
+      <>
       <Tabs
         tabs={locationTabs}
         activeTab={filterLocation}
@@ -867,12 +939,6 @@ export default function AppointmentsPage() {
         </div>
       </div>
 
-      <div className="create-user-button">
-        <button className="btn-primary" onClick={openCreateModal}>
-          + Add New Appointment
-        </button>
-      </div>
-
       <div className="appointments-page__desktop">
         <DataTable
           columns={unifiedColumns}
@@ -890,6 +956,81 @@ export default function AppointmentsPage() {
           filteredRows.map(renderMobileCard)
         )}
       </div>
+      </>
+      )}
+
+      {viewMode === 'calendar' && (
+        <div className="appointments-calendar-wrap">
+          <BookingCalendar
+            variant="timelines"
+            availability={[]}
+            selectedDate={null}
+            onSelectDate={() => {}}
+            loading={false}
+            milestones={appointmentCalendarMilestones}
+            bookedDate={null}
+            onMilestoneCellClick={(date) => {
+              const rowsForDate = filteredRows.filter(r => formatYMD(r.date) === date);
+              if (rowsForDate.length > 0) {
+                setViewModalRow(rowsForDate[0]);
+                setIsViewModalOpen(true);
+              }
+            }}
+          />
+        </div>
+      )}
+
+      <Modal
+        isOpen={isViewModalOpen && viewModalRow !== null}
+        onClose={() => {
+          setIsViewModalOpen(false);
+          setViewModalRow(null);
+        }}
+        title="View Appointment"
+        size="medium"
+        footer={
+          <>
+            <button
+              className="btn-secondary"
+              onClick={() => {
+                setIsViewModalOpen(false);
+                setViewModalRow(null);
+              }}
+            >
+              Close
+            </button>
+            {viewModalRow && (
+              <button
+                className="btn-primary"
+                onClick={() => {
+                  setIsViewModalOpen(false);
+                  if (viewModalRow.type === 'appointment') {
+                    setSelectedItem({ type: 'appointment', data: viewModalRow.original as AppointmentWithDetails });
+                  } else {
+                    setSelectedItem({ type: 'request', data: viewModalRow.original as AppointmentRequest });
+                  }
+                  setViewModalRow(null);
+                }}
+              >
+                View full details
+              </button>
+            )}
+          </>
+        }
+      >
+        {viewModalRow && (
+          <table className="view-detail-table">
+            <tbody>
+              {getViewAppointmentRows(viewModalRow).map((row) => (
+                <tr key={row.label}>
+                  <th scope="row">{row.label}</th>
+                  <td>{row.value}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </Modal>
 
       <Modal
         isOpen={showCreateModal}
