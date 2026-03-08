@@ -46,9 +46,10 @@ const getInspectorNames = (
 
 function formatYMD(dateStr: string): string {
   const d = new Date(dateStr);
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
+  const useUTC = dateStr.endsWith('Z') || dateStr.includes('T00:00:00');
+  const y = useUTC ? d.getUTCFullYear() : d.getFullYear();
+  const m = String((useUTC ? d.getUTCMonth() : d.getMonth()) + 1).padStart(2, '0');
+  const day = String(useUTC ? d.getUTCDate() : d.getDate()).padStart(2, '0');
   return `${y}-${m}-${day}`;
 }
 
@@ -88,7 +89,7 @@ export default function AppointmentsPage() {
   const [showCancelled, setShowCancelled] = useState(false);
 
   const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
-  const [viewModalRow, setViewModalRow] = useState<UnifiedRow | null>(null);
+  const [viewModalRows, setViewModalRows] = useState<UnifiedRow[] | null>(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
 
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -356,14 +357,16 @@ export default function AppointmentsPage() {
   }, [unifiedRows, showPastDates, showCancelled, filterStrataName, filterStrataPlan, filterInspector, filterLocation, dateFrom, dateTo, today]);
 
   const appointmentCalendarMilestones = useMemo((): CalendarMilestone[] => {
-    return filteredRows.map(row => {
+    const result = filteredRows.map(row => {
       const fileNumberId = (row.original as { fileNumber?: { fileNumberId: number } }).fileNumber?.fileNumberId ?? 0;
       const abbrev = row.type === 'appointment' ? 'A' : 'R';
+      const milestoneDate = formatYMD(row.date);
       return {
-        date: formatYMD(row.date),
+        date: milestoneDate,
         label: `${String(fileNumberId).padStart(9, '0')}:${row.strataPlan}:${abbrev}`,
       };
     });
+    return result;
   }, [filteredRows]);
 
   const getViewAppointmentRows = (row: UnifiedRow) => [
@@ -972,7 +975,7 @@ export default function AppointmentsPage() {
             onMilestoneCellClick={(date) => {
               const rowsForDate = filteredRows.filter(r => formatYMD(r.date) === date);
               if (rowsForDate.length > 0) {
-                setViewModalRow(rowsForDate[0]);
+                setViewModalRows(rowsForDate);
                 setIsViewModalOpen(true);
               }
             }}
@@ -981,10 +984,10 @@ export default function AppointmentsPage() {
       )}
 
       <Modal
-        isOpen={isViewModalOpen && viewModalRow !== null}
+        isOpen={isViewModalOpen && viewModalRows !== null && viewModalRows.length > 0}
         onClose={() => {
           setIsViewModalOpen(false);
-          setViewModalRow(null);
+          setViewModalRows(null);
         }}
         title="View Appointment"
         size="medium"
@@ -994,22 +997,23 @@ export default function AppointmentsPage() {
               className="btn-secondary"
               onClick={() => {
                 setIsViewModalOpen(false);
-                setViewModalRow(null);
+                setViewModalRows(null);
               }}
             >
               Close
             </button>
-            {viewModalRow && (
+            {viewModalRows && viewModalRows.length === 1 && (
               <button
                 className="btn-primary"
                 onClick={() => {
+                  const row = viewModalRows[0];
                   setIsViewModalOpen(false);
-                  if (viewModalRow.type === 'appointment') {
-                    setSelectedItem({ type: 'appointment', data: viewModalRow.original as AppointmentWithDetails });
+                  if (row.type === 'appointment') {
+                    setSelectedItem({ type: 'appointment', data: row.original as AppointmentWithDetails });
                   } else {
-                    setSelectedItem({ type: 'request', data: viewModalRow.original as AppointmentRequest });
+                    setSelectedItem({ type: 'request', data: row.original as AppointmentRequest });
                   }
-                  setViewModalRow(null);
+                  setViewModalRows(null);
                 }}
               >
                 View full details
@@ -1018,18 +1022,37 @@ export default function AppointmentsPage() {
           </>
         }
       >
-        {viewModalRow && (
-          <table className="view-detail-table">
-            <tbody>
-              {getViewAppointmentRows(viewModalRow).map((row) => (
-                <tr key={row.label}>
-                  <th scope="row">{row.label}</th>
-                  <td>{row.value}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
+        {viewModalRows && viewModalRows.map((viewRow, idx) => (
+          <div key={idx} className="view-modal-item">
+            {viewModalRows.length > 1 && <h4 className="view-modal-item-title">Item {idx + 1} of {viewModalRows.length}</h4>}
+            <table className="view-detail-table">
+              <tbody>
+                {getViewAppointmentRows(viewRow).map((row) => (
+                  <tr key={row.label}>
+                    <th scope="row">{row.label}</th>
+                    <td>{row.value}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {viewModalRows.length > 1 && (
+              <button
+                className="btn-primary view-modal-item-action"
+                onClick={() => {
+                  setIsViewModalOpen(false);
+                  if (viewRow.type === 'appointment') {
+                    setSelectedItem({ type: 'appointment', data: viewRow.original as AppointmentWithDetails });
+                  } else {
+                    setSelectedItem({ type: 'request', data: viewRow.original as AppointmentRequest });
+                  }
+                  setViewModalRows(null);
+                }}
+              >
+                View full details
+              </button>
+            )}
+          </div>
+        ))}
       </Modal>
 
       <Modal
