@@ -175,7 +175,24 @@
   }
 }
 
-// Responsive
+.view-modal-item {
+  &:not(:last-child) {
+    margin-bottom: $spacing-lg;
+    padding-bottom: $spacing-lg;
+    border-bottom: 1px solid $color-border-light;
+  }
+}
+
+.view-modal-item-title {
+  margin: 0 0 $spacing-sm;
+  font-size: $font-size-base;
+  font-weight: 600;
+}
+
+.view-modal-item-action {
+  margin-top: $spacing-sm;
+}
+
 @include respond-below(lg) {
   .modal-footer {
     flex-direction: column;

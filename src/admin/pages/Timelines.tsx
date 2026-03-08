@@ -76,7 +76,7 @@ export default function TimelinesPage() {
   const isDesktop = useMediaQuery('(min-width: 750px)');
 
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [viewingRow, setViewingRow] = useState<DeadlineRow | null>(null);
+  const [viewingRows, setViewingRows] = useState<DeadlineRow[] | null>(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState<FileNumber | null>(null);
   const [editingDeadlineType, setEditingDeadlineType] = useState<DeadlineType | null>(null);
@@ -204,16 +204,6 @@ export default function TimelinesPage() {
       if (latestSurveyAnswer) {
         rows.push({ id: `${srId}-survey-answer`, date: latestSurveyAnswer, deadlineType: 'Last Survey Answer Date', strataPlan, complexName, strataId, fileNumber: sr });
       }
-
-      // Appointments
-      if (sr.appointments) {
-        for (const apt of sr.appointments) {
-          const aptDate = parseLocalDate(apt.appointmentDate);
-          if (aptDate) {
-            rows.push({ id: `${srId}-apt-${apt.appointmentId}`, date: aptDate, deadlineType: 'Appointment', strataPlan, complexName, strataId, fileNumber: sr });
-          }
-        }
-      }
     }
 
     rows.sort((a, b) => a.date.getTime() - b.date.getTime());
@@ -276,7 +266,6 @@ export default function TimelinesPage() {
         documentUpload: ['Most Recent Document Upload'],
         surveySubmitted: ['Survey Submitted'],
         surveyAnswer: ['Last Survey Answer Date'],
-        appointment: ['Appointment'],
       };
       const matches = typeMap[filterDeadlineType];
       if (matches) rows = rows.filter(r => matches.includes(r.deadlineType));
@@ -661,7 +650,6 @@ export default function TimelinesPage() {
             { value: 'documentUpload', label: 'Document Upload' },
             { value: 'surveySubmitted', label: 'Survey Submitted' },
             { value: 'surveyAnswer', label: 'Last Survey Answer' },
-            { value: 'appointment', label: 'Appointment' },
           ]}
           placeholder="All Types"
         />
@@ -719,7 +707,7 @@ export default function TimelinesPage() {
         loading={loading}
         emptyMessage="No deadlines found."
         onRowClick={(row) => {
-          setViewingRow(row);
+          setViewingRows([row]);
           setIsViewModalOpen(true);
         }}
         actions={isDesktop ? (row) => (
@@ -743,7 +731,7 @@ export default function TimelinesPage() {
             onMilestoneCellClick={(date) => {
               const rowsForDate = filteredRows.filter(r => formatYMD(r.date) === date);
               if (rowsForDate.length > 0) {
-                setViewingRow(rowsForDate[0]);
+                setViewingRows(rowsForDate);
                 setIsViewModalOpen(true);
               }
             }}
@@ -752,31 +740,31 @@ export default function TimelinesPage() {
       )}
 
       <Modal
-        isOpen={isViewModalOpen}
+        isOpen={isViewModalOpen && viewingRows !== null && viewingRows.length > 0}
         onClose={() => {
           setIsViewModalOpen(false);
-          setViewingRow(null);
+          setViewingRows(null);
         }}
         title="View Timeline"
         size="medium"
         footer={
           <>
             <button
-              className={isDesktop ? "btn-secondary" : "btn-secondary"}
+              className="btn-secondary"
               onClick={() => {
                 setIsViewModalOpen(false);
-                setViewingRow(null);
+                setViewingRows(null);
               }}
             >
               Close
             </button>
-            {viewingRow && (
+            {viewingRows && viewingRows.length === 1 && viewMode === 'list' && (
               <button
                 className="btn-primary"
                 onClick={() => {
                   setIsViewModalOpen(false);
-                  openEditModal(viewingRow.fileNumber, viewingRow.deadlineType);
-                  setViewingRow(null);
+                  openEditModal(viewingRows[0].fileNumber, viewingRows[0].deadlineType);
+                  setViewingRows(null);
                 }}
               >
                 Edit
@@ -785,18 +773,21 @@ export default function TimelinesPage() {
           </>
         }
       >
-        {viewingRow && (
-          <table className="view-detail-table">
-            <tbody>
-              {getViewTimelineRows(viewingRow).map((row) => (
-                <tr key={row.label}>
-                  <th scope="row">{row.label}</th>
-                  <td>{row.value}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
+        {viewingRows && viewingRows.map((viewRow, idx) => (
+          <div key={idx} className="view-modal-item">
+            {viewingRows.length > 1 && <h4 className="view-modal-item-title">Item {idx + 1} of {viewingRows.length}</h4>}
+            <table className="view-detail-table">
+              <tbody>
+                {getViewTimelineRows(viewRow).map((row) => (
+                  <tr key={row.label}>
+                    <th scope="row">{row.label}</th>
+                    <td>{row.value}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ))}
       </Modal>
 
       <Modal
