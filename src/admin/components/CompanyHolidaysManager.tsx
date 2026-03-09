@@ -8,6 +8,7 @@ import { InputField } from '../../shared/components/FormField';
 import { formatDateShort } from '../../shared/lib/formatters';
 import { parseLocalDate } from '../../shared/lib/dateUtils';
 import { CompanyHolidayModal } from './CompanyHolidayModal';
+import type { CompanyHoliday } from '../../shared/types/entities.types';
 import type { DisplayHoliday } from './CompanyHolidaysManager.type';
 
 // TODO: Add Holiday start time, end time in database and UI
