@@ -71,6 +71,13 @@ export function getSlotTimeRange(
   return `${fmt(startHour, 0)} - ${fmt(endHour, endMin)}`;
 }
 
+/** Safely parse a timestamp string into a Date, returning null if invalid */
+export function parseTimestamp(value: string | null | undefined): Date | null {
+  if (!value) return null;
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
 /** Convert "HH:mm" or "HH:mm:ss" to "H:00 AM/PM" */
 export function formatTime12h(time: string): string {
   const [h] = time.split(':');

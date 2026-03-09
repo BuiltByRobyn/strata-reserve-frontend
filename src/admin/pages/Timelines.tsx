@@ -23,7 +23,7 @@ export default function TimelinesPage() {
   const isDesktop = useMediaQuery('(min-width: 750px)');
 
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [viewingRows, setViewingRows] = useState<DeadlineRow[]>([]);
+  const [viewingRows, setViewingRows] = useState<DeadlineRow[] | null>(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState<FileNumber | null>(null);
   const [editingDeadlineType, setEditingDeadlineType] = useState<DeadlineType | null>(null);
@@ -151,7 +151,6 @@ export default function TimelinesPage() {
       if (latestSurveyAnswer) {
         rows.push({ id: `${srId}-survey-answer`, date: latestSurveyAnswer, deadlineType: 'Last Survey Answer Date', strataPlan, complexName, strataId, fileNumber: sr });
       }
-
     }
 
     rows.sort((a, b) => a.date.getTime() - b.date.getTime());
@@ -688,49 +687,52 @@ export default function TimelinesPage() {
       )}
 
       <Modal
-        isOpen={isViewModalOpen && viewingRows.length > 0}
+        isOpen={isViewModalOpen && viewingRows !== null && viewingRows.length > 0}
         onClose={() => {
           setIsViewModalOpen(false);
-          setViewingRows([]);
+          setViewingRows(null);
         }}
-        title={viewingRows.length > 1 ? `View Timelines (${viewingRows.length})` : 'View Timeline'}
+        title={viewingRows && viewingRows.length > 1 ? `View Timelines (${viewingRows.length})` : 'View Timeline'}
         size="medium"
         footer={
-          <button
-            className="btn-secondary"
-            onClick={() => {
-              setIsViewModalOpen(false);
-              setViewingRows([]);
-            }}
-          >
-            Close
-          </button>
+          <>
+            <button
+              className="btn-secondary"
+              onClick={() => {
+                setIsViewModalOpen(false);
+                setViewingRows(null);
+              }}
+            >
+              Close
+            </button>
+            {viewingRows && viewingRows.length === 1 && viewMode === 'list' && (
+              <button
+                className="btn-primary"
+                onClick={() => {
+                  setIsViewModalOpen(false);
+                  openEditModal(viewingRows[0].fileNumber, viewingRows[0].deadlineType);
+                  setViewingRows(null);
+                }}
+              >
+                Edit
+              </button>
+            )}
+          </>
         }
       >
-        {viewingRows.map((row, idx) => (
-          <div key={row.id}>
-            {idx > 0 && <hr style={{ margin: '1rem 0' }} />}
+        {viewingRows && viewingRows.map((viewRow, idx) => (
+          <div key={idx} className="view-modal-item">
+            {viewingRows.length > 1 && <h4 className="view-modal-item-title">Item {idx + 1} of {viewingRows.length}</h4>}
             <table className="view-detail-table">
               <tbody>
-                {getViewTimelineRows(row).map((r) => (
-                  <tr key={r.label}>
-                    <th scope="row">{r.label}</th>
-                    <td>{r.value}</td>
+                {getViewTimelineRows(viewRow).map((row) => (
+                  <tr key={row.label}>
+                    <th scope="row">{row.label}</th>
+                    <td>{row.value}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
-            <button
-              className="btn-primary btn-sm"
-              style={{ marginTop: '0.5rem' }}
-              onClick={() => {
-                setIsViewModalOpen(false);
-                openEditModal(row.fileNumber, row.deadlineType);
-                setViewingRows([]);
-              }}
-            >
-              Edit
-            </button>
           </div>
         ))}
       </Modal>

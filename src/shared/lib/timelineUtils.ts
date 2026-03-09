@@ -26,11 +26,18 @@ export function formatDateDisplay(date: Date): string {
 }
 
 export function formatYMD(date: Date | string): string {
-  const d = typeof date === 'string' ? new Date(date) : date;
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
+  if (typeof date === 'string') {
+    const d = new Date(date);
+    const useUTC = date.endsWith('Z') || date.includes('T00:00:00');
+    const y = useUTC ? d.getUTCFullYear() : d.getFullYear();
+    const m = String((useUTC ? d.getUTCMonth() : d.getMonth()) + 1).padStart(2, '0');
+    const day = String(useUTC ? d.getUTCDate() : d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  }
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
 }
 
 export function getDeadlineAbbrev(deadlineType: DeadlineType): 'D' | 'O' | 'T' {

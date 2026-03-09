@@ -81,7 +81,7 @@ export default function AppointmentsPage() {
   const [showCancelled, setShowCancelled] = useState(false);
 
   const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
-  const [viewModalRows, setViewModalRows] = useState<UnifiedRow[]>([]);
+  const [viewModalRows, setViewModalRows] = useState<UnifiedRow[] | null>(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
 
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -974,53 +974,73 @@ export default function AppointmentsPage() {
       )}
 
       <Modal
-        isOpen={isViewModalOpen && viewModalRows.length > 0}
+        isOpen={isViewModalOpen && viewModalRows !== null && viewModalRows.length > 0}
         onClose={() => {
           setIsViewModalOpen(false);
-          setViewModalRows([]);
+          setViewModalRows(null);
         }}
-        title={viewModalRows.length > 1 ? `View Appointments (${viewModalRows.length})` : 'View Appointment'}
+        title="View Appointment"
         size="medium"
         footer={
-          <button
-            className="btn-secondary"
-            onClick={() => {
-              setIsViewModalOpen(false);
-              setViewModalRows([]);
-            }}
-          >
-            Close
-          </button>
+          <>
+            <button
+              className="btn-secondary"
+              onClick={() => {
+                setIsViewModalOpen(false);
+                setViewModalRows(null);
+              }}
+            >
+              Close
+            </button>
+            {viewModalRows && viewModalRows.length === 1 && (
+              <button
+                className="btn-primary"
+                onClick={() => {
+                  const row = viewModalRows[0];
+                  setIsViewModalOpen(false);
+                  if (row.type === 'appointment') {
+                    setSelectedItem({ type: 'appointment', data: row.original as AppointmentWithDetails });
+                  } else {
+                    setSelectedItem({ type: 'request', data: row.original as AppointmentRequest });
+                  }
+                  setViewModalRows(null);
+                }}
+              >
+                View full details
+              </button>
+            )}
+          </>
         }
       >
-        {viewModalRows.map((row, idx) => (
-          <div key={row.id}>
-            {idx > 0 && <hr style={{ margin: '1rem 0' }} />}
+        {viewModalRows && viewModalRows.map((viewRow, idx) => (
+          <div key={idx} className="view-modal-item">
+            {viewModalRows.length > 1 && <h4 className="view-modal-item-title">Item {idx + 1} of {viewModalRows.length}</h4>}
             <table className="view-detail-table">
               <tbody>
-                {getViewAppointmentRows(row).map((r) => (
-                  <tr key={r.label}>
-                    <th scope="row">{r.label}</th>
-                    <td>{r.value}</td>
+                {getViewAppointmentRows(viewRow).map((row) => (
+                  <tr key={row.label}>
+                    <th scope="row">{row.label}</th>
+                    <td>{row.value}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
-            <button
-              className="btn-primary btn-sm"
-              style={{ marginTop: '0.5rem' }}
-              onClick={() => {
-                setIsViewModalOpen(false);
-                if (row.type === 'appointment') {
-                  setSelectedItem({ type: 'appointment', data: row.original as AppointmentWithDetails });
-                } else {
-                  setSelectedItem({ type: 'request', data: row.original as AppointmentRequest });
-                }
-                setViewModalRows([]);
-              }}
-            >
-              View full details
-            </button>
+            {viewModalRows.length > 1 && (
+              <button
+                className="btn-primary view-modal-item-action"
+                onClick={() => {
+                  setIsViewModalOpen(false);
+                  if (viewRow.type === 'appointment') {
+                    setSelectedItem({ type: 'appointment', data: viewRow.original as AppointmentWithDetails });
+                  } else {
+                    setSelectedItem({ type: 'request', data: viewRow.original as AppointmentRequest });
+                  }
+                  setViewModalRows(null);
+                }}
+              >
+                View full details
+              </button>
+            )}
           </div>
         ))}
       </Modal>
