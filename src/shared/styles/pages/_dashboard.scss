@@ -1,7 +1,7 @@
 @use '../variables' as *;
 
-/* Admin Dashboard */
-.admin-dashboard {
+.admin-dashboard,
+.client-dashboard {
   padding: $spacing-lg;
 
   @include respond-below(md) {
@@ -11,44 +11,38 @@
   @include respond-below(sm) {
     padding: $spacing-sm;
   }
-
-  .loading-container {
-    min-height: 200px;
-    width: 100%;
-  }
 }
 
-/* Welcome Header */
 .dashboard-welcome {
   margin-bottom: $spacing-xl;
 
   h1 {
-    font-size: 1.75rem;
-    font-weight: 700;
-    color: $color-text-dark;
     margin: 0 0 $spacing-xs;
+    color: $color-text-dark;
+    font-size: clamp(2rem, 3vw, 3rem);
+    font-weight: $font-weight-bold;
+    line-height: 1.1;
   }
 
   .dashboard-subtitle {
-    font-size: $font-size-sm;
-    color: $color-text-light;
     margin: 0;
+    color: $color-text-light;
+    font-size: 1rem;
   }
 }
 
-/* Stats Row */
 .dashboard-overview {
   margin-bottom: $spacing-xl;
 }
 
 .stats-row {
   display: grid;
-  grid-template-columns: repeat(4, 1fr) auto;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) minmax(220px, 0.95fr);
   gap: $spacing-md;
-  align-items: start;
+  align-items: stretch;
 
-  @include respond-below(lg) {
-    grid-template-columns: repeat(2, 1fr);
+  @include respond-below(xl) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   @include respond-below(sm) {
@@ -56,31 +50,56 @@
   }
 }
 
-.stat-card {
-  background: $color-white;
+.stat-card,
+.quick-actions-card,
+.dashboard-surface,
+.appointment-status-panel,
+.empty-actions {
   border: 1px solid $color-border-light;
-  border-radius: $border-radius-lg;
-  padding: $spacing-lg $spacing-md;
-  text-align: center;
+  border-radius: $border-radius-xl;
+  background: $color-white;
+  box-shadow: $shadow-sm;
+}
+
+.stat-card {
+  min-height: 136px;
+  padding: $spacing-lg;
   display: flex;
   flex-direction: column;
+  justify-content: center;
+  align-items: center;
   gap: $spacing-xs;
+  text-align: center;
 
   .stat-number {
-    font-size: 2rem;
-    font-weight: 700;
     color: $color-text-dark;
+    font-size: clamp(2rem, 2.6vw, 3rem);
+    font-weight: $font-weight-bold;
     line-height: 1;
   }
 
+  .stat-number--compact {
+    font-size: clamp(1.25rem, 2vw, 1.85rem);
+    line-height: 1.2;
+  }
+
   .stat-label {
-    font-size: $font-size-sm;
     color: $color-text-light;
+    font-size: 1rem;
+    line-height: 1.35;
+  }
+
+  &--info {
+    border-color: rgba($color-border-medium, 0.45);
+
+    .stat-number {
+      color: $color-text-dark;
+    }
   }
 
   &--warning {
-    border-color: $color-warning;
-    background: rgba($color-warning, 0.05);
+    border-color: rgba($color-warning-border, 0.7);
+    background: linear-gradient(180deg, $color-white 0%, rgba($color-warning-light, 0.6) 100%);
 
     .stat-number {
       color: $color-accent-brown;
@@ -88,45 +107,55 @@
   }
 
   &--accent {
-    border-color: $color-primary;
-    background: rgba($color-primary, 0.05);
+    border-color: rgba($color-primary, 0.55);
+    background: linear-gradient(180deg, $color-white 0%, rgba($color-primary-lightest, 0.65) 100%);
 
     .stat-number {
-      color: $color-primary;
+      color: $color-primary-dark;
+    }
+  }
+
+  &--success {
+    border-color: rgba($color-success, 0.45);
+    background: linear-gradient(180deg, $color-white 0%, rgba($color-primary-lightest, 0.9) 100%);
+
+    .stat-number {
+      color: $color-success;
     }
   }
 }
 
-/* Quick Actions Card */
 .quick-actions-card {
-  background: $color-off-white;
-  border: 1px solid $color-border-light;
-  border-radius: $border-radius-lg;
   padding: $spacing-lg;
   display: flex;
   flex-direction: column;
   gap: $spacing-sm;
+  justify-content: center;
 
   h3 {
-    margin: 0;
-    font-size: 1rem;
-    font-weight: 600;
+    margin: 0 0 $spacing-xs;
     color: $color-text-dark;
+    font-size: 1.1rem;
+    font-weight: $font-weight-bold;
   }
 
-  @include respond-below(lg) {
+  @include respond-below(xl) {
     grid-column: 1 / -1;
   }
 }
 
+.quick-actions-card--client {
+  background: linear-gradient(180deg, $color-white 0%, rgba($color-secondary-lightest, 0.45) 100%);
+}
+
 .quick-action-link {
-  background: none;
-  border: none;
-  padding: $spacing-xs 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
   color: $color-primary;
-  font-size: $font-size-sm;
-  font-weight: $font-weight-medium;
   text-align: left;
+  font-size: 1rem;
+  font-weight: $font-weight-medium;
   cursor: pointer;
   transition: color 0.2s ease;
 
@@ -136,66 +165,92 @@
   }
 }
 
-/* Dashboard Sections */
-.dashboard-section {
-  margin-top: $spacing-xl;
+.dashboard-surface {
+  padding: $spacing-xl;
 
-  h2 {
-    font-size: 1.25rem;
-    font-weight: 600;
-    color: $color-text-dark;
-    margin: 0 0 $spacing-md;
+  @include respond-below(sm) {
+    padding: $spacing-lg;
   }
-
 }
 
-.rejection-form {
-  p {
-    margin: 0 0 $spacing-sm;
+.dashboard-section {
+  & + & {
+    margin-top: $spacing-xl;
+    padding-top: $spacing-xl;
+    border-top: 1px solid $color-border-light;
+  }
+}
+
+.dashboard-section__header {
+  margin-bottom: $spacing-lg;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $spacing-md;
+
+  h2 {
+    margin: 0;
     color: $color-text-dark;
+    font-size: 1.9rem;
+    font-weight: $font-weight-bold;
   }
 
-  .form-textarea {
-    width: 100%;
-    box-sizing: border-box;
-    padding: $spacing-sm;
-    border: 1px solid $color-border-light;
-    border-radius: $border-radius-sm;
-    font-family: inherit;
-    font-size: $font-size-base;
-    color: $color-text-dark;
-    line-height: $line-height-base;
-    resize: vertical;
-    min-height: 80px;
+  @include respond-below(sm) {
+    align-items: flex-start;
+    flex-direction: column;
 
-    &:focus {
-      outline: none;
-      border-color: $color-primary;
+    h2 {
+      font-size: 1.6rem;
     }
   }
 }
 
+.dashboard-section__link {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: $color-text-light;
+  font-size: 0.95rem;
+  font-weight: $font-weight-medium;
+  cursor: pointer;
+
+  &:hover {
+    color: $color-primary-dark;
+  }
+}
+
 .empty-actions {
-  background: $color-white;
-  border: 1px solid $color-border-light;
-  border-radius: $border-radius-lg;
   padding: $spacing-xl;
   text-align: center;
 
   p {
     margin: 0;
     color: $color-text-light;
+    font-size: 1rem;
+    line-height: $line-height-base;
   }
 }
 
-/* Action Cards Grid */
-.action-cards {
+.empty-actions--spacious {
+  min-height: 220px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.action-cards,
+.dashboard-appointments-grid,
+.dashboard-activity-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
   gap: $spacing-md;
+}
+
+.action-cards,
+.dashboard-activity-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 
   @include respond-below(lg) {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   @include respond-below(sm) {
@@ -203,343 +258,225 @@
   }
 }
 
-/* Individual Action Card */
+.dashboard-appointments-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+
+  @include respond-below(sm) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.action-card,
+.appointment-card,
+.activity-card {
+  border-radius: $border-radius-xl;
+}
+
 .action-card {
-  background: $color-white;
-  border: 1px solid $color-border-light;
-  border-radius: $border-radius-lg;
   padding: $spacing-lg;
-  border-left: 4px solid $color-border-light;
+  border: 1px solid $color-border-light;
   display: flex;
   flex-direction: column;
   gap: $spacing-sm;
-  transition: box-shadow 0.2s ease;
-
-  &:hover {
-    box-shadow: $shadow-md;
-  }
+  background: $color-white;
+  box-shadow: $shadow-sm;
 
   &--overdue {
-    border-left-color: $color-error;
-    background: rgba($color-error, 0.02);
+    border-left: 4px solid $color-error;
+    background: linear-gradient(180deg, $color-white 0%, rgba($color-error-bg, 0.45) 100%);
   }
 
   &--due-today {
-    border-left-color: $color-warning;
-    background: rgba($color-warning, 0.03);
+    border-left: 4px solid $color-warning-border;
+    background: linear-gradient(180deg, $color-white 0%, rgba($color-warning-light, 0.65) 100%);
   }
 
   &--upcoming {
-    border-left-color: $color-primary;
-    background: rgba($color-primary, 0.02);
+    border-left: 4px solid $color-primary;
+    background: linear-gradient(180deg, $color-white 0%, rgba($color-primary-lightest, 0.6) 100%);
   }
 }
 
 .action-card-header {
   display: flex;
-  align-items: center;
   justify-content: space-between;
+  align-items: center;
+  gap: $spacing-sm;
 }
 
 .urgency-badge {
-  display: inline-block;
-  padding: 2px 8px;
-  border-radius: $border-radius-sm;
-  font-size: 0.6875rem;
+  display: inline-flex;
+  align-items: center;
+  padding: 0.3rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
   font-weight: $font-weight-bold;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
-  letter-spacing: 0.025em;
 
   &--overdue {
     background: rgba($color-error, 0.1);
-    color: $color-error;
+    color: $color-error-dark;
   }
 
   &--due-today {
-    background: rgba($color-warning, 0.15);
-    color: $color-accent-brown;
+    background: rgba($color-warning-border, 0.12);
+    color: $color-warning-text-dark;
   }
 
   &--upcoming {
-    background: rgba($color-primary, 0.1);
+    background: rgba($color-primary, 0.12);
     color: $color-primary-dark;
   }
 }
 
-.action-card-title {
-  margin: 0;
-  font-size: 1rem;
-  font-weight: 700;
-  color: $color-text-dark;
+.action-card-meta {
+  color: $color-text-light;
+  font-size: 0.85rem;
 }
 
-.action-card-desc {
+.action-card-title,
+.appointment-card__title,
+.activity-card__title,
+.appointment-status-panel h3 {
   margin: 0;
-  font-size: $font-size-sm;
-  color: $color-text-light;
-  line-height: 1.5;
-  flex: 1;
+  color: $color-text-dark;
+  font-size: 1.6rem;
+  font-weight: $font-weight-bold;
+  line-height: 1.2;
+}
+
+.action-card-desc,
+.appointment-card__detail,
+.activity-card__detail,
+.appointment-status-panel p {
+  margin: 0;
+  color: $color-text-secondary;
+  font-size: 1rem;
+  line-height: $line-height-base;
 }
 
 .action-card-actions {
+  margin-top: auto;
   display: flex;
+  flex-wrap: wrap;
   gap: $spacing-sm;
-  margin-top: $spacing-xs;
 }
 
-/* Dashboard Alert Banner */
-.dashboard-alert {
-  display: flex;
-  align-items: center;
-  gap: $spacing-md;
-  padding: $spacing-md $spacing-lg;
-  border-radius: $border-radius-lg;
-  margin-bottom: $spacing-lg;
-  cursor: pointer;
-  transition: box-shadow 0.2s ease;
-
-  &:hover {
-    box-shadow: $shadow-md;
-  }
-
-  &--warning {
-    background: rgba($color-warning, 0.1);
-    border: 1px solid $color-warning;
-  }
-
-  &__count {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    font-weight: $font-weight-bold;
-    font-size: 1rem;
-    flex-shrink: 0;
-
-    .dashboard-alert--warning & {
-      background: $color-warning;
-      color: $color-white;
-    }
-  }
-
-  &__text {
-    flex: 1;
-    font-weight: $font-weight-medium;
-    color: $color-text-dark;
-  }
-
-  &__action {
-    font-weight: $font-weight-medium;
-    color: $color-primary;
-    font-size: $font-size-sm;
-  }
-}
-
-/* Dashboard Appointments Section */
-.dashboard-appointments {
-  &__subtitle {
-    font-size: 1rem;
-    font-weight: 600;
-    color: $color-text-secondary;
-    margin: 0 0 $spacing-md;
-  }
-}
-
-/* Client Dashboard */
-.client-dashboard {
+.appointment-card {
   padding: $spacing-lg;
+  border: 1px solid rgba($color-primary, 0.35);
+  background: linear-gradient(180deg, $color-white 0%, rgba($color-primary-lightest, 0.5) 100%);
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+  box-shadow: $shadow-sm;
+}
+
+.appointment-card__time {
+  color: $color-text-dark;
+  font-size: 1.25rem;
+  font-weight: $font-weight-bold;
+}
+
+.dashboard-activity-grid {
+  align-items: stretch;
+}
+
+.activity-card {
+  padding: $spacing-lg;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+  min-height: 250px;
+  color: $color-text-white;
+  background: linear-gradient(180deg, $color-primary-light 0%, $color-primary-dark 100%);
+  box-shadow: $shadow-md;
+
+  .activity-card__meta,
+  .activity-card__title,
+  .activity-card__detail {
+    color: $color-text-white;
+  }
+
+  &--document {
+    background: linear-gradient(180deg, $color-primary 0%, $color-primary-dark 100%);
+  }
+
+  &--survey {
+    background: linear-gradient(180deg, $color-secondary-dark 0%, $color-secondary 100%);
+  }
+
+  &--appointment {
+    background: linear-gradient(180deg, #4f6a46 0%, #2f4131 100%);
+  }
+
+  &--request {
+    background: linear-gradient(180deg, #5b6e4f 0%, #425137 100%);
+  }
+}
+
+.activity-card__meta {
+  font-size: 0.9rem;
+  opacity: 0.85;
+}
+
+.activity-card__detail {
+  flex: 1;
+}
+
+.appointment-status-panel {
+  padding: $spacing-lg;
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(220px, 1fr);
+  gap: $spacing-lg;
 
   @include respond-below(md) {
-    padding: $spacing-md;
+    grid-template-columns: 1fr;
   }
+}
 
-  &__welcome {
-    margin-bottom: $spacing-xl;
+.appointment-status-panel__summary,
+.appointment-status-panel__actions {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+}
 
-    h1 {
-      font-size: 1.75rem;
-      font-weight: 700;
-      color: $color-text-dark;
-      margin: 0 0 $spacing-xs;
-    }
+.appointment-status-panel__badge {
+  display: inline-flex;
+  align-self: flex-start;
+  padding: 0.3rem 0.65rem;
+  border-radius: 999px;
+  background: rgba($color-primary, 0.12);
+  color: $color-primary-dark;
+  font-size: 0.78rem;
+  font-weight: $font-weight-bold;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
 
-    p {
-      font-size: $font-size-sm;
-      color: $color-text-light;
-      margin: 0;
-    }
-  }
-
-  &__cards {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: $spacing-lg;
-    margin-bottom: $spacing-xl;
-
-    @include respond-below(md) {
-      grid-template-columns: 1fr;
-    }
-  }
-
-  &__card {
-    background: $color-white;
-    border: 1px solid $color-border-light;
-    border-radius: $border-radius-lg;
-    padding: $spacing-lg;
-    border-left: 4px solid $color-border-light;
-
-    h3 {
-      margin: 0 0 $spacing-sm;
-      font-size: 1rem;
-      font-weight: 600;
-      color: $color-text-dark;
-    }
-
-    p {
-      margin: 0 0 $spacing-sm;
-      font-size: $font-size-sm;
-      color: $color-text-light;
-      line-height: 1.5;
-    }
-
-    &--ready {
-      border-left-color: $color-primary;
-      background: rgba($color-primary, 0.02);
-    }
-
-    &--pending {
-      border-left-color: $color-warning;
-      background: rgba($color-warning, 0.03);
-    }
-
-    &--scheduled {
-      border-left-color: $color-primary;
-      background: rgba($color-primary, 0.02);
-    }
-
-    &--info {
-      border-left-color: $color-secondary;
-      background: rgba($color-secondary, 0.03);
-    }
-
-    &--completed {
-      border-left-color: $color-success;
-      background: rgba($color-success, 0.03);
-    }
-  }
-
-  &__card-detail {
-    display: flex;
-    justify-content: space-between;
-    padding: $spacing-xs 0;
-    font-size: $font-size-sm;
-    border-bottom: 1px solid $color-border-light;
-
-    &:last-of-type {
-      border-bottom: none;
-    }
-  }
-
-  &__card-label {
-    font-weight: $font-weight-medium;
-    color: $color-text-dark;
-  }
-
-  &__card-value {
-    color: $color-text-light;
-  }
-
-  &__card-actions {
-    margin-top: $spacing-md;
-
-    .btn {
-      font-size: $font-size-sm;
-    }
-  }
-
-  &__status-badge {
-    display: inline-block;
-    padding: 2px 8px;
-    border-radius: $border-radius-sm;
-    font-size: 0.6875rem;
-    font-weight: $font-weight-bold;
-    text-transform: uppercase;
-
-    &--pending {
-      background: rgba($color-warning, 0.15);
-      color: $color-accent-brown;
-    }
-
-    &--scheduled {
-      background: rgba($color-primary, 0.1);
-      color: $color-primary-dark;
-    }
-
-    &--completed {
-      background: rgba($color-success, 0.1);
-      color: $color-success;
-    }
-  }
-
-  &__quick-links {
-    h2 {
-      font-size: 1.25rem;
-      font-weight: 600;
-      color: $color-text-dark;
-      margin: 0 0 $spacing-md;
-    }
-  }
-
-  &__links-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: $spacing-md;
-
-    @include respond-below(md) {
-      grid-template-columns: repeat(2, 1fr);
-    }
-
-    @include respond-below(sm) {
-      grid-template-columns: 1fr;
-    }
-  }
-
-  &__link {
-    display: flex;
-    align-items: center;
-    gap: $spacing-sm;
-    padding: $spacing-md $spacing-lg;
-    background: $color-white;
-    border: 1px solid $color-border-light;
-    border-radius: $border-radius-lg;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    font-size: $font-size-sm;
-    font-weight: $font-weight-medium;
-    color: $color-text-dark;
-
-    &:hover {
-      border-color: $color-primary;
-      box-shadow: $shadow-sm;
-      color: $color-primary;
-    }
-  }
+.appointment-status-panel__note {
+  padding: $spacing-md;
+  border-radius: $border-radius-lg;
+  background: rgba($color-secondary-lightest, 0.65);
+  color: $color-secondary-dark;
+  font-size: 0.95rem;
+  line-height: $line-height-base;
 }
 
 .btn-action {
-  padding: $spacing-xs $spacing-md;
-  border-radius: $border-radius-sm;
-  font-size: $font-size-sm;
+  padding: 0.75rem 1rem;
+  border-radius: $border-radius-lg;
+  border: 1px solid transparent;
+  font-size: 0.95rem;
   font-weight: $font-weight-medium;
   cursor: pointer;
   transition: all 0.2s ease;
 
   &--primary {
     background: $color-primary;
-    color: $color-white;
-    border: none;
+    color: $color-text-white;
 
     &:hover {
       background: $color-primary-hover;
@@ -552,13 +489,56 @@
   }
 
   &--secondary {
-    background: $color-white;
-    color: $color-text-light;
-    border: 1px solid $color-border-light;
+    background: transparent;
+    color: $color-text-dark;
+    border-color: $color-border-medium;
 
     &:hover {
-      border-color: $color-text-light;
+      border-color: $color-text-dark;
       color: $color-text-dark;
+    }
+  }
+
+  &--ghost {
+    margin-top: auto;
+    background: rgba($color-white, 0.96);
+    color: $color-primary-dark;
+    border-color: rgba($color-white, 0.96);
+
+    &:hover {
+      background: $color-white;
+    }
+  }
+}
+
+.client-dashboard {
+  .dashboard-subtitle {
+    color: $color-text-secondary;
+    font-size: 1.05rem;
+  }
+}
+
+.rejection-form {
+  p {
+    margin: 0 0 $spacing-sm;
+    color: $color-text-dark;
+  }
+
+  .form-textarea {
+    width: 100%;
+    min-height: 88px;
+    box-sizing: border-box;
+    padding: $spacing-sm;
+    border: 1px solid $color-border-light;
+    border-radius: $border-radius-lg;
+    font: inherit;
+    color: $color-text-dark;
+    line-height: $line-height-base;
+    resize: vertical;
+
+    &:focus {
+      outline: none;
+      border-color: $color-primary;
     }
   }
 }
