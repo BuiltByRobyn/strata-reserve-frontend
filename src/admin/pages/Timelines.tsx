@@ -14,7 +14,7 @@ import type { UpdateTimelinesInput, DeadlineType, DeadlineRow, EditFormData } fr
 import type { CalendarMilestone } from '../../shared/types/appointment.types';
 import { API_BASE } from '../../shared/lib/api';
 import { parseLocalDate, toDateInputValue } from '../../shared/lib/dateUtils';
-import { buildAnniversaryDate, getNextAnniversary, formatDateDisplay, formatYMD, getDeadlineAbbrev, daysBetween, hasConfirmedTimelines } from '../../shared/lib/timelineUtils';
+import { getNextAnniversary, formatDateDisplay, formatYMD, getDeadlineAbbrev, daysBetween, hasConfirmedTimelines } from '../../shared/lib/timelineUtils';
 
 
 export default function TimelinesPage() {

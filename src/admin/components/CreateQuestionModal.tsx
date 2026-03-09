@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useQuestions } from '../../shared/hooks/useQuestions';
 import { useLookups } from '../../shared/hooks/useLookups';
 import { Modal } from '../../shared/components/Modal';
-import { InputField, TextareaField, FormRow } from '../../shared/components/FormField';
+import { TextareaField, FormRow } from '../../shared/components/FormField';
 import { SingleSelectDropdown } from '../../shared/components/SingleSelectDropdown';
 import { MultiSelectDropdown } from '../../shared/components/MultiSelectDropdown';
 import type { CreateQuestionInput, QuestionFormData } from '../../shared/types/survey.types';
