@@ -561,6 +561,7 @@ const InspectionDate = () => {
               onSelectDate={hasScheduledAppointment ? () => {} : handleDateSelect}
               loading={calendarLoading}
               milestones={milestones}
+              hideLabels
               bookedDate={scheduledApt ? (typeof scheduledApt.appointmentDate === 'string' ? scheduledApt.appointmentDate.split('T')[0] : formatYMD(new Date(scheduledApt.appointmentDate))) : null}
             />
           </div>

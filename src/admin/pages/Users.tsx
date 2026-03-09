@@ -1,5 +1,6 @@
 // Users Page - Admin management of users
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useUsers } from '../../shared/hooks/useUsers';
 import { useStrata } from '../../shared/hooks/useStrata';
 import { useLookups } from '../../shared/hooks/useLookups';
@@ -26,6 +27,7 @@ export default function UsersPage() {
   const { users, loading, error, createUser, updateUser, deleteUser } = useUsers();
   const { stratas } = useStrata();
   const { userTypes, propertyTypes } = useLookups();
+  const location = useLocation();
 
   // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -188,6 +190,15 @@ export default function UsersPage() {
     setFormError(null);
     setIsModalOpen(true);
   };
+
+  const autoOpenedRef = useRef(false);
+  useEffect(() => {
+    if (location.state?.openCreate && !autoOpenedRef.current) {
+      autoOpenedRef.current = true;
+      openCreateModal();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const openEditModal = (user: UserWithStratas) => {
     setEditingUser(user);

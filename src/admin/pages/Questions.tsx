@@ -1,4 +1,5 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useQuestions } from '../../shared/hooks/useQuestions';
 import { useLookups } from '../../shared/hooks/useLookups';
 import { useMediaQuery } from '../../shared/hooks/useMediaQuery';
@@ -45,6 +46,8 @@ export default function QuestionsPage() {
   const { questions, loading, error, createQuestion, updateQuestion, deleteQuestion } = useQuestions();
   const { questionTypes, services, propertyTypes } = useLookups();
   const isDesktop = useMediaQuery('(min-width: 750px)');
+  const location = useLocation();
+  const autoOpenedRef = useRef(false);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState<AdminQuestion | null>(null);
@@ -121,6 +124,13 @@ export default function QuestionsPage() {
     setFormError(null);
     setIsModalOpen(true);
   };
+
+  useEffect(() => {
+    if (!location.state?.openCreate || autoOpenedRef.current) return;
+    autoOpenedRef.current = true;
+    openCreateModal();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.state]);
 
   const openEditModal = (q: AdminQuestion) => {
     setEditingQuestion(q);

@@ -225,7 +225,8 @@
 
       @include respond-below(lg) {
         flex-direction: column;
-        gap: $spacing-sm;
+        gap: $spacing-md;
+        align-items: flex-start;
 
         .survey-header-actions {
           width: 100%;

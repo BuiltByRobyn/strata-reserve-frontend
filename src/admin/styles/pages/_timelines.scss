@@ -31,12 +31,29 @@
 
   .create-user-button-desktop.timelines-view-actions {
     display: none;
-    flex-wrap: wrap;
-    gap: $spacing-sm;
-    align-items: center;
 
     @include respond-to(desktop) {
+      display: inline-grid;
+      grid-template-columns: 1fr 1fr;
+      gap: $spacing-sm;
+      margin-left: auto;
+
+      > button:last-child {
+        grid-column: 1 / -1;
+      }
+    }
+
+    @media (min-width: 900px) {
       display: flex;
+      flex-wrap: nowrap;
+      gap: $spacing-sm;
+      align-items: center;
+      margin-left: 0;
+
+      > button:last-child {
+        grid-column: unset;
+        width: auto;
+      }
     }
   }
 
@@ -60,12 +77,13 @@
     }
 
     &.timelines-view-actions {
-      flex-direction: row;
+      flex-direction: column;
 
       .btn-primary,
       .btn-secondary {
         flex: 1;
         min-width: 0;
+        width: 100%;
       }
 
       @include respond-to(desktop) {
@@ -83,16 +101,19 @@
     background: $color-white;
     color: $color-primary;
     border: 1px solid $color-primary;
+    opacity: $opacity-muted;
 
     &.btn-primary {
-      border-width: 3px;
+      // border-width: 3px;
       border-color: $color-primary;
       color: $color-primary;
+      opacity: 1;
     }
   }
 
   .timelines-calendar-wrap {
     max-width: 1000px;
+    margin: auto;
   }
 
   .booking-calendar--timelines {
@@ -112,17 +133,57 @@
       padding: $spacing-xs;
       gap: 2px;
 
+      .booking-calendar__cell-count {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1rem;
+        font-weight: 700;
+        color: $color-primary;
+        line-height: 1;
+
+        @include respond-to(md) {
+          display: none;
+        }
+      }
+
+      .booking-calendar__cell-label-wrap {
+        display: none;
+        flex-direction: column;
+        align-items: center;
+        gap: 2px;
+        width: 100%;
+
+        @include respond-to(md) {
+          display: flex;
+        }
+      }
+
       .booking-calendar__cell-label {
         font-size: 0.65rem;
         line-height: 1.2;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
         max-width: 100%;
         color: $color-primary;
+        white-space: pre-line;
+        word-break: break-word;
+        overflow: hidden;
+        text-overflow: ellipsis;
 
         @include respond-to(md) {
           font-size: 0.7rem;
+          text-align: center;
+        }
+      }
+
+      .booking-calendar__cell-overflow {
+        font-size: 0.55rem;
+        color: $color-primary;
+        opacity: 0.7;
+        font-style: italic;
+        text-align: center;
+
+        @include respond-to(md) {
+          font-size: 0.6rem;
         }
       }
 

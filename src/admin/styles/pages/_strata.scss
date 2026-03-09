@@ -166,3 +166,29 @@
 
 
 }
+
+.view-strata-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+
+  th,
+  td {
+    padding: $spacing-sm $spacing-md;
+    text-align: left;
+    border-bottom: 1px solid $color-border-light;
+    word-break: break-word;
+    overflow-wrap: break-word;
+  }
+
+  th {
+    font-weight: 600;
+    color: $color-text-dark;
+    width: 40%;
+    white-space: nowrap;
+  }
+
+  td {
+    color: $color-text-primary;
+  }
+}

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { InputField, FormRow } from '../../shared/components/FormField';
 import { useClientFileNumber } from '../../shared/hooks/useClientFileNumber';
 import { useTimelines } from '../../shared/hooks/useTimelines';
@@ -77,6 +77,7 @@ function getMostRecentAnniversary(baseDate: Date, referenceDate: Date): Date {
 
 const Timelines = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { activeRequest, fileNumberId, loading: srLoading } = useClientFileNumber();
   const { timelines, loading: timelinesLoading, error: loadError, updateTimelines } = useTimelines(fileNumberId);
   const [fiscalYearStart, setFiscalYearStart] = useState('');
@@ -96,6 +97,8 @@ const Timelines = () => {
   const [showCalculatedResults, setShowCalculatedResults] = useState(false);
 
   const initializedFromTimelines = useRef(false);
+  const deadlinesSectionRef = useRef<HTMLElement>(null);
+  const scrolledToDeadlines = useRef(false);
 
   useEffect(() => {
     if (timelines == null || initializedFromTimelines.current) return;
@@ -110,6 +113,13 @@ const Timelines = () => {
       setShowCalculatedResults(true);
     }
   }, [timelines]);
+
+  useEffect(() => {
+    if (!location.state?.scrollToDeadlines || scrolledToDeadlines.current || !showCalculatedResults) return;
+    if (!deadlinesSectionRef.current) return;
+    scrolledToDeadlines.current = true;
+    deadlinesSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, [location.state, showCalculatedResults]);
 
   const handleCalculate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -354,7 +364,7 @@ const Timelines = () => {
         {showCalculatedResults && (
           <>
             <div className="timelines-divider" />
-            <section className="timelines-calculated">
+            <section className="timelines-calculated" ref={deadlinesSectionRef}>
               <h2 className="timelines-calculated__title">Calculated Timelines For This Fiscal Year</h2>
               <div className="timelines-calculated__grid">
                 {nextProjectedAGMDate != null && (

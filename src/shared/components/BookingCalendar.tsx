@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import type { BookingCalendarProps } from '../types/appointment.types';
 
 const DAYS_OF_WEEK = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const MAX_LABELS = 3;
 
 const getMonthData = (year: number, month: number) => {
   const firstDay = new Date(year, month, 1).getDay();
@@ -29,6 +30,7 @@ const BookingCalendar = ({
   bookedDate,
   variant = 'booking',
   onMilestoneCellClick,
+  hideLabels = false,
 }: BookingCalendarProps) => {
   const today = new Date();
   const [viewYear, setViewYear] = useState(today.getFullYear());
@@ -135,9 +137,19 @@ const BookingCalendar = ({
         {!isTimelinesVariant && bookedDate && dateStr === bookedDate && (
           <span className="booking-calendar__cell-label">Appointment Booked</span>
         )}
-        {milestoneLabels && milestoneLabels.map((label, idx) => (
-          <span key={`${dateStr}-${idx}`} className="booking-calendar__cell-label">{label}</span>
-        ))}
+        {milestoneLabels && milestoneLabels.length > 0 && !hideLabels && (
+          <>
+            <span className="booking-calendar__cell-count">{milestoneLabels.length}</span>
+            <span className="booking-calendar__cell-label-wrap">
+              {milestoneLabels.slice(0, MAX_LABELS).map((label, idx) => (
+                <span key={`${dateStr}-${idx}`} className="booking-calendar__cell-label">{label}</span>
+              ))}
+              {milestoneLabels.length > MAX_LABELS && (
+                <span className="booking-calendar__cell-overflow">+{milestoneLabels.length - MAX_LABELS} more</span>
+              )}
+            </span>
+          </>
+        )}
       </div>
     );
   }

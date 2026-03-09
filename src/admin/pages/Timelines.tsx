@@ -14,66 +14,13 @@ import type { UpdateTimelinesInput, DeadlineType, DeadlineRow, EditFormData } fr
 import type { CalendarMilestone } from '../../shared/types/appointment.types';
 import { API_BASE } from '../../shared/lib/api';
 import { parseLocalDate, toDateInputValue } from '../../shared/lib/dateUtils';
-
-function buildAnniversaryDate(year: number, month: number, day: number): Date {
-  const candidate = new Date(year, month, day);
-  if (candidate.getMonth() !== month) {
-    return new Date(year, month + 1, 0);
-  }
-  return candidate;
-}
-
-function getNextAnniversary(baseDate: Date, referenceDate: Date): Date {
-  const month = baseDate.getMonth();
-  const day = baseDate.getDate();
-  let year = referenceDate.getFullYear();
-  for (let i = 0; i < 10; i++) {
-    const candidate = buildAnniversaryDate(year, month, day);
-    if (candidate > referenceDate) return candidate;
-    year++;
-  }
-  return buildAnniversaryDate(referenceDate.getFullYear() + 1, month, day);
-}
-
-function formatDateDisplay(date: Date): string {
-  return date.toLocaleDateString('en-AU', { day: '2-digit', month: '2-digit', year: 'numeric' });
-}
-
-function formatYMD(date: Date): string {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`;
-}
-
-function getDeadlineAbbrev(deadlineType: DeadlineType): 'D' | 'I' | 'O' | 'T' {
-  if (deadlineType === 'Target Date') return 'T';
-  if (deadlineType === 'Appointment') return 'I';
-  if (deadlineType === 'File Opened' || deadlineType === 'Most Recent Document Upload') return 'D';
-  return 'O';
-}
-
-function daysBetween(a: Date, b: Date): number {
-  const ms = b.getTime() - a.getTime();
-  return Math.floor(ms / (1000 * 60 * 60 * 24));
-}
-
-function hasConfirmedTimelines(sr: FileNumber): boolean {
-  return (
-    sr.fiscalYearEnd != null ||
-    sr.lastAgmDate != null ||
-    sr.noAgmToDate === true ||
-    sr.lastDepreciationReportDate != null ||
-    sr.noReportToDate === true ||
-    sr.targetDate != null
-  );
-}
+import { buildAnniversaryDate, getNextAnniversary, formatDateDisplay, formatYMD, getDeadlineAbbrev, daysBetween, hasConfirmedTimelines } from '../../shared/lib/timelineUtils';
 
 
 export default function TimelinesPage() {
   const { fileNumbers, loading, error, refetch } = useFileNumbers();
   const authFetch = useAuthFetch();
-  const isDesktop = useMediaQuery('(min-width: 750px)');
+  const isDesktop = useMediaQuery('(min-width: 900px)');
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [viewingRows, setViewingRows] = useState<DeadlineRow[] | null>(null);
@@ -306,7 +253,7 @@ export default function TimelinesPage() {
   const calendarMilestones = useMemo((): CalendarMilestone[] => {
     return filteredRows.map(row => ({
       date: formatYMD(row.date),
-      label: `${String(row.fileNumber.fileNumberId).padStart(9, '0')}:${row.strataPlan}:${getDeadlineAbbrev(row.deadlineType)}`,
+      label: `${String(row.fileNumber.fileNumberId).padStart(9, '0')}\n${row.strataPlan}:${getDeadlineAbbrev(row.deadlineType)}`,
     }));
   }, [filteredRows]);
 
@@ -318,7 +265,7 @@ export default function TimelinesPage() {
     return [
       { label: 'Strata Plan', value: row.strataPlan },
       { label: 'Complex Name', value: row.complexName },
-      { label: 'File Number', value: `FN ${String(row.fileNumber.fileNumberId).padStart(9, '0')}` },
+      { label: 'File Number', value: String(row.fileNumber.fileNumberId).padStart(9, '0') },
       { label: 'Deadline Type', value: row.deadlineType },
       { label: 'Date', value: formatDateDisplay(row.date) },
       { label: 'Days Open', value: opened ? String(daysBetween(opened, today)) : '—' },
@@ -745,7 +692,7 @@ export default function TimelinesPage() {
           setIsViewModalOpen(false);
           setViewingRows(null);
         }}
-        title="View Timeline"
+        title={viewingRows && viewingRows.length > 1 ? `View Timelines (${viewingRows.length})` : 'View Timeline'}
         size="medium"
         footer={
           <>
@@ -758,7 +705,7 @@ export default function TimelinesPage() {
             >
               Close
             </button>
-            {viewingRows && viewingRows.length === 1 && viewMode === 'list' && (
+            {viewingRows && viewingRows.length === 1 && viewMode === 'list' && !isDesktop && (
               <button
                 className="btn-primary"
                 onClick={() => {

@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useDocuments } from '../../shared/hooks/useDocuments';
 import { useStrata } from '../../shared/hooks/useStrata';
 import { useLookups } from '../../shared/hooks/useLookups';
@@ -22,11 +23,12 @@ export default function DocumentsPage() {
   const { documentTypes, reviewStatuses } = useLookups();
   const { session, user } = useAuth();
   const authFetch = useAuthFetch();
+  const location = useLocation();
 
   const [filteredDocuments, setFilteredDocuments] = useState<DocumentWithDetails[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterDocType, setFilterDocType] = useState('');
-  const [filterStrataName, setFilterStrataName] = useState('');
+  const [filterStrataName, setFilterStrataName] = useState<string>(location.state?.strataId || '');
   const [filterStrataPlan, setFilterStrataPlan] = useState('');
   const [showArchived, setShowArchived] = useState(false);
 
@@ -54,7 +56,7 @@ export default function DocumentsPage() {
   const [previewDocumentName, setPreviewDocumentName] = useState('');
   const [previewDocument, setPreviewDocument] = useState<DocumentWithDetails | null>(null);
 
-  const isDesktop = useMediaQuery('(min-width: 750px)');
+  const isDesktop = useMediaQuery('(min-width: 900px)');
 
   useEffect(() => {
     if (!uploadForm.strataId || !STRATA_ID_PATTERN.test(uploadForm.strataId)) {
@@ -129,6 +131,28 @@ export default function DocumentsPage() {
 
     setFilteredDocuments(result);
   }, [documents, searchQuery, filterDocType, filterStrataName, filterStrataPlan, showArchived]);
+
+  const autoOpenedUploadRef = useRef(false);
+  useEffect(() => {
+    if (!location.state?.openUpload || autoOpenedUploadRef.current) return;
+    autoOpenedUploadRef.current = true;
+    openUploadModal();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.state]);
+
+  const autoOpenedRef = useRef(false);
+  useEffect(() => {
+    const documentId = location.state?.documentId as number | undefined;
+    if (!documentId || autoOpenedRef.current || loading || documents.length === 0) return;
+    const match = documents.find(d => d.fileNumberDocumentId === documentId);
+    if (match) {
+      autoOpenedRef.current = true;
+      setPreviewDocumentId(match.fileNumberDocumentId);
+      setPreviewDocumentName(match.fileName);
+      setPreviewDocument(match);
+      setPreviewModalOpen(true);
+    }
+  }, [documents, loading, location.state]);
 
   const columns: Column<DocumentWithDetails>[] = [
     {

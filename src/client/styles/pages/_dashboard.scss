@@ -1,0 +1,136 @@
+@use '../../../shared/styles/variables' as *;
+
+.client-dashboard {
+  .dashboard-subtitle {
+    color: $color-text-secondary;
+    font-size: 1.05rem;
+  }
+}
+
+.client-progress-card {
+  background: $color-primary-dark;
+  border-radius: $border-radius-xl;
+  padding: $spacing-lg;
+  margin-bottom: $spacing-lg;
+
+  &__top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: $spacing-sm;
+  }
+
+  &__title-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  &__title {
+    font-size: 1.25rem;
+    font-weight: $font-weight-bold;
+    color: $color-text-white;
+  }
+
+  &__subtitle {
+    font-size: 0.9rem;
+    color: rgba($color-white, 0.75);
+  }
+
+  &__pct-wrap {
+    text-align: right;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+  }
+
+  &__pct {
+    font-size: 2.5rem;
+    font-weight: $font-weight-bold;
+    line-height: 1;
+    color: $color-text-white;
+  }
+
+  &__pct-label {
+    font-size: 0.8rem;
+    color: rgba($color-white, 0.7);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .client-progress-bar-track {
+    height: 8px;
+    border-radius: 999px;
+    background: rgba($color-white, 0.25);
+    overflow: hidden;
+    margin-bottom: $spacing-sm;
+  }
+
+  .client-progress-bar-fill {
+    height: 100%;
+    border-radius: 999px;
+    background: $color-white;
+    transition: width 0.4s ease;
+  }
+
+  &__stats {
+    display: flex;
+    gap: $spacing-md;
+    flex-wrap: wrap;
+    font-size: 0.85rem;
+    color: rgba($color-white, 0.8);
+  }
+}
+
+.client-tasks-heading {
+  margin: 0 0 $spacing-md;
+  font-size: 1.9rem;
+  font-weight: $font-weight-bold;
+  color: $color-text-dark;
+}
+
+.priority-tasks-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: $spacing-md;
+
+  @include respond-to(md) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.priority-task-card {
+  background: $color-white;
+  border: 1px solid $color-border-light;
+  border-radius: $border-radius-xl;
+  padding: $spacing-lg;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+  box-shadow: $shadow-sm;
+
+  &--active {
+    border: 2px solid $color-primary;
+  }
+
+  &__title {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: $font-weight-bold;
+    color: $color-text-dark;
+  }
+
+  &__desc {
+    margin: 0;
+    font-size: 0.9rem;
+    color: $color-text-secondary;
+    flex: 1;
+    line-height: $line-height-base;
+  }
+
+  .btn-action {
+    width: 100%;
+    text-align: center;
+    margin-top: auto;
+  }
+}

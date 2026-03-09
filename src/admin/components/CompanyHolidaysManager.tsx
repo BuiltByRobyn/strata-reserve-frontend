@@ -7,10 +7,8 @@ import { LoadingSpinner } from '../../shared/components/LoadingSpinner';
 import { InputField } from '../../shared/components/FormField';
 import { formatDateShort } from '../../shared/lib/formatters';
 import { parseLocalDate } from '../../shared/lib/dateUtils';
-import type { CompanyHoliday } from '../../shared/types/entities.types';
 import { CompanyHolidayModal } from './CompanyHolidayModal';
-
-type DisplayHoliday = CompanyHoliday & { displayYear: number; displayDate: string };
+import type { DisplayHoliday } from './CompanyHolidaysManager.type';
 
 // TODO: Add Holiday start time, end time in database and UI
 export const CompanyHolidaysManager = () => {

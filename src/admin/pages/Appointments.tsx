@@ -1,4 +1,5 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { useAppointments } from '../../shared/hooks/useAppointments';
 import { useUsers } from '../../shared/hooks/useUsers';
@@ -20,6 +21,7 @@ import { formatDateShort, formatTime12h, getUserDisplayName } from '../../shared
 import { getInspectorOptions } from '../../shared/utils/userUtils';
 import { getSlotTimeRange } from '../../shared/lib/dateUtils';
 import { LOCATION_DISPLAY_ORDER } from '../../shared/lib/constants';
+import { formatYMD } from '../../shared/lib/timelineUtils';
 
 const getStatusClass = (status: string): string => {
   switch (status.toLowerCase()) {
@@ -44,16 +46,8 @@ const getInspectorNames = (
   return names.length > 0 ? names.join(', ') : '-';
 };
 
-function formatYMD(dateStr: string): string {
-  const d = new Date(dateStr);
-  const useUTC = dateStr.endsWith('Z') || dateStr.includes('T00:00:00');
-  const y = useUTC ? d.getUTCFullYear() : d.getFullYear();
-  const m = String((useUTC ? d.getUTCMonth() : d.getMonth()) + 1).padStart(2, '0');
-  const day = String(useUTC ? d.getUTCDate() : d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
-}
-
 export default function AppointmentsPage() {
+  const location = useLocation();
   const {
     appointments, loading, error,
     requests, requestsLoading,
@@ -83,8 +77,8 @@ export default function AppointmentsPage() {
   const [filterStrataPlan, setFilterStrataPlan] = useState('');
   const [filterInspector, setFilterInspector] = useState('');
   const [filterLocation, setFilterLocation] = useState('all');
-  const [dateFrom, setDateFrom] = useState('');
-  const [dateTo, setDateTo] = useState('');
+  const [dateFrom, setDateFrom] = useState<string>(location.state?.dateFrom || '');
+  const [dateTo, setDateTo] = useState<string>(location.state?.dateTo || '');
   const [showPastDates, setShowPastDates] = useState(false);
   const [showCancelled, setShowCancelled] = useState(false);
 
@@ -189,6 +183,15 @@ export default function AppointmentsPage() {
   useEffect(() => {
     fetchTimeSlots().then(slots => setAllTimeSlots((slots || []).filter((s: any, i: number, arr: any[]) => arr.findIndex((t: any) => t.slotTime === s.slotTime) === i)));
   }, [fetchTimeSlots]);
+
+  const autoOpenedRef = useRef(false);
+  useEffect(() => {
+    if (location.state?.openCreate && !autoOpenedRef.current) {
+      autoOpenedRef.current = true;
+      openCreateModal();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Pre-fill inspector from offer when selecting a request
   useEffect(() => {
@@ -357,16 +360,14 @@ export default function AppointmentsPage() {
   }, [unifiedRows, showPastDates, showCancelled, filterStrataName, filterStrataPlan, filterInspector, filterLocation, dateFrom, dateTo, today]);
 
   const appointmentCalendarMilestones = useMemo((): CalendarMilestone[] => {
-    const result = filteredRows.map(row => {
+    return filteredRows.map(row => {
       const fileNumberId = (row.original as { fileNumber?: { fileNumberId: number } }).fileNumber?.fileNumberId ?? 0;
       const abbrev = row.type === 'appointment' ? 'A' : 'R';
-      const milestoneDate = formatYMD(row.date);
       return {
-        date: milestoneDate,
-        label: `${String(fileNumberId).padStart(9, '0')}:${row.strataPlan}:${abbrev}`,
+        date: formatYMD(row.date),
+        label: `${String(fileNumberId).padStart(9, '0')}\n${row.strataPlan}:${abbrev}`,
       };
     });
-    return result;
   }, [filteredRows]);
 
   const getViewAppointmentRows = (row: UnifiedRow) => [

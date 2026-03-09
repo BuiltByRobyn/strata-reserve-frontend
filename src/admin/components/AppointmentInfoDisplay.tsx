@@ -1,13 +1,5 @@
 import { formatDateMedium, formatTime12h } from '../../shared/lib/formatters';
-
-interface AppointmentInfoDisplayProps {
-  date: string;
-  slotTime: string;
-  typeName: string;
-  inspectorName: string;
-  secondInspectorName?: string | null;
-  locationName?: string | null;
-}
+import type { AppointmentInfoDisplayProps } from './AppointmentInfoDisplay.type';
 
 export const AppointmentInfoDisplay = ({
   date,
