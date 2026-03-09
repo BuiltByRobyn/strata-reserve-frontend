@@ -14,60 +14,7 @@ import type { UpdateTimelinesInput, DeadlineType, DeadlineRow, EditFormData } fr
 import type { CalendarMilestone } from '../../shared/types/appointment.types';
 import { API_BASE } from '../../shared/lib/api';
 import { parseLocalDate, toDateInputValue } from '../../shared/lib/dateUtils';
-
-function buildAnniversaryDate(year: number, month: number, day: number): Date {
-  const candidate = new Date(year, month, day);
-  if (candidate.getMonth() !== month) {
-    return new Date(year, month + 1, 0);
-  }
-  return candidate;
-}
-
-function getNextAnniversary(baseDate: Date, referenceDate: Date): Date {
-  const month = baseDate.getMonth();
-  const day = baseDate.getDate();
-  let year = referenceDate.getFullYear();
-  for (let i = 0; i < 10; i++) {
-    const candidate = buildAnniversaryDate(year, month, day);
-    if (candidate > referenceDate) return candidate;
-    year++;
-  }
-  return buildAnniversaryDate(referenceDate.getFullYear() + 1, month, day);
-}
-
-function formatDateDisplay(date: Date): string {
-  return date.toLocaleDateString('en-AU', { day: '2-digit', month: '2-digit', year: 'numeric' });
-}
-
-function formatYMD(date: Date): string {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`;
-}
-
-function getDeadlineAbbrev(deadlineType: DeadlineType): 'D' | 'I' | 'O' | 'T' {
-  if (deadlineType === 'Target Date') return 'T';
-  if (deadlineType === 'Appointment') return 'I';
-  if (deadlineType === 'File Opened' || deadlineType === 'Most Recent Document Upload') return 'D';
-  return 'O';
-}
-
-function daysBetween(a: Date, b: Date): number {
-  const ms = b.getTime() - a.getTime();
-  return Math.floor(ms / (1000 * 60 * 60 * 24));
-}
-
-function hasConfirmedTimelines(sr: FileNumber): boolean {
-  return (
-    sr.fiscalYearEnd != null ||
-    sr.lastAgmDate != null ||
-    sr.noAgmToDate === true ||
-    sr.lastDepreciationReportDate != null ||
-    sr.noReportToDate === true ||
-    sr.targetDate != null
-  );
-}
+import { buildAnniversaryDate, getNextAnniversary, formatDateDisplay, formatYMD, getDeadlineAbbrev, daysBetween, hasConfirmedTimelines } from '../../shared/lib/timelineUtils';
 
 
 export default function TimelinesPage() {
@@ -76,7 +23,7 @@ export default function TimelinesPage() {
   const isDesktop = useMediaQuery('(min-width: 750px)');
 
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [viewingRow, setViewingRow] = useState<DeadlineRow | null>(null);
+  const [viewingRows, setViewingRows] = useState<DeadlineRow[]>([]);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState<FileNumber | null>(null);
   const [editingDeadlineType, setEditingDeadlineType] = useState<DeadlineType | null>(null);
@@ -205,15 +152,6 @@ export default function TimelinesPage() {
         rows.push({ id: `${srId}-survey-answer`, date: latestSurveyAnswer, deadlineType: 'Last Survey Answer Date', strataPlan, complexName, strataId, fileNumber: sr });
       }
 
-      // Appointments
-      if (sr.appointments) {
-        for (const apt of sr.appointments) {
-          const aptDate = parseLocalDate(apt.appointmentDate);
-          if (aptDate) {
-            rows.push({ id: `${srId}-apt-${apt.appointmentId}`, date: aptDate, deadlineType: 'Appointment', strataPlan, complexName, strataId, fileNumber: sr });
-          }
-        }
-      }
     }
 
     rows.sort((a, b) => a.date.getTime() - b.date.getTime());
@@ -276,7 +214,6 @@ export default function TimelinesPage() {
         documentUpload: ['Most Recent Document Upload'],
         surveySubmitted: ['Survey Submitted'],
         surveyAnswer: ['Last Survey Answer Date'],
-        appointment: ['Appointment'],
       };
       const matches = typeMap[filterDeadlineType];
       if (matches) rows = rows.filter(r => matches.includes(r.deadlineType));
@@ -317,7 +254,7 @@ export default function TimelinesPage() {
   const calendarMilestones = useMemo((): CalendarMilestone[] => {
     return filteredRows.map(row => ({
       date: formatYMD(row.date),
-      label: `${String(row.fileNumber.fileNumberId).padStart(9, '0')}:${row.strataPlan}:${getDeadlineAbbrev(row.deadlineType)}`,
+      label: `${String(row.fileNumber.fileNumberId).padStart(9, '0')}\n${row.strataPlan}:${getDeadlineAbbrev(row.deadlineType)}`,
     }));
   }, [filteredRows]);
 
@@ -329,7 +266,7 @@ export default function TimelinesPage() {
     return [
       { label: 'Strata Plan', value: row.strataPlan },
       { label: 'Complex Name', value: row.complexName },
-      { label: 'File Number', value: `FN ${String(row.fileNumber.fileNumberId).padStart(9, '0')}` },
+      { label: 'File Number', value: String(row.fileNumber.fileNumberId).padStart(9, '0') },
       { label: 'Deadline Type', value: row.deadlineType },
       { label: 'Date', value: formatDateDisplay(row.date) },
       { label: 'Days Open', value: opened ? String(daysBetween(opened, today)) : '—' },
@@ -661,7 +598,6 @@ export default function TimelinesPage() {
             { value: 'documentUpload', label: 'Document Upload' },
             { value: 'surveySubmitted', label: 'Survey Submitted' },
             { value: 'surveyAnswer', label: 'Last Survey Answer' },
-            { value: 'appointment', label: 'Appointment' },
           ]}
           placeholder="All Types"
         />
@@ -719,7 +655,7 @@ export default function TimelinesPage() {
         loading={loading}
         emptyMessage="No deadlines found."
         onRowClick={(row) => {
-          setViewingRow(row);
+          setViewingRows([row]);
           setIsViewModalOpen(true);
         }}
         actions={isDesktop ? (row) => (
@@ -743,7 +679,7 @@ export default function TimelinesPage() {
             onMilestoneCellClick={(date) => {
               const rowsForDate = filteredRows.filter(r => formatYMD(r.date) === date);
               if (rowsForDate.length > 0) {
-                setViewingRow(rowsForDate[0]);
+                setViewingRows(rowsForDate);
                 setIsViewModalOpen(true);
               }
             }}
@@ -752,51 +688,51 @@ export default function TimelinesPage() {
       )}
 
       <Modal
-        isOpen={isViewModalOpen}
+        isOpen={isViewModalOpen && viewingRows.length > 0}
         onClose={() => {
           setIsViewModalOpen(false);
-          setViewingRow(null);
+          setViewingRows([]);
         }}
-        title="View Timeline"
+        title={viewingRows.length > 1 ? `View Timelines (${viewingRows.length})` : 'View Timeline'}
         size="medium"
         footer={
-          <>
-            <button
-              className={isDesktop ? "btn-secondary" : "btn-secondary"}
-              onClick={() => {
-                setIsViewModalOpen(false);
-                setViewingRow(null);
-              }}
-            >
-              Close
-            </button>
-            {viewingRow && (
-              <button
-                className="btn-primary"
-                onClick={() => {
-                  setIsViewModalOpen(false);
-                  openEditModal(viewingRow.fileNumber, viewingRow.deadlineType);
-                  setViewingRow(null);
-                }}
-              >
-                Edit
-              </button>
-            )}
-          </>
+          <button
+            className="btn-secondary"
+            onClick={() => {
+              setIsViewModalOpen(false);
+              setViewingRows([]);
+            }}
+          >
+            Close
+          </button>
         }
       >
-        {viewingRow && (
-          <table className="view-detail-table">
-            <tbody>
-              {getViewTimelineRows(viewingRow).map((row) => (
-                <tr key={row.label}>
-                  <th scope="row">{row.label}</th>
-                  <td>{row.value}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
+        {viewingRows.map((row, idx) => (
+          <div key={row.id}>
+            {idx > 0 && <hr style={{ margin: '1rem 0' }} />}
+            <table className="view-detail-table">
+              <tbody>
+                {getViewTimelineRows(row).map((r) => (
+                  <tr key={r.label}>
+                    <th scope="row">{r.label}</th>
+                    <td>{r.value}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <button
+              className="btn-primary btn-sm"
+              style={{ marginTop: '0.5rem' }}
+              onClick={() => {
+                setIsViewModalOpen(false);
+                openEditModal(row.fileNumber, row.deadlineType);
+                setViewingRows([]);
+              }}
+            >
+              Edit
+            </button>
+          </div>
+        ))}
       </Modal>
 
       <Modal

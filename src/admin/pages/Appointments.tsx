@@ -20,6 +20,7 @@ import { formatDateShort, formatTime12h, getUserDisplayName } from '../../shared
 import { getInspectorOptions } from '../../shared/utils/userUtils';
 import { getSlotTimeRange } from '../../shared/lib/dateUtils';
 import { LOCATION_DISPLAY_ORDER } from '../../shared/lib/constants';
+import { formatYMD } from '../../shared/lib/timelineUtils';
 
 const getStatusClass = (status: string): string => {
   switch (status.toLowerCase()) {
@@ -43,14 +44,6 @@ const getInspectorNames = (
   if (secondInspector) names.push(getUserDisplayName(secondInspector, '-'));
   return names.length > 0 ? names.join(', ') : '-';
 };
-
-function formatYMD(dateStr: string): string {
-  const d = new Date(dateStr);
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
-}
 
 export default function AppointmentsPage() {
   const {
@@ -88,7 +81,7 @@ export default function AppointmentsPage() {
   const [showCancelled, setShowCancelled] = useState(false);
 
   const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
-  const [viewModalRow, setViewModalRow] = useState<UnifiedRow | null>(null);
+  const [viewModalRows, setViewModalRows] = useState<UnifiedRow[]>([]);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
 
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -361,7 +354,7 @@ export default function AppointmentsPage() {
       const abbrev = row.type === 'appointment' ? 'A' : 'R';
       return {
         date: formatYMD(row.date),
-        label: `${String(fileNumberId).padStart(9, '0')}:${row.strataPlan}:${abbrev}`,
+        label: `${String(fileNumberId).padStart(9, '0')}\n${row.strataPlan}:${abbrev}`,
       };
     });
   }, [filteredRows]);
@@ -972,7 +965,7 @@ export default function AppointmentsPage() {
             onMilestoneCellClick={(date) => {
               const rowsForDate = filteredRows.filter(r => formatYMD(r.date) === date);
               if (rowsForDate.length > 0) {
-                setViewModalRow(rowsForDate[0]);
+                setViewModalRows(rowsForDate);
                 setIsViewModalOpen(true);
               }
             }}
@@ -981,55 +974,55 @@ export default function AppointmentsPage() {
       )}
 
       <Modal
-        isOpen={isViewModalOpen && viewModalRow !== null}
+        isOpen={isViewModalOpen && viewModalRows.length > 0}
         onClose={() => {
           setIsViewModalOpen(false);
-          setViewModalRow(null);
+          setViewModalRows([]);
         }}
-        title="View Appointment"
+        title={viewModalRows.length > 1 ? `View Appointments (${viewModalRows.length})` : 'View Appointment'}
         size="medium"
         footer={
-          <>
-            <button
-              className="btn-secondary"
-              onClick={() => {
-                setIsViewModalOpen(false);
-                setViewModalRow(null);
-              }}
-            >
-              Close
-            </button>
-            {viewModalRow && (
-              <button
-                className="btn-primary"
-                onClick={() => {
-                  setIsViewModalOpen(false);
-                  if (viewModalRow.type === 'appointment') {
-                    setSelectedItem({ type: 'appointment', data: viewModalRow.original as AppointmentWithDetails });
-                  } else {
-                    setSelectedItem({ type: 'request', data: viewModalRow.original as AppointmentRequest });
-                  }
-                  setViewModalRow(null);
-                }}
-              >
-                View full details
-              </button>
-            )}
-          </>
+          <button
+            className="btn-secondary"
+            onClick={() => {
+              setIsViewModalOpen(false);
+              setViewModalRows([]);
+            }}
+          >
+            Close
+          </button>
         }
       >
-        {viewModalRow && (
-          <table className="view-detail-table">
-            <tbody>
-              {getViewAppointmentRows(viewModalRow).map((row) => (
-                <tr key={row.label}>
-                  <th scope="row">{row.label}</th>
-                  <td>{row.value}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
+        {viewModalRows.map((row, idx) => (
+          <div key={row.id}>
+            {idx > 0 && <hr style={{ margin: '1rem 0' }} />}
+            <table className="view-detail-table">
+              <tbody>
+                {getViewAppointmentRows(row).map((r) => (
+                  <tr key={r.label}>
+                    <th scope="row">{r.label}</th>
+                    <td>{r.value}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <button
+              className="btn-primary btn-sm"
+              style={{ marginTop: '0.5rem' }}
+              onClick={() => {
+                setIsViewModalOpen(false);
+                if (row.type === 'appointment') {
+                  setSelectedItem({ type: 'appointment', data: row.original as AppointmentWithDetails });
+                } else {
+                  setSelectedItem({ type: 'request', data: row.original as AppointmentRequest });
+                }
+                setViewModalRows([]);
+              }}
+            >
+              View full details
+            </button>
+          </div>
+        ))}
       </Modal>
 
       <Modal
