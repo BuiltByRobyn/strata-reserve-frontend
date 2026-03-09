@@ -45,6 +45,7 @@ export interface ActivityCard {
   timestamp: string;
   actionLabel: string;
   actionPath: string;
+  actionState?: Record<string, unknown>;
 }
 
 // ─── Client Dashboard Types ───────────────────────────────────────────────────

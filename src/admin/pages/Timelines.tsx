@@ -20,7 +20,7 @@ import { buildAnniversaryDate, getNextAnniversary, formatDateDisplay, formatYMD,
 export default function TimelinesPage() {
   const { fileNumbers, loading, error, refetch } = useFileNumbers();
   const authFetch = useAuthFetch();
-  const isDesktop = useMediaQuery('(min-width: 750px)');
+  const isDesktop = useMediaQuery('(min-width: 900px)');
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [viewingRows, setViewingRows] = useState<DeadlineRow[] | null>(null);
@@ -705,7 +705,7 @@ export default function TimelinesPage() {
             >
               Close
             </button>
-            {viewingRows && viewingRows.length === 1 && viewMode === 'list' && (
+            {viewingRows && viewingRows.length === 1 && viewMode === 'list' && !isDesktop && (
               <button
                 className="btn-primary"
                 onClick={() => {

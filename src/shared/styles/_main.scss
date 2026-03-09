@@ -19,6 +19,7 @@
 @use 'pages/profile';
 @use 'pages/legal';
 
+@use '../../admin/styles/pages/dashboard' as admin-dashboard;
 @use '../../admin/styles/pages/appointments';
 @use '../../admin/styles/pages/documents';
 @use '../../admin/styles/pages/profile' as admin-profile;
@@ -36,5 +37,6 @@
 @use '../../client/styles/pages/strata-members' as client-strata-members;
 @use '../../client/styles/pages/timelines' as client-timelines;
 @use '../../client/styles/pages/inspection-date' as client-inspection-date;
+@use '../../client/styles/pages/dashboard' as client-dashboard;
 
 @use 'utilities/responsive';

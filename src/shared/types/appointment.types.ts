@@ -64,6 +64,7 @@ export interface BookingCalendarProps {
   bookedDate?: string | null;
   variant?: 'booking' | 'timelines';
   onMilestoneCellClick?: (date: string) => void;
+  hideLabels?: boolean;
 }
 
 export interface TimeSlotPickerProps {

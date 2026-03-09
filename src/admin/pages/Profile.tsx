@@ -1,5 +1,6 @@
 // Admin Profile Page - Display and edit admin profile information
 import { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useAuth } from '../../shared/contexts/AuthContext';
 import { LoadingSpinner } from '../../shared/components/LoadingSpinner';
 import { useAuthFetch } from '../../shared/hooks/useAuthFetch';
@@ -16,6 +17,7 @@ import '../../admin/styles/pages/_profile.scss';
 export default function ProfilePage() {
   const { user } = useAuth();
   const authFetch = useAuthFetch();
+  const location = useLocation();
 
   // Profile data state
   const [profileData, setProfileData] = useState<ProfileData>({
@@ -34,7 +36,7 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState('holidays');
+  const [activeTab, setActiveTab] = useState(location.state?.tab || 'holidays');
   const isDesktop = useMediaQuery('(min-width: 750px)');
 
   // Fetch profile on mount

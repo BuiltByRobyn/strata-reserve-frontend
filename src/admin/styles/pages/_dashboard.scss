@@ -1,0 +1,382 @@
+@use '../../../shared/styles/variables' as *;
+
+.dashboard-overview {
+  margin-bottom: $spacing-xl;
+}
+
+.stats-row {
+  display: grid;
+  grid-template-columns: 10rem 10rem minmax(280px, 1fr);
+  grid-template-rows: auto auto;
+  gap: $spacing-md;
+  align-items: start;
+
+  @include respond-below(lg) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: auto;
+    align-items: stretch;
+  }
+
+  @include respond-below(sm) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.stat-card,
+.quick-actions-card {
+  border: 1px solid $color-border-light;
+  border-radius: $border-radius-xl;
+  background: $color-white;
+  box-shadow: $shadow-sm;
+}
+
+.stat-card {
+  width: 10rem;
+  height: 10rem;
+  // padding: $spacing-sm;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  align-self: center;
+  gap: $spacing-xs;
+  text-align: center;
+
+  @include respond-below(lg) {
+    width: auto;
+    height: auto;
+    max-height: 160px;
+    padding: 1rem $spacing-sm;
+  }
+
+  .stat-number {
+    color: $color-text-dark;
+    font-size: clamp(2rem, 2.6vw, 3rem);
+    font-weight: $font-weight-bold;
+    line-height: 1;
+  }
+
+  .stat-number--compact {
+    font-size: clamp(1.25rem, 2vw, 1.85rem);
+    line-height: 1.2;
+  }
+
+  .stat-label {
+    color: $color-text-light;
+    font-size: 1rem;
+    line-height: 1.35;
+  }
+
+  &--info {
+    border-color: rgba($color-border-medium, 0.45);
+
+    .stat-number {
+      color: $color-text-dark;
+    }
+  }
+
+  &--warning {
+    border: 2px solid rgba($color-warning-border, 0.8);
+
+    .stat-number {
+      color: $color-accent-brown;
+    }
+  }
+
+  &--accent {
+    border: 2px solid rgba($color-primary, 0.7);
+
+    .stat-number {
+      color: $color-text-dark;
+    }
+  }
+
+  &--success {
+    border: 2px solid rgba($color-success, 0.7);
+
+    .stat-number {
+      color: $color-text-dark;
+    }
+  }
+}
+
+.quick-actions-card {
+  grid-column: 3;
+  grid-row: 1 / -1;
+  padding: $spacing-lg;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+
+  h3 {
+    margin: 0 0 $spacing-xs;
+    color: $color-text-dark;
+    font-size: 1.9rem;
+    font-weight: $font-weight-bold;
+  }
+
+  @include respond-to(lg) {
+    align-self: center;
+    margin: 0 auto;
+    width: 90%;
+    max-width: 50rem;
+  }
+
+  @include respond-below(lg) {
+    grid-column: 1 / -1;
+    grid-row: auto;
+    gap: $spacing-md;
+    margin: 0;
+
+    h3 {
+      margin: 0 0 $spacing-xs;
+    }
+  }
+}
+
+.shortcuts-desktop-only {
+  @include respond-below(lg) {
+    display: none;
+  }
+}
+
+.quick-action-links {
+  display: grid;
+  grid-template-columns: 1fr;
+  align-content: space-between;
+  flex: 1;
+
+  @include respond-to(lg) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: $spacing-sm;
+  }
+
+  @include respond-between(md, lg) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: $spacing-sm;
+    flex: unset;
+  }
+}
+
+.quick-action-links .btn-action {
+  padding: 0.75rem 1rem;
+  width: 100%;
+  text-align: center;
+}
+
+.action-cards,
+.dashboard-appointments-grid,
+.dashboard-activity-grid {
+  display: grid;
+  gap: $spacing-md;
+}
+
+.action-cards,
+.dashboard-activity-grid {
+  grid-template-columns: 1fr;
+
+  @include respond-to(md) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  @include respond-to(lg) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.dashboard-appointments-grid {
+  grid-template-columns: 1fr;
+
+  @include respond-to(md) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.action-card,
+.appointment-card,
+.activity-card {
+  border-radius: $border-radius-xl;
+}
+
+.action-card {
+  padding: $spacing-lg;
+  border: 1px solid $color-border-light;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+  background: $color-white;
+  box-shadow: $shadow-sm;
+
+  &--overdue {
+    border-left: 4px solid $color-error;
+    background: rgba($color-error-bg, 0.35);
+  }
+
+  &--due-today {
+    border-left: 4px solid $color-warning-border;
+    background: rgba($color-warning-light, 0.45);
+  }
+
+  &--upcoming {
+    border-left: 4px solid $color-primary;
+  }
+}
+
+.action-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: $spacing-sm;
+}
+
+.urgency-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.3rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: $font-weight-bold;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+
+  &--overdue {
+    background: rgba($color-error, 0.1);
+    color: $color-error-dark;
+  }
+
+  &--due-today {
+    background: rgba($color-warning-border, 0.12);
+    color: $color-warning-text-dark;
+  }
+
+  &--upcoming {
+    background: rgba($color-primary, 0.12);
+    color: $color-primary-dark;
+  }
+}
+
+.action-card-meta {
+  color: $color-text-light;
+  font-size: 0.85rem;
+}
+
+.action-card-title,
+.appointment-card__title,
+.activity-card__title {
+  margin: 0;
+  color: $color-text-dark;
+  font-size: 1.6rem;
+  font-weight: $font-weight-bold;
+  line-height: 1.2;
+}
+
+.action-card-desc,
+.appointment-card__detail,
+.activity-card__detail {
+  margin: 0;
+  color: $color-text-secondary;
+  font-size: 1rem;
+  line-height: $line-height-base;
+}
+
+.action-card-actions {
+  margin-top: auto;
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-sm;
+}
+
+.appointment-card {
+  padding: $spacing-lg;
+  border: 2px solid rgba($color-primary, 0.6);
+  background: $color-white;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+  box-shadow: $shadow-sm;
+}
+
+.appointment-card__time {
+  color: $color-text-dark;
+  font-size: 1.25rem;
+  font-weight: $font-weight-bold;
+}
+
+.dashboard-activity-grid {
+  align-items: stretch;
+}
+
+.activity-card {
+  padding: $spacing-lg;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+  min-height: 250px;
+  color: $color-text-white;
+  background: $color-primary-dark;
+  box-shadow: $shadow-md;
+
+  .activity-card__meta,
+  .activity-card__title,
+  .activity-card__detail {
+    color: $color-text-white;
+  }
+}
+
+.activity-card__meta {
+  font-size: 0.9rem;
+  opacity: 0.85;
+}
+
+.activity-card__detail {
+  flex: 1;
+}
+
+.rejection-form {
+  p {
+    margin: 0 0 $spacing-sm;
+    color: $color-text-dark;
+  }
+
+  .form-textarea {
+    width: 100%;
+    min-height: 88px;
+    box-sizing: border-box;
+    padding: $spacing-sm;
+    border: 1px solid $color-border-light;
+    border-radius: $border-radius-lg;
+    font: inherit;
+    color: $color-text-dark;
+    line-height: $line-height-base;
+    resize: vertical;
+
+    &:focus {
+      outline: none;
+      border-color: $color-primary;
+    }
+  }
+}
+
+.action-card-progress {
+  margin-top: $spacing-xs;
+
+  .action-card-progress-bar-track {
+    height: 6px;
+    border-radius: 999px;
+    background: rgba($color-border-medium, 0.35);
+    overflow: hidden;
+  }
+
+  .action-card-progress-bar-fill {
+    height: 100%;
+    border-radius: 999px;
+    background: $color-primary;
+    transition: width 0.3s ease;
+  }
+
+  .action-card-progress-label {
+    margin-top: 4px;
+    font-size: 0.8rem;
+    color: $color-text-light;
+  }
+}

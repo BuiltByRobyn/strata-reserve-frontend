@@ -190,7 +190,9 @@
 }
 
 .view-modal-item-action {
-  margin-top: $spacing-sm;
+  display: block;
+  margin: $spacing-sm auto 0;
+  width: fit-content;
 }
 
 @include respond-below(lg) {

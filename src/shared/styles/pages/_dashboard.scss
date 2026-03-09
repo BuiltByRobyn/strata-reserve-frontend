@@ -35,138 +35,12 @@
   margin-bottom: $spacing-xl;
 }
 
-.stats-row {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr)) minmax(220px, 0.95fr);
-  gap: $spacing-md;
-  align-items: stretch;
-
-  @include respond-below(xl) {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  @include respond-below(sm) {
-    grid-template-columns: 1fr;
-  }
-}
-
-.stat-card,
-.quick-actions-card,
-.dashboard-surface,
-.appointment-status-panel,
-.empty-actions {
+.dashboard-surface {
+  padding: $spacing-xl;
   border: 1px solid $color-border-light;
   border-radius: $border-radius-xl;
   background: $color-white;
   box-shadow: $shadow-sm;
-}
-
-.stat-card {
-  min-height: 136px;
-  padding: $spacing-lg;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  gap: $spacing-xs;
-  text-align: center;
-
-  .stat-number {
-    color: $color-text-dark;
-    font-size: clamp(2rem, 2.6vw, 3rem);
-    font-weight: $font-weight-bold;
-    line-height: 1;
-  }
-
-  .stat-number--compact {
-    font-size: clamp(1.25rem, 2vw, 1.85rem);
-    line-height: 1.2;
-  }
-
-  .stat-label {
-    color: $color-text-light;
-    font-size: 1rem;
-    line-height: 1.35;
-  }
-
-  &--info {
-    border-color: rgba($color-border-medium, 0.45);
-
-    .stat-number {
-      color: $color-text-dark;
-    }
-  }
-
-  &--warning {
-    border-color: rgba($color-warning-border, 0.7);
-    background: linear-gradient(180deg, $color-white 0%, rgba($color-warning-light, 0.6) 100%);
-
-    .stat-number {
-      color: $color-accent-brown;
-    }
-  }
-
-  &--accent {
-    border-color: rgba($color-primary, 0.55);
-    background: linear-gradient(180deg, $color-white 0%, rgba($color-primary-lightest, 0.65) 100%);
-
-    .stat-number {
-      color: $color-primary-dark;
-    }
-  }
-
-  &--success {
-    border-color: rgba($color-success, 0.45);
-    background: linear-gradient(180deg, $color-white 0%, rgba($color-primary-lightest, 0.9) 100%);
-
-    .stat-number {
-      color: $color-success;
-    }
-  }
-}
-
-.quick-actions-card {
-  padding: $spacing-lg;
-  display: flex;
-  flex-direction: column;
-  gap: $spacing-sm;
-  justify-content: center;
-
-  h3 {
-    margin: 0 0 $spacing-xs;
-    color: $color-text-dark;
-    font-size: 1.1rem;
-    font-weight: $font-weight-bold;
-  }
-
-  @include respond-below(xl) {
-    grid-column: 1 / -1;
-  }
-}
-
-.quick-actions-card--client {
-  background: linear-gradient(180deg, $color-white 0%, rgba($color-secondary-lightest, 0.45) 100%);
-}
-
-.quick-action-link {
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: $color-primary;
-  text-align: left;
-  font-size: 1rem;
-  font-weight: $font-weight-medium;
-  cursor: pointer;
-  transition: color 0.2s ease;
-
-  &:hover {
-    color: $color-primary-dark;
-    text-decoration: underline;
-  }
-}
-
-.dashboard-surface {
-  padding: $spacing-xl;
 
   @include respond-below(sm) {
     padding: $spacing-lg;
@@ -222,6 +96,10 @@
 .empty-actions {
   padding: $spacing-xl;
   text-align: center;
+  border: 1px solid $color-border-light;
+  border-radius: $border-radius-xl;
+  background: $color-white;
+  box-shadow: $shadow-sm;
 
   p {
     margin: 0;
@@ -236,233 +114,6 @@
   display: flex;
   align-items: center;
   justify-content: center;
-}
-
-.action-cards,
-.dashboard-appointments-grid,
-.dashboard-activity-grid {
-  display: grid;
-  gap: $spacing-md;
-}
-
-.action-cards,
-.dashboard-activity-grid {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-
-  @include respond-below(lg) {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  @include respond-below(sm) {
-    grid-template-columns: 1fr;
-  }
-}
-
-.dashboard-appointments-grid {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-
-  @include respond-below(sm) {
-    grid-template-columns: 1fr;
-  }
-}
-
-.action-card,
-.appointment-card,
-.activity-card {
-  border-radius: $border-radius-xl;
-}
-
-.action-card {
-  padding: $spacing-lg;
-  border: 1px solid $color-border-light;
-  display: flex;
-  flex-direction: column;
-  gap: $spacing-sm;
-  background: $color-white;
-  box-shadow: $shadow-sm;
-
-  &--overdue {
-    border-left: 4px solid $color-error;
-    background: linear-gradient(180deg, $color-white 0%, rgba($color-error-bg, 0.45) 100%);
-  }
-
-  &--due-today {
-    border-left: 4px solid $color-warning-border;
-    background: linear-gradient(180deg, $color-white 0%, rgba($color-warning-light, 0.65) 100%);
-  }
-
-  &--upcoming {
-    border-left: 4px solid $color-primary;
-    background: linear-gradient(180deg, $color-white 0%, rgba($color-primary-lightest, 0.6) 100%);
-  }
-}
-
-.action-card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: $spacing-sm;
-}
-
-.urgency-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.3rem 0.65rem;
-  border-radius: 999px;
-  font-size: 0.72rem;
-  font-weight: $font-weight-bold;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-
-  &--overdue {
-    background: rgba($color-error, 0.1);
-    color: $color-error-dark;
-  }
-
-  &--due-today {
-    background: rgba($color-warning-border, 0.12);
-    color: $color-warning-text-dark;
-  }
-
-  &--upcoming {
-    background: rgba($color-primary, 0.12);
-    color: $color-primary-dark;
-  }
-}
-
-.action-card-meta {
-  color: $color-text-light;
-  font-size: 0.85rem;
-}
-
-.action-card-title,
-.appointment-card__title,
-.activity-card__title,
-.appointment-status-panel h3 {
-  margin: 0;
-  color: $color-text-dark;
-  font-size: 1.6rem;
-  font-weight: $font-weight-bold;
-  line-height: 1.2;
-}
-
-.action-card-desc,
-.appointment-card__detail,
-.activity-card__detail,
-.appointment-status-panel p {
-  margin: 0;
-  color: $color-text-secondary;
-  font-size: 1rem;
-  line-height: $line-height-base;
-}
-
-.action-card-actions {
-  margin-top: auto;
-  display: flex;
-  flex-wrap: wrap;
-  gap: $spacing-sm;
-}
-
-.appointment-card {
-  padding: $spacing-lg;
-  border: 1px solid rgba($color-primary, 0.35);
-  background: linear-gradient(180deg, $color-white 0%, rgba($color-primary-lightest, 0.5) 100%);
-  display: flex;
-  flex-direction: column;
-  gap: $spacing-sm;
-  box-shadow: $shadow-sm;
-}
-
-.appointment-card__time {
-  color: $color-text-dark;
-  font-size: 1.25rem;
-  font-weight: $font-weight-bold;
-}
-
-.dashboard-activity-grid {
-  align-items: stretch;
-}
-
-.activity-card {
-  padding: $spacing-lg;
-  display: flex;
-  flex-direction: column;
-  gap: $spacing-sm;
-  min-height: 250px;
-  color: $color-text-white;
-  background: linear-gradient(180deg, $color-primary-light 0%, $color-primary-dark 100%);
-  box-shadow: $shadow-md;
-
-  .activity-card__meta,
-  .activity-card__title,
-  .activity-card__detail {
-    color: $color-text-white;
-  }
-
-  &--document {
-    background: linear-gradient(180deg, $color-primary 0%, $color-primary-dark 100%);
-  }
-
-  &--survey {
-    background: linear-gradient(180deg, $color-secondary-dark 0%, $color-secondary 100%);
-  }
-
-  &--appointment {
-    background: linear-gradient(180deg, #4f6a46 0%, #2f4131 100%);
-  }
-
-  &--request {
-    background: linear-gradient(180deg, #5b6e4f 0%, #425137 100%);
-  }
-}
-
-.activity-card__meta {
-  font-size: 0.9rem;
-  opacity: 0.85;
-}
-
-.activity-card__detail {
-  flex: 1;
-}
-
-.appointment-status-panel {
-  padding: $spacing-lg;
-  display: grid;
-  grid-template-columns: minmax(0, 2fr) minmax(220px, 1fr);
-  gap: $spacing-lg;
-
-  @include respond-below(md) {
-    grid-template-columns: 1fr;
-  }
-}
-
-.appointment-status-panel__summary,
-.appointment-status-panel__actions {
-  display: flex;
-  flex-direction: column;
-  gap: $spacing-sm;
-}
-
-.appointment-status-panel__badge {
-  display: inline-flex;
-  align-self: flex-start;
-  padding: 0.3rem 0.65rem;
-  border-radius: 999px;
-  background: rgba($color-primary, 0.12);
-  color: $color-primary-dark;
-  font-size: 0.78rem;
-  font-weight: $font-weight-bold;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.appointment-status-panel__note {
-  padding: $spacing-md;
-  border-radius: $border-radius-lg;
-  background: rgba($color-secondary-lightest, 0.65);
-  color: $color-secondary-dark;
-  font-size: 0.95rem;
-  line-height: $line-height-base;
 }
 
 .btn-action {
@@ -489,13 +140,17 @@
   }
 
   &--secondary {
-    background: transparent;
-    color: $color-text-dark;
-    border-color: $color-border-medium;
+    background: $color-white;
+    color: $color-primary;
+    border-color: $color-primary;
 
     &:hover {
-      border-color: $color-text-dark;
-      color: $color-text-dark;
+      background: rgba($color-primary, 0.05);
+    }
+
+    &:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
     }
   }
 
@@ -507,38 +162,6 @@
 
     &:hover {
       background: $color-white;
-    }
-  }
-}
-
-.client-dashboard {
-  .dashboard-subtitle {
-    color: $color-text-secondary;
-    font-size: 1.05rem;
-  }
-}
-
-.rejection-form {
-  p {
-    margin: 0 0 $spacing-sm;
-    color: $color-text-dark;
-  }
-
-  .form-textarea {
-    width: 100%;
-    min-height: 88px;
-    box-sizing: border-box;
-    padding: $spacing-sm;
-    border: 1px solid $color-border-light;
-    border-radius: $border-radius-lg;
-    font: inherit;
-    color: $color-text-dark;
-    line-height: $line-height-base;
-    resize: vertical;
-
-    &:focus {
-      outline: none;
-      border-color: $color-primary;
     }
   }
 }

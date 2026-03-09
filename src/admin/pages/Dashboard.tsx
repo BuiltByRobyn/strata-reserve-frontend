@@ -7,8 +7,15 @@ import { useFileNumbers } from '../../shared/hooks/useFileNumbers';
 import { useLookups } from '../../shared/hooks/useLookups';
 import { usePropertyTypeRequests } from '../../shared/hooks/usePropertyTypeRequests';
 import { useStrata } from '../../shared/hooks/useStrata';
+import { useInspectorAvailability } from '../../shared/hooks/useInspectorAvailability';
 import { LoadingSpinner } from '../../shared/components/LoadingSpinner';
 import { Modal } from '../../shared/components/Modal';
+import { InspectorAvailabilityModal } from '../components/InspectorAvailabilityModal';
+import { CreateStrataModal } from '../components/CreateStrataModal';
+import { CreateUserModal } from '../components/CreateUserModal';
+import { CreateAppointmentModal } from '../components/CreateAppointmentModal';
+import { UploadDocumentModal } from '../components/UploadDocumentModal';
+import { CreateQuestionModal } from '../components/CreateQuestionModal';
 import { formatTime12h, getUserDisplayName, formatRelativeTime } from '../../shared/lib/formatters';
 import { parseLocalDate, parseTimestamp } from '../../shared/lib/dateUtils';
 import type { PropertyTypeRequest } from '../../shared/types/entities.types';
@@ -67,7 +74,14 @@ export const Dashboard = () => {
   } = useAppointments();
   const { documents, loading: documentsLoading } = useDocuments();
   const { fileNumbers, loading: fileNumbersLoading, refetch: fetchFileNumbers } = useFileNumbers();
+  const { createAvailableDate } = useInspectorAvailability();
 
+  const [availabilityModalOpen, setAvailabilityModalOpen] = useState(false);
+  const [strataModalOpen, setStrataModalOpen] = useState(false);
+  const [userModalOpen, setUserModalOpen] = useState(false);
+  const [appointmentModalOpen, setAppointmentModalOpen] = useState(false);
+  const [uploadDocumentModalOpen, setUploadDocumentModalOpen] = useState(false);
+  const [questionModalOpen, setQuestionModalOpen] = useState(false);
   const [reviewingRequest, setReviewingRequest] = useState<PropertyTypeRequest | null>(null);
   const [rejectionReason, setRejectionReason] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -112,17 +126,21 @@ export const Dashboard = () => {
     });
   }, [appointments]);
 
-  const todaysAppointments = useMemo(() => {
+  const upcomingAppointments = useMemo(() => {
     const today = startOfDay(new Date());
 
     return appointments
       .filter((appointment) => {
         if (appointment.status === 'Cancelled') return false;
         const appointmentDate = parseCalendarDate(appointment.appointmentDate);
-        return !!appointmentDate && startOfDay(appointmentDate).getTime() === today.getTime();
+        return !!appointmentDate && startOfDay(appointmentDate).getTime() >= today.getTime();
       })
-      .sort((left, right) => left.timeSlot.slotTime.localeCompare(right.timeSlot.slotTime))
-      .slice(0, 4);
+      .sort((left, right) => {
+        const dateDiff = left.appointmentDate.localeCompare(right.appointmentDate);
+        if (dateDiff !== 0) return dateDiff;
+        return left.timeSlot.slotTime.localeCompare(right.timeSlot.slotTime);
+      })
+      .slice(0, 3);
   }, [appointments]);
 
   const urgentCards: UrgentCard[] = useMemo(() => {
@@ -201,6 +219,10 @@ export const Dashboard = () => {
         timestamp: document.uploadedAt,
         actionLabel: 'View Documents',
         actionPath: '/admin/documents',
+        actionState: {
+          strataId: String(document.fileNumber.strata.strataId),
+          documentId: document.fileNumberDocumentId,
+        },
       });
     });
 
@@ -210,8 +232,8 @@ export const Dashboard = () => {
       cards.push({
         id: `request-opened-${request.fileNumberId}`,
         kind: 'request',
-        title: `${strataLabel} request opened`,
-        description: `${request.service?.serviceName || 'Service request'} is active and in ${request.status}.`,
+        title: `${strataLabel} file number opened`,
+        description: `File #${String(request.fileNumberId).padStart(9, '0')} · ${request.service?.serviceName || 'Service'} is active and in ${request.status}.`,
         timestamp: request.requestDate,
         actionLabel: 'Open Strata',
         actionPath: request.strataId ? `/admin/strata/${request.strataId}` : '/admin/strata',
@@ -330,16 +352,27 @@ export const Dashboard = () => {
           </div>
 
           <div className="quick-actions-card">
-            <h3>Quick Actions</h3>
-            <button className="quick-action-link" onClick={() => navigate('/admin/strata')}>
-              + Create New Strata
-            </button>
-            <button className="quick-action-link" onClick={() => navigate('/admin/users')}>
-              + Create New User
-            </button>
-            <button className="quick-action-link" onClick={() => navigate('/admin/appointments')}>
-              + Review Appointments
-            </button>
+            <h3>Shortcuts</h3>
+            <div className="quick-action-links">
+              <button className="btn-action btn-action--primary" onClick={() => setStrataModalOpen(true)}>
+                Create New Strata
+              </button>
+              <button className="btn-action btn-action--primary" onClick={() => setUserModalOpen(true)}>
+                Create New User
+              </button>
+              <button className="btn-action btn-action--primary" onClick={() => setAppointmentModalOpen(true)}>
+                New Appointment
+              </button>
+              <button className="btn-action btn-action--primary shortcuts-desktop-only" onClick={() => setUploadDocumentModalOpen(true)}>
+                Upload Document
+              </button>
+              <button className="btn-action btn-action--primary shortcuts-desktop-only" onClick={() => setQuestionModalOpen(true)}>
+                Add Question
+              </button>
+              <button className="btn-action btn-action--primary shortcuts-desktop-only" onClick={() => setAvailabilityModalOpen(true)}>
+                Add Inspector Availability
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -348,9 +381,6 @@ export const Dashboard = () => {
         <section className="dashboard-section">
           <div className="dashboard-section__header">
             <h2>Urgent Actions</h2>
-            <button className="dashboard-section__link" onClick={() => navigate('/admin/appointments')}>
-              View queue
-            </button>
           </div>
 
           {urgentCards.length === 0 ? (
@@ -429,36 +459,38 @@ export const Dashboard = () => {
 
         <section className="dashboard-section">
           <div className="dashboard-section__header">
-            <h2>Today&apos;s Appointments</h2>
-            <button className="dashboard-section__link" onClick={() => navigate('/admin/appointments')}>
-              View all
-            </button>
+            <h2>Upcoming Appointments</h2>
           </div>
 
-          {todaysAppointments.length === 0 ? (
+          {upcomingAppointments.length === 0 ? (
             <div className="empty-actions">
-              <p>No appointments scheduled for today.</p>
+              <p>No upcoming appointments.</p>
             </div>
           ) : (
             <div className="dashboard-appointments-grid">
-              {todaysAppointments.map((appointment) => (
-                <div key={appointment.appointmentId} className="appointment-card">
-                  <span className="appointment-card__time">{formatTime12h(appointment.timeSlot.slotTime)}</span>
-                  <h3 className="appointment-card__title">{getStrataLabel(appointment.fileNumber?.strata)}</h3>
-                  <p className="appointment-card__detail">
-                    {appointment.fileNumber?.strata.location?.locationName || appointment.fileNumber?.strata.town || 'Location to confirm'}
-                  </p>
-                  <p className="appointment-card__detail">
-                    {appointment.appointmentType.typeName} · Inspector: {getUserDisplayName(appointment.inspector, 'Unassigned')}
-                  </p>
-                  <button
-                    className="btn-action btn-action--secondary"
-                    onClick={() => navigate('/admin/appointments')}
-                  >
-                    View Details
-                  </button>
-                </div>
-              ))}
+              {upcomingAppointments.map((appointment) => {
+                const appointmentDay = startOfDay(parseCalendarDate(appointment.appointmentDate)!).getTime();
+                const todayMs = startOfDay(new Date()).getTime();
+                const isUrgent = appointmentDay === todayMs || appointmentDay === todayMs + 86400000;
+                return (
+                  <div key={appointment.appointmentId} className="appointment-card">
+                    <span className="appointment-card__time">{formatShortDate(appointment.appointmentDate)} · {formatTime12h(appointment.timeSlot.slotTime)}</span>
+                    <h3 className="appointment-card__title">{getStrataLabel(appointment.fileNumber?.strata)}</h3>
+                    <p className="appointment-card__detail">
+                      {appointment.fileNumber?.strata.location?.locationName || appointment.fileNumber?.strata.town || 'Location to confirm'}
+                    </p>
+                    <p className="appointment-card__detail">
+                      {appointment.appointmentType.typeName} · Inspector: {getUserDisplayName(appointment.inspector, 'Unassigned')}
+                    </p>
+                    <button
+                      className={`btn-action ${isUrgent ? 'btn-action--primary' : 'btn-action--secondary'}`}
+                      onClick={() => navigate('/admin/appointments')}
+                    >
+                      View Details
+                    </button>
+                  </div>
+                );
+              })}
             </div>
           )}
         </section>
@@ -466,9 +498,6 @@ export const Dashboard = () => {
         <section className="dashboard-section">
           <div className="dashboard-section__header">
             <h2>Recent Activity</h2>
-            <button className="dashboard-section__link" onClick={() => navigate('/admin/strata')}>
-              Open workspace
-            </button>
           </div>
 
           {activityCards.length === 0 ? (
@@ -484,7 +513,7 @@ export const Dashboard = () => {
                   <p className="activity-card__detail">{activity.description}</p>
                   <button
                     className="btn-action btn-action--ghost"
-                    onClick={() => navigate(activity.actionPath)}
+                    onClick={() => navigate(activity.actionPath, { state: activity.actionState })}
                   >
                     {activity.actionLabel}
                   </button>
@@ -520,6 +549,20 @@ export const Dashboard = () => {
           />
         </div>
       </Modal>
+
+      <InspectorAvailabilityModal
+        isOpen={availabilityModalOpen}
+        onClose={() => setAvailabilityModalOpen(false)}
+        initialData={null}
+        onSubmitCreate={createAvailableDate}
+        onSubmitUpdate={() => Promise.resolve()}
+        onDeleteClick={() => {}}
+      />
+      <CreateStrataModal isOpen={strataModalOpen} onClose={() => setStrataModalOpen(false)} />
+      <CreateUserModal isOpen={userModalOpen} onClose={() => setUserModalOpen(false)} />
+      <CreateAppointmentModal isOpen={appointmentModalOpen} onClose={() => setAppointmentModalOpen(false)} />
+      <UploadDocumentModal isOpen={uploadDocumentModalOpen} onClose={() => setUploadDocumentModalOpen(false)} />
+      <CreateQuestionModal isOpen={questionModalOpen} onClose={() => setQuestionModalOpen(false)} />
     </div>
   );
 };

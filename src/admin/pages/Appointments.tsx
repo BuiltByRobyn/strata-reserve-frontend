@@ -1,4 +1,5 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { useAppointments } from '../../shared/hooks/useAppointments';
 import { useUsers } from '../../shared/hooks/useUsers';
@@ -46,6 +47,7 @@ const getInspectorNames = (
 };
 
 export default function AppointmentsPage() {
+  const location = useLocation();
   const {
     appointments, loading, error,
     requests, requestsLoading,
@@ -75,8 +77,8 @@ export default function AppointmentsPage() {
   const [filterStrataPlan, setFilterStrataPlan] = useState('');
   const [filterInspector, setFilterInspector] = useState('');
   const [filterLocation, setFilterLocation] = useState('all');
-  const [dateFrom, setDateFrom] = useState('');
-  const [dateTo, setDateTo] = useState('');
+  const [dateFrom, setDateFrom] = useState<string>(location.state?.dateFrom || '');
+  const [dateTo, setDateTo] = useState<string>(location.state?.dateTo || '');
   const [showPastDates, setShowPastDates] = useState(false);
   const [showCancelled, setShowCancelled] = useState(false);
 
@@ -181,6 +183,15 @@ export default function AppointmentsPage() {
   useEffect(() => {
     fetchTimeSlots().then(slots => setAllTimeSlots((slots || []).filter((s: any, i: number, arr: any[]) => arr.findIndex((t: any) => t.slotTime === s.slotTime) === i)));
   }, [fetchTimeSlots]);
+
+  const autoOpenedRef = useRef(false);
+  useEffect(() => {
+    if (location.state?.openCreate && !autoOpenedRef.current) {
+      autoOpenedRef.current = true;
+      openCreateModal();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Pre-fill inspector from offer when selecting a request
   useEffect(() => {

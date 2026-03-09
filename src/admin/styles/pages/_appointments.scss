@@ -68,11 +68,11 @@
     }
   }
 
-  // Desktop / mobile visibility
+  // Desktop / mobile visibility (table switches at 800px, wider than nav)
   &__desktop {
     display: none;
 
-    @include respond-to(desktop) {
+    @media (min-width: 900px) {
       display: block;
     }
   }
@@ -82,7 +82,7 @@
     flex-direction: column;
     gap: $spacing-md;
 
-    @include respond-to(desktop) {
+    @media (min-width: 900px) {
       display: none;
     }
   }
@@ -244,12 +244,29 @@
 
   .create-user-button-desktop.timelines-view-actions {
     display: none;
-    flex-wrap: wrap;
-    gap: $spacing-sm;
-    align-items: center;
 
     @include respond-to(desktop) {
+      display: inline-grid;
+      grid-template-columns: 1fr 1fr;
+      gap: $spacing-sm;
+      margin-left: auto;
+
+      > button:last-child {
+        grid-column: 1 / -1;
+      }
+    }
+
+    @media (min-width: 900px) {
       display: flex;
+      flex-wrap: nowrap;
+      gap: $spacing-sm;
+      align-items: center;
+      margin-left: 0;
+
+      > button:last-child {
+        grid-column: unset;
+        width: auto;
+      }
     }
   }
 
@@ -328,6 +345,32 @@
       gap: 2px;
       cursor: pointer;
 
+      .booking-calendar__cell-count {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1rem;
+        font-weight: 700;
+        color: $color-primary;
+        line-height: 1;
+
+        @include respond-to(md) {
+          display: none;
+        }
+      }
+
+      .booking-calendar__cell-label-wrap {
+        display: none;
+        flex-direction: column;
+        align-items: center;
+        gap: 2px;
+        width: 100%;
+
+        @include respond-to(md) {
+          display: flex;
+        }
+      }
+
       .booking-calendar__cell-label {
         font-size: 0.65rem;
         line-height: 1.2;
@@ -341,6 +384,18 @@
         @include respond-to(md) {
           font-size: 0.7rem;
           text-align: center;
+        }
+      }
+
+      .booking-calendar__cell-overflow {
+        font-size: 0.55rem;
+        color: $color-primary;
+        opacity: 0.7;
+        font-style: italic;
+        text-align: center;
+
+        @include respond-to(md) {
+          font-size: 0.6rem;
         }
       }
 

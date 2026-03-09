@@ -1,7 +1,4 @@
-interface PasswordToggleButtonProps {
-  showPassword: boolean;
-  onToggle: () => void;
-}
+import type { PasswordToggleButtonProps } from './PasswordToggleButton.type';
 
 export const PasswordToggleButton = ({ showPassword, onToggle }: PasswordToggleButtonProps) => (
   <button

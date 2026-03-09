@@ -1,5 +1,5 @@
-import { useState, useEffect, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect, useMemo, useRef } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useStrata } from "../../shared/hooks/useStrata";
 import { useLookups } from "../../shared/hooks/useLookups";
 import { useMediaQuery } from "../../shared/hooks/useMediaQuery";
@@ -28,9 +28,12 @@ export default function StrataPage() {
     useStrata();
   const { legalTypes, propertyTypes, locations } = useLookups();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingStrata, setEditingStrata] = useState<Strata | null>(null);
+  const [viewingStrata, setViewingStrata] = useState<Strata | null>(null);
+  const [isViewStrataModalOpen, setIsViewStrataModalOpen] = useState(false);
   const [formData, setFormData] = useState<CreateStrataInput>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -117,6 +120,15 @@ export default function StrataPage() {
     setIsModalOpen(true);
   };
 
+  const autoOpenedRef = useRef(false);
+  useEffect(() => {
+    if (location.state?.openCreate && !autoOpenedRef.current) {
+      autoOpenedRef.current = true;
+      openCreateModal();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const openEditModal = (strata: Strata) => {
     setEditingStrata(strata);
     setFormData({
@@ -187,6 +199,18 @@ export default function StrataPage() {
   ) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
+
+  const getViewStrataRows = (s: Strata) => [
+    { label: 'Strata Plan', value: s.strataPlan ?? '-' },
+    { label: 'Complex Name', value: s.complexName ?? '-' },
+    { label: 'Address', value: s.streetName ?? '-' },
+    { label: 'Town/City', value: s.town ?? '-' },
+    { label: 'Province', value: s.province ?? '-' },
+    { label: 'Postal Code', value: s.postalCode ?? '-' },
+    { label: 'Legal Type', value: s.legalType?.legalTypeName ?? '-' },
+    { label: 'Property Types', value: s.strataPropertyTypes?.map(spt => spt.propertyType.propertyTypeName).join(', ') || s.propertyType?.propertyTypeName || '-' },
+    { label: 'Company', value: s.company?.companyName ?? '-' },
+  ];
 
   if (loading) return <LoadingSpinner />;
 
@@ -262,8 +286,15 @@ export default function StrataPage() {
         keyExtractor={(s) => s.strataId}
         loading={loading}
         emptyMessage="No strata properties found. Click 'Create New Strata' to create one."
-        onRowClick={(strata) => navigate(`/admin/strata/${strata.strataId}`)}
-        actions={(strata) => (
+        onRowClick={(strata) => {
+          if (isDesktop) {
+            navigate(`/admin/strata/${strata.strataId}`);
+          } else {
+            setViewingStrata(strata);
+            setIsViewStrataModalOpen(true);
+          }
+        }}
+        actions={isDesktop ? (strata) => (
           <button
             className="btn-edit"
             onClick={(e) => {
@@ -273,7 +304,7 @@ export default function StrataPage() {
           >
             Edit
           </button>
-        )}
+        ) : undefined}
         actionsColumnHeader="Action"
       />
 
@@ -470,6 +501,52 @@ export default function StrataPage() {
             />
           </FormRow>
         </form>
+      </Modal>
+
+      <Modal
+        isOpen={isViewStrataModalOpen && viewingStrata !== null}
+        onClose={() => { setIsViewStrataModalOpen(false); setViewingStrata(null); }}
+        title="View Strata"
+        size="medium"
+        footer={
+          <>
+            <button
+              className="btn-secondary"
+              onClick={() => { setIsViewStrataModalOpen(false); setViewingStrata(null); }}
+            >
+              Close
+            </button>
+            <button
+              className="btn-secondary"
+              onClick={() => {
+                setIsViewStrataModalOpen(false);
+                openEditModal(viewingStrata!);
+                setViewingStrata(null);
+              }}
+            >
+              Edit
+            </button>
+            <button
+              className="btn-primary"
+              onClick={() => navigate(`/admin/strata/${viewingStrata!.strataId}`)}
+            >
+              View Full Details
+            </button>
+          </>
+        }
+      >
+        {viewingStrata && (
+          <table className="view-strata-table">
+            <tbody>
+              {getViewStrataRows(viewingStrata).map((row) => (
+                <tr key={row.label}>
+                  <th scope="row">{row.label}</th>
+                  <td>{row.value}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </Modal>
     </div>
   );
