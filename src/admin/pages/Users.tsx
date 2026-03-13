@@ -537,19 +537,38 @@ export default function UsersPage() {
                     placeholder="Strata name"
                   />
                 </FormRow>
-                <MultiSelectDropdown
-                  label={`Property Types${index === 0 ? '' : ` ${index + 1}`}`}
-                  options={
-                    selectedStrata?.strataPropertyTypes?.length
-                      ? selectedStrata.strataPropertyTypes
-                          .map(spt => ({ value: spt.propertyType.propertyTypeId, label: spt.propertyType.propertyTypeName }))
-                          .sort((a, b) => a.label.localeCompare(b.label))
-                      : propertyTypes.map(pt => ({ value: pt.propertyTypeId, label: pt.propertyTypeName })).sort((a, b) => a.label.localeCompare(b.label))
-                  }
-                  selectedValues={association.propertyTypeIds || []}
-                  onChange={(values) => updateStrataAssociationPropertyTypes(index, values)}
-                  placeholder="Select property types"
-                />
+                <FormRow>
+                  <MultiSelectDropdown
+                    label={`Property Types${index === 0 ? '' : ` ${index + 1}`}`}
+                    options={
+                      selectedStrata?.strataPropertyTypes?.length
+                        ? selectedStrata.strataPropertyTypes
+                            .map(spt => ({ value: spt.propertyType.propertyTypeId, label: spt.propertyType.propertyTypeName }))
+                            .sort((a, b) => a.label.localeCompare(b.label))
+                        : propertyTypes.map(pt => ({ value: pt.propertyTypeId, label: pt.propertyTypeName })).sort((a, b) => a.label.localeCompare(b.label))
+                    }
+                    selectedValues={association.propertyTypeIds || []}
+                    onChange={(values) => updateStrataAssociationPropertyTypes(index, values)}
+                    placeholder="Select property types"
+                  />
+                  <div className="form-field" style={{ display: 'flex', flexDirection: 'column' }}>
+                    <label className="field-label">Strata Role</label>
+                    <div className="role-options" style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '1.5rem', flex: 1 }}>
+                      {['Property Manager', 'Councillor'].map((r) => (
+                        <label key={r} style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.875rem', whiteSpace: 'nowrap' }}>
+                          <input
+                            type="radio"
+                            name={`role-${index}`}
+                            checked={association.strataPosition === r}
+                            onChange={() => updateStrataAssociation(index, 'strataPosition', r)}
+                            style={{ margin: 0 }}
+                          />
+                          {r}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                </FormRow>
               </div>
             );
           })}

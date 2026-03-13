@@ -5,7 +5,7 @@ import { supabase } from '../../shared/lib/supabaseClient';
 import { LoadingSpinner } from '../../shared/components/LoadingSpinner';
 import { Modal } from '../../shared/components/Modal';
 import { InputField, FormRow } from '../../shared/components/FormField';
-import type { StrataMemberInfo, StrataProfileResult } from '../../shared/types/entities.types';
+import type { StrataMemberInfo, StrataProfileResult, PropertyType } from '../../shared/types/entities.types';
 import { API_BASE } from '../../shared/lib/api';
 
 const STRATA_ROLES = ['Property Manager', 'Councillor'];
@@ -22,10 +22,18 @@ const StrataMembers = () => {
   const [saving, setSaving] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
+  // Strata Section / Property types state
+  const [currentUserPropertyTypes, setCurrentUserPropertyTypes] = useState<PropertyType[]>([]);
+  const [isSectionModalOpen, setIsSectionModalOpen] = useState(false);
+  const [availablePropertyTypes, setAvailablePropertyTypes] = useState<PropertyType[]>([]);
+  const [selectedPropertyTypeIds, setSelectedPropertyTypeIds] = useState<number[]>([]);
+  const [sectionRequestSaving, setSectionRequestSaving] = useState(false);
+
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
     phoneNumber: '',
+    companyName: '',
   });
   const [role, setRole] = useState('');
 
@@ -51,7 +59,8 @@ const StrataMembers = () => {
             first_name,
             last_name,
             email,
-            phone_number
+            phone_number,
+            company_name
           )
         `)
         .eq('strata_id', userStrataProfile.strata_id);
@@ -67,6 +76,7 @@ const StrataMembers = () => {
           email: p.email,
           phoneNumber: p.phone_number,
           position: m.strata_position,
+          companyName: p.company_name,
         };
       });
 
@@ -80,8 +90,36 @@ const StrataMembers = () => {
     }
   };
 
+  const fetchClientProfile = async (): Promise<PropertyType[]> => {
+    try {
+      const res = await authFetch(`${API_BASE}/client/profile`);
+      const data = await res.json();
+      if (data.success && Array.isArray(data.data?.propertyTypes)) {
+        const types: PropertyType[] = data.data.propertyTypes;
+        setCurrentUserPropertyTypes(types);
+        return types;
+      }
+    } catch (err) {
+      console.error('Failed to fetch client profile:', err);
+    }
+    return [];
+  };
+
+  const fetchAvailablePropertyTypes = async () => {
+    try {
+      const res = await authFetch(`${API_BASE}/lookups/property-types`);
+      const data = await res.json();
+      if (data.success && Array.isArray(data.data)) {
+        setAvailablePropertyTypes(data.data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch property types:', err);
+    }
+  };
+
   useEffect(() => {
     fetchMembers();
+    fetchClientProfile();
   }, [user]);
 
   const openUpdateModal = () => {
@@ -90,9 +128,53 @@ const StrataMembers = () => {
       firstName: currentUser.firstName || '',
       lastName: currentUser.lastName || '',
       phoneNumber: currentUser.phoneNumber || '',
+      companyName: currentUser.companyName || '',
     });
     setRole(currentUser.position || '');
     setIsModalOpen(true);
+  };
+
+  const openSectionModal = async () => {
+    // Re-fetch fresh data to avoid stale state before pre-selecting
+    const [freshTypes] = await Promise.all([
+      fetchClientProfile(),
+      fetchAvailablePropertyTypes(),
+    ]);
+    setSelectedPropertyTypeIds(freshTypes.map((p) => p.propertyTypeId));
+    setIsSectionModalOpen(true);
+  };
+
+  const handleSectionRequestToggle = (id: number) => {
+    setSelectedPropertyTypeIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+  };
+
+  const handleSectionRequestSubmit = async () => {
+    if (selectedPropertyTypeIds.length === 0) {
+      alert('Please select at least one property type.');
+      return;
+    }
+    setSectionRequestSaving(true);
+    try {
+      const res = await authFetch(`${API_BASE}/client/profile/request-section-change`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ propertyTypeIds: selectedPropertyTypeIds }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Failed to submit request');
+      }
+      setIsSectionModalOpen(false);
+      setSuccessMessage('Section change request submitted successfully!');
+      setTimeout(() => setSuccessMessage(null), 4000);
+    } catch (err: unknown) {
+      const e = err as Error;
+      alert(e.message || 'Failed to submit section change request.');
+    } finally {
+      setSectionRequestSaving(false);
+    }
   };
 
   const handleSave = async () => {
@@ -136,6 +218,11 @@ const StrataMembers = () => {
     const fullName =
       [member.firstName, member.lastName].filter(Boolean).join(' ') || 'N/A';
 
+    const propertyTypeLabel =
+      currentUserPropertyTypes.length > 0
+        ? currentUserPropertyTypes.map((p) => p.propertyTypeName).join(', ')
+        : 'N/A';
+
     return (
       <div key={member.profileId} className="strata-members__card">
         <div className="strata-members__card-header">
@@ -148,13 +235,29 @@ const StrataMembers = () => {
         <div className="strata-members__table">
           <div className="strata-members__table-header">
             <span>Name</span>
-            <span>Email</span>
-            <span>Phone Number</span>
+            <span>Strata Section</span>
+            <span>{isCurrentUser ? '' : 'Phone Number'}</span>
           </div>
           <div className="strata-members__table-row">
             <span>{fullName}</span>
-            <span>{member.email || 'N/A'}</span>
-            <span>{member.phoneNumber || 'N/A'}</span>
+            {isCurrentUser ? (
+              <>
+                <span>{propertyTypeLabel}</span>
+                <span className="strata-members__request-cell">
+                  <button
+                    className="strata-members__request-btn"
+                    onClick={openSectionModal}
+                  >
+                    Request Section Change
+                  </button>
+                </span>
+              </>
+            ) : (
+              <>
+                <span>{member.email || 'N/A'}</span>
+                <span>{member.phoneNumber || 'N/A'}</span>
+              </>
+            )}
           </div>
         </div>
 
@@ -195,6 +298,7 @@ const StrataMembers = () => {
         renderMemberCard(member, 'Alternative Site Contact', false)
       )}
 
+      {/* Update Personal Details Modal */}
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
@@ -222,6 +326,7 @@ const StrataMembers = () => {
           <FormRow>
             <InputField
               label="First Name"
+              required
               value={formData.firstName}
               onChange={(e) =>
                 setFormData((prev) => ({ ...prev, firstName: e.target.value }))
@@ -229,6 +334,7 @@ const StrataMembers = () => {
             />
             <InputField
               label="Last Name"
+              required
               value={formData.lastName}
               onChange={(e) =>
                 setFormData((prev) => ({ ...prev, lastName: e.target.value }))
@@ -239,28 +345,114 @@ const StrataMembers = () => {
           <FormRow>
             <InputField
               label="Phone Number"
+              required
               value={formData.phoneNumber}
               onChange={(e) =>
                 setFormData((prev) => ({ ...prev, phoneNumber: e.target.value }))
               }
             />
+            <InputField
+              label="Associated Company"
+              value={formData.companyName}
+              placeholder="Enter company name"
+              onChange={(e) =>
+                setFormData((prev) => ({ ...prev, companyName: e.target.value }))
+              }
+            />
           </FormRow>
 
-          <div className="strata-members__role-field">
-            <label className="strata-members__role-label">Strata Role</label>
-            <div className="strata-members__role-options">
+          <div className="strata-members__role-field" style={{ display: 'flex', flexDirection: 'column' }}>
+            <label className="strata-members__role-label" style={{ marginBottom: '0.75rem' }}>Strata Role</label>
+            <div className="strata-members__role-options" style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '1.5rem', flex: 1 }}>
               {STRATA_ROLES.map((r) => (
-                <label key={r} className="strata-members__role-checkbox">
+                <label key={r} className="strata-members__role-checkbox" style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.875rem', whiteSpace: 'nowrap' }}>
                   <input
                     type="radio"
                     name="role"
                     checked={role === r}
                     onChange={() => setRole(r)}
+                    style={{ margin: 0 }}
                   />
                   {r}
                 </label>
               ))}
             </div>
+          </div>
+
+          <div className="login-details-section" style={{ marginTop: '2rem' }}>
+            <h3 style={{ fontSize: '1.125rem', fontWeight: 600, marginBottom: '0.5rem', color: '#1a1a1a' }}>Login Details</h3>
+            <hr style={{ border: 'none', borderTop: '1px solid #e5e7eb', marginBottom: '1rem' }} />
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <div style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '0.25rem' }}>Email</div>
+                <div style={{ fontSize: '0.875rem', color: '#111827' }}>{currentUser?.email || user?.email}</div>
+              </div>
+              <button
+                type="button"
+                style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.875rem', fontWeight: 500 }}
+                onClick={async () => {
+                  try {
+                    const emailToReset = currentUser?.email || user?.email;
+                    if (!emailToReset) throw new Error('No email found');
+                    const { error: resetError } = await supabase.auth.resetPasswordForEmail(emailToReset);
+                    if (resetError) throw resetError;
+                    setSuccessMessage('Password reset email sent. Please check your inbox.');
+                    setIsModalOpen(false);
+                  } catch (err) {
+                    console.error('Password reset error:', err);
+                    alert('Failed to send password reset email. Please try again.');
+                  }
+                }}
+              >
+                Change Password
+              </button>
+            </div>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Request Section Change Modal */}
+      <Modal
+        isOpen={isSectionModalOpen}
+        onClose={() => setIsSectionModalOpen(false)}
+        title="Request Section Change"
+        footer={
+          <div className="modal-footer-actions">
+            <button
+              className="btn btn-secondary"
+              onClick={() => setIsSectionModalOpen(false)}
+              disabled={sectionRequestSaving}
+            >
+              Cancel
+            </button>
+            <button
+              className="btn btn-primary"
+              onClick={handleSectionRequestSubmit}
+              disabled={sectionRequestSaving || selectedPropertyTypeIds.length === 0}
+            >
+              {sectionRequestSaving ? 'Submitting...' : 'Submit Request'}
+            </button>
+          </div>
+        }
+      >
+        <div className="section-request-form">
+          <p style={{ fontSize: '0.9rem', color: '#6b7280', marginBottom: '1.25rem' }}>
+            Select the property type(s) you'd like to be assigned to. Your request will be reviewed by the administrator.
+          </p>
+          <div className="strata-members__section-options">
+            {availablePropertyTypes.map((pt) => (
+              <label
+                key={pt.propertyTypeId}
+                className="strata-members__section-checkbox"
+              >
+                <input
+                  type="checkbox"
+                  checked={selectedPropertyTypeIds.includes(pt.propertyTypeId)}
+                  onChange={() => handleSectionRequestToggle(pt.propertyTypeId)}
+                />
+                {pt.propertyTypeName}
+              </label>
+            ))}
           </div>
         </div>
       </Modal>

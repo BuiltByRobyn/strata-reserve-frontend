@@ -141,6 +141,7 @@ export interface StrataProfileResult {
   last_name: string | null;
   email: string | null;
   phone_number: string | null;
+  company_name?: string | null;
 }
 
 export interface StrataMemberInfo {
@@ -150,6 +151,7 @@ export interface StrataMemberInfo {
   email: string | null;
   phoneNumber: string | null;
   position: string | null;
+  companyName?: string | null;
 }
 
 export interface CreateStrataInput {
