@@ -243,8 +243,7 @@ export default function ProfilePage() {
       {activeTab === 'profile' && (
         <div className="profile-content">
           {isDesktop && (
-            <div className="manager-header company-holidays-header">
-              <h3>Administrator Profile</h3>
+            <div className="manager-header company-holidays-header" style={{ justifyContent: 'flex-end' }}>
               <button
                 type="button"
                 className="btn-confirm company-holidays-add-btn"
