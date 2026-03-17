@@ -9,7 +9,9 @@ export const Login = () => {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const { signIn, user } = useAuth();
+  const [isForgotPasswordMode, setIsForgotPasswordMode] = useState(false);
+  const [resetMessage, setResetMessage] = useState("");
+  const { signIn, resetPasswordForEmail, user } = useAuth();
   const navigate = useNavigate();
 
   // Check if Supabase is configured
@@ -35,6 +37,17 @@ export const Login = () => {
 
     setError("");
     setLoading(true);
+
+    if (isForgotPasswordMode) {
+      const { error } = await resetPasswordForEmail(email);
+      if (error) {
+        setError(error.message);
+      } else {
+        setResetMessage("Check your email for the password reset link!");
+      }
+      setLoading(false);
+      return;
+    }
 
     const { error } = await signIn(email, password);
 
@@ -81,31 +94,65 @@ export const Login = () => {
             />
           </div>
 
-          <div className="form-group">
-            <label htmlFor="password">Password</label>
-            <div className="password-input-wrapper">
-              <input
-                id="password"
-                type={showPassword ? "text" : "password"}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter your password"
-                required
-                disabled={loading}
-              />
-              <PasswordToggleButton showPassword={showPassword} onToggle={() => setShowPassword(!showPassword)} />
-            </div>
-          </div>
+          {isForgotPasswordMode ? (
+            <>
+              {resetMessage && <div className="success-message" style={{ color: 'green', marginBottom: '1rem', textAlign: 'center' }}>{resetMessage}</div>}
+              {error && <div className="error-message">{error}</div>}
 
-          {error && <div className="error-message">{error}</div>}
+              <button type="submit" className="login-btn" disabled={loading}>
+                {loading ? "Sending..." : "Send Reset Link"}
+              </button>
 
-          <button type="submit" className="login-btn" disabled={loading}>
-            {loading ? "Signing In..." : "Sign In"}
-          </button>
+              <button
+                type="button"
+                className="forgot-password"
+                onClick={() => {
+                  setIsForgotPasswordMode(false);
+                  setError("");
+                  setResetMessage("");
+                }}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'block', margin: '1rem auto 0' }}
+              >
+                Back to Login
+              </button>
+            </>
+          ) : (
+            <>
+              <div className="form-group">
+                <label htmlFor="password">Password</label>
+                <div className="password-input-wrapper">
+                  <input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Enter your password"
+                    required
+                    disabled={loading}
+                  />
+                  <PasswordToggleButton showPassword={showPassword} onToggle={() => setShowPassword(!showPassword)} />
+                </div>
+              </div>
 
-          <a href="#" className="forgot-password">
-            Forgot Password?
-          </a>
+              {error && <div className="error-message">{error}</div>}
+
+              <button type="submit" className="login-btn" disabled={loading}>
+                {loading ? "Signing In..." : "Sign In"}
+              </button>
+
+              <button
+                type="button"
+                className="forgot-password"
+                onClick={() => {
+                  setIsForgotPasswordMode(true);
+                  setError("");
+                }}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'block', margin: '1rem auto 0' }}
+              >
+                Forgot Password?
+              </button>
+            </>
+          )}
         </form>
 
         <div className="login-divider"></div>

@@ -181,6 +181,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setSession(null);
   }, []);
 
+  const resetPasswordForEmail = useCallback(async (email: string) => {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    return { error };
+  }, []);
+
   const updatePassword = useCallback(async (newPassword: string) => {
     const { error } = await supabase.auth.updateUser({
       password: newPassword
@@ -194,10 +201,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     loading,
     signIn,
     signOut,
+    resetPasswordForEmail,
     updatePassword,
     isAdmin: user?.role === 'admin',
     isClient: user?.role === 'client',
-  }), [user, session, loading, signIn, signOut, updatePassword]);
+  }), [user, session, loading, signIn, signOut, updatePassword, resetPasswordForEmail]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
