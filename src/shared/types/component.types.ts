@@ -223,3 +223,8 @@ export interface RescheduleAppointmentModalProps {
     reason?: string;
   }) => Promise<any>;
 }
+
+export interface ChangePasswordModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+}

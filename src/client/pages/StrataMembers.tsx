@@ -5,6 +5,7 @@ import { supabase } from '../../shared/lib/supabaseClient';
 import { LoadingSpinner } from '../../shared/components/LoadingSpinner';
 import { Modal } from '../../shared/components/Modal';
 import { InputField, FormRow } from '../../shared/components/FormField';
+import { ChangePasswordModal } from '../../shared/components/ChangePasswordModal';
 import type { StrataMemberInfo, StrataProfileResult, PropertyType } from '../../shared/types/entities.types';
 import { API_BASE } from '../../shared/lib/api';
 
@@ -19,6 +20,7 @@ const StrataMembers = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
@@ -67,7 +69,7 @@ const StrataMembers = () => {
 
       if (membersError) throw membersError;
 
-      const mapped: StrataMemberInfo[] = (members || []).map((m) => {
+      const mapped: StrataMemberInfo[] = (members || []).map((m: any) => {
         const p = m.profile as unknown as StrataProfileResult;
         return {
           profileId: p.id,
@@ -390,19 +392,7 @@ const StrataMembers = () => {
               <button
                 type="button"
                 style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.875rem', fontWeight: 500 }}
-                onClick={async () => {
-                  try {
-                    const emailToReset = currentUser?.email || user?.email;
-                    if (!emailToReset) throw new Error('No email found');
-                    const { error: resetError } = await supabase.auth.resetPasswordForEmail(emailToReset);
-                    if (resetError) throw resetError;
-                    setSuccessMessage('Password reset email sent. Please check your inbox.');
-                    setIsModalOpen(false);
-                  } catch (err) {
-                    console.error('Password reset error:', err);
-                    alert('Failed to send password reset email. Please try again.');
-                  }
-                }}
+                onClick={() => setIsPasswordModalOpen(true)}
               >
                 Change Password
               </button>
@@ -410,6 +400,11 @@ const StrataMembers = () => {
           </div>
         </div>
       </Modal>
+
+      <ChangePasswordModal 
+        isOpen={isPasswordModalOpen} 
+        onClose={() => setIsPasswordModalOpen(false)} 
+      />
 
       {/* Request Section Change Modal */}
       <Modal

@@ -5,13 +5,13 @@ import { useAuth } from '../../shared/contexts/AuthContext';
 import { LoadingSpinner } from '../../shared/components/LoadingSpinner';
 import { useAuthFetch } from '../../shared/hooks/useAuthFetch';
 import { useMediaQuery } from '../../shared/hooks/useMediaQuery';
-import { supabase } from '../../shared/lib/supabaseClient';
 import type { AdminUser } from '../../shared/types/auth.types';
 import type { AdminProfileFormData as ProfileData } from '../../shared/types/entities.types';
 import { API_BASE } from '../../shared/lib/api';
 import { InspectorAvailabilityManager } from '../components/InspectorAvailabilityManager';
 import { CompanyHolidaysManager } from '../components/CompanyHolidaysManager';
 import { MobileDropdown } from '../../shared/components/MobileDropdown';
+import { ChangePasswordModal } from '../../shared/components/ChangePasswordModal';
 import '../../admin/styles/pages/_profile.scss';
 
 export default function ProfilePage() {
@@ -37,6 +37,7 @@ export default function ProfilePage() {
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState(location.state?.tab || 'holidays');
+  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
   const isDesktop = useMediaQuery('(min-width: 750px)');
 
   // Fetch profile on mount
@@ -335,21 +336,17 @@ export default function ProfilePage() {
               <button
                 type="button"
                 className="change-password-link"
-                onClick={async () => {
-                  try {
-                    const { error: resetError } = await supabase.auth.resetPasswordForEmail(profileData.email);
-                    if (resetError) throw resetError;
-                    setSuccessMessage('Password reset email sent. Please check your inbox.');
-                  } catch (err) {
-                    console.error('Password reset error:', err);
-                    setError('Failed to send password reset email. Please try again.');
-                  }
-                }}
+                onClick={() => setIsPasswordModalOpen(true)}
               >
                 Change Password
               </button>
             </div>
           </section>
+
+          <ChangePasswordModal 
+            isOpen={isPasswordModalOpen} 
+            onClose={() => setIsPasswordModalOpen(false)} 
+          />
 
           {!isDesktop && (
             <div className="profile-actions">
