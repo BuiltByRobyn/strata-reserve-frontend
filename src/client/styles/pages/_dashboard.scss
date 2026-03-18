@@ -99,6 +99,40 @@
   }
 }
 
+.client-notifications {
+  margin-top: $spacing-lg;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: $spacing-sm;
+
+  @include respond-below(md) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  @include respond-below(sm) {
+    grid-template-columns: 1fr;
+  }
+
+  .action-card {
+    cursor: pointer;
+  }
+}
+
+.client-notification-dismiss {
+  margin-left: auto;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1.25rem;
+  line-height: 1;
+  color: $color-text-light;
+  padding: 0;
+
+  &:hover {
+    color: $color-text-dark;
+  }
+}
+
 .priority-task-card {
   background: $color-white;
   border: 1px solid $color-border-light;

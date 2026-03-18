@@ -228,3 +228,8 @@ export interface ChangePasswordModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
+
+export interface ToastProps {
+  message: string | null;
+  onDismiss: () => void;
+}

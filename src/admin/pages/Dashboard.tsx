@@ -164,7 +164,7 @@ export const Dashboard = () => {
     const appointmentCards: UrgentCard[] = appointmentRequests.map((request) => {
       const urgency = getUrgencyMeta(request.requestDate);
       const requesterName = getUserDisplayName(request.requestedBy, 'Unknown client');
-      const timeLabel = request.firstChoiceTimeSlot?.slotName || 'TBD';
+      const timeLabel = request.firstChoiceTimeSlot ? formatTime12h(request.firstChoiceTimeSlot.slotTime) : 'TBD';
 
       return {
         id: `appointment-request-${request.appointmentRequestId}`,

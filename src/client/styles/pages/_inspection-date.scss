@@ -389,6 +389,10 @@
     display: flex;
     gap: $spacing-md;
     flex-wrap: wrap;
+
+    @include respond-to(md) {
+      flex-wrap: nowrap;
+    }
   }
 
   &__slot {
@@ -549,11 +553,15 @@
 
   &__grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: 1fr;
     gap: $spacing-lg $spacing-md;
 
-    @include respond-below(md) {
-      grid-template-columns: 1fr;
+    @include respond-to(md) {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    @media (min-width: 1300px) {
+      grid-template-columns: repeat(3, 1fr);
     }
   }
 
@@ -574,9 +582,10 @@
   }
 
   &__slots {
-    display: flex;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: $spacing-xs;
     padding: $spacing-sm;
-    flex-wrap: wrap;
   }
 
   &__slot-btn {
@@ -584,13 +593,19 @@
     flex-direction: column;
     align-items: center;
     gap: $spacing-xs;
-    padding: $spacing-sm $spacing-md;
+    padding: $spacing-sm $spacing-xs;
+    box-sizing: border-box;
+
+    @media (min-width: 1300px) {
+      padding: $spacing-sm $spacing-sm;
+      margin: 0 auto;
+    }
     border: $border-width-thin solid $color-border-light;
     border-radius: $border-radius-md;
     background: $color-white;
     cursor: pointer;
     transition: all 0.15s ease;
-    min-width: 100px;
+    width: 100%;
 
     &:hover:not(:disabled) {
       border-color: $color-primary;

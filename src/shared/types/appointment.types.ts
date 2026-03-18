@@ -40,7 +40,11 @@ export interface ActiveAppointmentScheduled {
   };
 }
 
-export type ActiveAppointmentResponse = ActiveAppointmentPending | ActiveAppointmentScheduled | null;
+export interface ActiveAppointmentCompletedDraft {
+  type: 'completed_draft';
+}
+
+export type ActiveAppointmentResponse = ActiveAppointmentPending | ActiveAppointmentScheduled | ActiveAppointmentCompletedDraft | null;
 
 export interface ClientAppointmentsState {
   availability: AvailableDay[];
@@ -62,7 +66,7 @@ export interface BookingCalendarProps {
   loading: boolean;
   milestones?: CalendarMilestone[];
   bookedDate?: string | null;
-  variant?: 'booking' | 'timelines';
+  variant?: 'booking' | 'client' | 'timelines';
   onMilestoneCellClick?: (date: string) => void;
   hideLabels?: boolean;
 }
@@ -92,6 +96,7 @@ export interface AvailableMeetingDatesProps {
   firstChoice: BookingChoice | null;
   secondChoice: BookingChoice | null;
   bookingStep: BookingStep;
+  readOnly?: boolean;
 }
 
 export interface UnifiedRow {
@@ -113,3 +118,10 @@ export interface UnifiedRow {
 export type SelectedItem =
   | { type: 'appointment'; data: AppointmentWithDetails }
   | { type: 'request'; data: AppointmentRequest };
+
+export interface AppointmentNotification {
+  type: 'request_approved' | 'request_rejected' | 'appointment_cancelled' | 'appointment_rescheduled';
+  message: string;
+  reason: string | null;
+  date: string;
+}

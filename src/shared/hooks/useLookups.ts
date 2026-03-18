@@ -8,6 +8,7 @@ import type {
   Section,
   QuestionType,
   Location,
+  AppointmentType,
 } from '../types/entities.types';
 import type { DocumentType, ReviewStatus } from '../types/document.types';
 import type { LookupState } from '../types/hooks.types';
@@ -24,6 +25,7 @@ export const useLookups = () => {
     sections: [],
     questionTypes: [],
     locations: [],
+    appointmentTypes: [],
     loading: true,
     error: null
   });
@@ -42,6 +44,7 @@ export const useLookups = () => {
         sections,
         questionTypes,
         locations,
+        appointmentTypes,
       ] = await Promise.all([
         api.get<UserType[]>('/api/lookups/user-types'),
         api.get<LegalType[]>('/api/lookups/legal-types'),
@@ -52,6 +55,7 @@ export const useLookups = () => {
         api.get<Section[]>('/api/lookups/sections'),
         api.get<QuestionType[]>('/api/lookups/question-types'),
         api.get<Location[]>('/api/lookups/locations'),
+        api.get<AppointmentType[]>('/api/lookups/appointment-types'),
       ]);
 
       setState({
@@ -64,6 +68,7 @@ export const useLookups = () => {
         sections: sections || [],
         questionTypes: questionTypes || [],
         locations: locations || [],
+        appointmentTypes: appointmentTypes || [],
         loading: false,
         error: null
       });

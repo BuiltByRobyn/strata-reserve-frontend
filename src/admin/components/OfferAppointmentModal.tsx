@@ -74,11 +74,11 @@ export const OfferAppointmentModal = ({
     [appointmentTypes]
   );
 
-  const isValid = selectedTypeId != null && inspectorId !== '' && locationId != null;
+  const isValid = selectedTypeId != null && locationId != null;
 
   const handleSubmit = async () => {
-    if (selectedTypeId == null || !inspectorId) {
-      setError('Please select an appointment type and assign an inspector');
+    if (selectedTypeId == null) {
+      setError('Please select an appointment type');
       return;
     }
     if (locationId == null) {
@@ -165,7 +165,7 @@ export const OfferAppointmentModal = ({
 
         <div className="offer-modal__row">
           <div className="offer-modal__field">
-            <span className="offer-modal__label">Assign Inspector <span className="offer-modal__required">*</span></span>
+            <span className="offer-modal__label">Assign Inspector (optional)</span>
             <SingleSelectDropdown
               label=""
               options={inspectorOptions}

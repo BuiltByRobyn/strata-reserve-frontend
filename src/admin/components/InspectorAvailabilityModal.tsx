@@ -10,6 +10,8 @@ import { extractTimeFromISO, expandDateRange } from '../../shared/utils/availabi
 import { getInspectorOptions } from '../../shared/utils/userUtils';
 import { LOCATION_OPTIONS } from '../../shared/lib/constants';
 
+const LOCATION_CODE_MAP: Record<string, string> = { 'LLVI': 'VI', 'NB': 'N/BC' };
+
 export const InspectorAvailabilityModal = ({
     isOpen,
     onClose,
@@ -42,7 +44,7 @@ export const InspectorAvailabilityModal = ({
                 availableEndDate: initialData.availableEndDate.split('T')[0],
                 availableStartTime: extractTimeFromISO(initialData.availableStartTime),
                 availableEndTime: extractTimeFromISO(initialData.availableEndTime),
-                locationCodes: initialData.locations ? initialData.locations.map(loc => loc.locationCode) : []
+                locationCodes: initialData.locations ? initialData.locations.map(loc => LOCATION_CODE_MAP[loc.locationCode] ?? loc.locationCode) : []
             });
         } else if (isOpen) {
             setFormData({
