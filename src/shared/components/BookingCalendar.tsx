@@ -78,6 +78,7 @@ const BookingCalendar = ({
     (viewYear === today.getFullYear() && viewMonth <= today.getMonth());
 
   const isTimelinesVariant = variant === 'timelines';
+  const isClientVariant = variant === 'client';
 
   const cells = [];
   for (let i = 0; i < firstDay; i++) {
@@ -110,11 +111,11 @@ const BookingCalendar = ({
       if (isSelected) {
         cellClass += ' booking-calendar__cell--selected';
       }
-      if (milestoneLabels && milestoneLabels.length > 0) {
-        cellClass += ' booking-calendar__cell--milestone';
-      }
       if (bookedDate && dateStr === bookedDate) {
         cellClass += ' booking-calendar__cell--booked';
+      }
+      if (isClientVariant && milestoneLabels && milestoneLabels.length > 0) {
+        cellClass += ' booking-calendar__cell--milestone';
       }
     }
 
@@ -139,7 +140,7 @@ const BookingCalendar = ({
         )}
         {milestoneLabels && milestoneLabels.length > 0 && !hideLabels && (
           <>
-            <span className="booking-calendar__cell-count">{milestoneLabels.length}</span>
+            {isTimelinesVariant && <span className="booking-calendar__cell-count">{milestoneLabels.length}</span>}
             <span className="booking-calendar__cell-label-wrap">
               {milestoneLabels.slice(0, MAX_LABELS).map((label, idx) => (
                 <span key={`${dateStr}-${idx}`} className="booking-calendar__cell-label">{label}</span>
@@ -208,12 +209,6 @@ const BookingCalendar = ({
             <span className="booking-calendar__legend-item">
               <span className="booking-calendar__legend-dot booking-calendar__legend-dot--booked" />
               Appointment Booked
-            </span>
-          )}
-          {milestonesMap.size > 0 && (
-            <span className="booking-calendar__legend-item">
-              <span className="booking-calendar__legend-dot booking-calendar__legend-dot--milestone" />
-              Milestone
             </span>
           )}
         </div>

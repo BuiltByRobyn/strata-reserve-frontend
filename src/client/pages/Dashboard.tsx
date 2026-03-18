@@ -9,7 +9,7 @@ import { usePropertyTypeRequest } from '../../shared/hooks/usePropertyTypeReques
 import { useSurvey } from '../../shared/hooks/useSurvey';
 import { useTimelines } from '../../shared/hooks/useTimelines';
 import { parseLocalDate, parseTimestamp } from '../../shared/lib/dateUtils';
-import type { ActiveAppointmentResponse } from '../../shared/types/appointment.types';
+import type { ActiveAppointmentResponse, AppointmentNotification } from '../../shared/types/appointment.types';
 import { SURVEY_SECTIONS } from '../../shared/types/survey.types';
 
 const formatShortDate = (value: string | null | undefined) => {
@@ -30,10 +30,12 @@ export const Dashboard = () => {
     loading: documentsLoading,
     fetchRequiredDocuments,
   } = useClientDocuments();
-  const { getActiveAppointment } = useClientAppointments();
+  const { getActiveAppointment, getNotifications } = useClientAppointments();
 
   const [activeAppointment, setActiveAppointment] = useState<ActiveAppointmentResponse>(null);
   const [appointmentLoading, setAppointmentLoading] = useState(true);
+  const [notifications, setNotifications] = useState<AppointmentNotification[]>([]);
+  const [dismissed, setDismissed] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (!fileNumberId) {
@@ -45,15 +47,19 @@ export const Dashboard = () => {
     let ignore = false;
     setAppointmentLoading(true);
 
-    getActiveAppointment().then((appointment) => {
+    Promise.all([
+      getActiveAppointment(),
+      getNotifications(),
+    ]).then(([appointment, notifs]) => {
       if (ignore) return;
       setActiveAppointment(appointment);
+      setNotifications(notifs);
     }).finally(() => {
       if (!ignore) setAppointmentLoading(false);
     });
 
     return () => { ignore = true; };
-  }, [fileNumberId, getActiveAppointment]);
+  }, [fileNumberId, getActiveAppointment, getNotifications]);
 
   useEffect(() => {
     if (!fileNumberId) return;
@@ -123,7 +129,10 @@ export const Dashboard = () => {
     const incompleteSectionKey = sectionProgress.find((s) => !s.complete)?.key;
     const surveyPath = incompleteSectionKey ? `/client/survey/${incompleteSectionKey}` : '/client/survey';
 
-    const bookingActionNeeded = !!(activeRequest?.rebookingRequestedAt || (activeRequest?.appointmentOfferedAt && !activeAppointment));
+    const bookingActionNeeded = !!(
+      activeAppointment?.type !== 'completed_draft' &&
+      (activeRequest?.rebookingRequestedAt || (activeRequest?.appointmentOfferedAt && !activeAppointment))
+    );
 
     // When booking action is needed, replace Deadlines with the inspection card
     if (bookingActionNeeded) {
@@ -258,6 +267,45 @@ export const Dashboard = () => {
           </div>
         ))}
       </div>
+
+      {notifications.some((n) => !dismissed.has(`${n.type}__${n.date}`)) && (
+        <div className="client-notifications">
+          {notifications
+            .filter((n) => !dismissed.has(`${n.type}__${n.date}`))
+            .map((n) => {
+              const key = `${n.type}__${n.date}`;
+              const toneMap = {
+                request_approved: 'upcoming',
+                request_rejected: 'overdue',
+                appointment_cancelled: 'overdue',
+                appointment_rescheduled: 'due-today',
+              } as const;
+              const badgeMap = {
+                request_approved: 'APPROVED',
+                request_rejected: 'REJECTED',
+                appointment_cancelled: 'CANCELLED',
+                appointment_rescheduled: 'RESCHEDULED',
+              } as const;
+              const tone = toneMap[n.type];
+              return (
+                <div key={key} className={`action-card action-card--${tone}`} onClick={() => navigate('/client/inspection-date')}>
+                  <div className="action-card-header">
+                    <span className={`urgency-badge urgency-badge--${tone}`}>{badgeMap[n.type]}</span>
+                    <button
+                      className="client-notification-dismiss"
+                      onClick={(e) => { e.stopPropagation(); setDismissed((prev) => new Set(prev).add(key)); }}
+                      aria-label="Dismiss"
+                    >
+                      ×
+                    </button>
+                  </div>
+                  <p className="action-card-title">{n.message}</p>
+                  {n.reason && <p className="action-card-desc">{n.reason}</p>}
+                </div>
+              );
+            })}
+        </div>
+      )}
     </div>
   );
 };

@@ -17,6 +17,7 @@ const AvailableMeetingDates = forwardRef<HTMLDivElement, AvailableMeetingDatesPr
   firstChoice,
   secondChoice,
   bookingStep,
+  readOnly = false,
 }, ref) => {
   if (availability.length === 0) return null;
 
@@ -37,7 +38,7 @@ const AvailableMeetingDates = forwardRef<HTMLDivElement, AvailableMeetingDatesPr
                   firstChoice?.date === day.date && firstChoice?.timeSlotId === slot.timeSlotId;
                 const isSecondSelected =
                   secondChoice?.date === day.date && secondChoice?.timeSlotId === slot.timeSlotId;
-                const isDisabled = isFirstSelected && !isFirstStep;
+                const isDisabled = readOnly || (isFirstSelected && !isFirstStep);
 
                 return (
                   <button

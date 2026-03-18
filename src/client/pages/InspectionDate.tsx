@@ -10,8 +10,8 @@ import { formatDateLong, formatTime12h, getUserDisplayName } from '../../shared/
 import BookingCalendar from '../../shared/components/BookingCalendar';
 import AvailableMeetingDates from '../components/AvailableMeetingDates';
 import BookingConfirmation from '../components/BookingConfirmation';
+import { Toast } from '../../shared/components/Toast';
 import type { AvailableDay, AvailableSlot, BookingChoice, BookingStep, ActiveAppointmentResponse, CalendarMilestone } from '../../shared/types/appointment.types';
-import type { AppointmentType } from '../../shared/types/entities.types';
 
 /** Next anniversary of baseDate strictly after referenceDate */
 function getNextAnniversary(baseDate: Date, referenceDate: Date): Date {
@@ -56,13 +56,12 @@ const InspectionDate = () => {
     cancelAppointment,
     checkDraftMeetingEligibility,
   } = useClientAppointments();
-  const { services } = useLookups();
+  const { appointmentTypes } = useLookups();
 
   const fileNumberId = activeRequest?.fileNumberId ?? null;
   const { timelines } = useTimelines(fileNumberId);
 
   const [activeAppointment, setActiveAppointment] = useState<ActiveAppointmentResponse>(null);
-  const [appointmentTypes, setAppointmentTypes] = useState<AppointmentType[]>([]);
   const [availability, setAvailability] = useState<AvailableDay[]>([]);
   const [calendarLoading, setCalendarLoading] = useState(true);
   const [pageLoading, setPageLoading] = useState(true);
@@ -76,15 +75,16 @@ const InspectionDate = () => {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [cancellingRequest, setCancellingRequest] = useState(false);
+  const [toastMsg, setToastMsg] = useState<string | null>(null);
   const [draftMeetingEligible, setDraftMeetingEligible] = useState(false);
   const [bookingDraftMeeting, setBookingDraftMeeting] = useState(false);
   const [showWelcomeModal, setShowWelcomeModal] = useState(false);
 
   const isOffered = !!activeRequest?.appointmentOfferedAt;
 
-  // Ref guards to prevent duplicate effect execution
   const hasFetchedAppointment = useRef(false);
   const hasFetchedAvailability = useRef(false);
+  const prevAppointmentTypeRef = useRef<string | null>(null);
   const meetingDatesRef = useRef<HTMLDivElement>(null);
 
   // Welcome modal: show once per file number (persists across sessions)
@@ -135,29 +135,31 @@ const InspectionDate = () => {
     setCalendarLoading(false);
   }, [fileNumberId, getAvailability]);
 
-  const loadAppointmentTypes = useCallback(() => {
-    const svc = activeRequest?.service || services.find(s => s.serviceId === activeRequest?.serviceId);
-    if (!svc) return;
-    setAppointmentTypes([
-      { appointmentTypeId: 1, typeName: 'Half Day Inspection', durationType: 'Half Day', isDraftMeeting: false, description: null, serviceId: svc.serviceId },
-      { appointmentTypeId: 2, typeName: 'Full Day Inspection', durationType: 'Full Day', isDraftMeeting: false, description: null, serviceId: svc.serviceId },
-      { appointmentTypeId: 3, typeName: 'Draft Meeting', durationType: 'Evening', isDraftMeeting: true, description: null, serviceId: svc.serviceId },
-    ]);
-  }, [activeRequest, services]);
-
-  // Effect 2: Load availability + check eligibility (once, when offered)
   useEffect(() => {
-    if (!isOffered || !fileNumberId || hasFetchedAvailability.current) return;
-    // Skip if there's a pending request (no calendar shown)
-    if (activeAppointment?.type === 'pending_request') {
+    const currentType = activeAppointment?.type ?? null;
+    if (prevAppointmentTypeRef.current === 'scheduled' && currentType === null) {
+      hasFetchedAvailability.current = false;
+    }
+    prevAppointmentTypeRef.current = currentType;
+  }, [activeAppointment]);
+
+  useEffect(() => {
+    if (!isOffered || !fileNumberId || pageLoading || hasFetchedAvailability.current) return;
+    if (activeAppointment?.type === 'completed_draft') {
       setCalendarLoading(false);
       return;
     }
     hasFetchedAvailability.current = true;
-    loadAvailability(bookingDraftMeeting);
-    loadAppointmentTypes();
-    checkDraftMeetingEligibility(fileNumberId).then(setDraftMeetingEligible);
-  }, [isOffered, activeAppointment, fileNumberId, loadAvailability, bookingDraftMeeting, loadAppointmentTypes, checkDraftMeetingEligibility]);
+    checkDraftMeetingEligibility(fileNumberId).then(eligible => {
+      setDraftMeetingEligible(eligible);
+      if (eligible) {
+        setBookingDraftMeeting(true);
+        loadAvailability(true);
+      } else {
+        loadAvailability(bookingDraftMeeting);
+      }
+    });
+  }, [isOffered, activeAppointment, fileNumberId, pageLoading, loadAvailability, bookingDraftMeeting, checkDraftMeetingEligibility]);
 
   // Re-fetch availability when user returns to the tab (handles inspector changes by admin)
   useEffect(() => {
@@ -322,7 +324,14 @@ const InspectionDate = () => {
       resetBooking();
       await loadActiveAppointment();
     } else {
-      setErrorMsg(result.error || 'Failed to submit request');
+      const msg = result.error || 'Failed to submit request';
+      if (msg.includes('no longer available') || msg.includes('Please choose a different')) {
+        setToastMsg(msg);
+        resetBooking();
+        loadAvailability(bookingDraftMeeting);
+      } else {
+        setErrorMsg(msg);
+      }
     }
   };
 
@@ -376,19 +385,37 @@ const InspectionDate = () => {
     );
   }
 
-  // Redirect to dashboard if appointment not yet offered
   if (!isOffered) {
     return <Navigate to="/client/dashboard" replace />;
   }
 
-  // State 3: Pending Review
-  if (activeAppointment?.type === 'pending_request') {
-    const req = activeAppointment.data;
-    return (
-      <div className="page-container">
-        <h1>Inspection Date</h1>
-        {errorMsg && <div className="inspection-date__error">{errorMsg}</div>}
-        {successMsg && <div className="inspection-date__success">{successMsg}</div>}
+  if (activeAppointment?.type === 'completed_draft') {
+    return <Navigate to="/client/dashboard" replace />;
+  }
+
+  const pendingReq = activeAppointment?.type === 'pending_request' ? activeAppointment.data : null;
+  const isPending = pendingReq !== null;
+  const hasScheduledAppointment = activeAppointment?.type === 'scheduled';
+  const scheduledApt = hasScheduledAppointment ? activeAppointment.data : null;
+
+  const bookingTitle = hasScheduledAppointment
+    ? 'Inspection Date'
+    : isPending
+      ? 'Inspection Date'
+      : bookingDraftMeeting ? 'Schedule Draft Meeting' : 'Pick a date for your inspection';
+  const bookingSubtitle = hasScheduledAppointment || isPending
+    ? null
+    : bookingDraftMeeting
+      ? 'Select your preferred draft meeting date and time'
+      : 'Select a date and time that works for you';
+
+  return (
+    <div className="page-container inspection-date-page">
+      <Toast message={toastMsg} onDismiss={() => setToastMsg(null)} />
+      <h1>{bookingTitle}</h1>
+      {bookingSubtitle && <p className="page-subtitle">{bookingSubtitle}</p>}
+
+      {pendingReq && (
         <div className="inspection-date__card inspection-date__card--pending">
           <h3>Appointment Request Pending Review</h3>
           <p>Your appointment request is currently being reviewed by our team.</p>
@@ -397,27 +424,27 @@ const InspectionDate = () => {
             <div className="inspection-date__detail-row">
               <span className="inspection-date__detail-label">Type</span>
               <span className="inspection-date__detail-value">
-                {req.appointmentType?.typeName || 'Inspection'}
+                {pendingReq.appointmentType?.typeName || 'Inspection'}
               </span>
             </div>
             <div className="inspection-date__detail-row">
               <span className="inspection-date__detail-label">First Choice</span>
               <span className="inspection-date__detail-value">
-                {formatDateLong(req.firstChoiceDate)} - {req.firstChoiceTimeSlot?.slotName || ''} ({formatTime12h(req.firstChoiceTimeSlot?.slotTime || '')})
+                {formatDateLong(pendingReq.firstChoiceDate)} - {pendingReq.firstChoiceTimeSlot?.slotName || ''} ({formatTime12h(pendingReq.firstChoiceTimeSlot?.slotTime || '')})
               </span>
             </div>
-            {req.secondChoiceDate && req.secondChoiceTimeSlot && (
+            {pendingReq.secondChoiceDate && pendingReq.secondChoiceTimeSlot && (
               <div className="inspection-date__detail-row">
                 <span className="inspection-date__detail-label">Second Choice</span>
                 <span className="inspection-date__detail-value">
-                  {formatDateLong(req.secondChoiceDate)} - {req.secondChoiceTimeSlot.slotName} ({formatTime12h(req.secondChoiceTimeSlot.slotTime)})
+                  {formatDateLong(pendingReq.secondChoiceDate)} - {pendingReq.secondChoiceTimeSlot.slotName} ({formatTime12h(pendingReq.secondChoiceTimeSlot.slotTime)})
                 </span>
               </div>
             )}
-            {req.specialRequirements && (
+            {pendingReq.specialRequirements && (
               <div className="inspection-date__detail-row">
                 <span className="inspection-date__detail-label">Special Requirements</span>
-                <span className="inspection-date__detail-value">{req.specialRequirements}</span>
+                <span className="inspection-date__detail-value">{pendingReq.specialRequirements}</span>
               </div>
             )}
             <div className="inspection-date__detail-row">
@@ -431,35 +458,22 @@ const InspectionDate = () => {
           <button
             type="button"
             className="btn btn-secondary"
-            onClick={() => handleCancelRequest(req.appointmentRequestId)}
+            onClick={() => handleCancelRequest(pendingReq.appointmentRequestId)}
             disabled={cancellingRequest}
           >
             {cancellingRequest ? 'Cancelling...' : 'Cancel Request'}
           </button>
         </div>
-      </div>
-    );
-  }
+      )}
 
-  const hasScheduledAppointment = activeAppointment?.type === 'scheduled';
-  const scheduledApt = hasScheduledAppointment ? activeAppointment.data : null;
+      {scheduledApt && (() => {
+        const aptDateStr = typeof scheduledApt.appointmentDate === 'string'
+          ? scheduledApt.appointmentDate.split('T')[0]
+          : new Date(scheduledApt.appointmentDate).toISOString().split('T')[0];
+        const appointmentStart = new Date(`${aptDateStr}T${scheduledApt.timeSlot.slotTime}:00Z`);
+        const canCancel = appointmentStart.getTime() - Date.now() >= 48 * 60 * 60 * 1000;
 
-  // State 2: Ready to Book
-  const bookingTitle = hasScheduledAppointment
-    ? 'Inspection Date'
-    : bookingDraftMeeting ? 'Schedule Draft Meeting' : 'Pick a date for your inspection';
-  const bookingSubtitle = hasScheduledAppointment
-    ? null
-    : bookingDraftMeeting
-      ? 'Select your preferred draft meeting date and time'
-      : 'Select a date and time that works for you';
-
-  return (
-    <div className="page-container inspection-date-page">
-      <h1>{bookingTitle}</h1>
-      {bookingSubtitle && <p className="page-subtitle">{bookingSubtitle}</p>}
-
-      {scheduledApt && (
+        return (
         <div className="inspection-date__card inspection-date__card--scheduled">
           <h3>Appointment Scheduled</h3>
 
@@ -500,22 +514,25 @@ const InspectionDate = () => {
             </div>
           </div>
 
-          <div className="inspection-date__actions">
-            <button
-              type="button"
-              className="btn btn-secondary"
-              onClick={() => handleCancelAppointment(scheduledApt.appointmentId)}
-            >
-              Cancel Appointment
-            </button>
-          </div>
+          {canCancel && (
+            <div className="inspection-date__actions">
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => handleCancelAppointment(scheduledApt.appointmentId)}
+              >
+                Cancel Appointment
+              </button>
+            </div>
+          )}
 
           <p className="inspection-date__notice">
-            Cancellations and reschedules must be made at least 48 hours before the appointment.
+            Online cancellations must be made at least 48 hours before the appointment.
             For changes within 48 hours, please call SRP at (604) 638-4960.
           </p>
         </div>
-      )}
+        );
+      })()}
 
       {draftMeetingEligible && !bookingDraftMeeting && !hasScheduledAppointment && (
         <div className="inspection-date__card inspection-date__card--info">
@@ -536,48 +553,67 @@ const InspectionDate = () => {
       {errorMsg && <div className="inspection-date__error">{errorMsg}</div>}
       {successMsg && <div className="inspection-date__success">{successMsg}</div>}
 
-      {!hasScheduledAppointment && bookingStep === 'confirm' && firstChoice ? (
-        <BookingConfirmation
-          firstChoice={firstChoice}
-          secondChoice={secondChoice}
-          specialRequirements={specialRequirements}
-          onSpecialRequirementsChange={setSpecialRequirements}
-          onConfirm={handleSubmit}
-          onBack={handleBackFromConfirm}
-          submitting={submitting}
-        />
-      ) : (
-        <div className="inspection-date__booking">
-          {!hasScheduledAppointment && bookingStep !== 'first-date' && bookingStep !== 'first-slot' && firstChoice && (
-            <div className="inspection-date__first-choice-summary">
-              First Choice: {formatDateLong(firstChoice.date)} - {firstChoice.slotName} ({formatTime12h(firstChoice.slotTime)})
+      {(() => {
+        const canBook = !hasScheduledAppointment && !isPending && (!draftMeetingEligible || bookingDraftMeeting);
+        const bookedDateStr = scheduledApt
+          ? (typeof scheduledApt.appointmentDate === 'string'
+              ? scheduledApt.appointmentDate.split('T')[0]
+              : formatYMD(new Date(scheduledApt.appointmentDate)))
+          : null;
+
+        return (
+          <div className="inspection-date__booking">
+            <div className="inspection-date__calendar-section">
+              <BookingCalendar
+                variant="client"
+                availability={hasScheduledAppointment ? [] : availability}
+                selectedDate={canBook || isPending ? selectedDate : null}
+                onSelectDate={canBook || isPending ? handleDateSelect : () => {}}
+                loading={calendarLoading}
+                milestones={milestones}
+                bookedDate={bookedDateStr}
+              />
             </div>
-          )}
 
-          <div className="inspection-date__calendar-section">
-            <BookingCalendar
-              availability={hasScheduledAppointment ? [] : availability}
-              selectedDate={selectedDate}
-              onSelectDate={hasScheduledAppointment ? () => {} : handleDateSelect}
-              loading={calendarLoading}
-              milestones={milestones}
-              hideLabels
-              bookedDate={scheduledApt ? (typeof scheduledApt.appointmentDate === 'string' ? scheduledApt.appointmentDate.split('T')[0] : formatYMD(new Date(scheduledApt.appointmentDate))) : null}
-            />
+            {isPending && (
+              <p className="inspection-date__notice">
+                Availability is shown for reference only. You cannot book while a request is pending review.
+              </p>
+            )}
+
+            {(canBook || isPending) && (
+              bookingStep === 'confirm' && firstChoice && canBook ? (
+                <BookingConfirmation
+                  firstChoice={firstChoice}
+                  secondChoice={secondChoice}
+                  specialRequirements={specialRequirements}
+                  onSpecialRequirementsChange={setSpecialRequirements}
+                  onConfirm={handleSubmit}
+                  onBack={handleBackFromConfirm}
+                  submitting={submitting}
+                />
+              ) : (
+                <>
+                  {canBook && bookingStep !== 'first-date' && bookingStep !== 'first-slot' && firstChoice && (
+                    <div className="inspection-date__first-choice-summary">
+                      First Choice: {formatDateLong(firstChoice.date)} - {firstChoice.slotName} ({formatTime12h(firstChoice.slotTime)})
+                    </div>
+                  )}
+                  <AvailableMeetingDates
+                    ref={meetingDatesRef}
+                    availability={availability}
+                    onSelectSlot={canBook ? handleCardSlotSelect : () => {}}
+                    firstChoice={firstChoice}
+                    secondChoice={secondChoice}
+                    bookingStep={bookingStep}
+                    readOnly={isPending}
+                  />
+                </>
+              )
+            )}
           </div>
-
-          {!hasScheduledAppointment && (
-            <AvailableMeetingDates
-              ref={meetingDatesRef}
-              availability={availability}
-              onSelectSlot={handleCardSlotSelect}
-              firstChoice={firstChoice}
-              secondChoice={secondChoice}
-              bookingStep={bookingStep}
-            />
-          )}
-        </div>
-      )}
+        );
+      })()}
 
       <Modal
         isOpen={showWelcomeModal}

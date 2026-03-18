@@ -198,68 +198,6 @@
   border-radius: $border-radius-xl;
 }
 
-.action-card {
-  padding: $spacing-lg;
-  border: 1px solid $color-border-light;
-  display: flex;
-  flex-direction: column;
-  gap: $spacing-sm;
-  background: $color-white;
-  box-shadow: $shadow-sm;
-
-  &--overdue {
-    border-left: 4px solid $color-error;
-    background: rgba($color-error-bg, 0.35);
-  }
-
-  &--due-today {
-    border-left: 4px solid $color-warning-border;
-    background: rgba($color-warning-light, 0.45);
-  }
-
-  &--upcoming {
-    border-left: 4px solid $color-primary;
-  }
-}
-
-.action-card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: $spacing-sm;
-}
-
-.urgency-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.3rem 0.65rem;
-  border-radius: 999px;
-  font-size: 0.72rem;
-  font-weight: $font-weight-bold;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-
-  &--overdue {
-    background: rgba($color-error, 0.1);
-    color: $color-error-dark;
-  }
-
-  &--due-today {
-    background: rgba($color-warning-border, 0.12);
-    color: $color-warning-text-dark;
-  }
-
-  &--upcoming {
-    background: rgba($color-primary, 0.12);
-    color: $color-primary-dark;
-  }
-}
-
-.action-card-meta {
-  color: $color-text-light;
-  font-size: 0.85rem;
-}
-
 .action-card-title,
 .appointment-card__title,
 .activity-card__title {
@@ -277,13 +215,6 @@
   color: $color-text-secondary;
   font-size: 1rem;
   line-height: $line-height-base;
-}
-
-.action-card-actions {
-  margin-top: auto;
-  display: flex;
-  flex-wrap: wrap;
-  gap: $spacing-sm;
 }
 
 .appointment-card {

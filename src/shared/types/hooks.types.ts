@@ -1,5 +1,6 @@
 import type {
   AppointmentWithDetails,
+  AppointmentType,
   Company,
   CompanyHoliday,
   InspectorAvailableDate,
@@ -57,6 +58,7 @@ export interface LookupState {
   sections: Section[];
   questionTypes: QuestionType[];
   locations: Location[];
+  appointmentTypes: AppointmentType[];
   loading: boolean;
   error: string | null;
 }

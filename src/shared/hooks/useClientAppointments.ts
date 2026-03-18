@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import { useApiClient } from './useApiClient';
-import type { AvailableDay, ActiveAppointmentResponse } from '../types/appointment.types';
+import type { AvailableDay, ActiveAppointmentResponse, AppointmentNotification } from '../types/appointment.types';
 
 export const useClientAppointments = () => {
   const api = useApiClient();
@@ -88,6 +88,14 @@ export const useClientAppointments = () => {
     }
   }, [api]);
 
+  const getNotifications = useCallback(async (): Promise<AppointmentNotification[]> => {
+    try {
+      return await api.get<AppointmentNotification[]>('/client/appointments/notifications') ?? [];
+    } catch {
+      return [];
+    }
+  }, [api]);
+
   return {
     getAvailability,
     createRequest,
@@ -96,5 +104,6 @@ export const useClientAppointments = () => {
     cancelAppointment,
     rescheduleAppointment,
     checkDraftMeetingEligibility,
+    getNotifications,
   };
 };
