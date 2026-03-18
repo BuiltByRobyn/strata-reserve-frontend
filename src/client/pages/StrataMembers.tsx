@@ -26,8 +26,8 @@ const StrataMembers = () => {
 
   // Strata Section / Property types state
   const [currentUserPropertyTypes, setCurrentUserPropertyTypes] = useState<PropertyType[]>([]);
+  const [strataPropertyTypes, setStrataPropertyTypes] = useState<PropertyType[]>([]);
   const [isSectionModalOpen, setIsSectionModalOpen] = useState(false);
-  const [availablePropertyTypes, setAvailablePropertyTypes] = useState<PropertyType[]>([]);
   const [selectedPropertyTypeIds, setSelectedPropertyTypeIds] = useState<number[]>([]);
   const [sectionRequestSaving, setSectionRequestSaving] = useState(false);
 
@@ -92,36 +92,27 @@ const StrataMembers = () => {
     }
   };
 
-  const fetchClientProfile = async (): Promise<PropertyType[]> => {
+  const fetchClientProfile = async (): Promise<{ propertyTypes: PropertyType[]; strataPropertyTypes: PropertyType[] }> => {
     try {
       const res = await authFetch(`${API_BASE}/client/profile`);
       const data = await res.json();
-      if (data.success && Array.isArray(data.data?.propertyTypes)) {
-        const types: PropertyType[] = data.data.propertyTypes;
+      if (data.success) {
+        const types: PropertyType[] = Array.isArray(data.data?.propertyTypes) ? data.data.propertyTypes : [];
+        const available: PropertyType[] = Array.isArray(data.data?.strataPropertyTypes) ? data.data.strataPropertyTypes : [];
         setCurrentUserPropertyTypes(types);
-        return types;
+        setStrataPropertyTypes(available);
+        return { propertyTypes: types, strataPropertyTypes: available };
       }
     } catch (err) {
       console.error('Failed to fetch client profile:', err);
     }
-    return [];
-  };
-
-  const fetchAvailablePropertyTypes = async () => {
-    try {
-      const res = await authFetch(`${API_BASE}/lookups/property-types`);
-      const data = await res.json();
-      if (data.success && Array.isArray(data.data)) {
-        setAvailablePropertyTypes(data.data);
-      }
-    } catch (err) {
-      console.error('Failed to fetch property types:', err);
-    }
+    return { propertyTypes: [], strataPropertyTypes: [] };
   };
 
   useEffect(() => {
     fetchMembers();
     fetchClientProfile();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   const openUpdateModal = () => {
@@ -138,10 +129,7 @@ const StrataMembers = () => {
 
   const openSectionModal = async () => {
     // Re-fetch fresh data to avoid stale state before pre-selecting
-    const [freshTypes] = await Promise.all([
-      fetchClientProfile(),
-      fetchAvailablePropertyTypes(),
-    ]);
+    const { propertyTypes: freshTypes } = await fetchClientProfile();
     setSelectedPropertyTypeIds(freshTypes.map((p) => p.propertyTypeId));
     setIsSectionModalOpen(true);
   };
@@ -435,7 +423,7 @@ const StrataMembers = () => {
             Select the property type(s) you'd like to be assigned to. Your request will be reviewed by the administrator.
           </p>
           <div className="strata-members__section-options">
-            {availablePropertyTypes.map((pt) => (
+            {strataPropertyTypes.map((pt) => (
               <label
                 key={pt.propertyTypeId}
                 className="strata-members__section-checkbox"
