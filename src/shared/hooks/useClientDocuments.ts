@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useApiClient } from './useApiClient';
 import { useAuth } from '../contexts/AuthContext';
 import type { DocumentWithDetails, RequiredDocumentChecklist } from '../types/document.types';
+import type { NaStatusValue } from '../types/document.types';
 import type { DocumentsState } from '../types/hooks.types';
 import { supabaseUploadDocument, supabaseDeleteDocument } from '../lib/documentService';
 
@@ -51,11 +52,11 @@ export const useClientDocuments = () => {
     }
   }, [api]);
 
-  const fetchRequiredDocuments = useCallback(async (fileNumberId: number) => {
+  const fetchRequiredDocuments = useCallback(async (fileId: number) => {
     setState(prev => ({ ...prev, loading: true, error: null }));
     try {
       const data = await api.get<RequiredDocumentChecklist[]>(
-        `/client/file-numbers/${fileNumberId}/required-documents`
+        `/client/file-numbers/${fileId}/required-documents`
       );
       setRequiredDocuments(data || []);
     } catch (err) {
@@ -69,14 +70,18 @@ export const useClientDocuments = () => {
     }
   }, [api]);
 
-  const uploadDocument = useCallback(async (
-    file: File,
-    documentTypeId: number,
-    strataId: string,
-    notes?: string,
-    propertyTypeId?: number,
-    propertyTypeName?: string
-  ): Promise<boolean> => {
+  const uploadDocument = useCallback(async (params: {
+    file: File;
+    documentTypeId: number;
+    strataId: string;
+    fnDocRequirementId: number;
+    fileId: number;
+    isReplace?: boolean;
+    notes?: string;
+    propertyTypeId?: number;
+    propertyTypeName?: string;
+    strataName?: string;
+  }): Promise<boolean> => {
     const token = session?.access_token;
     if (!token) {
       setState(prev => ({ ...prev, error: 'Not authenticated' }));
@@ -87,8 +92,9 @@ export const useClientDocuments = () => {
     setState(prev => ({ ...prev, error: null }));
 
     try {
-      await supabaseUploadDocument({ token, file, documentTypeId, strataId, notes, propertyTypeId, propertyTypeName });
-      await fetchMyDocuments();
+      await supabaseUploadDocument({ token, ...params });
+      await api.post(`/client/file-numbers/${params.fileId}/requirements/${params.fnDocRequirementId}/uploaded`, {});
+      await fetchRequiredDocuments(params.fileId);
       return true;
     } catch (err) {
       console.error('Upload error:', err);
@@ -100,12 +106,34 @@ export const useClientDocuments = () => {
     } finally {
       setUploading(false);
     }
-  }, [session, fetchMyDocuments]);
+  }, [session, api, fetchRequiredDocuments]);
 
-  const getDocumentsByFileNumber = useCallback(async (fileNumberId: number) => {
+  const setNaStatus = useCallback(async (fileId: number, reqId: number, status: NaStatusValue): Promise<boolean> => {
+    try {
+      await api.post(`/client/file-numbers/${fileId}/requirements/${reqId}/na-status`, { status });
+      await fetchRequiredDocuments(fileId);
+      return true;
+    } catch (err) {
+      console.error('Error setting N/A status:', err);
+      return false;
+    }
+  }, [api, fetchRequiredDocuments]);
+
+  const clearNaStatus = useCallback(async (fileId: number, reqId: number): Promise<boolean> => {
+    try {
+      await api.del(`/client/file-numbers/${fileId}/requirements/${reqId}/na-status`);
+      await fetchRequiredDocuments(fileId);
+      return true;
+    } catch (err) {
+      console.error('Error clearing N/A status:', err);
+      return false;
+    }
+  }, [api, fetchRequiredDocuments]);
+
+  const getDocumentsByFileNumber = useCallback(async (fileId: number) => {
     try {
       return await api.get<DocumentWithDetails[]>(
-        `/client/file-numbers/${fileNumberId}/documents`
+        `/client/file-numbers/${fileId}/documents`
       );
     } catch (err) {
       console.error('Error fetching file number documents:', err);
@@ -141,6 +169,8 @@ export const useClientDocuments = () => {
     searchDocuments,
     fetchRequiredDocuments,
     uploadDocument,
+    setNaStatus,
+    clearNaStatus,
     getDocumentsByFileNumber,
     deleteDocument
   };

@@ -99,6 +99,56 @@
   }
 }
 
+.appointment-status-card {
+  margin-top: $spacing-md;
+  border-radius: $border-radius-xl;
+  padding: $spacing-md $spacing-lg;
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+
+  &--pending {
+    background: $color-warning-light;
+    border: 2px solid $color-warning-border;
+
+    .appointment-status-card__label {
+      color: $color-warning-text-dark;
+    }
+
+    .appointment-status-card__text {
+      color: $color-warning-text;
+    }
+  }
+
+  &--scheduled {
+    background: $color-primary-lightest;
+    border: 2px solid $color-primary;
+
+    .appointment-status-card__label {
+      color: $color-primary-darker;
+    }
+
+    .appointment-status-card__text {
+      color: $color-primary-dark;
+    }
+  }
+
+  &__label {
+    margin: 0;
+    font-size: 0.7rem;
+    font-weight: $font-weight-bold;
+    letter-spacing: 0.08em;
+    white-space: nowrap;
+    text-transform: uppercase;
+  }
+
+  &__text {
+    margin: 0;
+    font-size: 0.85rem;
+    line-height: $line-height-base;
+  }
+}
+
 .client-notifications {
   margin-top: $spacing-lg;
   display: grid;

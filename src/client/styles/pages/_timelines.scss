@@ -126,6 +126,7 @@
   padding: $spacing-md;
   display: flex;
   flex-direction: column;
+  justify-content: center;
   gap: $spacing-sm;
   text-align: center;
 
@@ -140,6 +141,12 @@
   &--yellow {
     border-color: $color-warning;
   }
+}
+
+.timelines-overview-card__title {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-bold;
+  color: $color-text-secondary;
 }
 
 .timelines-overview-card__value {

@@ -7,6 +7,7 @@ import { useApiClient } from '../../shared/hooks/useApiClient';
 import { SurveyProgressBar } from '../../shared/components/SurveyProgressBar';
 import { LoadingSpinner } from '../../shared/components/LoadingSpinner';
 import { Modal } from '../../shared/components/Modal';
+import { NoFileNumberState } from '../../shared/components/NoFileNumberState';
 import { getFilenameFromDisposition, triggerBlobDownload } from '../../shared/utils/fileUtils';
 import {
   SURVEY_SECTIONS,
@@ -15,7 +16,7 @@ import {
 export default function SurveyPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { activeRequest, fileNumberId, loading: srLoading } = useClientFileNumber();
+  const { activeRequest, fileId, loading: srLoading } = useClientFileNumber();
   const { questions, responses, loading, fetchQuestions, fetchResponses } = useSurvey();
   const api = useApiClient();
 
@@ -38,11 +39,11 @@ export default function SurveyPage() {
   }, [location.state]);
 
   useEffect(() => {
-    if (fileNumberId) {
-      fetchQuestions(fileNumberId);
-      fetchResponses(fileNumberId);
+    if (fileId) {
+      fetchQuestions(fileId);
+      fetchResponses(fileId);
     }
-  }, [fileNumberId, fetchQuestions, fetchResponses]);
+  }, [fileId, fetchQuestions, fetchResponses]);
 
   const getSectionQuestionCount = (sectionKey: string) => {
     const sectionConfig = SURVEY_SECTIONS.find(s => s.key === sectionKey);
@@ -67,7 +68,7 @@ export default function SurveyPage() {
   };
 
   const handleDownloadPdf = async () => {
-    if (!fileNumberId) return;
+    if (!fileId) return;
     setDownloadingPdf(true);
     try {
       const res = await api.rawFetch('/client/file-numbers/active/survey/pdf');
@@ -96,11 +97,11 @@ export default function SurveyPage() {
 
   if (srLoading || loading) return <LoadingSpinner />;
 
-  if (!fileNumberId) {
+  if (!fileId) {
     return (
       <div className="survey-page">
         <h1>Surveys</h1>
-        <p>No active file number found. Please contact your administrator.</p>
+        <NoFileNumberState />
       </div>
     );
   }
@@ -114,7 +115,7 @@ export default function SurveyPage() {
             type="button"
             className="btn-primary"
             onClick={handleDownloadPdf}
-            disabled={!fileNumberId || downloadingPdf}
+            disabled={!fileId || downloadingPdf}
           >
             {downloadingPdf ? 'Downloading...' : 'Download Survey'}
           </button>

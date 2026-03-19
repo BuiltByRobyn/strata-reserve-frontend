@@ -84,7 +84,7 @@ export default function TimelinesPage() {
       const strataId = sr.strata?.strataId ?? 0;
       const strataPlan = sr.strata?.strataPlan || '—';
       const complexName = sr.strata?.complexName || '—';
-      const srId = sr.fileNumberId;
+      const srId = sr.fileId;
 
       const fiscalDate = parseLocalDate(sr.fiscalYearEnd);
       const lastAgm = parseLocalDate(sr.lastAgmDate);
@@ -110,17 +110,6 @@ export default function TimelinesPage() {
       }
       if (nextAgm) {
         rows.push({ id: `${srId}-agm`, date: nextAgm, deadlineType: 'Next Projected AGM', strataPlan, complexName, strataId, fileNumber: sr });
-      }
-
-      // Last Depreciation Report Date (historical)
-      if (lastReport) {
-        rows.push({ id: `${srId}-last-dep`, date: lastReport, deadlineType: 'Last Depreciation Report Date', strataPlan, complexName, strataId, fileNumber: sr });
-      }
-
-      // Next Projected Depreciation
-      if (lastReport) {
-        const nextReport = getNextAnniversary(lastReport, today);
-        rows.push({ id: `${srId}-dep`, date: nextReport, deadlineType: 'Next Projected Depreciation', strataPlan, complexName, strataId, fileNumber: sr });
       }
 
       // Target Date
@@ -253,7 +242,7 @@ export default function TimelinesPage() {
   const calendarMilestones = useMemo((): CalendarMilestone[] => {
     return filteredRows.map(row => ({
       date: formatYMD(row.date),
-      label: `${String(row.fileNumber.fileNumberId).padStart(9, '0')}\n${row.strataPlan}:${getDeadlineAbbrev(row.deadlineType)}`,
+      label: `${(row.fileNumber.fileNumber ?? '—')}\n${row.strataPlan}:${getDeadlineAbbrev(row.deadlineType)}`,
     }));
   }, [filteredRows]);
 
@@ -265,7 +254,7 @@ export default function TimelinesPage() {
     return [
       { label: 'Strata Plan', value: row.strataPlan },
       { label: 'Complex Name', value: row.complexName },
-      { label: 'File Number', value: String(row.fileNumber.fileNumberId).padStart(9, '0') },
+      { label: 'File Number', value: (row.fileNumber.fileNumber ?? '—') },
       { label: 'Deadline Type', value: row.deadlineType },
       { label: 'Date', value: formatDateDisplay(row.date) },
       { label: 'Days Open', value: opened ? String(daysBetween(opened, today)) : '—' },
@@ -312,7 +301,7 @@ export default function TimelinesPage() {
         payload.targetDate = null;
       }
       const response = await authFetch(
-        `${API_BASE}/admin/file-numbers/${recordToDelete.fileNumberId}/timelines`,
+        `${API_BASE}/admin/file-numbers/${recordToDelete.fileId}/timelines`,
         { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }
       );
       const data = await response.json();
@@ -441,7 +430,7 @@ export default function TimelinesPage() {
       }
     }
 
-    const targetSrId = isCreating ? parseInt(selectedCreateSrId) : editingRecord?.fileNumberId;
+    const targetSrId = isCreating ? parseInt(selectedCreateSrId) : editingRecord?.fileId;
     if (!targetSrId) return;
 
     setIsSubmitting(true);
@@ -591,7 +580,6 @@ export default function TimelinesPage() {
           options={[
             { value: 'fiscalYear', label: 'Fiscal Year Start' },
             { value: 'agm', label: 'AGM' },
-            { value: 'depreciation', label: 'Depreciation Report' },
             { value: 'target', label: 'Target Date' },
             { value: 'fileOpened', label: 'File Opened' },
             { value: 'documentUpload', label: 'Document Upload' },
@@ -777,8 +765,8 @@ export default function TimelinesPage() {
                 value={selectedCreateSrId}
                 onChange={setSelectedCreateSrId}
                 options={unconfirmedList.map(sr => ({
-                  value: sr.fileNumberId,
-                  label: `${sr.strata?.strataPlan || sr.strata?.complexName || `SR #${sr.fileNumberId}`} — ${sr.strata?.complexName || ''}`.trim(),
+                  value: sr.fileId,
+                  label: `${sr.strata?.strataPlan || sr.strata?.complexName || `SR #${sr.fileId}`} — ${sr.strata?.complexName || ''}`.trim(),
                 }))}
                 placeholder="Select a file number"
               />

@@ -1,7 +1,7 @@
 import type { FileNumber } from './entities.types';
 
 export interface TimelineData {
-  fileNumberId: number;
+  fileId: number;
   requestDate: string;
   fiscalYearEnd: string | null;
   lastAgmDate: string | null;
@@ -9,6 +9,7 @@ export interface TimelineData {
   lastDepreciationReportDate: string | null;
   noReportToDate: boolean;
   targetDate: string | null;
+  timelinesSubmittedAt: string | null;
 }
 
 export interface UpdateTimelinesInput {

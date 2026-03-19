@@ -36,6 +36,7 @@ export default function UsersPage() {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState<UserWithStratas | null>(null);
   const [deleteSubmitting, setDeleteSubmitting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [formData, setFormData] = useState<UserFormData>(initialFormData);
   const [formError, setFormError] = useState<string | null>(null);
   const [emailError, setEmailError] = useState<string | null>(null);
@@ -156,38 +157,55 @@ export default function UsersPage() {
   ];
 
   const getViewUserRows = (user: UserWithStratas): { label: string; value: string }[] => {
-    const companies = user.strataProfiles
-      ?.map(se => se.strata.company?.companyName)
-      .filter(Boolean);
-    const uniqueCompanies = companies?.length ? [...new Set(companies)] : [];
-    const associatedCompany = uniqueCompanies.length
-      ? uniqueCompanies.join(', ')
-      : (user.companyName || 'N/A');
+    const isClient = user.userType?.userTypeName?.toLowerCase().replace(/-/g, ' ') === 'client';
 
-    const associatedStrata = user.strataProfiles?.length
-      ? user.strataProfiles
-          .map(se => se.strata.complexName || se.strata.strataPlan || '')
-          .filter(Boolean)
-          .join(', ') || 'N/A'
-      : 'N/A';
-
-    const strataIds = user.strataProfiles?.length
-      ? user.strataProfiles
-          .map(se => se.strata.strataPlan ?? String(se.strata.strataId))
-          .filter(Boolean)
-          .join(', ') || 'N/A'
-      : 'N/A';
-
-    return [
+    const rows: { label: string; value: string }[] = [
       { label: 'First name', value: user.firstName ?? '-' },
       { label: 'Last name', value: user.lastName ?? '-' },
       { label: 'Email', value: user.email ?? '-' },
       { label: 'Phone Number', value: user.phoneNumber ?? '-' },
       { label: 'User Type', value: user.userType?.userTypeName ?? '-' },
-      { label: 'Associated Company', value: associatedCompany },
-      { label: 'Associated Strata', value: associatedStrata },
-      { label: 'Strata ID', value: strataIds }
     ];
+
+    if (isClient) {
+      const companies = user.strataProfiles
+        ?.map(se => se.strata.company?.companyName)
+        .filter(Boolean);
+      const uniqueCompanies = companies?.length ? [...new Set(companies)] : [];
+      const associatedCompany = uniqueCompanies.length
+        ? uniqueCompanies.join(', ')
+        : (user.companyName || 'N/A');
+
+      const associatedStrata = user.strataProfiles?.length
+        ? user.strataProfiles
+            .map(se => se.strata.complexName || se.strata.strataPlan || '')
+            .filter(Boolean)
+            .join(', ') || 'N/A'
+        : 'N/A';
+
+      const strataIds = user.strataProfiles?.length
+        ? user.strataProfiles
+            .map(se => se.strata.strataPlan ?? String(se.strata.strataId))
+            .filter(Boolean)
+            .join(', ') || 'N/A'
+        : 'N/A';
+
+      const strataRoles = user.strataProfiles?.length
+        ? user.strataProfiles
+            .map(se => se.strataPosition)
+            .filter(Boolean)
+            .join(', ') || 'N/A'
+        : 'N/A';
+
+      rows.push(
+        { label: 'Associated Company', value: associatedCompany },
+        { label: 'Associated Strata', value: associatedStrata },
+        { label: 'Strata ID', value: strataIds },
+        { label: 'Strata Role', value: strataRoles },
+      );
+    }
+
+    return rows;
   };
 
   const openCreateModal = () => {
@@ -317,16 +335,17 @@ export default function UsersPage() {
   const handleDelete = async () => {
     if (!userToDelete) return;
     setDeleteSubmitting(true);
+    setDeleteError(null);
     try {
       await deleteUser(userToDelete.id);
-    } catch (err) {
-      // error is logged in the hook
-    } finally {
-      setDeleteSubmitting(false);
       setDeleteModalOpen(false);
       setIsModalOpen(false);
       setEditingUser(null);
       setUserToDelete(null);
+    } catch (err) {
+      setDeleteError(err instanceof Error ? err.message : 'Failed to delete user');
+    } finally {
+      setDeleteSubmitting(false);
     }
   };
 
@@ -648,12 +667,12 @@ export default function UsersPage() {
 
       <Modal
         isOpen={deleteModalOpen}
-        onClose={() => { setDeleteModalOpen(false); setUserToDelete(null); }}
+        onClose={() => { setDeleteModalOpen(false); setUserToDelete(null); setDeleteError(null); }}
         title="Delete User"
         size="small"
         footer={
           <>
-            <button className="btn-secondary" onClick={() => { setDeleteModalOpen(false); setUserToDelete(null); }}>
+            <button className="btn-secondary" onClick={() => { setDeleteModalOpen(false); setUserToDelete(null); setDeleteError(null); }}>
               Cancel
             </button>
             <button
@@ -667,6 +686,7 @@ export default function UsersPage() {
         }
       >
         <div className="delete-confirmation">
+          {deleteError && <div className="form-error">{deleteError}</div>}
           <p>Are you sure you want to delete user "{userToDelete ? `${userToDelete.firstName || ''} ${userToDelete.lastName || ''}`.trim() || userToDelete.email : ''}"?</p>
           <p className="delete-warning">This action cannot be undone.</p>
         </div>

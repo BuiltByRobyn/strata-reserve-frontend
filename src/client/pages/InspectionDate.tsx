@@ -59,8 +59,8 @@ const InspectionDate = () => {
   } = useClientAppointments();
   const { appointmentTypes } = useLookups();
 
-  const fileNumberId = activeRequest?.fileNumberId ?? null;
-  const { timelines } = useTimelines(fileNumberId);
+  const fileId = activeRequest?.fileId ?? null;
+  const { timelines } = useTimelines(fileId);
 
   const [activeAppointment, setActiveAppointment] = useState<ActiveAppointmentResponse>(null);
   const [availability, setAvailability] = useState<AvailableDay[]>([]);
@@ -90,13 +90,13 @@ const InspectionDate = () => {
 
   // Welcome modal: show once per file number (persists across sessions)
   useEffect(() => {
-    if (!fileNumberId || !isOffered) return;
-    const key = `welcome-modal-shown-${fileNumberId}`;
+    if (!fileId || !isOffered) return;
+    const key = `welcome-modal-shown-${fileId}`;
     if (!localStorage.getItem(key)) {
       setShowWelcomeModal(true);
       localStorage.setItem(key, '1');
     }
-  }, [fileNumberId, isOffered]);
+  }, [fileId, isOffered]);
 
   const loadActiveAppointment = useCallback(async () => {
     const data = await getActiveAppointment();
@@ -121,7 +121,7 @@ const InspectionDate = () => {
   }, [srLoading, activeRequest, loadActiveAppointment]);
 
   const loadAvailability = useCallback(async (isDraft = false) => {
-    if (!fileNumberId) return;
+    if (!fileId) return;
     setCalendarLoading(true);
     const today = new Date();
     const start = new Date(today);
@@ -131,10 +131,10 @@ const InspectionDate = () => {
 
     const startStr = start.toISOString().split('T')[0];
     const endStr = end.toISOString().split('T')[0];
-    const data = await getAvailability(startStr, endStr, fileNumberId, isDraft);
+    const data = await getAvailability(startStr, endStr, fileId, isDraft);
     setAvailability(data);
     setCalendarLoading(false);
-  }, [fileNumberId, getAvailability]);
+  }, [fileId, getAvailability]);
 
   useEffect(() => {
     const currentType = activeAppointment?.type ?? null;
@@ -145,13 +145,13 @@ const InspectionDate = () => {
   }, [activeAppointment]);
 
   useEffect(() => {
-    if (!isOffered || !fileNumberId || pageLoading || hasFetchedAvailability.current) return;
+    if (!isOffered || !fileId || pageLoading || hasFetchedAvailability.current) return;
     if (activeAppointment?.type === 'completed_draft') {
       setCalendarLoading(false);
       return;
     }
     hasFetchedAvailability.current = true;
-    checkDraftMeetingEligibility(fileNumberId).then(eligible => {
+    checkDraftMeetingEligibility(fileId).then(eligible => {
       setDraftMeetingEligible(eligible);
       if (eligible) {
         setBookingDraftMeeting(true);
@@ -160,18 +160,18 @@ const InspectionDate = () => {
         loadAvailability(bookingDraftMeeting);
       }
     });
-  }, [isOffered, activeAppointment, fileNumberId, pageLoading, loadAvailability, bookingDraftMeeting, checkDraftMeetingEligibility]);
+  }, [isOffered, activeAppointment, fileId, pageLoading, loadAvailability, bookingDraftMeeting, checkDraftMeetingEligibility]);
 
   // Re-fetch availability when user returns to the tab (handles inspector changes by admin)
   useEffect(() => {
     const handleFocus = () => {
-      if (isOffered && fileNumberId && activeAppointment?.type !== 'pending_request') {
+      if (isOffered && fileId && activeAppointment?.type !== 'pending_request') {
         loadAvailability(bookingDraftMeeting);
       }
     };
     window.addEventListener('focus', handleFocus);
     return () => window.removeEventListener('focus', handleFocus);
-  }, [isOffered, activeAppointment, fileNumberId, loadAvailability, bookingDraftMeeting]);
+  }, [isOffered, activeAppointment, fileId, loadAvailability, bookingDraftMeeting]);
 
   const filteredAvailability = useMemo(() =>
     availability
@@ -297,7 +297,7 @@ const InspectionDate = () => {
   };
 
   const handleSubmit = async () => {
-    if (!firstChoice || !fileNumberId) return;
+    if (!firstChoice || !fileId) return;
 
     if (!secondChoice) {
       setErrorMsg('Please select a second choice date and time slot');
@@ -316,7 +316,7 @@ const InspectionDate = () => {
     setErrorMsg(null);
 
     const result = await createRequest({
-      fileNumberId,
+      fileId,
       appointmentTypeId: selectedType.appointmentTypeId,
       firstChoiceDate: firstChoice.date,
       firstChoiceTimeSlotId: firstChoice.timeSlotId,

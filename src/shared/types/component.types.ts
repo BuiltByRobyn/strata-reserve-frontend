@@ -161,7 +161,7 @@ export interface DeleteAvailabilityModalProps {
 export interface OfferAppointmentModalProps {
   isOpen: boolean;
   onClose: () => void;
-  fileNumberId: number;
+  fileId: number;
   strataPlan: string;
   targetDate: string | null;
   appointmentTypes: import('./entities.types').AppointmentType[];
@@ -172,7 +172,7 @@ export interface OfferAppointmentModalProps {
   locations: import('./entities.types').Location[];
   initialLocationId: number | null;
   strataId: number;
-  onSubmit: (fileNumberId: number, data: {
+  onSubmit: (fileId: number, data: {
     appointmentTypeId?: number;
     inspectorProfileId?: string;
     secondInspectorProfileId?: string;

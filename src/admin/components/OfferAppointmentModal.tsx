@@ -9,7 +9,7 @@ import { LOCATION_DISPLAY_ORDER } from '../../shared/lib/constants';
 export const OfferAppointmentModal = ({
   isOpen,
   onClose,
-  fileNumberId,
+  fileId,
   strataPlan,
   targetDate,
   appointmentTypes,
@@ -87,7 +87,7 @@ export const OfferAppointmentModal = ({
       if (notes.trim() && onAddNote) {
         await onAddNote(notes.trim());
       }
-      await onSubmit(fileNumberId, {
+      await onSubmit(fileId, {
         appointmentTypeId: selectedTypeId ?? undefined,
         inspectorProfileId: inspectorId || undefined,
         secondInspectorProfileId: addSecondInspector && secondInspectorId ? secondInspectorId : undefined,

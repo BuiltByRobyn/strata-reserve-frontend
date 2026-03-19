@@ -1,9 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { InputField, FormRow } from '../../shared/components/FormField';
+import { SingleSelectDropdown } from '../../shared/components/SingleSelectDropdown';
 import { useClientFileNumber } from '../../shared/hooks/useClientFileNumber';
 import { useTimelines } from '../../shared/hooks/useTimelines';
 import { LoadingSpinner } from '../../shared/components/LoadingSpinner';
+import { NoFileNumberState } from '../../shared/components/NoFileNumberState';
 import { parseLocalDate, toDateInputValue } from '../../shared/lib/dateUtils';
 import type { UpdateTimelinesInput } from '../../shared/types/timeline.types';
 
@@ -72,8 +74,8 @@ function getMostRecentAnniversary(baseDate: Date, referenceDate: Date): Date {
 
 const Timelines = () => {
   const location = useLocation();
-  const { activeRequest, fileNumberId, loading: srLoading } = useClientFileNumber();
-  const { timelines, loading: timelinesLoading, error: loadError, updateTimelines } = useTimelines(fileNumberId);
+  const { activeRequest, fileId, loading: srLoading } = useClientFileNumber();
+  const { timelines, loading: timelinesLoading, error: loadError, updateTimelines } = useTimelines(fileId);
   const [fiscalYearStart, setFiscalYearStart] = useState('');
   const [lastAGM, setLastAGM] = useState('');
   const [lastDepreciationReport, setLastDepreciationReport] = useState('');
@@ -100,10 +102,13 @@ const Timelines = () => {
     setFiscalYearStart(toDateInputValue(timelines.fiscalYearEnd));
     setLastAGM(toDateInputValue(timelines.lastAgmDate));
     setNoAGMToDate(timelines.noAgmToDate);
-    setLastDepreciationReport(toDateInputValue(timelines.lastDepreciationReportDate));
+    setLastDepreciationReport(timelines.lastDepreciationReportDate ? timelines.lastDepreciationReportDate.substring(0, 4) : '');
     setNoReportToDate(timelines.noReportToDate);
     setTargetDate(toDateInputValue(timelines.targetDate));
-    if (timelines.fiscalYearEnd || timelines.targetDate) {
+    const hasRequiredFields =
+      (timelines.lastAgmDate || timelines.noAgmToDate) &&
+      (timelines.lastDepreciationReportDate || timelines.noReportToDate);
+    if (timelines.timelinesSubmittedAt || hasRequiredFields) {
       setShowCalculatedResults(true);
     }
   }, [timelines]);
@@ -119,7 +124,7 @@ const Timelines = () => {
     fiscalYearEnd: fiscalYearStart || null,
     lastAgmDate: lastAGM || null,
     noAgmToDate: noAGMToDate,
-    lastDepreciationReportDate: lastDepreciationReport || null,
+    lastDepreciationReportDate: lastDepreciationReport ? `${lastDepreciationReport}-01-01` : null,
     noReportToDate: noReportToDate,
     targetDate: targetDate || null,
   });
@@ -137,7 +142,7 @@ const Timelines = () => {
     }
     if (!noReportToDate && !lastDepreciationReport.trim()) {
       newErrors.lastDepreciationReport =
-        'Please select date of last depreciation report or check "No report to date".';
+        'Please select the year of the last depreciation report or check "No report to date".';
     }
     setErrors(newErrors);
     if (Object.keys(newErrors).length > 0) return;
@@ -150,7 +155,8 @@ const Timelines = () => {
     }
   };
 
-  const loading = srLoading || (!!fileNumberId && timelinesLoading);
+  const isLocked = !!timelines?.timelinesSubmittedAt;
+  const loading = srLoading || (!!fileId && timelinesLoading);
   const fileOpenedDate = timelines?.requestDate ?? activeRequest?.requestDate;
   const maxDateToday = new Date().toISOString().split('T')[0];
   const today = new Date();
@@ -180,11 +186,11 @@ const Timelines = () => {
     return <LoadingSpinner />;
   }
 
-  if (!fileNumberId) {
+  if (!fileId) {
     return (
-      <div className="page-container">
+      <div className="page-container page-container--full">
         <h1>Timelines</h1>
-        <p>No active file number found. Please contact your administrator.</p>
+        <NoFileNumberState />
       </div>
     );
   }
@@ -221,6 +227,7 @@ const Timelines = () => {
                 onChange={(e) => setFiscalYearStart(e.target.value)}
                 error={errors.fiscalYearStart}
                 max={maxDateToday}
+                disabled={isLocked}
               />
             </div>
 
@@ -232,7 +239,7 @@ const Timelines = () => {
                 value={lastAGM}
                 onChange={(e) => setLastAGM(e.target.value)}
                 error={errors.lastAGM}
-                disabled={noAGMToDate}
+                disabled={noAGMToDate || isLocked}
                 max={maxDateToday}
               />
               <div className="timelines-checkbox">
@@ -240,6 +247,7 @@ const Timelines = () => {
                   type="checkbox"
                   id="no-agm"
                   checked={noAGMToDate}
+                  disabled={isLocked}
                   onChange={(e) => {
                     setNoAGMToDate(e.target.checked);
                     if (e.target.checked) setErrors((prev) => ({ ...prev, lastAGM: undefined }));
@@ -252,21 +260,22 @@ const Timelines = () => {
 
           <FormRow>
             <div>
-              <InputField
-                label="Date of Last Depreciation Report"
-                type="date"
+              <SingleSelectDropdown
+                label="Year of Last Depreciation Report"
                 required={!noReportToDate}
                 value={lastDepreciationReport}
-                onChange={(e) => setLastDepreciationReport(e.target.value)}
+                onChange={(val) => setLastDepreciationReport(val ?? '')}
+                options={Array.from({ length: 41 }, (_, i) => new Date().getFullYear() - i).map(y => ({ value: String(y), label: String(y) }))}
+                placeholder="Select year"
+                disabled={noReportToDate || isLocked}
                 error={errors.lastDepreciationReport}
-                disabled={noReportToDate}
-                max={maxDateToday}
               />
               <div className="timelines-checkbox">
                 <input
                   type="checkbox"
                   id="no-report"
                   checked={noReportToDate}
+                  disabled={isLocked}
                   onChange={(e) => {
                     setNoReportToDate(e.target.checked);
                     if (e.target.checked) setErrors((prev) => ({ ...prev, lastDepreciationReport: undefined }));
@@ -286,7 +295,7 @@ const Timelines = () => {
                   if (errors.targetDate) setErrors((prev) => ({ ...prev, targetDate: undefined }));
                 }}
                 error={errors.targetDate}
-                disabled={daysIntoFiscalYear !== null && daysIntoFiscalYear > 395}
+                disabled={isLocked || (daysIntoFiscalYear !== null && daysIntoFiscalYear > 395)}
                 max={maxTargetDate ? maxTargetDate.toISOString().split('T')[0] : undefined}
               />
             </div>
@@ -298,7 +307,7 @@ const Timelines = () => {
             </p>
           )}
           <div className="timelines-submit">
-            <button type="submit" className="btn btn-primary btn-full-width">
+            <button type="submit" className="btn btn-primary btn-full-width" disabled={isLocked}>
               Calculate Timelines
             </button>
           </div>
@@ -319,14 +328,19 @@ const Timelines = () => {
                   <span className="timelines-overview-card__label">Days Remaining Until Next Fiscal Year</span>
                 </div>
                 <div className="timelines-overview-card timelines-overview-card--green">
+                  <span className="timelines-overview-card__title">
+                    {targetDate.trim() ? 'Your Target Date' : 'Our Target Date'}
+                  </span>
                   <span className="timelines-overview-card__value">
                     {displayTargetDate
                       ? displayTargetDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'long' })
                       : '—'}
                   </span>
-                  <span className="timelines-overview-card__label">(30 days before fiscal year end)</span>
+                  {!targetDate.trim() && (
+                    <span className="timelines-overview-card__label">(30 days before fiscal year end)</span>
+                  )}
                   {daysUntilTargetDate != null && (
-                    <span className="timelines-overview-card__subvalue">{daysUntilTargetDate} remaining</span>
+                    <span className="timelines-overview-card__subvalue">{daysUntilTargetDate} days remaining</span>
                   )}
                 </div>
               </div>

@@ -18,7 +18,7 @@ const QUESTIONS_PER_PAGE = 5;
 export default function SurveySectionPage() {
   const { section } = useParams<{ section: string }>();
   const navigate = useNavigate();
-  const { activeRequest, fileNumberId, loading: srLoading, submitForReview } = useClientFileNumber();
+  const { activeRequest, fileId, loading: srLoading, submitForReview } = useClientFileNumber();
   const {
     questions: allQuestions,
     responses,
@@ -40,11 +40,11 @@ export default function SurveySectionPage() {
   const prevSectionRef = useRef(section);
 
   useEffect(() => {
-    if (fileNumberId) {
-      fetchQuestions(fileNumberId);
-      fetchResponses(fileNumberId);
+    if (fileId) {
+      fetchQuestions(fileId);
+      fetchResponses(fileId);
     }
-  }, [fileNumberId, fetchQuestions, fetchResponses]);
+  }, [fileId, fetchQuestions, fetchResponses]);
 
   const sectionConfig = SURVEY_SECTIONS.find(s => s.key === section);
 
@@ -96,13 +96,13 @@ export default function SurveySectionPage() {
   }, [localAnswers]);
 
   const saveCurrent = useCallback(async () => {
-    if (!fileNumberId) return;
+    if (!fileId) return;
     const payloads = buildPendingPayloads();
     if (payloads.length > 0) {
-      await saveResponses(fileNumberId, payloads);
+      await saveResponses(fileId, payloads);
       setLocalAnswers({});
     }
-  }, [fileNumberId, buildPendingPayloads, saveResponses]);
+  }, [fileId, buildPendingPayloads, saveResponses]);
 
   useEffect(() => {
     if (prevPageRef.current !== page || prevSectionRef.current !== section) {
@@ -149,7 +149,7 @@ export default function SurveySectionPage() {
   };
 
   // const handleDownloadPdf = async () => {
-  //   if (!fileNumberId) return;
+  //   if (!fileId) return;
   //   setDownloadingPdf(true);
   //   try {
   //     const res = await api.rawFetch('/client/file-numbers/active/survey/pdf');
@@ -410,7 +410,7 @@ export default function SurveySectionPage() {
 
   if (srLoading || loading) return <LoadingSpinner />;
 
-  if (!fileNumberId) {
+  if (!fileId) {
     return (
       <div className="survey-section-page">
         <p>No active file number found. Please contact your administrator.</p>
@@ -472,7 +472,7 @@ export default function SurveySectionPage() {
             type="button"
             className="btn-primary btn-nav"
             onClick={handleDownloadPdf}
-            disabled={!fileNumberId || downloadingPdf}
+            disabled={!fileId || downloadingPdf}
           >
             {downloadingPdf ? 'Downloading...' : 'Download Survey'}
           </button>

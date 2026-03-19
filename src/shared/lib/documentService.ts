@@ -10,6 +10,8 @@ export async function supabaseUploadDocument(params: UploadDocumentParams): Prom
   if (params.notes) formData.append('notes', params.notes);
   if (params.propertyTypeId) formData.append('property_type_id', params.propertyTypeId.toString());
   if (params.propertyTypeName) formData.append('property_type_name', params.propertyTypeName);
+  if (params.fnDocRequirementId) formData.append('fn_doc_requirement_id', params.fnDocRequirementId.toString());
+  if (params.isReplace) formData.append('is_replace', 'true');
 
   const response = await fetch(`${SUPABASE_URL}/functions/v1/upload-document`, {
     method: 'POST',

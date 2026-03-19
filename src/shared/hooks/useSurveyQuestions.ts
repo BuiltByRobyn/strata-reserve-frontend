@@ -8,11 +8,11 @@ export const useSurveyQuestions = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchQuestions = useCallback(async (fileNumberId: number) => {
+  const fetchQuestions = useCallback(async (fileId: number) => {
     setLoading(true);
     setError(null);
     try {
-      const data = await api.get<SurveyQuestion[]>(`/admin/file-numbers/${fileNumberId}/survey-questions`);
+      const data = await api.get<SurveyQuestion[]>(`/admin/file-numbers/${fileId}/survey-questions`);
       setQuestions(data || []);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch questions');
@@ -21,10 +21,10 @@ export const useSurveyQuestions = () => {
     }
   }, [api]);
 
-  const addQuestion = useCallback(async (fileNumberId: number, questionId: number, propertyTypeId: number) => {
+  const addQuestion = useCallback(async (fileId: number, questionId: number, propertyTypeId: number) => {
     try {
-      await api.post(`/admin/file-numbers/${fileNumberId}/survey-questions`, { questionId, propertyTypeId });
-      await fetchQuestions(fileNumberId);
+      await api.post(`/admin/file-numbers/${fileId}/survey-questions`, { questionId, propertyTypeId });
+      await fetchQuestions(fileId);
       return true;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to add question');
@@ -32,10 +32,10 @@ export const useSurveyQuestions = () => {
     }
   }, [api, fetchQuestions]);
 
-  const removeQuestion = useCallback(async (fileNumberId: number, fnSurveyQuestionId: number) => {
+  const removeQuestion = useCallback(async (fileId: number, fnSurveyQuestionId: number) => {
     try {
-      await api.del(`/admin/file-numbers/${fileNumberId}/survey-questions/${fnSurveyQuestionId}`);
-      await fetchQuestions(fileNumberId);
+      await api.del(`/admin/file-numbers/${fileId}/survey-questions/${fnSurveyQuestionId}`);
+      await fetchQuestions(fileId);
       return true;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to remove question');

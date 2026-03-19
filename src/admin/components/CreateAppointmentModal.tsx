@@ -18,7 +18,7 @@ export function CreateAppointmentModal({ isOpen, onClose }: Props) {
   const { users } = useUsers();
   const { fileNumbers, refetch: fetchFileNumbers } = useFileNumbers();
 
-  const [createForm, setCreateForm] = useState({ fileNumberId: '', appointmentDate: '', timeSlotId: '', appointmentTypeId: '', inspectorProfileId: '' });
+  const [createForm, setCreateForm] = useState({ fileId: '', appointmentDate: '', timeSlotId: '', appointmentTypeId: '', inspectorProfileId: '' });
   const [addSecondInspector, setAddSecondInspector] = useState(false);
   const [secondInspectorId, setSecondInspectorId] = useState('');
   const [createError, setCreateError] = useState<string | null>(null);
@@ -31,7 +31,7 @@ export function CreateAppointmentModal({ isOpen, onClose }: Props) {
 
   useEffect(() => {
     if (!isOpen) return;
-    setCreateForm({ fileNumberId: '', appointmentDate: '', timeSlotId: '', appointmentTypeId: '', inspectorProfileId: '' });
+    setCreateForm({ fileId: '', appointmentDate: '', timeSlotId: '', appointmentTypeId: '', inspectorProfileId: '' });
     setAddSecondInspector(false);
     setSecondInspectorId('');
     setCreateError(null);
@@ -45,7 +45,7 @@ export function CreateAppointmentModal({ isOpen, onClose }: Props) {
   }, [isOpen]);
 
   const isFormValid = !!(
-    createForm.fileNumberId &&
+    createForm.fileId &&
     createForm.appointmentTypeId &&
     createForm.appointmentDate &&
     createForm.timeSlotId &&
@@ -57,7 +57,7 @@ export function CreateAppointmentModal({ isOpen, onClose }: Props) {
     setCreateError(null);
     try {
       await createAppointment({
-        fileNumberId: parseInt(createForm.fileNumberId),
+        fileId: parseInt(createForm.fileId),
         appointmentDate: createForm.appointmentDate,
         timeSlotId: parseInt(createForm.timeSlotId),
         appointmentTypeId: parseInt(createForm.appointmentTypeId),
@@ -135,14 +135,14 @@ export function CreateAppointmentModal({ isOpen, onClose }: Props) {
             <SingleSelectDropdown
               label="Strata"
               required
-              options={fileNumbers.map(sr => ({ value: String(sr.fileNumberId), label: `${sr.strata?.strataPlan || ''} - ${sr.strata?.complexName || 'Unknown'}` }))}
-              value={createForm.fileNumberId}
-              onChange={(val) => setCreateForm(prev => ({ ...prev, fileNumberId: val }))}
+              options={fileNumbers.map(sr => ({ value: String(sr.fileId), label: `${sr.strata?.strataPlan || ''} - ${sr.strata?.complexName || 'Unknown'}` }))}
+              value={createForm.fileId}
+              onChange={(val) => setCreateForm(prev => ({ ...prev, fileId: val }))}
               placeholder="Select a strata..."
             />
 
-            {createForm.fileNumberId && (() => {
-              const sr = fileNumbers.find(s => String(s.fileNumberId) === createForm.fileNumberId);
+            {createForm.fileId && (() => {
+              const sr = fileNumbers.find(s => String(s.fileId) === createForm.fileId);
               const loc = sr?.strata?.location?.locationName;
               return loc ? (
                 <div className="form-field">

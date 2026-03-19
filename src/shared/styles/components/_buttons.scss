@@ -116,3 +116,25 @@
 .btn-full-width {
   width: 100%;
 }
+
+// No file number state message
+.no-file-number-message {
+  color: $color-text-light;
+  font-size: 0.9375rem;
+}
+
+// Inline text link button
+.btn-link {
+  background: none;
+  border: none;
+  color: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 0;
+  font: inherit;
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LoadingSpinner } from '../../shared/components/LoadingSpinner';
+import { NoFileNumberState } from '../../shared/components/NoFileNumberState';
 import { useAuth } from '../../shared/contexts/AuthContext';
 import { useClientAppointments } from '../../shared/hooks/useClientAppointments';
 import { useClientDocuments } from '../../shared/hooks/useClientDocuments';
@@ -21,9 +22,9 @@ const formatShortDate = (value: string | null | undefined) => {
 export const Dashboard = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { activeRequest, fileNumberId, loading: requestLoading } = useClientFileNumber();
+  const { activeRequest, fileId, loading: requestLoading } = useClientFileNumber();
   const { loading: propertyTypeLoading } = usePropertyTypeRequest();
-  const { timelines, loading: timelinesLoading } = useTimelines(fileNumberId);
+  const { timelines, loading: timelinesLoading } = useTimelines(fileId);
   const { questions, responses, loading: surveyLoading, fetchQuestions, fetchResponses } = useSurvey();
   const {
     requiredDocuments,
@@ -38,7 +39,7 @@ export const Dashboard = () => {
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    if (!fileNumberId) {
+    if (!fileId) {
       setAppointmentLoading(false);
       setActiveAppointment(null);
       return;
@@ -59,14 +60,14 @@ export const Dashboard = () => {
     });
 
     return () => { ignore = true; };
-  }, [fileNumberId, getActiveAppointment, getNotifications]);
+  }, [fileId, getActiveAppointment, getNotifications]);
 
   useEffect(() => {
-    if (!fileNumberId) return;
-    fetchQuestions(fileNumberId);
-    fetchResponses(fileNumberId);
-    fetchRequiredDocuments(fileNumberId);
-  }, [fetchQuestions, fetchRequiredDocuments, fetchResponses, fileNumberId]);
+    if (!fileId) return;
+    fetchQuestions(fileId);
+    fetchResponses(fileId);
+    fetchRequiredDocuments(fileId);
+  }, [fetchQuestions, fetchRequiredDocuments, fetchResponses, fileId]);
 
   const welcomeName = user?.role === 'client' ? user.firstName || 'there' : 'there';
   const dashboardTitle = activeRequest?.strata?.complexName || activeRequest?.strata?.strataPlan || 'Your Strata Reserve Planning - Data Collection Portal';
@@ -125,6 +126,9 @@ export const Dashboard = () => {
     return Math.round(((answeredSurveyQuestions + uploadedRequiredDocumentCount) / total) * 100);
   }, [answeredSurveyQuestions, totalSurveyQuestions, uploadedRequiredDocumentCount, requiredDocumentCount]);
 
+  const surveyCompleted = totalSurveyQuestions > 0 && answeredSurveyQuestions >= totalSurveyQuestions;
+  const documentsCompleted = requiredDocumentCount > 0 && missingRequiredDocumentCount === 0;
+
   const tasks = useMemo(() => {
     const incompleteSectionKey = sectionProgress.find((s) => !s.complete)?.key;
     const surveyPath = incompleteSectionKey ? `/client/survey/${incompleteSectionKey}` : '/client/survey';
@@ -134,7 +138,28 @@ export const Dashboard = () => {
       (activeRequest?.rebookingRequestedAt || (activeRequest?.appointmentOfferedAt && !activeAppointment))
     );
 
-    // When booking action is needed, replace Deadlines with the inspection card
+    const surveyTask = {
+      id: 'survey',
+      title: activeRequest?.submittedForReviewDate ? 'Review Your Survey' : 'Complete Your Survey',
+      description: activeRequest?.submittedForReviewDate ? 'Your survey has been submitted for review.' : 'Continue where you left off',
+      buttonLabel: activeRequest?.submittedForReviewDate ? 'Review Survey' : 'Open Survey',
+      path: surveyPath,
+      navState: undefined as Record<string, unknown> | undefined,
+      completed: surveyCompleted,
+    };
+
+    const documentsTask = {
+      id: 'documents',
+      title: 'Upload Documents',
+      description: missingRequiredDocumentCount > 0
+        ? `${missingRequiredDocumentCount} required document${missingRequiredDocumentCount === 1 ? '' : 's'} still to upload`
+        : 'Submit requested documents',
+      buttonLabel: missingRequiredDocumentCount > 0 ? 'Upload Documents' : 'View Documents',
+      path: '/client/documents',
+      navState: undefined as Record<string, unknown> | undefined,
+      completed: documentsCompleted,
+    };
+
     if (bookingActionNeeded) {
       const inspectionTitle = activeRequest?.rebookingRequestedAt ? 'Rebook Your Inspection' : 'Book Your Inspection';
       const inspectionDesc = activeRequest?.rebookingRequestedAt
@@ -143,47 +168,15 @@ export const Dashboard = () => {
       const inspectionLabel = activeRequest?.rebookingRequestedAt ? 'Book Inspection Date' : 'Select Dates';
 
       return [
-        { id: 'inspection', title: inspectionTitle, description: inspectionDesc, buttonLabel: inspectionLabel, path: '/client/inspection-date', navState: undefined },
-        {
-          id: 'survey',
-          title: activeRequest?.submittedForReviewDate ? 'Review Your Survey' : 'Complete Your Survey',
-          description: activeRequest?.submittedForReviewDate ? 'Your survey has been submitted for review.' : 'Continue where you left off',
-          buttonLabel: activeRequest?.submittedForReviewDate ? 'Review Survey' : 'Open Survey',
-          path: surveyPath,
-          navState: undefined,
-        },
-        {
-          id: 'documents',
-          title: 'Upload Documents',
-          description: missingRequiredDocumentCount > 0
-            ? `${missingRequiredDocumentCount} required document${missingRequiredDocumentCount === 1 ? '' : 's'} still to upload`
-            : 'Submit requested documents',
-          buttonLabel: missingRequiredDocumentCount > 0 ? 'Upload Documents' : 'View Documents',
-          path: '/client/documents',
-          navState: undefined,
-        },
+        surveyTask,
+        documentsTask,
+        { id: 'inspection', title: inspectionTitle, description: inspectionDesc, buttonLabel: inspectionLabel, path: '/client/inspection-date', navState: undefined as Record<string, unknown> | undefined, completed: false },
       ];
     }
 
     return [
-      {
-        id: 'survey',
-        title: activeRequest?.submittedForReviewDate ? 'Review Your Survey' : 'Complete Your Survey',
-        description: activeRequest?.submittedForReviewDate ? 'Your survey has been submitted for review.' : 'Continue where you left off',
-        buttonLabel: activeRequest?.submittedForReviewDate ? 'Review Survey' : 'Open Survey',
-        path: surveyPath,
-        navState: undefined,
-      },
-      {
-        id: 'documents',
-        title: 'Upload Documents',
-        description: missingRequiredDocumentCount > 0
-          ? `${missingRequiredDocumentCount} required document${missingRequiredDocumentCount === 1 ? '' : 's'} still to upload`
-          : 'Submit requested documents',
-        buttonLabel: missingRequiredDocumentCount > 0 ? 'Upload Documents' : 'View Documents',
-        path: '/client/documents',
-        navState: undefined,
-      },
+      surveyTask,
+      documentsTask,
       {
         id: 'timelines',
         title: 'Deadlines',
@@ -192,10 +185,11 @@ export const Dashboard = () => {
           : 'View cut off dates and updates on your report',
         buttonLabel: 'View Timeline',
         path: '/client/timelines',
-        navState: { scrollToDeadlines: true } as Record<string, unknown>,
+        navState: { scrollToDeadlines: true } as Record<string, unknown> | undefined,
+        completed: timelineTargetDate != null,
       },
     ];
-  }, [activeAppointment, activeRequest, missingRequiredDocumentCount, sectionProgress, timelineTargetDate]);
+  }, [activeAppointment, activeRequest, documentsCompleted, missingRequiredDocumentCount, sectionProgress, surveyCompleted, timelineTargetDate]);
 
   const dashboardLoading = requestLoading || propertyTypeLoading || surveyLoading || documentsLoading || timelinesLoading || appointmentLoading;
 
@@ -208,13 +202,7 @@ export const Dashboard = () => {
           <h1>Welcome, {welcomeName}</h1>
           <p className="dashboard-subtitle">Dashboard</p>
         </div>
-        <div className="dashboard-surface">
-          <section className="dashboard-section">
-            <div className="empty-actions empty-actions--spacious">
-              <p>No active service request was found for your account. Please contact the SRP team for help.</p>
-            </div>
-          </section>
-        </div>
+        <NoFileNumberState />
       </div>
     );
   }
@@ -254,12 +242,12 @@ export const Dashboard = () => {
 
       <h2 className="client-tasks-heading">Priority Tasks</h2>
       <div className="priority-tasks-grid">
-        {tasks.map((task, index) => (
-          <div key={task.id} className={`priority-task-card${index === 0 ? ' priority-task-card--active' : ''}`}>
+        {tasks.map((task) => (
+          <div key={task.id} className={`priority-task-card${task.completed ? ' priority-task-card--active' : ''}`}>
             <h3 className="priority-task-card__title">{task.title}</h3>
             <p className="priority-task-card__desc">{task.description}</p>
             <button
-              className={`btn-action ${index === 0 ? 'btn-action--primary' : 'btn-action--secondary'}`}
+              className="btn-action btn-action--secondary"
               onClick={() => navigate(task.path, { state: task.navState })}
             >
               {task.buttonLabel}
@@ -267,6 +255,22 @@ export const Dashboard = () => {
           </div>
         ))}
       </div>
+
+      {activeAppointment?.type === 'pending_request' && (
+        <div className="appointment-status-card appointment-status-card--pending">
+          <p className="appointment-status-card__label">PENDING REVIEW</p>
+          <p className="appointment-status-card__text">Your inspection request is awaiting confirmation from our team.</p>
+        </div>
+      )}
+
+      {activeAppointment?.type === 'scheduled' && (
+        <div className="appointment-status-card appointment-status-card--scheduled">
+          <p className="appointment-status-card__label">CONFIRMED</p>
+          <p className="appointment-status-card__text">
+            Your {activeAppointment.data.appointmentType.typeName} on {formatShortDate(activeAppointment.data.appointmentDate)} at {activeAppointment.data.timeSlot.slotName} has been approved.
+          </p>
+        </div>
+      )}
 
       {notifications.some((n) => !dismissed.has(`${n.type}__${n.date}`)) && (
         <div className="client-notifications">

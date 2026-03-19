@@ -140,7 +140,7 @@ export const useAppointments = () => {
   }, [api]);
 
   const createAppointment = useCallback(async (data: {
-    fileNumberId: number;
+    fileId: number;
     appointmentDate: string;
     timeSlotId: number;
     appointmentTypeId: number;

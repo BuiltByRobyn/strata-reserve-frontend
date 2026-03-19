@@ -71,6 +71,8 @@ export default function AppointmentsPage() {
   const [submitting, setSubmitting] = useState(false);
   const [reviewError, setReviewError] = useState<string | null>(null);
   const [showRejectSection, setShowRejectSection] = useState(false);
+  const [inspectorAvailabilityWarning, setInspectorAvailabilityWarning] = useState<string | null>(null);
+  const [pendingApproveChoice, setPendingApproveChoice] = useState<number | null>(null);
 
   // Filters
   const [filterStrataName, setFilterStrataName] = useState('');
@@ -87,7 +89,7 @@ export default function AppointmentsPage() {
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
 
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [createForm, setCreateForm] = useState({ fileNumberId: '', appointmentDate: '', timeSlotId: '', appointmentTypeId: '', inspectorProfileId: '' });
+  const [createForm, setCreateForm] = useState({ fileId: '', appointmentDate: '', timeSlotId: '', appointmentTypeId: '', inspectorProfileId: '' });
   const [addSecondInspector, setAddSecondInspector] = useState(false);
   const [secondInspectorId, setSecondInspectorId] = useState('');
   const [createError, setCreateError] = useState<string | null>(null);
@@ -97,7 +99,7 @@ export default function AppointmentsPage() {
   const [allAppointmentTypes, setAllAppointmentTypes] = useState<any[]>([]);
 
   const openCreateModal = useCallback(async () => {
-    setCreateForm({ fileNumberId: '', appointmentDate: '', timeSlotId: '', appointmentTypeId: '', inspectorProfileId: '' });
+    setCreateForm({ fileId: '', appointmentDate: '', timeSlotId: '', appointmentTypeId: '', inspectorProfileId: '' });
     setAddSecondInspector(false);
     setSecondInspectorId('');
     setCreateError(null);
@@ -111,7 +113,7 @@ export default function AppointmentsPage() {
 
   const validateCreateForm = useCallback(() => {
     const missing: string[] = [];
-    if (!createForm.fileNumberId) missing.push('Strata');
+    if (!createForm.fileId) missing.push('Strata');
     if (!createForm.appointmentTypeId) missing.push('Appointment Type');
     if (!createForm.appointmentDate) missing.push('Date');
     if (!createForm.timeSlotId) missing.push('Time Slot');
@@ -124,7 +126,7 @@ export default function AppointmentsPage() {
     setCreateError(null);
     try {
       await createAppointment({
-        fileNumberId: parseInt(createForm.fileNumberId),
+        fileId: parseInt(createForm.fileId),
         appointmentDate: createForm.appointmentDate,
         timeSlotId: parseInt(createForm.timeSlotId),
         appointmentTypeId: parseInt(createForm.appointmentTypeId),
@@ -192,6 +194,16 @@ export default function AppointmentsPage() {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const autoOpenedRequestRef = useRef(false);
+  useEffect(() => {
+    if (!location.state?.openRequestId || autoOpenedRequestRef.current || requests.length === 0) return;
+    const target = requests.find((r) => r.appointmentRequestId === location.state.openRequestId);
+    if (target) {
+      autoOpenedRequestRef.current = true;
+      setSelectedItem({ type: 'request', data: target });
+    }
+  }, [requests, location.state?.openRequestId]);
 
   // Pre-fill inspector from offer when selecting a request
   useEffect(() => {
@@ -361,11 +373,11 @@ export default function AppointmentsPage() {
 
   const appointmentCalendarMilestones = useMemo((): CalendarMilestone[] => {
     return filteredRows.map(row => {
-      const fileNumberId = (row.original as { fileNumber?: { fileNumberId: number } }).fileNumber?.fileNumberId ?? 0;
+      const fileNumber = (row.original as { fileNumber?: { fileNumber?: string | null } }).fileNumber?.fileNumber ?? '—';
       const abbrev = row.type === 'appointment' ? 'A' : 'R';
       return {
         date: formatYMD(row.date),
-        label: `${String(fileNumberId).padStart(9, '0')}\n${row.strataPlan}:${abbrev}`,
+        label: `${fileNumber}\n${row.strataPlan}:${abbrev}`,
       };
     });
   }, [filteredRows]);
@@ -412,6 +424,7 @@ export default function AppointmentsPage() {
   // ─── Request detail: handlers ─────────────────────────────────
   const handleInspectorChange = async (newInspectorId: string) => {
     setInspectorId(newInspectorId);
+    setInspectorAvailabilityWarning(null);
     if (!newInspectorId || !selectedItem || selectedItem.type !== 'request') return;
 
     const req = selectedItem.data;
@@ -420,16 +433,14 @@ export default function AppointmentsPage() {
 
     if (!isAvailable) {
       const inspector = inspectorOptions.find(o => o.value === newInspectorId);
-      toast.error(`${inspector?.label || 'Inspector'} is not available at this time, please update their availability to proceed`);
+      setInspectorAvailabilityWarning(
+        `${inspector?.label || 'Inspector'} is not available for the selected timeslot. Please update their availability to proceed.`
+      );
     }
   };
 
-  const handleApprove = async (choiceNum: number) => {
+  const submitApprove = async (choiceNum: number) => {
     if (!selectedItem || selectedItem.type !== 'request') return;
-    if (!inspectorId) {
-      setReviewError('Please assign an inspector before approving');
-      return;
-    }
     setSubmitting(true);
     setReviewError(null);
     const result = await reviewAppointmentRequest(selectedItem.data.appointmentRequestId, {
@@ -445,6 +456,31 @@ export default function AppointmentsPage() {
     } else {
       setReviewError(result.error || 'Approval failed');
     }
+  };
+
+  const handleApprove = async (choiceNum: number) => {
+    if (!selectedItem || selectedItem.type !== 'request') return;
+    if (!inspectorId) {
+      setReviewError('Please assign an inspector before approving');
+      return;
+    }
+    if (inspectorAvailabilityWarning) {
+      setPendingApproveChoice(choiceNum);
+      return;
+    }
+    await submitApprove(choiceNum);
+  };
+
+  const handleAvailabilityConfirm = async () => {
+    if (pendingApproveChoice === null) return;
+    const choiceNum = pendingApproveChoice;
+    setPendingApproveChoice(null);
+    setInspectorAvailabilityWarning(null);
+    await submitApprove(choiceNum);
+  };
+
+  const handleAvailabilityCancel = () => {
+    setPendingApproveChoice(null);
   };
 
   const handleReject = async () => {
@@ -476,6 +512,8 @@ export default function AppointmentsPage() {
     setComments('');
     setReviewError(null);
     setShowRejectSection(false);
+    setInspectorAvailabilityWarning(null);
+    setPendingApproveChoice(null);
   };
 
   const handleRequestRebooking = async (apt: AppointmentWithDetails) => {
@@ -819,6 +857,26 @@ export default function AppointmentsPage() {
           appointment={cancelApt}
           onCancel={cancelAppointment}
         />
+
+        <Modal
+          isOpen={pendingApproveChoice !== null}
+          onClose={handleAvailabilityCancel}
+          title="Inspector Unavailable"
+          size="small"
+          footer={
+            <>
+              <button className="btn btn-secondary" onClick={handleAvailabilityCancel}>
+                Go Back
+              </button>
+              <button className="btn btn-primary" onClick={handleAvailabilityConfirm} disabled={submitting}>
+                {submitting ? 'Processing...' : 'Yes, Proceed'}
+              </button>
+            </>
+          }
+        >
+          <p>{inspectorAvailabilityWarning}</p>
+          <p>Are you sure you would like to proceed?</p>
+        </Modal>
       </div>
     );
   }
@@ -1093,16 +1151,16 @@ export default function AppointmentsPage() {
                 label="Strata"
                 required
                 options={fileNumbers.map(sr => ({
-                  value: String(sr.fileNumberId),
+                  value: String(sr.fileId),
                   label: `${sr.strata?.strataPlan || ''} - ${sr.strata?.complexName || 'Unknown'}`,
                 }))}
-                value={createForm.fileNumberId}
-                onChange={(val) => setCreateForm(prev => ({ ...prev, fileNumberId: val }))}
+                value={createForm.fileId}
+                onChange={(val) => setCreateForm(prev => ({ ...prev, fileId: val }))}
                 placeholder="Select a strata..."
               />
 
-              {createForm.fileNumberId && (() => {
-                const sr = fileNumbers.find(s => String(s.fileNumberId) === createForm.fileNumberId);
+              {createForm.fileId && (() => {
+                const sr = fileNumbers.find(s => String(s.fileId) === createForm.fileId);
                 const loc = sr?.strata?.location?.locationName;
                 return loc ? (
                   <div className="form-field">

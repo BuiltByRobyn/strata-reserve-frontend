@@ -94,7 +94,7 @@ export default function StrataPage() {
     {
       key: "company",
       header: "Company",
-      render: (strata) => strata.company?.companyName ?? "-",
+      render: (strata) => strata.companyName ?? "-",
     },
     {
       key: "propertyTypes",
@@ -146,7 +146,7 @@ export default function StrataPage() {
       country: strata.country || "Canada",
       website: strata.website || "",
       legalTypeId: strata.legalTypeId || undefined,
-      companyId: strata.companyId || undefined,
+      companyName: strata.companyName || '',
       fiscalYearEnd: strata.fiscalYearEnd ? strata.fiscalYearEnd.split('T')[0] : undefined,
       locationId: strata.locationId || undefined,
       propertyTypeIds: strata.strataPropertyTypes?.map(spt => spt.propertyTypeId) || [],
@@ -222,7 +222,7 @@ export default function StrataPage() {
     { label: 'Postal Code', value: s.postalCode ?? '-' },
     { label: 'Legal Type', value: s.legalType?.legalTypeName ?? '-' },
     { label: 'Property Types', value: s.strataPropertyTypes?.map(spt => spt.propertyType.propertyTypeName).join(', ') || s.propertyType?.propertyTypeName || '-' },
-    { label: 'Company', value: s.company?.companyName ?? '-' },
+    { label: 'Company', value: s.companyName ?? '-' },
   ];
 
   if (loading) return <LoadingSpinner />;
