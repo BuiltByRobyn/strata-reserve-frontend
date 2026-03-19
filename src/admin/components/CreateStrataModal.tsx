@@ -6,7 +6,7 @@ import { InputField, FormRow } from '../../shared/components/FormField';
 import { SingleSelectDropdown } from '../../shared/components/SingleSelectDropdown';
 import { MultiSelectDropdown } from '../../shared/components/MultiSelectDropdown';
 import type { CreateStrataInput } from '../../shared/types/entities.types';
-import { formatStrataId, validateStrataId } from '../../shared/utils/strataUtils';
+import { formatStrataId, formatPostalCode, validateStrataId, validatePostalCodeFormat } from '../../shared/utils/strataUtils';
 import { LOCATION_DISPLAY_ORDER } from '../../shared/lib/constants';
 
 interface Props {
@@ -15,11 +15,13 @@ interface Props {
 }
 
 export function CreateStrataModal({ isOpen, onClose }: Props) {
-  const { createStrata } = useStrata();
+  const { stratas, createStrata } = useStrata();
   const { legalTypes, propertyTypes, locations } = useLookups();
 
   const [formData, setFormData] = useState<CreateStrataInput>({});
   const [formError, setFormError] = useState<string | null>(null);
+  const [strataPlanError, setStrataPlanError] = useState<string | null>(null);
+  const [postalCodeError, setPostalCodeError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const updateField = (field: keyof CreateStrataInput, value: string | number | null | undefined) => {
@@ -29,15 +31,30 @@ export function CreateStrataModal({ isOpen, onClose }: Props) {
   const handleClose = () => {
     setFormData({});
     setFormError(null);
+    setStrataPlanError(null);
+    setPostalCodeError(null);
     onClose();
   };
 
+  const isDuplicate = validateStrataId(formData.strataPlan || '') &&
+    stratas.some(s => s.strataPlan?.toUpperCase() === (formData.strataPlan || '').toUpperCase());
+
+  const isFormValid =
+    validateStrataId(formData.strataPlan || '') &&
+    !strataPlanError &&
+    !isDuplicate &&
+    !!formData.complexName?.trim() &&
+    !!formData.streetName?.trim() &&
+    !!formData.town?.trim() &&
+    !!formData.province &&
+    !!formData.postalCode?.trim() &&
+    !postalCodeError &&
+    !!formData.legalTypeId &&
+    (formData.propertyTypeIds?.length ?? 0) > 0 &&
+    !!formData.locationId;
+
   const handleSubmit = async (e?: React.FormEvent) => {
     e?.preventDefault();
-    if (!validateStrataId(formData.strataPlan || '')) {
-      setFormError('Strata Plan must be in format: ABC 12345 (3 letters, space, 5 digits)');
-      return;
-    }
     setIsSubmitting(true);
     setFormError(null);
     try {
@@ -59,7 +76,7 @@ export function CreateStrataModal({ isOpen, onClose }: Props) {
       footer={
         <>
           <button className="btn-secondary" onClick={handleClose}>Cancel</button>
-          <button className="btn-primary" onClick={() => handleSubmit()} disabled={isSubmitting}>
+          <button className="btn-primary" onClick={() => handleSubmit()} disabled={!isFormValid || isSubmitting}>
             {isSubmitting ? 'Saving...' : 'Create Strata'}
           </button>
         </>
@@ -69,12 +86,30 @@ export function CreateStrataModal({ isOpen, onClose }: Props) {
         {formError && <div className="form-error">{formError}</div>}
 
         <FormRow>
-          <InputField label="Strata Plan" value={formData.strataPlan || ''} onChange={(e) => updateField('strataPlan', formatStrataId(e.target.value))} placeholder="e.g., VIS 23456" maxLength={9} required />
+          <InputField
+            label="Strata Plan"
+            value={formData.strataPlan || ''}
+            onChange={(e) => {
+              const formatted = formatStrataId(e.target.value);
+              if (/\d/.test(formatted) && !validateStrataId(formatted)) {
+                setStrataPlanError('Format: ABC 12345 (3 letters, space, 1–5 digits)');
+              } else if (validateStrataId(formatted) && stratas.some(s => s.strataPlan?.toUpperCase() === formatted.toUpperCase())) {
+                setStrataPlanError('A strata with this plan number already exists');
+              } else {
+                setStrataPlanError(null);
+              }
+              updateField('strataPlan', formatted);
+            }}
+            placeholder="e.g., VIS 23456"
+            maxLength={9}
+            error={strataPlanError || undefined}
+            required
+          />
           <InputField label="Complex Name" value={formData.complexName || ''} onChange={(e) => updateField('complexName', e.target.value)} placeholder="e.g., Maple Gardens" required />
         </FormRow>
 
         <FormRow>
-          <InputField label="Unit Number" value={formData.unitNumber || ''} onChange={(e) => updateField('unitNumber', e.target.value)} placeholder="e.g., 101" />
+          <InputField label="Unit Number (if applicable)" value={formData.unitNumber || ''} onChange={(e) => updateField('unitNumber', e.target.value)} placeholder="e.g., 101" />
           <InputField label="Street Name" value={formData.streetName || ''} onChange={(e) => updateField('streetName', e.target.value)} placeholder="e.g., 123 Main St" required />
         </FormRow>
 
@@ -99,12 +134,23 @@ export function CreateStrataModal({ isOpen, onClose }: Props) {
         </FormRow>
 
         <FormRow>
-          <InputField label="Postal Code" value={formData.postalCode || ''} onChange={(e) => updateField('postalCode', e.target.value)} placeholder="e.g., V6B 1A1" required />
+          <InputField
+            label="Postal Code"
+            value={formData.postalCode || ''}
+            onChange={(e) => {
+              const formatted = formatPostalCode(e.target.value, formData.country || 'Canada');
+              setPostalCodeError(validatePostalCodeFormat(formatted, formData.country || 'Canada'));
+              updateField('postalCode', formatted);
+            }}
+            placeholder="e.g., V6B 1A1"
+            error={postalCodeError || undefined}
+            required
+          />
           <InputField label="Country" value={formData.country || 'Canada'} onChange={(e) => updateField('country', e.target.value)} />
         </FormRow>
 
         <FormRow>
-          <InputField label="Company" value={formData.companyName || ''} onChange={(e) => updateField('companyName', e.target.value)} placeholder="Enter company name" />
+          <InputField label="Strata Management Company (if applicable)" value={formData.companyName || ''} onChange={(e) => updateField('companyName', e.target.value)} placeholder="Enter strata management company name" />
           <SingleSelectDropdown
             label="Legal Type"
             value={formData.legalTypeId?.toString() || ''}
@@ -142,7 +188,7 @@ export function CreateStrataModal({ isOpen, onClose }: Props) {
         </FormRow>
 
         <FormRow>
-          <InputField label="Website" type="url" value={formData.website || ''} onChange={(e) => updateField('website', e.target.value)} placeholder="https://example.com" />
+          <InputField label="Website (if applicable)" type="url" value={formData.website || ''} onChange={(e) => updateField('website', e.target.value)} placeholder="https://example.com" />
           <InputField
             label="Current Fiscal Year Start Date"
             type="date"

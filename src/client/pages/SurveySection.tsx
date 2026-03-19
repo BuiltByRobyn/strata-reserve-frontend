@@ -3,11 +3,11 @@ import { useParams, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { useSurvey } from '../../shared/hooks/useSurvey';
 import { useClientFileNumber } from '../../shared/hooks/useClientFileNumber';
-import { useApiClient } from '../../shared/hooks/useApiClient';
+// import { useApiClient } from '../../shared/hooks/useApiClient';
 import { SurveyProgressBar } from '../../shared/components/SurveyProgressBar';
 import { SurveyCategoryNav } from '../../shared/components/SurveyCategoryNav';
 import { LoadingSpinner } from '../../shared/components/LoadingSpinner';
-import { getFilenameFromDisposition, triggerBlobDownload } from '../../shared/utils/fileUtils';
+// import { getFilenameFromDisposition, triggerBlobDownload } from '../../shared/utils/fileUtils';
 import {
   SURVEY_SECTIONS,
 } from '../../shared/types/survey.types';
@@ -29,13 +29,13 @@ export default function SurveySectionPage() {
     saveResponses,
     getResponseForQuestion,
   } = useSurvey();
-  const api = useApiClient();
+  // const api = useApiClient();
 
   const [page, setPage] = useState(0);
   const [localAnswers, setLocalAnswers] = useState<Record<string, SaveResponsePayload>>({});
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const [downloadingPdf, setDownloadingPdf] = useState(false);
+  // const [downloadingPdf, setDownloadingPdf] = useState(false);
   const prevPageRef = useRef(page);
   const prevSectionRef = useRef(section);
 
@@ -148,30 +148,30 @@ export default function SurveySectionPage() {
     }
   };
 
-  const handleDownloadPdf = async () => {
-    if (!fileNumberId) return;
-    setDownloadingPdf(true);
-    try {
-      const res = await api.rawFetch('/client/file-numbers/active/survey/pdf');
-      if (!res.ok) {
-        let message = `Download failed (${res.status})`;
-        try {
-          const data = await res.json();
-          if (data?.error) message = data.error;
-        } catch { /* ignore */ }
-        throw new Error(message);
-      }
-      const blob = await res.blob();
-      const filename =
-        getFilenameFromDisposition(res.headers.get('Content-Disposition')) ||
-        `Survey-Answers-${activeRequest?.strata?.strataPlan || 'Survey'}.pdf`;
-      triggerBlobDownload(blob, filename);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Download failed');
-    } finally {
-      setDownloadingPdf(false);
-    }
-  };
+  // const handleDownloadPdf = async () => {
+  //   if (!fileNumberId) return;
+  //   setDownloadingPdf(true);
+  //   try {
+  //     const res = await api.rawFetch('/client/file-numbers/active/survey/pdf');
+  //     if (!res.ok) {
+  //       let message = `Download failed (${res.status})`;
+  //       try {
+  //         const data = await res.json();
+  //         if (data?.error) message = data.error;
+  //       } catch { /* ignore */ }
+  //       throw new Error(message);
+  //     }
+  //     const blob = await res.blob();
+  //     const filename =
+  //       getFilenameFromDisposition(res.headers.get('Content-Disposition')) ||
+  //       `Survey-Answers-${activeRequest?.strata?.strataPlan || 'Survey'}.pdf`;
+  //     triggerBlobDownload(blob, filename);
+  //   } catch (err) {
+  //     toast.error(err instanceof Error ? err.message : 'Download failed');
+  //   } finally {
+  //     setDownloadingPdf(false);
+  //   }
+  // };
 
   const updateAnswer = (questionId: number, propertyTypeId: number, field: keyof SaveResponsePayload, value: unknown) => {
     const key = `${questionId}-${propertyTypeId}`;
@@ -463,11 +463,11 @@ export default function SurveySectionPage() {
             }}
             disabled={saving}
           >
-            Previous Step
+            Previous Page
           </button>
         )}
 
-        {!(isLastPage && isLastSection) && (
+        {/* {!(isLastPage && isLastSection) && (
           <button
             type="button"
             className="btn-primary btn-nav"
@@ -476,7 +476,7 @@ export default function SurveySectionPage() {
           >
             {downloadingPdf ? 'Downloading...' : 'Download Survey'}
           </button>
-        )}
+        )} */}
 
         {isLastPage && isLastSection ? (
           <>
@@ -485,14 +485,14 @@ export default function SurveySectionPage() {
               onClick={handleSave}
               disabled={saving || submitting}
             >
-              Save
+              Save Pending Future Changes
             </button>
             <button
               className="btn-primary btn-nav"
               onClick={handleSaveAndSubmit}
               disabled={saving || submitting}
             >
-              {submitting ? 'Submitting...' : activeRequest?.submittedForReviewDate ? 'Resubmit' : 'Save and Submit'}
+              {submitting ? 'Submitting...' : activeRequest?.submittedForReviewDate ? 'Resubmit' : 'Finalize Answers & Submit'}
             </button>
           </>
         ) : (
@@ -510,7 +510,7 @@ export default function SurveySectionPage() {
             }}
             disabled={saving}
           >
-            {saving ? 'Saving...' : 'Next Step'}
+            {saving ? 'Saving...' : 'Next Page'}
           </button>
         )}
       </div>

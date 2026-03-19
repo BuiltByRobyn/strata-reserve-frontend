@@ -20,7 +20,7 @@ import type {
   CreateStrataInput,
   UpdateStrataInput,
 } from "../../shared/types/entities.types";
-import { formatStrataId, validateStrataId } from "../../shared/utils/strataUtils";
+import { formatStrataId, formatPostalCode, validateStrataId, validatePostalCodeFormat } from "../../shared/utils/strataUtils";
 import { LOCATION_DISPLAY_ORDER } from "../../shared/lib/constants";
 
 export default function StrataPage() {
@@ -36,6 +36,8 @@ export default function StrataPage() {
   const [isViewStrataModalOpen, setIsViewStrataModalOpen] = useState(false);
   const [formData, setFormData] = useState<CreateStrataInput>({});
   const [formError, setFormError] = useState<string | null>(null);
+  const [strataPlanError, setStrataPlanError] = useState<string | null>(null);
+  const [postalCodeError, setPostalCodeError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [filterStrataName, setFilterStrataName] = useState("");
@@ -117,6 +119,8 @@ export default function StrataPage() {
     setEditingStrata(null);
     setFormData({ country: "Canada", propertyTypeIds: [] });
     setFormError(null);
+    setStrataPlanError(null);
+    setPostalCodeError(null);
     setIsModalOpen(true);
   };
 
@@ -148,17 +152,26 @@ export default function StrataPage() {
       propertyTypeIds: strata.strataPropertyTypes?.map(spt => spt.propertyTypeId) || [],
     });
     setFormError(null);
+    setStrataPlanError(null);
+    setPostalCodeError(validatePostalCodeFormat(strata.postalCode || '', strata.country || 'Canada'));
     setIsModalOpen(true);
   };
 
+  const isFormValid =
+    validateStrataId(formData.strataPlan || '') &&
+    !strataPlanError &&
+    !!formData.complexName?.trim() &&
+    !!formData.streetName?.trim() &&
+    !!formData.town?.trim() &&
+    !!formData.province &&
+    !!formData.postalCode?.trim() &&
+    !postalCodeError &&
+    !!formData.legalTypeId &&
+    (formData.propertyTypeIds?.length ?? 0) > 0 &&
+    !!formData.locationId;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!validateStrataId(formData.strataPlan || '')) {
-      setFormError('Strata Plan must be in format: ABC 12345 (3 letters, space, 5 digits)');
-      return;
-    }
-
     setIsSubmitting(true);
     setFormError(null);
 
@@ -336,7 +349,7 @@ export default function StrataPage() {
             <button
               className="btn-primary"
               onClick={handleSubmit}
-              disabled={isSubmitting}
+              disabled={!isFormValid || isSubmitting}
             >
               {isSubmitting ? "Saving..." : editingStrata ? "Update Strata" : "Create Strata"}
             </button>
@@ -350,9 +363,18 @@ export default function StrataPage() {
             <InputField
               label="Strata Plan"
               value={formData.strataPlan || ""}
-              onChange={(e) => updateField("strataPlan", formatStrataId(e.target.value))}
+              onChange={(e) => {
+                const formatted = formatStrataId(e.target.value);
+                if (/\d/.test(formatted) && !validateStrataId(formatted)) {
+                  setStrataPlanError('Format: ABC 12345 (3 letters, space, 1–5 digits)');
+                } else {
+                  setStrataPlanError(null);
+                }
+                updateField("strataPlan", formatted);
+              }}
               placeholder="e.g., VIS 23456"
               maxLength={9}
+              error={strataPlanError || undefined}
               required
             />
             <InputField
@@ -366,7 +388,7 @@ export default function StrataPage() {
 
           <FormRow>
             <InputField
-              label="Unit Number"
+              label="Unit Number (if applicable)"
               value={formData.unitNumber || ""}
               onChange={(e) => updateField("unitNumber", e.target.value)}
               placeholder="e.g., 101"
@@ -416,8 +438,13 @@ export default function StrataPage() {
             <InputField
               label="Postal Code"
               value={formData.postalCode || ""}
-              onChange={(e) => updateField("postalCode", e.target.value)}
+              onChange={(e) => {
+                const formatted = formatPostalCode(e.target.value, formData.country || "Canada");
+                setPostalCodeError(validatePostalCodeFormat(formatted, formData.country || "Canada"));
+                updateField("postalCode", formatted);
+              }}
               placeholder="e.g., V6B 1A1"
+              error={postalCodeError || undefined}
               required
             />
             <InputField
@@ -429,10 +456,10 @@ export default function StrataPage() {
 
           <FormRow>
             <InputField
-              label="Company"
+              label="Strata Management Company (if applicable)"
               value={formData.companyName || ""}
               onChange={(e) => updateField("companyName", e.target.value)}
-              placeholder="Enter company name"
+              placeholder="Enter strata management company name"
             />
             <SingleSelectDropdown
               label="Legal Type"
@@ -485,7 +512,7 @@ export default function StrataPage() {
 
           <FormRow>
             <InputField
-              label="Website"
+              label="Website (if applicable)"
               type="url"
               value={formData.website || ""}
               onChange={(e) => updateField("website", e.target.value)}

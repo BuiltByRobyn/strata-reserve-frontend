@@ -77,14 +77,6 @@ export const OfferAppointmentModal = ({
   const isValid = selectedTypeId != null && locationId != null;
 
   const handleSubmit = async () => {
-    if (selectedTypeId == null) {
-      setError('Please select an appointment type');
-      return;
-    }
-    if (locationId == null) {
-      setError('Please select a location for this strata');
-      return;
-    }
     setSaving(true);
     setError(null);
     try {

@@ -79,7 +79,14 @@ export default function StrataDetailPage() {
   const [loading, setLoading] = useState(true);
   const [dataReady, setDataReady] = useState(false);
   const [activeRequest, setActiveRequest] = useState<FileNumber | null>(null);
-  const [activeTab, setActiveTab] = useState("active");
+  const [activeTab, setActiveTab] = useState(() => {
+    return sessionStorage.getItem(`strata-detail-tab-${id}`) || 'active';
+  });
+
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab);
+    sessionStorage.setItem(`strata-detail-tab-${id}`, tab);
+  };
 
   const [activeSurveySection, setActiveSurveySection] = useState("exterior");
   const [archivedSurveySection, setArchivedSurveySection] = useState("exterior");
@@ -109,6 +116,7 @@ export default function StrataDetailPage() {
   const [surveyReqModalOpen, setSurveyReqModalOpen] = useState(false);
   const [surveyReqSaving, setSurveyReqSaving] = useState(false);
   const [surveyReqFormData, setSurveyReqFormData] = useState<Record<number, number[]>>({});
+  const [surveyReqInitialData, setSurveyReqInitialData] = useState<Record<number, number[]>>({});
 
   const [downloadingDocs, setDownloadingDocs] = useState(false);
   const [downloadingSurveyPdf, setDownloadingSurveyPdf] = useState(false);
@@ -324,6 +332,7 @@ export default function StrataDetailPage() {
     }
 
     setSurveyReqFormData(formData);
+    setSurveyReqInitialData(formData);
     setSurveyReqModalOpen(true);
   };
 
@@ -389,13 +398,13 @@ export default function StrataDetailPage() {
       if (!res.ok) {
         const err = await res.json().catch(() => null);
         const message = err?.error || 'Download failed';
-        alert(message);
+        toast.error(message);
         return;
       }
       const blob = await res.blob();
       triggerBlobDownload(blob, `Documents - ${strata?.strataPlan || 'SR'}.zip`);
     } catch (err) {
-      alert('Download failed. Please try again.');
+      toast.error('Download failed. Please try again.');
     } finally {
       setDownloadingDocs(false);
     }
@@ -664,7 +673,7 @@ export default function StrataDetailPage() {
           <LoadingSpinner />
         ) : validPropertyTypes.length === 0 ? (
           <div className="survey-coming-soon">
-            <p>No property types configured for this survey. Configure required surveys first.</p>
+            <p>No property types configured for this survey. Configure requested surveys first.</p>
           </div>
         ) : (
           <div className="admin-survey-answers">
@@ -873,7 +882,7 @@ export default function StrataDetailPage() {
       )}
 
       <div className="tabs-row">
-        <Tabs tabs={MAIN_TABS} activeTab={activeTab} onChange={setActiveTab} />
+        <Tabs tabs={MAIN_TABS} activeTab={activeTab} onChange={handleTabChange} />
         {(activeTab === "active" || activeTab === "archived") && (
           <div className="filters-row">
             <MultiSelectDropdown
@@ -939,7 +948,7 @@ export default function StrataDetailPage() {
                   </div>
                   <div className="survey-header-actions">
                     <button type="button" className="btn-primary" onClick={openSurveyReqModal}>
-                      Configure Required Surveys
+                      Configure Requested Surveys
                     </button>
                   </div>
                 </div>
@@ -1053,9 +1062,9 @@ export default function StrataDetailPage() {
             ) : (
               <>
                 <div className="documents-header">
-                  <h2>Required Documents</h2>
+                  <h2>Requested Documents</h2>
                   <button className="btn-primary" onClick={openDocReqModal}>
-                    Configure Required Documents
+                    Configure Requested Documents
                   </button>
                 </div>
 
@@ -1476,8 +1485,9 @@ export default function StrataDetailPage() {
       <Modal
         isOpen={docReqModalOpen}
         onClose={() => setDocReqModalOpen(false)}
-        title="Configure Required Documents"
+        title="Configure Requested Documents"
         size="large"
+        className="modal-configure-documents"
         footer={
           <>
             <button className="btn-secondary" onClick={() => setDocReqModalOpen(false)}>
@@ -1488,7 +1498,7 @@ export default function StrataDetailPage() {
               onClick={handleSaveDocRequirements}
               disabled={docReqSaving}
             >
-              {docReqSaving ? "Saving..." : "Save Requirements"}
+              {docReqSaving ? "Saving..." : "Save Requested"}
             </button>
           </>
         }
@@ -1503,7 +1513,7 @@ export default function StrataDetailPage() {
                 <div key={ptId} className="doc-req-section">
                   <h3 className="doc-req-section-title">{spt.propertyType.propertyTypeName}</h3>
                   <MultiSelectDropdown
-                    label="Required Documents"
+                    label="Requested Documents"
                     options={documentTypes.map(dt => ({ value: dt.documentTypeId, label: dt.typeName })).sort((a, b) => a.label.localeCompare(b.label))}
                     selectedValues={docReqFormData[ptId] ?? []}
                     onChange={(values) => setDocReqFormData(prev => ({ ...prev, [ptId]: values }))}
@@ -1519,7 +1529,7 @@ export default function StrataDetailPage() {
       <Modal
         isOpen={surveyReqModalOpen}
         onClose={() => setSurveyReqModalOpen(false)}
-        title="Configure Required Surveys"
+        title="Configure Requested Surveys"
         size="large"
         className="modal-configure-surveys"
         footer={
@@ -1567,7 +1577,8 @@ export default function StrataDetailPage() {
                     <h3 className="doc-req-section-title" style={{ margin: 0 }}>{spt.propertyType.propertyTypeName}</h3>
                     <div className="doc-req-section-actions">
                       <button className="btn-text-primary" style={{ marginRight: '0.5rem' }} onClick={handleSelectAll}>Select All</button>
-                      <button className="btn-text-primary" onClick={handleDeselectAll}>Deselect All</button>
+                      <button className="btn-text-primary" style={{ marginRight: '0.5rem' }} onClick={handleDeselectAll}>Deselect All</button>
+                      <button className="btn-text-primary" onClick={() => setSurveyReqFormData(prev => ({ ...prev, [ptId]: surveyReqInitialData[ptId] ?? [] }))}>Revert to Initial</button>
                     </div>
                   </div>
                   <MultiSelectDropdown

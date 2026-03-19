@@ -6,7 +6,7 @@ import { useUsers } from '../../shared/hooks/useUsers';
 import { useCompanyHolidays } from '../../shared/hooks/useCompanyHolidays';
 import type { InspectorAvailabilityModalProps } from '../../shared/types/component.types';
 import { LoadingSpinner } from '../../shared/components/LoadingSpinner';
-import { extractTimeFromISO, expandDateRange } from '../../shared/utils/availabilityUtils';
+import { extractTimeFromISO, expandWeekdayDateRange } from '../../shared/utils/availabilityUtils';
 import { getInspectorOptions } from '../../shared/utils/userUtils';
 import { LOCATION_OPTIONS } from '../../shared/lib/constants';
 
@@ -16,7 +16,7 @@ export const InspectorAvailabilityModal = ({
     isOpen,
     onClose,
     initialData,
-    onSubmitCreate,
+    onSubmitBulkCreate,
     onSubmitUpdate,
     onDeleteClick
 }: InspectorAvailabilityModalProps) => {
@@ -28,13 +28,14 @@ export const InspectorAvailabilityModal = ({
         availableStartDate: '',
         availableEndDate: '',
         availableStartTime: '09:00',
-        availableEndTime: '18:00',
+        availableEndTime: '19:00',
         locationCodes: [] as string[]
     });
 
     const [error, setError] = useState<string | null>(null);
     const [saving, setSaving] = useState(false);
     const [holidayWarning, setHolidayWarning] = useState<string | null>(null);
+    const [saveProgress, setSaveProgress] = useState<{ phase: 'filtering' | 'saving'; current: number; total: number } | null>(null);
 
     useEffect(() => {
         if (initialData && isOpen) {
@@ -52,42 +53,23 @@ export const InspectorAvailabilityModal = ({
                 availableStartDate: '',
                 availableEndDate: '',
                 availableStartTime: '09:00',
-                availableEndTime: '18:00',
+                availableEndTime: '19:00',
                 locationCodes: LOCATION_OPTIONS.map(l => l.key)
             });
         }
         setError(null);
         setHolidayWarning(null);
+        setSaveProgress(null);
     }, [initialData, isOpen]);
 
     const handleSubmit = async (skipHolidayCheck = false) => {
         try {
             const effectiveEndDate = initialData ? formData.availableStartDate : formData.availableEndDate;
 
-            if (!formData.inspectorProfileId || !formData.availableStartDate || (!initialData && !formData.availableEndDate)) {
-                throw new Error('Please fill in all required fields.');
-            }
-
-            const hasPhysical = formData.locationCodes.some(c => c !== 'Virtual');
-            if (!hasPhysical) {
-                setError('Please select a physical location.');
-                return;
-            }
-
-            const today = new Date().toISOString().split('T')[0];
-            if (formData.availableStartDate < today) {
-                setError('Date cannot be in the past.');
-                return;
-            }
-
-            if (!initialData && effectiveEndDate < formData.availableStartDate) {
-                setError('End date must be on or after start date.');
-                return;
-            }
-
             if (!skipHolidayCheck) {
+                const weekdayDatesForCheck = expandWeekdayDateRange(formData.availableStartDate, effectiveEndDate);
                 const holidayDates: string[] = [];
-                for (const dateStr of expandDateRange(formData.availableStartDate, effectiveEndDate)) {
+                for (const dateStr of weekdayDatesForCheck) {
                     const isHoliday = await checkIsHoliday(dateStr);
                     if (isHoliday) {
                         holidayDates.push(dateStr);
@@ -106,8 +88,6 @@ export const InspectorAvailabilityModal = ({
             setError(null);
             setHolidayWarning(null);
 
-            const dates = expandDateRange(formData.availableStartDate, effectiveEndDate);
-
             if (initialData) {
                 // Edit mode: single day update
                 await onSubmitUpdate(initialData.inspectorAvailableDateId, {
@@ -118,20 +98,25 @@ export const InspectorAvailabilityModal = ({
                     locationCodes: formData.locationCodes,
                 });
             } else {
-                for (const dateStr of dates) {
-                    await onSubmitCreate({
-                        inspectorProfileId: formData.inspectorProfileId,
-                        availableStartDate: dateStr,
-                        availableEndDate: dateStr,
-                        availableStartTime: formData.availableStartTime || undefined,
-                        availableEndTime: formData.availableEndTime || undefined,
-                        locationCodes: formData.locationCodes,
-                    });
-                }
+                // Bulk create: filter weekends, show progress
+                setSaveProgress({ phase: 'filtering', current: 0, total: 0 });
+                const weekdayDates = expandWeekdayDateRange(formData.availableStartDate, effectiveEndDate);
+                const inputs = weekdayDates.map(dateStr => ({
+                    inspectorProfileId: formData.inspectorProfileId,
+                    availableStartDate: dateStr,
+                    availableEndDate: dateStr,
+                    availableStartTime: formData.availableStartTime || undefined,
+                    availableEndTime: formData.availableEndTime || undefined,
+                    locationCodes: formData.locationCodes,
+                }));
+                await onSubmitBulkCreate(inputs, (current, total) =>
+                    setSaveProgress({ phase: 'saving', current, total })
+                );
             }
             onClose();
         } catch (err) {
             setError(err instanceof Error ? err.message : 'An error occurred while saving.');
+            setSaveProgress(null);
         } finally {
             setSaving(false);
         }
@@ -159,7 +144,17 @@ export const InspectorAvailabilityModal = ({
 
     const userOptions = getInspectorOptions(users);
 
-    const footer = holidayWarning ? null : (
+    const today = new Date().toISOString().split('T')[0];
+    const effectiveEndForValid = initialData ? formData.availableStartDate : formData.availableEndDate;
+    const isFormValid =
+        !!formData.inspectorProfileId &&
+        !!formData.availableStartDate &&
+        (!!initialData || !!formData.availableEndDate) &&
+        formData.locationCodes.some(c => c !== 'Virtual') &&
+        formData.availableStartDate >= today &&
+        (!initialData ? effectiveEndForValid >= formData.availableStartDate : true);
+
+    const footer = (holidayWarning || saveProgress) ? null : (
         <>
             <button className="btn-secondary" onClick={onClose} disabled={saving}>Cancel</button>
             {initialData && (
@@ -167,7 +162,7 @@ export const InspectorAvailabilityModal = ({
                     Remove Availability
                 </button>
             )}
-            <button className="btn-primary" onClick={() => handleSubmit()} disabled={saving}>
+            <button className="btn-primary" onClick={() => handleSubmit()} disabled={!isFormValid || saving}>
                 {saving ? 'Saving...' : (initialData ? 'Update Availability' : 'Add Availability')}
             </button>
         </>
@@ -201,6 +196,15 @@ export const InspectorAvailabilityModal = ({
 
                 {usersLoading ? (
                     <div className="modal-loading"><LoadingSpinner /></div>
+                ) : saveProgress ? (
+                    <div className="modal-loading">
+                        <LoadingSpinner />
+                        <p className="availability-save-progress">
+                            {saveProgress.phase === 'filtering'
+                                ? 'Removing weekends...'
+                                : `Adding day ${saveProgress.current} of ${saveProgress.total}...`}
+                        </p>
+                    </div>
                 ) : (
                     <div className="modal-form">
                         <div className="form-row">

@@ -26,10 +26,6 @@ const AppointmentRequestReviewModal = ({
   const inspectorOptions = getInspectorOptions(inspectors);
 
   const handleApprove = async (choiceNum: number) => {
-    if (!inspectorId) {
-      setError('Please assign an inspector before approving');
-      return;
-    }
     setSubmitting(true);
     setError(null);
     const result = await onReview(request.appointmentRequestId, {
@@ -47,10 +43,6 @@ const AppointmentRequestReviewModal = ({
   };
 
   const handleReject = async () => {
-    if (!rejectionReason.trim()) {
-      setError('Please provide a rejection reason');
-      return;
-    }
     setSubmitting(true);
     setError(null);
     const result = await onReview(request.appointmentRequestId, {
@@ -105,7 +97,7 @@ const AppointmentRequestReviewModal = ({
               type="button"
               className="btn btn-primary btn-sm"
               onClick={() => handleApprove(1)}
-              disabled={submitting}
+              disabled={!inspectorId || submitting}
             >
               Approve First Choice
             </button>
@@ -120,7 +112,7 @@ const AppointmentRequestReviewModal = ({
                 type="button"
                 className="btn btn-primary btn-sm"
                 onClick={() => handleApprove(2)}
-                disabled={submitting}
+                disabled={!inspectorId || submitting}
               >
                 Approve Second Choice
               </button>
@@ -168,7 +160,7 @@ const AppointmentRequestReviewModal = ({
             type="button"
             className="btn btn-danger btn-sm"
             onClick={handleReject}
-            disabled={submitting}
+            disabled={!rejectionReason.trim() || submitting}
           >
             {submitting ? 'Processing...' : 'Reject Request'}
           </button>

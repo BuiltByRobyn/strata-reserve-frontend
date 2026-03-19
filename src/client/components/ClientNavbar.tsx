@@ -19,10 +19,15 @@ export const ClientNavbar = ({ activeRequest }: { activeRequest: FileNumber | nu
   const navItems = useMemo(() => {
     const items = [...BASE_NAV_ITEMS];
     if (activeRequest?.appointmentOfferedAt) {
-      items.push({ to: '/client/inspection-date', label: 'Inspection Date' });
+      const isDraftByOffer = activeRequest.appointmentOfferType?.isDraftMeeting ?? false;
+      const hasCompletedInspection = activeRequest.appointments?.some(
+        a => a.status === 'Completed' && a.appointmentType?.isDraftMeeting === false
+      ) ?? false;
+      const isDraft = isDraftByOffer || hasCompletedInspection;
+      items.push({ to: '/client/inspection-date', label: isDraft ? 'Draft Meeting' : 'Inspection Date' });
     }
     return items;
-  }, [activeRequest?.appointmentOfferedAt]);
+  }, [activeRequest?.appointmentOfferedAt, activeRequest?.appointmentOfferType?.isDraftMeeting, activeRequest?.appointments]);
 
   return (
     <Navbar

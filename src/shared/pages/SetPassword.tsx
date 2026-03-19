@@ -182,8 +182,8 @@ export const SetPassword = () => {
         <div className="set-password-footer">
           <p className="help-text">
             Need help? Contact our support team at{' '}
-            <a href="mailto:support@stratareserveplanning.com">
-              support@stratareserveplanning.com
+            <a href="mailto:clientcare@stratareserveplanning.com">
+              clientcare@stratareserveplanning.com
             </a>
           </p>
         </div>

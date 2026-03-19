@@ -28,5 +28,5 @@ export const VIRTUAL_LOCATION_OPTION = LOCATION_OPTIONS.find(l => l.key === 'Vir
 export const SLOT_END_TIMES: Record<string, string> = {
   '10:00': '14:00',
   '14:00': '18:00',
-  '18:00': '19:00',
+  '19:00': '20:00',
 };

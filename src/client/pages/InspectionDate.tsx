@@ -12,6 +12,7 @@ import AvailableMeetingDates from '../components/AvailableMeetingDates';
 import BookingConfirmation from '../components/BookingConfirmation';
 import { Toast } from '../../shared/components/Toast';
 import type { AvailableDay, AvailableSlot, BookingChoice, BookingStep, ActiveAppointmentResponse, CalendarMilestone } from '../../shared/types/appointment.types';
+import { isWithin48Hours } from '../../shared/utils/availabilityUtils';
 
 /** Next anniversary of baseDate strictly after referenceDate */
 function getNextAnniversary(baseDate: Date, referenceDate: Date): Date {
@@ -171,6 +172,13 @@ const InspectionDate = () => {
     window.addEventListener('focus', handleFocus);
     return () => window.removeEventListener('focus', handleFocus);
   }, [isOffered, activeAppointment, fileNumberId, loadAvailability, bookingDraftMeeting]);
+
+  const filteredAvailability = useMemo(() =>
+    availability
+      .map(day => ({ ...day, slots: day.slots.filter(slot => !isWithin48Hours(day.date, slot.slotTime)) }))
+      .filter(day => day.slots.length > 0),
+    [availability]
+  );
 
   // Compute timeline milestones for the calendar
   const milestones = useMemo((): CalendarMilestone[] => {
@@ -566,12 +574,13 @@ const InspectionDate = () => {
             <div className="inspection-date__calendar-section">
               <BookingCalendar
                 variant="client"
-                availability={hasScheduledAppointment ? [] : availability}
+                availability={hasScheduledAppointment ? [] : filteredAvailability}
                 selectedDate={canBook || isPending ? selectedDate : null}
                 onSelectDate={canBook || isPending ? handleDateSelect : () => {}}
                 loading={calendarLoading}
                 milestones={milestones}
                 bookedDate={bookedDateStr}
+                bookedTime={scheduledApt?.timeSlot?.slotTime ?? null}
               />
             </div>
 
@@ -601,7 +610,7 @@ const InspectionDate = () => {
                   )}
                   <AvailableMeetingDates
                     ref={meetingDatesRef}
-                    availability={availability}
+                    availability={filteredAvailability}
                     onSelectSlot={canBook ? handleCardSlotSelect : () => {}}
                     firstChoice={firstChoice}
                     secondChoice={secondChoice}

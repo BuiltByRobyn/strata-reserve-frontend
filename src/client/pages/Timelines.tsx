@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { InputField, FormRow } from '../../shared/components/FormField';
 import { useClientFileNumber } from '../../shared/hooks/useClientFileNumber';
 import { useTimelines } from '../../shared/hooks/useTimelines';
@@ -17,11 +17,6 @@ function formatFileOpenedDate(isoDate: string | undefined): string {
     month: 'long',
     year: 'numeric',
   });
-}
-
-/** Format date as "DD Month YYYY" (e.g. 14 May 2026) */
-function formatDisplayDate(date: Date): string {
-  return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
 /** Add days to a date (returns new Date) */
@@ -76,7 +71,6 @@ function getMostRecentAnniversary(baseDate: Date, referenceDate: Date): Date {
 }
 
 const Timelines = () => {
-  const navigate = useNavigate();
   const location = useLocation();
   const { activeRequest, fileNumberId, loading: srLoading } = useClientFileNumber();
   const { timelines, loading: timelinesLoading, error: loadError, updateTimelines } = useTimelines(fileNumberId);
@@ -121,6 +115,15 @@ const Timelines = () => {
     deadlinesSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }, [location.state, showCalculatedResults]);
 
+  const buildPayload = (): UpdateTimelinesInput => ({
+    fiscalYearEnd: fiscalYearStart || null,
+    lastAgmDate: lastAGM || null,
+    noAgmToDate: noAGMToDate,
+    lastDepreciationReportDate: lastDepreciationReport || null,
+    noReportToDate: noReportToDate,
+    targetDate: targetDate || null,
+  });
+
   const handleCalculate = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaveError(null);
@@ -136,58 +139,12 @@ const Timelines = () => {
       newErrors.lastDepreciationReport =
         'Please select date of last depreciation report or check "No report to date".';
     }
-
-    if (targetDate.trim()) {
-      const targetDateObj = new Date(targetDate + 'T00:00:00');
-      const minTarget = addDays(today, 45);
-      if (targetDateObj < minTarget) {
-        newErrors.targetDate = 'Target date must be at least 45 days from today.';
-      }
-    }
-
-    setErrors(newErrors);
-    if (Object.keys(newErrors).length > 0) return;
-
-    setShowCalculatedResults(true);
-  };
-
-  const buildPayload = (): UpdateTimelinesInput => ({
-    fiscalYearEnd: fiscalYearStart || null,
-    lastAgmDate: lastAGM || null,
-    noAgmToDate: noAGMToDate,
-    lastDepreciationReportDate: lastDepreciationReport || null,
-    noReportToDate: noReportToDate,
-    targetDate: targetDate || null,
-  });
-
-  const handleConfirmTimelines = async () => {
-    setSaveError(null);
-    const newErrors: typeof errors = {};
-
-    if (!fiscalYearStart.trim()) {
-      newErrors.fiscalYearStart = 'Please select a fiscal year start date.';
-    }
-    if (!noAGMToDate && !lastAGM.trim()) {
-      newErrors.lastAGM = 'Please select date of last AGM or check "No AGM to date".';
-    }
-    if (!noReportToDate && !lastDepreciationReport.trim()) {
-      newErrors.lastDepreciationReport =
-        'Please select date of last depreciation report or check "No report to date".';
-    }
-    if (targetDate.trim()) {
-      const targetDateObj = new Date(targetDate + 'T00:00:00');
-      const minTarget = addDays(today, 45);
-      if (targetDateObj < minTarget) {
-        newErrors.targetDate = 'Target date must be at least 45 days from today.';
-      }
-    }
-
     setErrors(newErrors);
     if (Object.keys(newErrors).length > 0) return;
 
     try {
       await updateTimelines(buildPayload());
-      navigate('/client/survey', { state: { fromTimelines: true } });
+      setShowCalculatedResults(true);
     } catch {
       setSaveError('Failed to save timelines. Please try again.');
     }
@@ -196,43 +153,28 @@ const Timelines = () => {
   const loading = srLoading || (!!fileNumberId && timelinesLoading);
   const fileOpenedDate = timelines?.requestDate ?? activeRequest?.requestDate;
   const maxDateToday = new Date().toISOString().split('T')[0];
-  const minTargetDate = addDays(new Date(), 45).toISOString().split('T')[0];
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  // Computed for display (only meaningful when showCalculatedResults)
   const fiscalYearStartDate = fiscalYearStart ? new Date(fiscalYearStart + 'T00:00:00') : null;
-  const lastAGMDate = lastAGM && !noAGMToDate ? new Date(lastAGM + 'T00:00:00') : null;
-  const nextProjectedAGMDate: Date | null =
-    lastAGMDate
-      ? getNextAnniversary(lastAGMDate, today)
-      : noAGMToDate && fiscalYearStartDate
-        ? getNextAnniversary(fiscalYearStartDate, today)
-        : null;
-  const autoTargetDate: Date | null = nextProjectedAGMDate
-    ? addDays(nextProjectedAGMDate, -45)
-    : null;
+  const nextFiscalYearStart = fiscalYearStartDate ? getNextAnniversary(fiscalYearStartDate, today) : null;
+  const mostRecentFiscalYearStart = fiscalYearStartDate ? getMostRecentAnniversary(fiscalYearStartDate, today) : null;
+  const currentYear = today.getFullYear();
+  const fiscalYearStartYear = fiscalYearStartDate?.getFullYear() ?? null;
+  const maxTargetDate =
+    fiscalYearStartDate !== null &&
+    fiscalYearStartYear !== null &&
+    (fiscalYearStartYear === currentYear || fiscalYearStartYear === currentYear - 1)
+      ? addDays(fiscalYearStartDate, 395)
+      : null;
+  const autoTargetDate: Date | null = nextFiscalYearStart ? addDays(nextFiscalYearStart, -30) : null;
   const displayTargetDate: Date | null = targetDate.trim()
     ? new Date(targetDate + 'T00:00:00')
-    : (autoTargetDate && autoTargetDate >= today)
-      ? autoTargetDate
-      : null;
-  const nextFiscalYearStart = fiscalYearStartDate ? getNextAnniversary(fiscalYearStartDate, today) : null;
-  const mostRecentFiscalYearStart = fiscalYearStartDate
-    ? getMostRecentAnniversary(fiscalYearStartDate, today)
-    : null;
+    : (autoTargetDate && autoTargetDate >= today) ? autoTargetDate : null;
 
-  const daysIntoFiscalYear =
-    mostRecentFiscalYearStart != null ? daysBetween(mostRecentFiscalYearStart, today) : null;
-  const daysRemainingFiscalYear =
-    nextFiscalYearStart != null ? daysBetween(today, nextFiscalYearStart) : null;
-  const daysSinceLastAGM =
-    lastAGMDate != null ? daysBetween(lastAGMDate, today) : null;
-
-  const daysAway = (d: Date) => {
-    const diff = daysBetween(today, d);
-    return diff === 1 ? '1 day away' : `${diff} days away`;
-  };
+  const daysIntoFiscalYear = mostRecentFiscalYearStart != null ? daysBetween(mostRecentFiscalYearStart, today) : null;
+  const daysRemainingFiscalYear = nextFiscalYearStart != null ? daysBetween(today, nextFiscalYearStart) : null;
+  const daysUntilTargetDate = displayTargetDate != null ? daysBetween(today, displayTargetDate) : null;
 
   if (loading) {
     return <LoadingSpinner />;
@@ -344,7 +286,8 @@ const Timelines = () => {
                   if (errors.targetDate) setErrors((prev) => ({ ...prev, targetDate: undefined }));
                 }}
                 error={errors.targetDate}
-                min={minTargetDate}
+                disabled={daysIntoFiscalYear !== null && daysIntoFiscalYear > 395}
+                max={maxTargetDate ? maxTargetDate.toISOString().split('T')[0] : undefined}
               />
             </div>
           </FormRow>
@@ -364,32 +307,7 @@ const Timelines = () => {
         {showCalculatedResults && (
           <>
             <div className="timelines-divider" />
-            <section className="timelines-calculated" ref={deadlinesSectionRef}>
-              <h2 className="timelines-calculated__title">Calculated Timelines For This Fiscal Year</h2>
-              <div className="timelines-calculated__grid">
-                {nextProjectedAGMDate != null && (
-                  <div className="timelines-calculated__item">
-                    <span className="timelines-calculated__label">Next Projected AGM</span>
-                    <span className="timelines-calculated__date">{formatDisplayDate(nextProjectedAGMDate)}</span>
-                    <span className="timelines-calculated__meta">
-                      {nextProjectedAGMDate >= today ? daysAway(nextProjectedAGMDate) : `${Math.abs(daysBetween(today, nextProjectedAGMDate))} days ago`}
-                    </span>
-                  </div>
-                )}
-                {displayTargetDate != null && (
-                  <div className="timelines-calculated__item">
-                    <span className="timelines-calculated__label">Target Date</span>
-                    <span className="timelines-calculated__date">{formatDisplayDate(displayTargetDate)}</span>
-                    <span className="timelines-calculated__meta">
-                      {displayTargetDate >= today ? daysAway(displayTargetDate) : `${Math.abs(daysBetween(today, displayTargetDate))} days ago`}
-                    </span>
-                  </div>
-                )}
-              </div>
-            </section>
-
-            <div className="timelines-divider" />
-            <section className="timelines-overview">
+            <section className="timelines-overview" ref={deadlinesSectionRef}>
               <h2 className="timelines-overview__title">Timeline Overview</h2>
               <div className="timelines-overview__cards">
                 <div className="timelines-overview-card timelines-overview-card--green">
@@ -400,23 +318,19 @@ const Timelines = () => {
                   <span className="timelines-overview-card__value">{daysRemainingFiscalYear ?? '—'}</span>
                   <span className="timelines-overview-card__label">Days Remaining Until Next Fiscal Year</span>
                 </div>
-                <div className="timelines-overview-card timelines-overview-card--red">
-                  <span className="timelines-overview-card__value">{daysSinceLastAGM ?? '—'}</span>
-                  <span className="timelines-overview-card__label">Days Since Last AGM</span>
+                <div className="timelines-overview-card timelines-overview-card--green">
+                  <span className="timelines-overview-card__value">
+                    {displayTargetDate
+                      ? displayTargetDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'long' })
+                      : '—'}
+                  </span>
+                  <span className="timelines-overview-card__label">(30 days before fiscal year end)</span>
+                  {daysUntilTargetDate != null && (
+                    <span className="timelines-overview-card__subvalue">{daysUntilTargetDate} remaining</span>
+                  )}
                 </div>
               </div>
             </section>
-
-            {saveError && (
-              <p className="error-text" style={{ marginTop: '0.5rem' }}>
-                {saveError}
-              </p>
-            )}
-            <div className="timelines-submit">
-              <button type="button" className="btn btn-primary btn-full-width" onClick={handleConfirmTimelines}>
-                Confirm Timelines
-              </button>
-            </div>
           </>
         )}
       </div>

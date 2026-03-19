@@ -128,7 +128,7 @@ export interface InspectorAvailabilityModalProps {
   isOpen: boolean;
   onClose: () => void;
   initialData: InspectorAvailableDate | null;
-  onSubmitCreate: (data: CreateInspectorAvailableDateInput) => Promise<any>;
+  onSubmitBulkCreate: (inputs: CreateInspectorAvailableDateInput[], onProgress: (current: number, total: number) => void) => Promise<void>;
   onSubmitUpdate: (id: number, data: UpdateInspectorAvailableDateInput) => Promise<any>;
   onDeleteClick?: () => void;
 }

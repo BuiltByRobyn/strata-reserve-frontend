@@ -201,7 +201,7 @@ export default function ClientDocumentsPage() {
       <div className="page-header">
         <h1>Documents</h1>
         <p className="page-subtitle">
-          Upload the required documents for your strata. Mandatory documents must be provided.
+          Upload the requested documents for your strata. Mandatory documents must be provided.
         </p>
       </div>
 
@@ -218,7 +218,7 @@ export default function ClientDocumentsPage() {
 
       {filteredDocuments.length === 0 ? (
         <div className="empty-state">
-          <p>No required documents found for this file number.</p>
+          <p>No requested documents found for this file number.</p>
         </div>
       ) : (
         <>
@@ -322,7 +322,7 @@ export default function ClientDocumentsPage() {
                 className="btn-secondary btn-nav"
                 onClick={() => handlePageChange(page - 1)}
               >
-                Previous Step
+                Previous Page
               </button>
             )}
 
@@ -337,7 +337,7 @@ export default function ClientDocumentsPage() {
                     onClick={handleSaveAndSubmit}
                     disabled={submitting}
                   >
-                    {submitting ? 'Submitting...' : isSubmitted ? 'Resubmit' : 'Save and Submit'}
+                    {submitting ? 'Submitting...' : isSubmitted ? 'Resubmit' : 'Finalize and Submit'}
                   </button>
                 )}
               </>
@@ -346,7 +346,7 @@ export default function ClientDocumentsPage() {
                 className="btn-primary btn-nav"
                 onClick={() => handlePageChange(page + 1)}
               >
-                Next Step
+                Next Page
               </button>
             )}
           </div>

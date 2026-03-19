@@ -126,7 +126,20 @@
   min-height: 400px;
 }
 
-.modal-configure-surveys {
+.modal-user-form {
+  @include respond-to(md) {
+    height: 90vh;
+  }
+
+  @include respond-below(md) {
+    .form-row {
+      grid-template-columns: 1fr;
+    }
+  }
+}
+
+.modal-configure-surveys,
+.modal-configure-documents {
   height: 90vh;
 
   .modal-body {

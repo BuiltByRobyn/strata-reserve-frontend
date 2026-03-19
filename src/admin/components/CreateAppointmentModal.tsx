@@ -44,15 +44,13 @@ export function CreateAppointmentModal({ isOpen, onClose }: Props) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
-  const validateCreateForm = useCallback(() => {
-    const missing: string[] = [];
-    if (!createForm.fileNumberId) missing.push('Strata');
-    if (!createForm.appointmentTypeId) missing.push('Appointment Type');
-    if (!createForm.appointmentDate) missing.push('Date');
-    if (!createForm.timeSlotId) missing.push('Time Slot');
-    if (!createForm.inspectorProfileId) missing.push('Inspector');
-    return missing;
-  }, [createForm]);
+  const isFormValid = !!(
+    createForm.fileNumberId &&
+    createForm.appointmentTypeId &&
+    createForm.appointmentDate &&
+    createForm.timeSlotId &&
+    createForm.inspectorProfileId
+  );
 
   const submitAppointment = useCallback(async () => {
     setCreateSubmitting(true);
@@ -76,8 +74,6 @@ export function CreateAppointmentModal({ isOpen, onClose }: Props) {
   }, [createForm, createAppointment, addSecondInspector, secondInspectorId, onClose]);
 
   const handleCreateAppointment = useCallback(async () => {
-    const missing = validateCreateForm();
-    if (missing.length > 0) { setCreateError(`Please select: ${missing.join(', ')}`); return; }
     setCreateSubmitting(true);
     setCreateError(null);
     try {
@@ -92,7 +88,7 @@ export function CreateAppointmentModal({ isOpen, onClose }: Props) {
       setCreateError(err instanceof Error ? err.message : 'Failed to create appointment');
       setCreateSubmitting(false);
     }
-  }, [validateCreateForm, checkInspectorAvailability, createForm, submitAppointment]);
+  }, [checkInspectorAvailability, createForm, submitAppointment]);
 
   const handleConfirmUnavailable = useCallback(async () => {
     setCreateSubmitting(true);
@@ -115,7 +111,7 @@ export function CreateAppointmentModal({ isOpen, onClose }: Props) {
       footer={showAvailabilityWarning ? undefined : (
         <>
           <button className="btn btn-secondary" onClick={onClose} disabled={createSubmitting}>Cancel</button>
-          <button className="btn btn-primary" onClick={handleCreateAppointment} disabled={createSubmitting}>
+          <button className="btn btn-primary" onClick={handleCreateAppointment} disabled={!isFormValid || createSubmitting}>
             {createSubmitting ? 'Checking...' : 'Add Appointment'}
           </button>
         </>

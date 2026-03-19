@@ -374,6 +374,7 @@
     justify-content: flex-start;
     width: 100%;
     padding-left: $spacing-lg;
+    padding-right: 0;
     padding-top: $spacing-md;
     padding-bottom: $spacing-md;
     max-width: 90%;
@@ -399,16 +400,18 @@
   }
 }
 
-.logout-btn {
-  color: $color-error-light;
-  background: none;
-  border: none;
-  font-family: inherit;
-  font-size: inherit;
-  cursor: pointer;
-  gap: $spacing-sm;
+.logout {
+  background: $color-error;
+  color: $color-white;
+  border-radius: $border-radius-lg;
+
+  &:hover {
+    background: $color-error-dark;
+    color: $color-white;
+  }
 
   @include respond-to(desktop) {
     margin-top: auto;
+    max-width: 90%;
   }
 }

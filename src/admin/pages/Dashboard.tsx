@@ -63,7 +63,7 @@ export const Dashboard = () => {
     approveRequest,
     rejectRequest,
   } = usePropertyTypeRequests();
-  const { stratas, loading: stratasLoading } = useStrata();
+  const { stratas, loading: stratasLoading, refetch: fetchStratas } = useStrata();
   const { propertyTypes } = useLookups();
   const {
     appointments,
@@ -71,8 +71,9 @@ export const Dashboard = () => {
     requests: appointmentRequests,
     requestsLoading: appointmentRequestsLoading,
     fetchAppointmentRequests,
+    refetch: fetchAppointments,
   } = useAppointments();
-  const { documents, loading: documentsLoading } = useDocuments();
+  const { documents, loading: documentsLoading, refetch: fetchDocuments } = useDocuments();
   const { fileNumbers, loading: fileNumbersLoading, refetch: fetchFileNumbers } = useFileNumbers();
   const { createAvailableDate } = useInspectorAvailability();
 
@@ -297,6 +298,18 @@ export const Dashboard = () => {
       .slice(0, 3);
   }, [activeRequests, appointmentRequests, documents, propertyRequests, propertyTypes]);
 
+  const upcomingTargetDates = useMemo(() => {
+    const today = startOfDay(new Date());
+    const in60 = new Date(today);
+    in60.setDate(in60.getDate() + 60);
+    return fileNumbers
+      .filter((fn) => !fn.archived && !!fn.targetDate)
+      .map((fn) => ({ fn, date: parseLocalDate(fn.targetDate) }))
+      .filter(({ date }) => !!date && date >= today && date <= in60)
+      .sort((a, b) => a.date!.getTime() - b.date!.getTime())
+      .slice(0, 5);
+  }, [fileNumbers]);
+
   const statsLoading = requestsLoading
     || stratasLoading
     || appointmentsLoading
@@ -497,6 +510,32 @@ export const Dashboard = () => {
 
         <section className="dashboard-section">
           <div className="dashboard-section__header">
+            <h2>Upcoming Target Dates</h2>
+          </div>
+          {upcomingTargetDates.length === 0 ? (
+            <div className="empty-actions">
+              <p>No target dates in the next 60 days.</p>
+            </div>
+          ) : (
+            <div className="dashboard-appointments-grid">
+              {upcomingTargetDates.map(({ fn, date }) => (
+                <div key={fn.fileNumberId} className="appointment-card">
+                  <span className="appointment-card__time">{formatShortDate(fn.targetDate)}</span>
+                  <h3 className="appointment-card__title">{fn.strata?.complexName || fn.strata?.strataPlan || 'Unknown'}</h3>
+                  <button
+                    className="btn-action btn-action--secondary"
+                    onClick={() => navigate('/admin/timelines')}
+                  >
+                    View Timelines
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+
+        <section className="dashboard-section">
+          <div className="dashboard-section__header">
             <h2>Recent Activity</h2>
           </div>
 
@@ -558,10 +597,10 @@ export const Dashboard = () => {
         onSubmitUpdate={() => Promise.resolve()}
         onDeleteClick={() => {}}
       />
-      <CreateStrataModal isOpen={strataModalOpen} onClose={() => setStrataModalOpen(false)} />
+      <CreateStrataModal isOpen={strataModalOpen} onClose={() => { setStrataModalOpen(false); fetchStratas(); }} />
       <CreateUserModal isOpen={userModalOpen} onClose={() => setUserModalOpen(false)} />
-      <CreateAppointmentModal isOpen={appointmentModalOpen} onClose={() => setAppointmentModalOpen(false)} />
-      <UploadDocumentModal isOpen={uploadDocumentModalOpen} onClose={() => setUploadDocumentModalOpen(false)} />
+      <CreateAppointmentModal isOpen={appointmentModalOpen} onClose={() => { setAppointmentModalOpen(false); fetchAppointments(); }} />
+      <UploadDocumentModal isOpen={uploadDocumentModalOpen} onClose={() => { setUploadDocumentModalOpen(false); fetchDocuments(); }} />
       <CreateQuestionModal isOpen={questionModalOpen} onClose={() => setQuestionModalOpen(false)} />
     </div>
   );

@@ -63,13 +63,14 @@ export function CreateQuestionModal({ isOpen, onClose }: Props) {
     onClose();
   };
 
+  const isFormValid =
+    !!formData.questionText.trim() &&
+    !!formData.questionCategory &&
+    !!formData.questionTypeId &&
+    !!formData.serviceId;
+
   const handleSubmit = async (e?: React.FormEvent) => {
     e?.preventDefault();
-    if (!formData.questionText.trim()) { setFormError('Question text is required'); return; }
-    if (!formData.questionCategory) { setFormError('Category is required'); return; }
-    if (!formData.questionTypeId) { setFormError('Question type is required'); return; }
-    if (!formData.serviceId) { setFormError('Service is required'); return; }
-
     setIsSubmitting(true);
     setFormError(null);
     try {
@@ -101,7 +102,7 @@ export function CreateQuestionModal({ isOpen, onClose }: Props) {
       footer={
         <>
           <button className="btn-secondary" onClick={handleClose}>Cancel</button>
-          <button className="btn-primary" onClick={() => handleSubmit()} disabled={isSubmitting}>
+          <button className="btn-primary" onClick={() => handleSubmit()} disabled={!isFormValid || isSubmitting}>
             {isSubmitting ? 'Saving...' : 'Save'}
           </button>
         </>

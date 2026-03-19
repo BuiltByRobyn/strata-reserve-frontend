@@ -69,7 +69,7 @@ export const Dashboard = () => {
   }, [fetchQuestions, fetchRequiredDocuments, fetchResponses, fileNumberId]);
 
   const welcomeName = user?.role === 'client' ? user.firstName || 'there' : 'there';
-  const dashboardTitle = activeRequest?.strata?.complexName || activeRequest?.strata?.strataPlan || 'Your Strata Reserve project';
+  const dashboardTitle = activeRequest?.strata?.complexName || activeRequest?.strata?.strataPlan || 'Your Strata Reserve Planning - Data Collection Portal';
 
   const clientPropertyTypeIds = useMemo(
     () => activeRequest?.clientPropertyTypes?.map((pt) => pt.propertyTypeId) || [],
@@ -157,7 +157,7 @@ export const Dashboard = () => {
           title: 'Upload Documents',
           description: missingRequiredDocumentCount > 0
             ? `${missingRequiredDocumentCount} required document${missingRequiredDocumentCount === 1 ? '' : 's'} still to upload`
-            : 'Submit required forms',
+            : 'Submit requested documents',
           buttonLabel: missingRequiredDocumentCount > 0 ? 'Upload Documents' : 'View Documents',
           path: '/client/documents',
           navState: undefined,
@@ -179,7 +179,7 @@ export const Dashboard = () => {
         title: 'Upload Documents',
         description: missingRequiredDocumentCount > 0
           ? `${missingRequiredDocumentCount} required document${missingRequiredDocumentCount === 1 ? '' : 's'} still to upload`
-          : 'Submit required forms',
+          : 'Submit requested documents',
         buttonLabel: missingRequiredDocumentCount > 0 ? 'Upload Documents' : 'View Documents',
         path: '/client/documents',
         navState: undefined,

@@ -338,6 +338,7 @@ export interface FileNumber {
   appointmentOfferedAt?: string | null;
   appointmentOfferedByProfileId?: string | null;
   appointmentOfferTypeId?: number | null;
+  appointmentOfferType?: { isDraftMeeting: boolean } | null;
   appointmentOfferInspectorId?: string | null;
   appointmentOfferSecondInspectorId?: string | null;
   rebookingRequestedAt?: string | null;
@@ -352,6 +353,7 @@ export interface FileNumber {
     appointmentDate: string;
     status: string;
     timeSlotId: number;
+    appointmentType?: { isDraftMeeting: boolean } | null;
   }>;
   _count?: {
     questionResponses: number;
@@ -551,15 +553,12 @@ export interface StrataAssociation {
 export interface BaseProfileFormData {
   companyName: string;
   role: string;
-  address: string;
-  city: string;
-  province: string;
-  postalCode: string;
   email: string;
 }
 
 export interface AdminProfileFormData extends BaseProfileFormData {
   contactName: string;
+  phoneNumber: string;
 }
 
 export interface ClientProfileFormData extends BaseProfileFormData {
@@ -582,10 +581,7 @@ export interface UpdateAdminProfileInput {
   fullName?: string;
   email?: string;
   companyName?: string;
-  address?: string;
-  city?: string;
-  province?: string;
-  postalCode?: string;
+  phoneNumber?: string;
 }
 
 export interface UserFormData {

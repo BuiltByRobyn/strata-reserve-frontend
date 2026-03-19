@@ -66,6 +66,7 @@ export interface BookingCalendarProps {
   loading: boolean;
   milestones?: CalendarMilestone[];
   bookedDate?: string | null;
+  bookedTime?: string | null;
   variant?: 'booking' | 'client' | 'timelines';
   onMilestoneCellClick?: (date: string) => void;
   hideLabels?: boolean;

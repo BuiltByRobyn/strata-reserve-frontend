@@ -28,6 +28,7 @@ const BookingCalendar = ({
   loading,
   milestones,
   bookedDate,
+  bookedTime,
   variant = 'booking',
   onMilestoneCellClick,
   hideLabels = false,
@@ -136,7 +137,10 @@ const BookingCalendar = ({
       >
         <span className="booking-calendar__cell-day">{day}</span>
         {!isTimelinesVariant && bookedDate && dateStr === bookedDate && (
-          <span className="booking-calendar__cell-label">Appointment Booked</span>
+          <>
+            <span className="booking-calendar__cell-label">Appointment Booked</span>
+            {bookedTime && <span className="booking-calendar__cell-label">{bookedTime}</span>}
+          </>
         )}
         {milestoneLabels && milestoneLabels.length > 0 && !hideLabels && (
           <>

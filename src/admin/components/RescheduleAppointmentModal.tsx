@@ -36,11 +36,9 @@ const RescheduleAppointmentModal = ({
   const effectivePrimaryId = inspectorId || appointment.inspectorProfileId || '';
   const secondInspectorOptions = inspectorOptions.filter(o => o.value !== effectivePrimaryId);
 
+  const isFormValid = !!newDate && !!newTimeSlotId;
+
   const handleSubmit = async () => {
-    if (!newDate || !newTimeSlotId) {
-      setError('Please select a new date and time slot');
-      return;
-    }
     setSubmitting(true);
     setError(null);
     try {
@@ -181,7 +179,7 @@ const RescheduleAppointmentModal = ({
           <button type="button" className="btn btn-secondary" onClick={resetAndClose} disabled={submitting}>
             Cancel
           </button>
-          <button type="button" className="btn btn-danger" onClick={handleSubmit} disabled={submitting}>
+          <button type="button" className="btn btn-danger" onClick={handleSubmit} disabled={!isFormValid || submitting}>
             {submitting ? 'Rescheduling...' : 'Reschedule'}
           </button>
         </div>

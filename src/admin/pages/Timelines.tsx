@@ -808,14 +808,14 @@ export default function TimelinesPage() {
                 />
                 <label htmlFor="create-no-agm">No AGM to date</label>
               </div>
-              <InputField
-                label="Date of last depreciation report"
-                type="date"
+              <SingleSelectDropdown
+                label="Year of last depreciation report"
                 required={!formData.noReportToDate}
-                value={formData.lastDepreciationReportDate}
-                onChange={(e) => setFormData(prev => ({ ...prev, lastDepreciationReportDate: e.target.value }))}
+                value={formData.lastDepreciationReportDate ? formData.lastDepreciationReportDate.substring(0, 4) : ''}
+                onChange={(year) => setFormData(prev => ({ ...prev, lastDepreciationReportDate: year ? `${year}-01-01` : '' }))}
+                options={Array.from({ length: 41 }, (_, i) => new Date().getFullYear() - i).map(y => ({ value: y, label: String(y) }))}
+                placeholder="Select year"
                 disabled={formData.noReportToDate}
-                max={maxDateToday}
               />
               <div className="timelines-checkbox">
                 <input
@@ -869,14 +869,14 @@ export default function TimelinesPage() {
 
           {!isCreating && isDepreciationType && (
             <>
-              <InputField
-                label="Date of last depreciation report"
-                type="date"
+              <SingleSelectDropdown
+                label="Year of last depreciation report"
                 required={!formData.noReportToDate}
-                value={formData.lastDepreciationReportDate}
-                onChange={(e) => setFormData(prev => ({ ...prev, lastDepreciationReportDate: e.target.value }))}
+                value={formData.lastDepreciationReportDate ? formData.lastDepreciationReportDate.substring(0, 4) : ''}
+                onChange={(year) => setFormData(prev => ({ ...prev, lastDepreciationReportDate: year ? `${year}-01-01` : '' }))}
+                options={Array.from({ length: 41 }, (_, i) => new Date().getFullYear() - i).map(y => ({ value: y, label: String(y) }))}
+                placeholder="Select year"
                 disabled={formData.noReportToDate}
-                max={maxDateToday}
               />
               <div className="timelines-checkbox">
                 <input

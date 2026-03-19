@@ -30,7 +30,7 @@ const formatTime = (timeStr: string | null): string => {
 };
 
 export const InspectorAvailabilityManager = () => {
-    const { availableDates, loading, error, deleteAvailableDate, createAvailableDate, updateAvailableDate } = useInspectorAvailability();
+    const { availableDates, loading, error, deleteAvailableDate, createAvailableDatesBatch, updateAvailableDate } = useInspectorAvailability();
     const isDesktop = useMediaQuery('(min-width: 750px)');
 
     // Filter state
@@ -329,7 +329,7 @@ export const InspectorAvailabilityManager = () => {
                     isOpen={isModalOpen}
                     onClose={handleCloseModal}
                     initialData={selectedBlock}
-                    onSubmitCreate={createAvailableDate}
+                    onSubmitBulkCreate={createAvailableDatesBatch}
                     onSubmitUpdate={updateAvailableDate}
                     onDeleteClick={() => selectedBlock && handleOpenDelete(selectedBlock)}
                 />

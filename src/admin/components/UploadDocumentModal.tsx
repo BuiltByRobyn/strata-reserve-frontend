@@ -6,7 +6,7 @@ import { useAuthFetch } from '../../shared/hooks/useAuthFetch';
 import { Modal } from '../../shared/components/Modal';
 import { InputField, TextareaField, FormRow } from '../../shared/components/FormField';
 import { SingleSelectDropdown } from '../../shared/components/SingleSelectDropdown';
-import { STRATA_ID_PATTERN, formatStrataId } from '../../shared/utils/strataUtils';
+import { STRATA_ID_PATTERN, formatStrataId, validateStrataId } from '../../shared/utils/strataUtils';
 import { API_BASE } from '../../shared/lib/api';
 import { formatTypeName } from '../../shared/lib/formatters';
 
@@ -26,6 +26,7 @@ export function UploadDocumentModal({ isOpen, onClose }: Props) {
   const [uploadForm, setUploadForm] = useState(initialForm);
   const [strataPropertyTypes, setStrataPropertyTypes] = useState<{ propertyTypeId: number; propertyTypeName: string }[]>([]);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [strataIdError, setStrataIdError] = useState<string | null>(null);
 
   const adminName = user?.role === 'admin' ? user.fullName : '';
 
@@ -34,6 +35,7 @@ export function UploadDocumentModal({ isOpen, onClose }: Props) {
     setUploadForm(initialForm);
     setStrataPropertyTypes([]);
     setUploadError(null);
+    setStrataIdError(null);
   }, [isOpen]);
 
   useEffect(() => {
@@ -63,16 +65,14 @@ export function UploadDocumentModal({ isOpen, onClose }: Props) {
     setUploadForm(prev => ({ ...prev, file: e.target.files?.[0] || null }));
   };
 
+  const isFormValid =
+    !!uploadForm.file &&
+    !!uploadForm.documentTypeId &&
+    validateStrataId(uploadForm.strataId) &&
+    !strataIdError;
+
   const handleUploadSubmit = async (e?: React.FormEvent) => {
     e?.preventDefault();
-    if (!uploadForm.file || !uploadForm.documentTypeId || !uploadForm.strataId) {
-      setUploadError('Please fill in all required fields');
-      return;
-    }
-    if (!STRATA_ID_PATTERN.test(uploadForm.strataId)) {
-      setUploadError('Strata ID must be 3 letters, a space, and 5 numbers (e.g. ABC 12345)');
-      return;
-    }
     setUploadError(null);
     const selectedPt = strataPropertyTypes.find(pt => pt.propertyTypeId === uploadForm.propertyTypeId);
     try {
@@ -102,7 +102,7 @@ export function UploadDocumentModal({ isOpen, onClose }: Props) {
       footer={
         <>
           <button className="btn-secondary" onClick={onClose}>Cancel</button>
-          <button className="btn-primary" onClick={() => handleUploadSubmit()} disabled={uploading}>
+          <button className="btn-primary" onClick={() => handleUploadSubmit()} disabled={!isFormValid || uploading}>
             {uploading ? 'Uploading...' : 'Upload'}
           </button>
         </>
@@ -121,7 +121,22 @@ export function UploadDocumentModal({ isOpen, onClose }: Props) {
         </div>
 
         <FormRow>
-          <InputField label="Strata ID" required value={uploadForm.strataId} onChange={(e) => setUploadForm(prev => ({ ...prev, strataId: formatStrataId(e.target.value), propertyTypeId: null }))} placeholder="e.g. ABC 12345" />
+          <InputField
+              label="Strata ID"
+              required
+              value={uploadForm.strataId}
+              onChange={(e) => {
+                const formatted = formatStrataId(e.target.value);
+                if (formatted.length > 0 && !validateStrataId(formatted)) {
+                  setStrataIdError('Format: ABC 12345 (3 letters, space, 1–5 digits)');
+                } else {
+                  setStrataIdError(null);
+                }
+                setUploadForm(prev => ({ ...prev, strataId: formatted, propertyTypeId: null }));
+              }}
+              placeholder="e.g. ABC 12345"
+              error={strataIdError || undefined}
+            />
           <InputField label="Strata Name" value={uploadForm.strataName} disabled placeholder="Auto-populated from Strata ID" />
         </FormRow>
 

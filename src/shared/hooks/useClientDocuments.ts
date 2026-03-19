@@ -59,10 +59,10 @@ export const useClientDocuments = () => {
       );
       setRequiredDocuments(data || []);
     } catch (err) {
-      console.error('Error fetching required documents:', err);
+      console.error('Error fetching requested documents:', err);
       setState(prev => ({
         ...prev,
-        error: err instanceof Error ? err.message : 'Failed to load required documents'
+        error: err instanceof Error ? err.message : 'Failed to load requested documents'
       }));
     } finally {
       setState(prev => ({ ...prev, loading: false }));
