@@ -21,7 +21,7 @@ import type {
   UpdateStrataInput,
 } from "../../shared/types/entities.types";
 import { formatStrataId, formatPostalCode, validateStrataId, validatePostalCodeFormat } from "../../shared/utils/strataUtils";
-import { LOCATION_DISPLAY_ORDER } from "../../shared/lib/constants";
+import { LOCATION_DISPLAY_ORDER } from "../../shared/utils/constants";
 
 export default function StrataPage() {
   const { stratas, loading, error, createStrata, updateStrata, deleteStrata } =

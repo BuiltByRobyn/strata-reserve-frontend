@@ -1,6 +1,8 @@
 import type { ReactNode, InputHTMLAttributes, SelectHTMLAttributes, TextareaHTMLAttributes } from 'react';
 import type { SurveySection } from './survey.types';
-import type { StrataPropertyType, InspectorAvailableDate, CreateInspectorAvailableDateInput, UpdateInspectorAvailableDateInput, AppointmentRequest, AppointmentWithDetails, AppointmentTimeSlot, Profile } from './entities.types';
+import type { StrataPropertyType, InspectorAvailableDate, CreateInspectorAvailableDateInput, UpdateInspectorAvailableDateInput, AppointmentRequest, AppointmentWithDetails, AppointmentTimeSlot, Profile, ReviewStatus } from './entities.types';
+import type { SRDocRequirement } from './fnDocRequirement.types';
+import type { BatchDocumentReviewInput, DocumentReviewResult, RequiredDocumentChecklist, NaStatusValue } from './document.types';
 
 export interface Column<T> {
   key: string;
@@ -189,6 +191,7 @@ export interface AppointmentRequestReviewModalProps {
   onReview: (requestId: number, data: {
     approved: boolean;
     inspectorProfileId?: string;
+    secondInspectorProfileId?: string;
     approvedDateChoice?: number;
     rejectionReason?: string;
     comments?: string;
@@ -224,7 +227,7 @@ export interface RescheduleAppointmentModalProps {
   }) => Promise<any>;
 }
 
-export interface ChangePasswordModalProps {
+export interface BaseModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
@@ -232,4 +235,23 @@ export interface ChangePasswordModalProps {
 export interface ToastProps {
   message: string | null;
   onDismiss: () => void;
+}
+
+export interface DocumentReviewModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  fileId: number | null;
+  docRequirements: SRDocRequirement[];
+  reviewStatuses: ReviewStatus[];
+  review: DocumentReviewResult | null;
+  loading: boolean;
+  onSubmit: (fileId: number, input: BatchDocumentReviewInput) => Promise<void>;
+}
+
+export interface VersionDocumentRowProps {
+  requirement: RequiredDocumentChecklist;
+  uploading: boolean;
+  onUpload: (req: RequiredDocumentChecklist, isReplace: boolean) => void;
+  onSetNaStatus: (req: RequiredDocumentChecklist, status: NaStatusValue) => void;
+  onPreview: (req: RequiredDocumentChecklist) => void;
 }

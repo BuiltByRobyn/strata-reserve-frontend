@@ -6,15 +6,11 @@ import { InputField, FormRow } from '../../shared/components/FormField';
 import { SingleSelectDropdown } from '../../shared/components/SingleSelectDropdown';
 import { MultiSelectDropdown } from '../../shared/components/MultiSelectDropdown';
 import type { CreateStrataInput } from '../../shared/types/entities.types';
+import type { BaseModalProps } from '../../shared/types/component.types';
 import { formatStrataId, formatPostalCode, validateStrataId, validatePostalCodeFormat } from '../../shared/utils/strataUtils';
-import { LOCATION_DISPLAY_ORDER } from '../../shared/lib/constants';
+import { LOCATION_DISPLAY_ORDER } from '../../shared/utils/constants';
 
-interface Props {
-  isOpen: boolean;
-  onClose: () => void;
-}
-
-export function CreateStrataModal({ isOpen, onClose }: Props) {
+export function CreateStrataModal({ isOpen, onClose }: BaseModalProps) {
   const { stratas, createStrata } = useStrata();
   const { legalTypes, propertyTypes, locations } = useLookups();
 

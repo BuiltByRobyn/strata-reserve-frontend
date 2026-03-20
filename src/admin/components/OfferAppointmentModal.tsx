@@ -1,10 +1,10 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Modal } from '../../shared/components/Modal';
 import { SingleSelectDropdown } from '../../shared/components/SingleSelectDropdown';
-import { formatDateShort } from '../../shared/lib/formatters';
+import { formatDateShort } from '../../shared/utils/formatters';
 import { getInspectorOptions } from '../../shared/utils/userUtils';
 import type { OfferAppointmentModalProps } from '../../shared/types/component.types';
-import { LOCATION_DISPLAY_ORDER } from '../../shared/lib/constants';
+import { LOCATION_DISPLAY_ORDER } from '../../shared/utils/constants';
 
 export const OfferAppointmentModal = ({
   isOpen,
@@ -74,7 +74,7 @@ export const OfferAppointmentModal = ({
     [appointmentTypes]
   );
 
-  const isValid = selectedTypeId != null && locationId != null;
+  const isValid = selectedTypeId != null && locationId != null && !!inspectorId;
 
   const handleSubmit = async () => {
     setSaving(true);
@@ -157,7 +157,7 @@ export const OfferAppointmentModal = ({
 
         <div className="offer-modal__row">
           <div className="offer-modal__field">
-            <span className="offer-modal__label">Assign Inspector (optional)</span>
+            <span className="offer-modal__label">Assign Inspector <span className="offer-modal__required">*</span></span>
             <SingleSelectDropdown
               label=""
               options={inspectorOptions}

@@ -2,9 +2,9 @@ import { useState, type FormEvent } from 'react';
 import { Modal } from './Modal';
 import { useAuth } from '../contexts/AuthContext';
 import { PasswordToggleButton } from './PasswordToggleButton';
-import type { ChangePasswordModalProps } from '../types/component.types';
+import type { BaseModalProps } from '../types/component.types';
 
-export const ChangePasswordModal = ({ isOpen, onClose }: ChangePasswordModalProps) => {
+export const ChangePasswordModal = ({ isOpen, onClose }: BaseModalProps) => {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');

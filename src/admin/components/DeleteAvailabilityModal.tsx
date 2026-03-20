@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Modal } from '../../shared/components/Modal';
 import type { DeleteAvailabilityModalProps } from '../../shared/types/component.types';
-import { formatDateShort, getUserDisplayName } from '../../shared/lib/formatters';
+import { formatDateShort, getUserDisplayName } from '../../shared/utils/formatters';
 
 export const DeleteAvailabilityModal = ({
     isOpen,

@@ -13,8 +13,8 @@ import type { FileNumber } from '../../shared/types/entities.types';
 import type { UpdateTimelinesInput, DeadlineType, DeadlineRow, EditFormData } from '../../shared/types/timeline.types';
 import type { CalendarMilestone } from '../../shared/types/appointment.types';
 import { API_BASE } from '../../shared/lib/api';
-import { parseLocalDate, toDateInputValue } from '../../shared/lib/dateUtils';
-import { getNextAnniversary, formatDateDisplay, formatYMD, getDeadlineAbbrev, daysBetween, hasConfirmedTimelines } from '../../shared/lib/timelineUtils';
+import { parseLocalDate, toDateInputValue } from '../../shared/utils/dateUtils';
+import { getNextAnniversary, formatDateDisplay, formatYMD, getDeadlineAbbrev, daysBetween, hasConfirmedTimelines } from '../../shared/utils/timelineUtils';
 
 
 export default function TimelinesPage() {

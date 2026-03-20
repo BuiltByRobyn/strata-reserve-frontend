@@ -1,4 +1,4 @@
-import { formatDateLong, formatTime12h } from '../../shared/lib/formatters';
+import { formatDateLong, formatTime12h } from '../../shared/utils/formatters';
 import type { BookingConfirmationProps } from '../../shared/types/appointment.types';
 
 const BookingConfirmation = ({

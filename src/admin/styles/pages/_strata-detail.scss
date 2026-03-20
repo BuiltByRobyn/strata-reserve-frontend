@@ -1068,6 +1068,99 @@
       color: $color-text-muted;
     }
   }
+
+  .doc-req-wizard {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-md;
+
+    &__subtitle {
+      color: $color-text-muted;
+      font-size: $font-size-sm;
+      margin: 0;
+    }
+
+    &__select-row {
+      display: grid;
+      grid-template-columns: 200px 1fr;
+      align-items: start;
+      gap: $spacing-md;
+
+      @media (max-width: 600px) {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    &__pt-label {
+      font-weight: $font-weight-medium;
+      font-size: $font-size-sm;
+      color: $color-text-dark;
+      padding-top: $spacing-xs;
+    }
+
+    &__pt-heading {
+      font-size: $font-size-base;
+      font-weight: $font-weight-medium;
+      color: $color-text-dark;
+      margin: 0;
+    }
+  }
+
+  .doc-req-version-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: $font-size-sm;
+
+    th {
+      text-align: left;
+      padding: $spacing-xs $spacing-sm;
+      border-bottom: 2px solid $color-border-light;
+      color: $color-text-muted;
+      font-weight: $font-weight-medium;
+    }
+
+    td {
+      padding: $spacing-xs $spacing-sm;
+      vertical-align: top;
+      border-bottom: 1px solid $color-border-light;
+
+      &:first-child {
+        font-weight: $font-weight-medium;
+        color: $color-text-dark;
+        width: 40%;
+      }
+
+      &:nth-child(2),
+      &:nth-child(3) {
+        width: 30%;
+      }
+    }
+
+    input[type="number"] {
+      width: 70px;
+      padding: 4px $spacing-xs;
+      border: 1px solid $color-border-light;
+      border-radius: $border-radius-sm;
+      font-size: $font-size-sm;
+      color: $color-text-dark;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 4px $spacing-xs;
+      border: 1px solid $color-border-light;
+      border-radius: $border-radius-sm;
+      font-size: $font-size-sm;
+      color: $color-text-dark;
+      margin-bottom: 4px;
+      display: block;
+      box-sizing: border-box;
+
+      &:last-child {
+        margin-bottom: 0;
+      }
+    }
+  }
 }
 
 .doc-review-modal {
@@ -1116,6 +1209,11 @@
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
+    }
+
+    &__status,
+    &__notes {
+      width: 160px;
     }
 
     &__status select,

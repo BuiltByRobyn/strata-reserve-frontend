@@ -77,14 +77,14 @@ export const useClientAppointments = () => {
     }
   }, [api]);
 
-  const checkDraftMeetingEligibility = useCallback(async (fileId: number): Promise<boolean> => {
+  const checkDraftMeetingEligibility = useCallback(async (fileId: number): Promise<{ eligible: boolean; lastInspectionDate: string | null }> => {
     try {
-      const result = await api.get<{ eligible: boolean }>('/client/appointments/draft-meeting-eligibility', {
+      const result = await api.get<{ eligible: boolean; lastInspectionDate: string | null }>('/client/appointments/draft-meeting-eligibility', {
         params: { fileId }
       });
-      return result?.eligible ?? false;
+      return { eligible: result?.eligible ?? false, lastInspectionDate: result?.lastInspectionDate ?? null };
     } catch {
-      return false;
+      return { eligible: false, lastInspectionDate: null };
     }
   }, [api]);
 

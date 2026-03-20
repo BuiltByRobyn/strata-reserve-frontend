@@ -1,19 +1,6 @@
 import { useState } from 'react';
 import { Modal } from '../../shared/components/Modal';
-import type { SRDocRequirement, BatchDocumentReviewInput } from '../../shared/types/document.types';
-import type { DocumentReviewResult } from '../../shared/types/document.types';
-import type { ReviewStatus } from '../../shared/types/entities.types';
-
-interface DocumentReviewModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  fileId: number | null;
-  docRequirements: SRDocRequirement[];
-  reviewStatuses: ReviewStatus[];
-  review: DocumentReviewResult | null;
-  loading: boolean;
-  onSubmit: (fileId: number, input: BatchDocumentReviewInput) => Promise<void>;
-}
+import type { DocumentReviewModalProps } from '../../shared/types/component.types';
 
 export function DocumentReviewModal({
   isOpen,
@@ -88,7 +75,7 @@ export function DocumentReviewModal({
                 <th>Document</th>
                 <th>Version</th>
                 <th>Status</th>
-                <th>Notes</th>
+                <th>Client Feedback</th>
               </tr>
             </thead>
             <tbody>
@@ -120,7 +107,7 @@ export function DocumentReviewModal({
               <th>Version</th>
               <th>File</th>
               <th>Status</th>
-              <th>Notes</th>
+              <th>Client Feedback</th>
             </tr>
           </thead>
           <tbody>
@@ -146,7 +133,7 @@ export function DocumentReviewModal({
                   <td className="doc-review-row__notes">
                     <input
                       type="text"
-                      placeholder="Notes (optional)"
+                      placeholder="Client feedback (optional)"
                       value={sel.notes}
                       onChange={e => handleStatusChange(r.fnDocRequirementId, 'notes', e.target.value)}
                     />

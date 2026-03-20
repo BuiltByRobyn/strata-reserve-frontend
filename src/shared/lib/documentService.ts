@@ -1,4 +1,4 @@
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from './constants';
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../utils/constants';
 import type { UploadDocumentParams } from '../types/document.types';
 
 export async function supabaseUploadDocument(params: UploadDocumentParams): Promise<{ document: any }> {

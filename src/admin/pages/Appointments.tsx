@@ -17,11 +17,11 @@ import CancelAppointmentModal from '../components/CancelAppointmentModal';
 import type { AppointmentWithDetails, AppointmentRequest, ProfileBasic } from '../../shared/types/entities.types';
 import type { UnifiedRow, SelectedItem } from '../../shared/types/appointment.types';
 import type { CalendarMilestone } from '../../shared/types/appointment.types';
-import { formatDateShort, formatTime12h, getUserDisplayName } from '../../shared/lib/formatters';
+import { formatDateShort, formatTime12h, getUserDisplayName } from '../../shared/utils/formatters';
 import { getInspectorOptions } from '../../shared/utils/userUtils';
-import { getSlotTimeRange } from '../../shared/lib/dateUtils';
-import { LOCATION_DISPLAY_ORDER } from '../../shared/lib/constants';
-import { formatYMD } from '../../shared/lib/timelineUtils';
+import { getSlotTimeRange } from '../../shared/utils/dateUtils';
+import { LOCATION_DISPLAY_ORDER } from '../../shared/utils/constants';
+import { formatYMD } from '../../shared/utils/timelineUtils';
 
 const getStatusClass = (status: string): string => {
   switch (status.toLowerCase()) {
@@ -55,6 +55,7 @@ export default function AppointmentsPage() {
     createAppointment, fetchTimeSlots, fetchAppointmentTypes,
     fetchAppointmentRequests, reviewAppointmentRequest,
     checkInspectorAvailability, createInspectorAvailability,
+    updateStatus,
   } = useAppointments();
   const { users, loading: usersLoading } = useUsers();
   const { locations, loading: lookupsLoading } = useLookups();
@@ -408,7 +409,23 @@ export default function AppointmentsPage() {
     { key: 'inspector', header: 'Inspector(s)', render: (r) => r.inspectorNames },
     {
       key: 'status', header: 'Status',
-      render: (r) => <span className={`status-badge ${getStatusClass(r.status)}`}>{r.status}</span>
+      render: (r) => {
+        const statusLower = r.status.toLowerCase();
+        if (r.type === 'appointment' && (statusLower === 'scheduled' || statusLower === 'rescheduled')) {
+          return (
+            <select
+              className={`status-badge status-dropdown ${getStatusClass(r.status)}`}
+              value={r.status}
+              onClick={(e) => e.stopPropagation()}
+              onChange={(e) => handleStatusChange(r, e.target.value)}
+            >
+              <option value={r.status}>{r.status}</option>
+              <option value="Completed">Completed</option>
+            </select>
+          );
+        }
+        return <span className={`status-badge ${getStatusClass(r.status)}`}>{r.status}</span>;
+      }
     },
   ];
 
@@ -523,6 +540,17 @@ export default function AppointmentsPage() {
       resetDetail();
     } catch {
       toast.error('Failed to send rebooking request');
+    }
+  };
+
+  const handleStatusChange = async (row: UnifiedRow, newStatus: string) => {
+    if (row.type !== 'appointment') return;
+    const apt = row.original as AppointmentWithDetails;
+    try {
+      await updateStatus(apt.appointmentId, newStatus);
+      toast.success(`Appointment marked as ${newStatus}`);
+    } catch {
+      toast.error('Failed to update status');
     }
   };
 
@@ -736,7 +764,7 @@ export default function AppointmentsPage() {
                 <button
                   className="btn btn-primary"
                   onClick={() => handleApprove(1)}
-                  disabled={submitting}
+                  disabled={submitting || !inspectorId}
                 >
                   {submitting ? 'Processing...' : 'Approve First Choice'}
                 </button>
@@ -744,7 +772,7 @@ export default function AppointmentsPage() {
                   <button
                     className="btn btn-primary"
                     onClick={() => handleApprove(2)}
-                    disabled={submitting}
+                    disabled={submitting || !inspectorId}
                   >
                     {submitting ? 'Processing...' : 'Approve Second Choice'}
                   </button>
@@ -1124,7 +1152,7 @@ export default function AppointmentsPage() {
             <button className="btn btn-secondary" onClick={() => setShowCreateModal(false)} disabled={createSubmitting}>
               Cancel
             </button>
-            <button className="btn btn-primary" onClick={handleCreateAppointment} disabled={createSubmitting}>
+            <button className="btn btn-primary" onClick={handleCreateAppointment} disabled={createSubmitting || !createForm.inspectorProfileId}>
               {createSubmitting ? 'Checking...' : 'Add Appointment'}
             </button>
           </>

@@ -197,6 +197,10 @@
     border: 2px solid $color-primary;
   }
 
+  &--finalized {
+    border: 3px solid $color-primary-dark;
+  }
+
   &__title {
     margin: 0;
     font-size: 1.1rem;

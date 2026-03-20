@@ -93,7 +93,7 @@ export const useClientDocuments = () => {
 
     try {
       await supabaseUploadDocument({ token, ...params });
-      await api.post(`/client/file-numbers/${params.fileId}/requirements/${params.fnDocRequirementId}/uploaded`, {});
+      await api.post(`/client/file-numbers/${params.fileId}/requirements/${params.fnDocRequirementId}/uploaded`, { isReplace: params.isReplace ?? false });
       await fetchRequiredDocuments(params.fileId);
       return true;
     } catch (err) {
@@ -115,17 +115,6 @@ export const useClientDocuments = () => {
       return true;
     } catch (err) {
       console.error('Error setting N/A status:', err);
-      return false;
-    }
-  }, [api, fetchRequiredDocuments]);
-
-  const clearNaStatus = useCallback(async (fileId: number, reqId: number): Promise<boolean> => {
-    try {
-      await api.del(`/client/file-numbers/${fileId}/requirements/${reqId}/na-status`);
-      await fetchRequiredDocuments(fileId);
-      return true;
-    } catch (err) {
-      console.error('Error clearing N/A status:', err);
       return false;
     }
   }, [api, fetchRequiredDocuments]);
@@ -170,7 +159,6 @@ export const useClientDocuments = () => {
     fetchRequiredDocuments,
     uploadDocument,
     setNaStatus,
-    clearNaStatus,
     getDocumentsByFileNumber,
     deleteDocument
   };

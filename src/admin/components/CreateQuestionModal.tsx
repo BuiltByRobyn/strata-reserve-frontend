@@ -6,6 +6,7 @@ import { TextareaField, FormRow } from '../../shared/components/FormField';
 import { SingleSelectDropdown } from '../../shared/components/SingleSelectDropdown';
 import { MultiSelectDropdown } from '../../shared/components/MultiSelectDropdown';
 import type { CreateQuestionInput, QuestionFormData } from '../../shared/types/survey.types';
+import type { BaseModalProps } from '../../shared/types/component.types';
 
 const CATEGORIES = ['Exterior', 'Interior', 'Services', 'Clubhouse', 'Amenity Room', 'Legal', 'Council Concerns', 'Septic Fields'];
 
@@ -22,12 +23,7 @@ const initialFormData: QuestionFormData = {
   informationText: '', serviceId: undefined, propertyTypeIds: [], multipleChoiceOptions: [],
 };
 
-interface Props {
-  isOpen: boolean;
-  onClose: () => void;
-}
-
-export function CreateQuestionModal({ isOpen, onClose }: Props) {
+export function CreateQuestionModal({ isOpen, onClose }: BaseModalProps) {
   const { createQuestion } = useQuestions();
   const { questionTypes, services, propertyTypes } = useLookups();
 

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { Modal } from '../../shared/components/Modal';
 import { LoadingSpinner } from '../../shared/components/LoadingSpinner';
 import { NoFileNumberState } from '../../shared/components/NoFileNumberState';
 import { useAuth } from '../../shared/contexts/AuthContext';
@@ -9,7 +10,7 @@ import { useClientFileNumber } from '../../shared/hooks/useClientFileNumber';
 import { usePropertyTypeRequest } from '../../shared/hooks/usePropertyTypeRequest';
 import { useSurvey } from '../../shared/hooks/useSurvey';
 import { useTimelines } from '../../shared/hooks/useTimelines';
-import { parseLocalDate, parseTimestamp } from '../../shared/lib/dateUtils';
+import { parseLocalDate, parseTimestamp } from '../../shared/utils/dateUtils';
 import type { ActiveAppointmentResponse, AppointmentNotification } from '../../shared/types/appointment.types';
 import { SURVEY_SECTIONS } from '../../shared/types/survey.types';
 
@@ -33,6 +34,8 @@ export const Dashboard = () => {
   } = useClientDocuments();
   const { getActiveAppointment, getNotifications } = useClientAppointments();
 
+  const location = useLocation();
+  const [showDocsModal, setShowDocsModal] = useState(false);
   const [activeAppointment, setActiveAppointment] = useState<ActiveAppointmentResponse>(null);
   const [appointmentLoading, setAppointmentLoading] = useState(true);
   const [notifications, setNotifications] = useState<AppointmentNotification[]>([]);
@@ -68,6 +71,15 @@ export const Dashboard = () => {
     fetchResponses(fileId);
     fetchRequiredDocuments(fileId);
   }, [fetchQuestions, fetchRequiredDocuments, fetchResponses, fileId]);
+
+  useEffect(() => {
+    if (location.state?.justFinalizedDocs) {
+      setShowDocsModal(true);
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, []);
+
+  const docsFinalized = fileId ? !!localStorage.getItem(`docs_finalized_${fileId}`) : false;
 
   const welcomeName = user?.role === 'client' ? user.firstName || 'there' : 'there';
   const dashboardTitle = activeRequest?.strata?.complexName || activeRequest?.strata?.strataPlan || 'Your Strata Reserve Planning - Data Collection Portal';
@@ -151,13 +163,16 @@ export const Dashboard = () => {
     const documentsTask = {
       id: 'documents',
       title: 'Upload Documents',
-      description: missingRequiredDocumentCount > 0
-        ? `${missingRequiredDocumentCount} required document${missingRequiredDocumentCount === 1 ? '' : 's'} still to upload`
-        : 'Submit requested documents',
+      description: docsFinalized
+        ? 'View submitted documents'
+        : missingRequiredDocumentCount > 0
+          ? `${missingRequiredDocumentCount} required document${missingRequiredDocumentCount === 1 ? '' : 's'} still to upload`
+          : 'Submit requested documents',
       buttonLabel: missingRequiredDocumentCount > 0 ? 'Upload Documents' : 'View Documents',
       path: '/client/documents',
       navState: undefined as Record<string, unknown> | undefined,
       completed: documentsCompleted,
+      finalized: docsFinalized,
     };
 
     if (bookingActionNeeded) {
@@ -189,7 +204,7 @@ export const Dashboard = () => {
         completed: timelineTargetDate != null,
       },
     ];
-  }, [activeAppointment, activeRequest, documentsCompleted, missingRequiredDocumentCount, sectionProgress, surveyCompleted, timelineTargetDate]);
+  }, [activeAppointment, activeRequest, documentsCompleted, docsFinalized, missingRequiredDocumentCount, sectionProgress, surveyCompleted, timelineTargetDate]);
 
   const dashboardLoading = requestLoading || propertyTypeLoading || surveyLoading || documentsLoading || timelinesLoading || appointmentLoading;
 
@@ -243,11 +258,14 @@ export const Dashboard = () => {
       <h2 className="client-tasks-heading">Priority Tasks</h2>
       <div className="priority-tasks-grid">
         {tasks.map((task) => (
-          <div key={task.id} className={`priority-task-card${task.completed ? ' priority-task-card--active' : ''}`}>
+          <div
+            key={task.id}
+            className={`priority-task-card${task.completed ? ' priority-task-card--active' : ''}${'finalized' in task && task.finalized ? ' priority-task-card--finalized' : ''}`}
+          >
             <h3 className="priority-task-card__title">{task.title}</h3>
             <p className="priority-task-card__desc">{task.description}</p>
             <button
-              className="btn-action btn-action--secondary"
+              className={'finalized' in task && task.finalized ? 'btn-primary' : 'btn-action btn-action--secondary'}
               onClick={() => navigate(task.path, { state: task.navState })}
             >
               {task.buttonLabel}
@@ -310,6 +328,23 @@ export const Dashboard = () => {
             })}
         </div>
       )}
+      <Modal
+        isOpen={showDocsModal}
+        onClose={() => setShowDocsModal(false)}
+        title="Documents Submitted"
+        size="small"
+        footer={
+          <button className="btn-primary" onClick={() => setShowDocsModal(false)}>
+            Got it
+          </button>
+        }
+      >
+        <p>
+          Thank you for finalizing your document submission. Once your survey answers are also
+          finalized, a strata reserve planning team member will review your submissions within
+          3–5 business days.
+        </p>
+      </Modal>
     </div>
   );
 };

@@ -8,16 +8,12 @@ import { InputField, TextareaField, FormRow } from '../../shared/components/Form
 import { SingleSelectDropdown } from '../../shared/components/SingleSelectDropdown';
 import { STRATA_ID_PATTERN, formatStrataId, validateStrataId } from '../../shared/utils/strataUtils';
 import { API_BASE } from '../../shared/lib/api';
-import { formatTypeName } from '../../shared/lib/formatters';
-
-interface Props {
-  isOpen: boolean;
-  onClose: () => void;
-}
+import { formatTypeName } from '../../shared/utils/formatters';
+import type { BaseModalProps } from '../../shared/types/component.types';
 
 const initialForm = { documentName: '', file: null as File | null, documentTypeId: null as number | null, strataName: '', strataId: '', notes: '', propertyTypeId: null as number | null };
 
-export function UploadDocumentModal({ isOpen, onClose }: Props) {
+export function UploadDocumentModal({ isOpen, onClose }: BaseModalProps) {
   const { uploadDocument, uploading } = useDocuments();
   const { documentTypes } = useLookups();
   const { user } = useAuth();

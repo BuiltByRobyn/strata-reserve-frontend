@@ -5,15 +5,11 @@ import { useUsers } from '../../shared/hooks/useUsers';
 import { useFileNumbers } from '../../shared/hooks/useFileNumbers';
 import { Modal } from '../../shared/components/Modal';
 import { SingleSelectDropdown } from '../../shared/components/SingleSelectDropdown';
-import { formatTime12h } from '../../shared/lib/formatters';
+import { formatTime12h } from '../../shared/utils/formatters';
 import { getInspectorOptions } from '../../shared/utils/userUtils';
+import type { BaseModalProps } from '../../shared/types/component.types';
 
-interface Props {
-  isOpen: boolean;
-  onClose: () => void;
-}
-
-export function CreateAppointmentModal({ isOpen, onClose }: Props) {
+export function CreateAppointmentModal({ isOpen, onClose }: BaseModalProps) {
   const { createAppointment, fetchTimeSlots, fetchAppointmentTypes, checkInspectorAvailability, createInspectorAvailability } = useAppointments();
   const { users } = useUsers();
   const { fileNumbers, refetch: fetchFileNumbers } = useFileNumbers();

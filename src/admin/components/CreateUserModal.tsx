@@ -7,6 +7,7 @@ import { InputField, FormRow } from '../../shared/components/FormField';
 import { SingleSelectDropdown } from '../../shared/components/SingleSelectDropdown';
 import { MultiSelectDropdown } from '../../shared/components/MultiSelectDropdown';
 import type { CreateUserInput, UserFormData } from '../../shared/types/entities.types';
+import type { BaseModalProps } from '../../shared/types/component.types';
 import { formatPhoneNumber, validatePhoneNumber } from '../../shared/utils/strataUtils';
 
 const initialFormData: UserFormData = {
@@ -19,12 +20,7 @@ const initialFormData: UserFormData = {
   strataAssociations: [{ strataId: 0, strataPosition: '', sectionIds: [], propertyTypeIds: [] }],
 };
 
-interface Props {
-  isOpen: boolean;
-  onClose: () => void;
-}
-
-export function CreateUserModal({ isOpen, onClose }: Props) {
+export function CreateUserModal({ isOpen, onClose }: BaseModalProps) {
   const { createUser, users } = useUsers();
   const { stratas } = useStrata();
   const { userTypes } = useLookups();

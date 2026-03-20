@@ -36,11 +36,11 @@ import type {
 import { DocumentReviewModal } from "../components/DocumentReviewModal";
 import { useDocumentReview } from "../hooks/useDocumentReview";
 import type { SRDocRequirement } from "../../shared/types/document.types";
-import type { CreateRequirementVersionInput } from "../../shared/types/fnDocRequirement.types";
 import { API_BASE } from "../../shared/lib/api";
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from "../../shared/lib/constants";
-import { formatTypeName, formatDate, getStatusBadgeClass } from "../../shared/lib/formatters";
-import { parseLocalDate, formatDateShort } from "../../shared/lib/dateUtils";
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from "../../shared/utils/constants";
+import { formatTypeName, formatDate, getStatusBadgeClass, formatNaStatus } from "../../shared/utils/formatters";
+import { groupByDocumentType } from "../../shared/utils/documentUtils";
+import { parseLocalDate, formatDateShort } from "../../shared/utils/dateUtils";
 import { getFilenameFromDisposition, triggerBlobDownload } from "../../shared/utils/fileUtils";
 import { formatFileNumberInput, validateFileNumber } from "../../shared/utils/fileNumberUtils";
 
@@ -129,7 +129,11 @@ export default function StrataDetailPage() {
   const [docRequirements, setDocRequirements] = useState<SRDocRequirement[]>([]);
   const [docReqModalOpen, setDocReqModalOpen] = useState(false);
   const [docReviewModalOpen, setDocReviewModalOpen] = useState(false);
-  const [versionInputs, setVersionInputs] = useState<Record<string, { documentTypeId: number | ''; versionLabel: string }>>({});
+  const [configStep, setConfigStep] = useState<'select' | number>('select');
+  const [wizardSelectedDocTypes, setWizardSelectedDocTypes] = useState<Record<number, number[]>>({});
+  const [wizardVersionConfig, setWizardVersionConfig] = useState<Record<number, Record<number, string[]>>>({});
+  const [wizardStepError, setWizardStepError] = useState<string | null>(null);
+  const [docFilterPropertyTypeIds, setDocFilterPropertyTypeIds] = useState<number[]>([]);
   const { fetchReview, submitReview, review: docReview, loading: reviewLoading } = useDocumentReview();
 
   const [surveyRequirements, setSurveyRequirements] = useState<{ propertyTypeId: number }[]>([]);
@@ -329,49 +333,116 @@ export default function StrataDetailPage() {
   };
 
   const openDocReqModal = () => {
-    const inputs: Record<string, { documentTypeId: number | ''; versionLabel: string }> = {};
-    for (const spt of strata?.strataPropertyTypes ?? []) {
-      inputs[spt.propertyType.propertyTypeId.toString()] = { documentTypeId: '', versionLabel: '' };
+    const selected: Record<number, number[]> = {};
+    const config: Record<number, Record<number, string[]>> = {};
+    for (const req of docRequirements) {
+      const ptId = req.propertyTypeId ?? 0;
+      if (!selected[ptId]) selected[ptId] = [];
+      if (!selected[ptId].includes(req.documentTypeId)) selected[ptId].push(req.documentTypeId);
+      if (!config[ptId]) config[ptId] = {};
+      if (!config[ptId][req.documentTypeId]) config[ptId][req.documentTypeId] = [];
+      config[ptId][req.documentTypeId].push(req.versionLabel);
     }
-    setVersionInputs(inputs);
+    setWizardSelectedDocTypes(selected);
+    setWizardVersionConfig(config);
+    setConfigStep('select');
     setDocReqModalOpen(true);
   };
 
-  const handleAddVersion = async (ptId: number) => {
-    if (!activeRequest) return;
-    const input = versionInputs[ptId.toString()];
-    if (!input?.documentTypeId || !input.versionLabel.trim()) return;
-    try {
-      const body: CreateRequirementVersionInput = {
-        documentTypeId: input.documentTypeId as number,
-        propertyTypeId: ptId,
-        versionLabel: input.versionLabel.trim(),
-      };
-      const res = await authFetch(
-        `${API_BASE}/admin/file-numbers/${activeRequest.fileId}/document-requirements/version`,
-        { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }
-      );
-      const data = await res.json();
-      if (data.success && data.data) {
-        setDocRequirements(prev => [...prev, data.data]);
-        setVersionInputs(prev => ({ ...prev, [ptId.toString()]: { documentTypeId: '', versionLabel: '' } }));
+  const handleWizardNext = () => {
+    // Validate that no doc type with uploads is being deselected
+    for (const spt of strata?.strataPropertyTypes ?? []) {
+      const ptId = spt.propertyType.propertyTypeId;
+      const newSelected = wizardSelectedDocTypes[ptId] ?? [];
+      const prevDtIds = [...new Set(docRequirements.filter(r => r.propertyTypeId === ptId).map(r => r.documentTypeId))];
+      for (const dtId of prevDtIds) {
+        if (!newSelected.includes(dtId)) {
+          const uploadedCount = docRequirements.filter(
+            r => r.propertyTypeId === ptId && r.documentTypeId === dtId && r.fileNumberDocuments.length > 0
+          ).length;
+          if (uploadedCount > 0) {
+            const dt = documentTypes.find(d => d.documentTypeId === dtId);
+            setWizardStepError(`Cannot remove "${dt?.typeName || 'this document'}" — ${uploadedCount} version${uploadedCount !== 1 ? 's' : ''} already uploaded.`);
+            return;
+          }
+        }
       }
-    } catch {
-      // silently fail
     }
+    setWizardStepError(null);
+    const updated: Record<number, Record<number, string[]>> = { ...wizardVersionConfig };
+    for (const [ptIdStr, dtIds] of Object.entries(wizardSelectedDocTypes)) {
+      const ptId = Number(ptIdStr);
+      if (!updated[ptId]) updated[ptId] = {};
+      for (const dtId of Object.keys(updated[ptId]).map(Number)) {
+        if (!dtIds.includes(dtId)) delete updated[ptId][dtId];
+      }
+      for (const dtId of dtIds) {
+        if (!updated[ptId][dtId] || updated[ptId][dtId].length === 0) {
+          updated[ptId][dtId] = [''];
+        }
+      }
+    }
+    setWizardVersionConfig(updated);
+    setConfigStep(0);
   };
 
-  const handleRemoveVersion = async (reqId: number) => {
-    if (!activeRequest) return;
-    try {
-      await authFetch(
-        `${API_BASE}/admin/file-numbers/${activeRequest.fileId}/document-requirements/${reqId}`,
-        { method: 'DELETE' }
+  const handleVersionCountChange = (ptId: number, dtId: number, count: number) => {
+    const uploadedCount = docRequirements.filter(
+      r => r.propertyTypeId === ptId && r.documentTypeId === dtId && r.fileNumberDocuments.length > 0
+    ).length;
+    if (count < Math.max(1, uploadedCount) && uploadedCount > 0) {
+      const dt = documentTypes.find(d => d.documentTypeId === dtId);
+      setWizardStepError(
+        `${uploadedCount} version${uploadedCount !== 1 ? 's' : ''} of "${dt?.typeName || 'this document'}" have already been uploaded for this file number. Cannot decrease the required quantity below ${uploadedCount}.`
       );
-      setDocRequirements(prev => prev.filter(r => r.fnDocRequirementId !== reqId));
-    } catch {
-      // silently fail
+      return;
     }
+    setWizardStepError(null);
+    setWizardVersionConfig(prev => {
+      const current = prev[ptId]?.[dtId] ?? [''];
+      const adjusted = count <= 1
+        ? ['']
+        : Array.from({ length: count }, (_, i) => current[i] ?? '');
+      return { ...prev, [ptId]: { ...prev[ptId], [dtId]: adjusted } };
+    });
+  };
+
+  const handleVersionLabelChange = (ptId: number, dtId: number, idx: number, label: string) => {
+    setWizardStepError(null);
+    setWizardVersionConfig(prev => {
+      const current = [...(prev[ptId]?.[dtId] ?? [])];
+      current[idx] = label;
+      return { ...prev, [ptId]: { ...prev[ptId], [dtId]: current } };
+    });
+  };
+
+  const validateConfigStep = (ptId: number): boolean => {
+    const selectedDtIds = wizardSelectedDocTypes[ptId] ?? [];
+    for (const dtId of selectedDtIds) {
+      const labels = wizardVersionConfig[ptId]?.[dtId] ?? [''];
+      if (labels.length > 1 && labels.some(l => !l.trim())) return false;
+    }
+    return true;
+  };
+
+  const handleWizardSave = async () => {
+    if (!activeRequest) return;
+    const requirements: Array<{ documentTypeId: number; propertyTypeId: number | null; versionLabel: string }> = [];
+    for (const [ptIdStr, docTypes] of Object.entries(wizardVersionConfig)) {
+      const ptId = Number(ptIdStr) || null;
+      for (const [dtIdStr, labels] of Object.entries(docTypes)) {
+        for (const label of labels) {
+          requirements.push({ documentTypeId: Number(dtIdStr), propertyTypeId: ptId, versionLabel: label });
+        }
+      }
+    }
+    await authFetch(`${API_BASE}/admin/file-numbers/${activeRequest.fileId}/document-requirements`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ requirements }),
+    });
+    await fetchDocRequirements(activeRequest.fileId);
+    setDocReqModalOpen(false);
   };
 
   const openDocReviewModal = () => {
@@ -908,18 +979,31 @@ export default function StrataDetailPage() {
 
       <div className="tabs-row">
         <Tabs tabs={MAIN_TABS} activeTab={activeTab} onChange={handleTabChange} />
-        {(activeTab === "active" || activeTab === "archived") && activeRequest && (
+        {(activeTab === "active" || activeTab === "archived" || activeTab === "documents") && activeRequest && (
           <div className="filters-row">
-            <MultiSelectDropdown
-              label="Property Types"
-              options={(strata?.strataPropertyTypes ?? [])
-                .filter(spt => surveyRequirements.some(req => req.propertyTypeId === spt.propertyType.propertyTypeId))
-                .map(spt => ({ value: spt.propertyType.propertyTypeId, label: spt.propertyType.propertyTypeName }))
-                .sort((a, b) => a.label.localeCompare(b.label))}
-              selectedValues={filterPropertyTypeIds}
-              onChange={setFilterPropertyTypeIds}
-              placeholder="All Types"
-            />
+            {activeTab === "documents" ? (
+              <MultiSelectDropdown
+                label="Property Types"
+                options={(strata?.strataPropertyTypes ?? [])
+                  .filter(spt => docRequirements.some(r => r.propertyTypeId === spt.propertyType.propertyTypeId))
+                  .map(spt => ({ value: spt.propertyType.propertyTypeId, label: spt.propertyType.propertyTypeName }))
+                  .sort((a, b) => a.label.localeCompare(b.label))}
+                selectedValues={docFilterPropertyTypeIds}
+                onChange={setDocFilterPropertyTypeIds}
+                placeholder="All Types"
+              />
+            ) : (
+              <MultiSelectDropdown
+                label="Property Types"
+                options={(strata?.strataPropertyTypes ?? [])
+                  .filter(spt => surveyRequirements.some(req => req.propertyTypeId === spt.propertyType.propertyTypeId))
+                  .map(spt => ({ value: spt.propertyType.propertyTypeId, label: spt.propertyType.propertyTypeName }))
+                  .sort((a, b) => a.label.localeCompare(b.label))}
+                selectedValues={filterPropertyTypeIds}
+                onChange={setFilterPropertyTypeIds}
+                placeholder="All Types"
+              />
+            )}
           </div>
         )}
       </div>
@@ -1111,15 +1195,11 @@ export default function StrataDetailPage() {
                   <div className="doc-requirements-summary">
                     {(strata?.strataPropertyTypes ?? []).map(spt => {
                       const ptId = spt.propertyType.propertyTypeId;
+                      if (docFilterPropertyTypeIds.length > 0 && !docFilterPropertyTypeIds.includes(ptId)) return null;
                       const reqs = docRequirements.filter(r => r.propertyTypeId === ptId);
                       if (reqs.length === 0) return null;
 
-                      const docTypeGroups = new Map<string, SRDocRequirement[]>();
-                      for (const r of reqs) {
-                        const key = r.documentType.typeName;
-                        if (!docTypeGroups.has(key)) docTypeGroups.set(key, []);
-                        docTypeGroups.get(key)!.push(r);
-                      }
+                      const docTypeGroups = groupByDocumentType(reqs);
 
                       return (
                         <div key={ptId} className="doc-req-group">
@@ -1148,7 +1228,7 @@ export default function StrataDetailPage() {
                                           </div>
                                         ) : naStatus ? (
                                           <span className="status-badge na-status">
-                                            {naStatus === 'not_available' ? 'Not Available' : 'Not Applicable'}
+                                            {formatNaStatus(naStatus)}
                                           </span>
                                         ) : (
                                           <span className="status-badge not-received">Not Received</span>
@@ -1533,96 +1613,132 @@ export default function StrataDetailPage() {
         size="large"
         className="modal-configure-documents"
         footer={
-          <button className="btn-secondary" onClick={() => setDocReqModalOpen(false)}>
-            Done
-          </button>
+          configStep === 'select' ? (
+            <>
+              <button className="btn-secondary" onClick={() => setDocReqModalOpen(false)}>Cancel</button>
+              <button
+                className="btn-primary"
+                onClick={handleWizardNext}
+                disabled={Object.values(wizardSelectedDocTypes).every(v => v.length === 0)}
+              >
+                Next
+              </button>
+            </>
+          ) : (() => {
+            const activePropertyTypes = (strata?.strataPropertyTypes ?? []).filter(
+              spt => (wizardSelectedDocTypes[spt.propertyType.propertyTypeId] ?? []).length > 0
+            );
+            const currentPtId = activePropertyTypes[configStep as number]?.propertyType.propertyTypeId;
+            const isLast = (configStep as number) === activePropertyTypes.length - 1;
+            const handleNext = () => {
+              if (!currentPtId || !validateConfigStep(currentPtId)) {
+                setWizardStepError('Please enter a label for each version before continuing.');
+                return;
+              }
+              setWizardStepError(null);
+              setConfigStep((configStep as number) + 1);
+            };
+            const handleSave = () => {
+              if (!currentPtId || !validateConfigStep(currentPtId)) {
+                setWizardStepError('Please enter a label for each version before saving.');
+                return;
+              }
+              setWizardStepError(null);
+              handleWizardSave();
+            };
+            return (
+              <>
+                <button className="btn-secondary" onClick={() => setDocReqModalOpen(false)}>Cancel</button>
+                <button className="btn-secondary" onClick={() => { setWizardStepError(null); setConfigStep((configStep as number) === 0 ? 'select' : (configStep as number) - 1); }}>Back</button>
+                {isLast ? (
+                  <button className="btn-primary" onClick={handleSave}>Save</button>
+                ) : (
+                  <button className="btn-primary" onClick={handleNext}>Next</button>
+                )}
+              </>
+            );
+          })()
         }
       >
         <div className="doc-req-modal-body">
           {(strata?.strataPropertyTypes ?? []).length === 0 ? (
             <p className="notes-empty">No property types assigned to this strata. Assign property types first.</p>
-          ) : (
-            (strata?.strataPropertyTypes ?? []).map(spt => {
-              const ptId = spt.propertyType.propertyTypeId;
-              const ptKey = ptId.toString();
-              const reqs = docRequirements.filter(r => r.propertyTypeId === ptId);
-
-              const docTypeGroups = new Map<string, SRDocRequirement[]>();
-              for (const r of reqs) {
-                const key = `${r.documentType.documentTypeId}`;
-                if (!docTypeGroups.has(key)) docTypeGroups.set(key, []);
-                docTypeGroups.get(key)!.push(r);
-              }
-
-              const input = versionInputs[ptKey] ?? { documentTypeId: '', versionLabel: '' };
-
-              return (
-                <div key={ptId} className="doc-req-section">
-                  <h3 className="doc-req-section-title">{spt.propertyType.propertyTypeName}</h3>
-
-                  {docTypeGroups.size === 0 && (
-                    <p className="doc-req-empty">No document types added yet.</p>
-                  )}
-
-                  {Array.from(docTypeGroups.entries()).map(([dtIdStr, versions]) => (
-                    <div key={dtIdStr} className="doc-req-type-row">
-                      <span className="doc-req-type-label">{versions[0].documentType.typeName}</span>
-                      <div className="doc-req-version-chips">
-                        {versions.map(v => (
-                          <span key={v.fnDocRequirementId} className="version-chip">
-                            {v.versionLabel || 'Default'}
-                            <button
-                              className="version-chip__remove"
-                              onClick={() => handleRemoveVersion(v.fnDocRequirementId)}
-                              title="Remove version"
-                            >
-                              ×
-                            </button>
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-
-                  <div className="doc-req-add-row">
-                    <select
-                      className="doc-req-type-select"
-                      value={input.documentTypeId}
-                      onChange={e => setVersionInputs(prev => ({
-                        ...prev,
-                        [ptKey]: { ...prev[ptKey], documentTypeId: e.target.value ? parseInt(e.target.value) : '' }
-                      }))}
-                    >
-                      <option value="">Select document type</option>
-                      {documentTypes
-                        .slice()
-                        .sort((a, b) => a.typeName.localeCompare(b.typeName))
-                        .map(dt => (
-                          <option key={dt.documentTypeId} value={dt.documentTypeId}>{dt.typeName}</option>
-                        ))}
-                    </select>
-                    <input
-                      className="doc-req-version-input"
-                      type="text"
-                      placeholder="Version label (e.g. 2024)"
-                      value={input.versionLabel}
-                      onChange={e => setVersionInputs(prev => ({
-                        ...prev,
-                        [ptKey]: { ...prev[ptKey], versionLabel: e.target.value }
-                      }))}
+          ) : configStep === 'select' ? (
+            <div className="doc-req-wizard">
+              <p className="doc-req-wizard__subtitle">Select which document types are required for each property type.</p>
+              {wizardStepError && <p className="form-error">{wizardStepError}</p>}
+              {(strata?.strataPropertyTypes ?? []).map(spt => {
+                const ptId = spt.propertyType.propertyTypeId;
+                return (
+                  <div key={ptId} className="doc-req-wizard__select-row">
+                    <label className="doc-req-wizard__pt-label">{spt.propertyType.propertyTypeName}</label>
+                    <MultiSelectDropdown
+                      label=""
+                      options={documentTypes.slice().sort((a, b) => a.typeName.localeCompare(b.typeName)).map(dt => ({ value: dt.documentTypeId, label: dt.typeName }))}
+                      selectedValues={wizardSelectedDocTypes[ptId] ?? []}
+                      onChange={vals => setWizardSelectedDocTypes(prev => ({ ...prev, [ptId]: vals }))}
+                      placeholder="Select document types..."
                     />
-                    <button
-                      className="btn-primary btn-add-version"
-                      onClick={() => handleAddVersion(ptId)}
-                      disabled={!input.documentTypeId || !input.versionLabel.trim()}
-                    >
-                      + Add Version
-                    </button>
                   </div>
-                </div>
-              );
-            })
-          )}
+                );
+              })}
+            </div>
+          ) : (() => {
+            const activePropertyTypes = (strata?.strataPropertyTypes ?? []).filter(
+              spt => (wizardSelectedDocTypes[spt.propertyType.propertyTypeId] ?? []).length > 0
+            );
+            const spt = activePropertyTypes[configStep as number];
+            if (!spt) return null;
+            const ptId = spt.propertyType.propertyTypeId;
+            const selectedDtIds = wizardSelectedDocTypes[ptId] ?? [];
+            return (
+              <div className="doc-req-wizard">
+                <h4 className="doc-req-wizard__pt-heading">{spt.propertyType.propertyTypeName}</h4>
+                {wizardStepError && <p className="form-error">{wizardStepError}</p>}
+                <table className="doc-req-version-table">
+                  <thead>
+                    <tr>
+                      <th>Document Type</th>
+                      <th>Versions Required</th>
+                      <th>Version Labels</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {selectedDtIds.map(dtId => {
+                      const dt = documentTypes.find(d => d.documentTypeId === dtId);
+                      const labels = wizardVersionConfig[ptId]?.[dtId] ?? [''];
+                      const count = labels.length;
+                      return (
+                        <tr key={dtId}>
+                          <td>{dt?.typeName}</td>
+                          <td>
+                            <input
+                              type="number"
+                              min={1}
+                              max={10}
+                              value={count}
+                              onChange={e => handleVersionCountChange(ptId, dtId, Math.max(1, parseInt(e.target.value) || 1))}
+                            />
+                          </td>
+                          <td>
+                            {count > 1 && labels.map((label, i) => (
+                              <input
+                                key={i}
+                                type="text"
+                                placeholder={`Version ${i + 1} label`}
+                                value={label}
+                                onChange={e => handleVersionLabelChange(ptId, dtId, i, e.target.value)}
+                              />
+                            ))}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            );
+          })()}
         </div>
       </Modal>
 

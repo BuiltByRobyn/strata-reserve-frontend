@@ -100,6 +100,7 @@ export const useAppointments = () => {
       approvedDateChoice?: number;
       rejectionReason?: string;
       inspectorProfileId?: string;
+      secondInspectorProfileId?: string;
       comments?: string;
     }
   ): Promise<{ success: boolean; error?: string }> => {

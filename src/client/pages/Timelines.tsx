@@ -6,7 +6,7 @@ import { useClientFileNumber } from '../../shared/hooks/useClientFileNumber';
 import { useTimelines } from '../../shared/hooks/useTimelines';
 import { LoadingSpinner } from '../../shared/components/LoadingSpinner';
 import { NoFileNumberState } from '../../shared/components/NoFileNumberState';
-import { parseLocalDate, toDateInputValue } from '../../shared/lib/dateUtils';
+import { parseLocalDate, toDateInputValue } from '../../shared/utils/dateUtils';
 import type { UpdateTimelinesInput } from '../../shared/types/timeline.types';
 
 const PLACEHOLDER_FILE_OPENED = '—';

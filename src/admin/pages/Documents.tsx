@@ -15,7 +15,7 @@ import { SingleSelectDropdown } from '../../shared/components/SingleSelectDropdo
 import type { DocumentWithDetails, DocumentUploadData } from '../../shared/types/document.types';
 import { STRATA_ID_PATTERN, formatStrataId } from '../../shared/utils/strataUtils';
 import { API_BASE } from '../../shared/lib/api';
-import { formatTypeName, formatDate, getStatusBadgeClass } from '../../shared/lib/formatters';
+import { formatTypeName, formatDate, getStatusBadgeClass } from '../../shared/utils/formatters';
 
 export default function DocumentsPage() {
   const { documents, loading, error, updateDocumentStatus, uploadDocument, uploading, deleteDocument, syncDocuments } = useDocuments();
@@ -422,12 +422,6 @@ export default function DocumentsPage() {
           loading={loading}
           emptyMessage="No documents found."
           onRowClick={(doc) => handlePreview(doc)}
-          actionsColumnHeader="Action"
-          actions={(doc) => (
-            <>
-              <button className="btn-edit" onClick={() => openStatusModal(doc)}>Review</button>
-            </>
-          )}
         />
       ) : (
         <>
@@ -475,12 +469,6 @@ export default function DocumentsPage() {
                           <span className={getStatusBadgeClass(doc.reviewStatus?.statusName)}>
                             {doc.reviewStatus?.statusName || 'Pending'}
                           </span>
-                        </td>
-                      </tr>
-                      <tr onClick={(e) => e.stopPropagation()}>
-                        <td className="mobile-label-col">Action</td>
-                        <td className="mobile-value-col actions-cell">
-                          <button className="btn-edit" onClick={() => openStatusModal(doc)}>Review</button>
                         </td>
                       </tr>
                     </tbody>

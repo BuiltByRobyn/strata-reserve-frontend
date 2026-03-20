@@ -8,7 +8,7 @@ import type { InspectorAvailabilityModalProps } from '../../shared/types/compone
 import { LoadingSpinner } from '../../shared/components/LoadingSpinner';
 import { extractTimeFromISO, expandWeekdayDateRange } from '../../shared/utils/availabilityUtils';
 import { getInspectorOptions } from '../../shared/utils/userUtils';
-import { LOCATION_OPTIONS } from '../../shared/lib/constants';
+import { LOCATION_OPTIONS } from '../../shared/utils/constants';
 
 const LOCATION_CODE_MAP: Record<string, string> = { 'LLVI': 'VI', 'NB': 'N/BC' };
 

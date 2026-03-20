@@ -17,8 +17,8 @@ import { CreateUserModal } from '../components/CreateUserModal';
 import { CreateAppointmentModal } from '../components/CreateAppointmentModal';
 import { UploadDocumentModal } from '../components/UploadDocumentModal';
 import { CreateQuestionModal } from '../components/CreateQuestionModal';
-import { formatTime12h, getUserDisplayName, formatRelativeTime } from '../../shared/lib/formatters';
-import { parseLocalDate, parseTimestamp } from '../../shared/lib/dateUtils';
+import { formatTime12h, getUserDisplayName, formatRelativeTime } from '../../shared/utils/formatters';
+import { parseLocalDate, parseTimestamp } from '../../shared/utils/dateUtils';
 import type { PropertyTypeRequest } from '../../shared/types/entities.types';
 import type { UrgentCard, ActivityCard } from '../../shared/types/dashboard.types';
 

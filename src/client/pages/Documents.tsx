@@ -8,7 +8,8 @@ import { NoFileNumberState } from '../../shared/components/NoFileNumberState';
 import { DocumentPreviewModal } from '../../shared/components/DocumentPreviewModal';
 import { PropertyTypeSelector } from '../components/PropertyTypeSelector';
 import { VersionDocumentRow } from '../components/VersionDocumentRow';
-import { validateFileType, validateFileSize } from '../../shared/lib/validation';
+import { validateFileType, validateFileSize } from '../../shared/utils/validation';
+import { groupByDocumentType } from '../../shared/utils/documentUtils';
 import type { RequiredDocumentChecklist, NaStatusValue } from '../../shared/types/document.types';
 
 export default function ClientDocumentsPage() {
@@ -28,8 +29,6 @@ export default function ClientDocumentsPage() {
   const [expandedDocTypes, setExpandedDocTypes] = useState<Set<string>>(new Set());
   const [pendingUpload, setPendingUpload] = useState<{ req: RequiredDocumentChecklist; isReplace: boolean } | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
-  const [finalizing, setFinalizing] = useState(false);
-
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewDocId, setPreviewDocId] = useState<number | null>(null);
   const [previewDocName, setPreviewDocName] = useState('');
@@ -119,10 +118,11 @@ export default function ClientDocumentsPage() {
     setPreviewOpen(true);
   };
 
-  const handleFinalize = async () => {
-    setFinalizing(true);
-    navigate('/client/dashboard');
-    setFinalizing(false);
+  const docsFinalized = fileId ? !!localStorage.getItem(`docs_finalized_${fileId}`) : false;
+
+  const handleFinalize = () => {
+    if (fileId) localStorage.setItem(`docs_finalized_${fileId}`, 'true');
+    navigate('/client/dashboard', { state: { justFinalizedDocs: true } });
   };
 
   if (srLoading || loading) return <LoadingSpinner />;
@@ -167,7 +167,7 @@ export default function ClientDocumentsPage() {
         ref={fileInputRef}
         type="file"
         accept=".pdf,.doc,.docx,.xlsx,.xls,.jpg,.jpeg,.png"
-        style={{ display: 'none' }}
+        className="file-input-hidden"
         onChange={handleFileSelected}
       />
 
@@ -179,12 +179,7 @@ export default function ClientDocumentsPage() {
         <>
           <div className="document-list">
             {Array.from(groupedByPropertyType.entries()).map(([groupName, reqs]) => {
-              const docTypeGroups = new Map<string, RequiredDocumentChecklist[]>();
-              for (const req of reqs) {
-                const key = req.documentType.typeName;
-                if (!docTypeGroups.has(key)) docTypeGroups.set(key, []);
-                docTypeGroups.get(key)!.push(req);
-              }
+              const docTypeGroups = groupByDocumentType(reqs);
 
               return (
                 <div key={groupName} className="document-group">
@@ -229,7 +224,7 @@ export default function ClientDocumentsPage() {
 
           {allAnswered && (
             <div className="all-answered-banner">
-              <p>All documents have been addressed. You can now finalize and submit.</p>
+              <p>{docsFinalized ? 'Your documents will be reviewed shortly.' : 'All documents have been addressed. You can now finalize and submit.'}</p>
             </div>
           )}
 
@@ -237,9 +232,9 @@ export default function ClientDocumentsPage() {
             <button
               className="btn-primary btn-nav"
               onClick={handleFinalize}
-              disabled={!allAnswered || finalizing}
+              disabled={!allAnswered || docsFinalized}
             >
-              {finalizing ? 'Submitting...' : 'Finalize and Submit'}
+              Finalize and Submit
             </button>
           </div>
         </>

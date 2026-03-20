@@ -1,12 +1,5 @@
-import type { RequiredDocumentChecklist, NaStatusValue } from '../../shared/types/document.types';
-
-interface VersionDocumentRowProps {
-  requirement: RequiredDocumentChecklist;
-  uploading: boolean;
-  onUpload: (req: RequiredDocumentChecklist, isReplace: boolean) => void;
-  onSetNaStatus: (req: RequiredDocumentChecklist, status: NaStatusValue) => void;
-  onPreview: (req: RequiredDocumentChecklist) => void;
-}
+import type { VersionDocumentRowProps } from '../../shared/types/component.types';
+import { formatNaStatus } from '../../shared/utils/formatters';
 
 export function VersionDocumentRow({
   requirement,
@@ -26,7 +19,7 @@ export function VersionDocumentRow({
         {isUploaded && <span className="uploaded-badge">Uploaded</span>}
         {!isUploaded && naStatus && (
           <span className="na-status-indicator">
-            {naStatus === 'not_available' ? 'Not Available' : 'Not Applicable'}
+            {formatNaStatus(naStatus)}
           </span>
         )}
       </div>

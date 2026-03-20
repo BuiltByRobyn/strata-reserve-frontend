@@ -6,7 +6,7 @@ import { useTimelines } from '../../shared/hooks/useTimelines';
 import { useLookups } from '../../shared/hooks/useLookups';
 import { LoadingSpinner } from '../../shared/components/LoadingSpinner';
 import { Modal } from '../../shared/components/Modal';
-import { formatDateLong, formatTime12h, getUserDisplayName } from '../../shared/lib/formatters';
+import { formatDateLong, formatTime12h, getUserDisplayName } from '../../shared/utils/formatters';
 import BookingCalendar from '../../shared/components/BookingCalendar';
 import AvailableMeetingDates from '../components/AvailableMeetingDates';
 import BookingConfirmation from '../components/BookingConfirmation';
@@ -79,6 +79,7 @@ const InspectionDate = () => {
   const [toastMsg, setToastMsg] = useState<string | null>(null);
   const [draftMeetingEligible, setDraftMeetingEligible] = useState(false);
   const [bookingDraftMeeting, setBookingDraftMeeting] = useState(false);
+  const [lastInspectionDate, setLastInspectionDate] = useState<string | null>(null);
   const [showWelcomeModal, setShowWelcomeModal] = useState(false);
 
   const isOffered = !!activeRequest?.appointmentOfferedAt;
@@ -151,9 +152,10 @@ const InspectionDate = () => {
       return;
     }
     hasFetchedAvailability.current = true;
-    checkDraftMeetingEligibility(fileId).then(eligible => {
-      setDraftMeetingEligible(eligible);
-      if (eligible) {
+    checkDraftMeetingEligibility(fileId).then(result => {
+      setDraftMeetingEligible(result.eligible);
+      setLastInspectionDate(result.lastInspectionDate);
+      if (result.eligible) {
         setBookingDraftMeeting(true);
         loadAvailability(true);
       } else {
@@ -187,10 +189,15 @@ const InspectionDate = () => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    // "Approved" milestone on the date the appointment was offered
+    // "File Opened" milestone on the date the appointment was offered
     if (activeRequest?.appointmentOfferedAt) {
       const offeredDate = formatYMD(new Date(activeRequest.appointmentOfferedAt));
-      result.push({ date: offeredDate, label: 'Approved' });
+      result.push({ date: offeredDate, label: 'File Opened' });
+    }
+
+    // "Inspection Date" milestone shown only when booking a draft meeting
+    if (bookingDraftMeeting && lastInspectionDate) {
+      result.push({ date: lastInspectionDate, label: 'Inspection Date' });
     }
 
     if (!timelines) return result;
@@ -254,7 +261,7 @@ const InspectionDate = () => {
     }
 
     return result;
-  }, [timelines, activeRequest?.appointmentOfferedAt]);
+  }, [timelines, activeRequest?.appointmentOfferedAt, bookingDraftMeeting, lastInspectionDate]);
 
   const handleDateSelect = (date: string) => {
     setSelectedDate(date);
@@ -331,6 +338,7 @@ const InspectionDate = () => {
       setSuccessMsg('Your appointment request has been submitted successfully!');
       resetBooking();
       await loadActiveAppointment();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } else {
       const msg = result.error || 'Failed to submit request';
       if (msg.includes('no longer available') || msg.includes('Please choose a different')) {
