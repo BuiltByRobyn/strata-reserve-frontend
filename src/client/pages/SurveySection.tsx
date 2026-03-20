@@ -31,6 +31,8 @@ export default function SurveySectionPage() {
   } = useSurvey();
   // const api = useApiClient();
 
+  const isReadOnly = !!activeRequest?.submittedForReviewDate;
+
   const [page, setPage] = useState(0);
   const [localAnswers, setLocalAnswers] = useState<Record<string, SaveResponsePayload>>({});
   const [submitting, setSubmitting] = useState(false);
@@ -227,6 +229,7 @@ export default function SurveySectionPage() {
             onChange={(e) => updateAnswer(q.questionId, q.propertyTypeId, 'responseText', e.target.value)}
             placeholder="Enter your answer..."
             rows={2}
+            readOnly={isReadOnly}
           />
         )}
         {q.questionType === 'text' && (
@@ -236,6 +239,7 @@ export default function SurveySectionPage() {
             value={answer.responseText || ''}
             onChange={(e) => updateAnswer(q.questionId, q.propertyTypeId, 'responseText', e.target.value)}
             placeholder="Enter your answer..."
+            readOnly={isReadOnly}
           />
         )}
         {q.questionType === 'number' && (
@@ -245,6 +249,7 @@ export default function SurveySectionPage() {
             value={answer.responseNumber ?? ''}
             onChange={(e) => updateAnswer(q.questionId, q.propertyTypeId, 'responseNumber', e.target.value ? parseInt(e.target.value) : null)}
             placeholder="Enter number..."
+            readOnly={isReadOnly}
           />
         )}
       </div>
@@ -282,6 +287,7 @@ export default function SurveySectionPage() {
             onChange={(e) => updateAnswer(q.questionId, q.propertyTypeId, 'responseText', e.target.value)}
             placeholder="Enter your answer..."
             rows={3}
+            readOnly={isReadOnly}
           />
         )}
 
@@ -292,6 +298,7 @@ export default function SurveySectionPage() {
             value={answer.responseText || ''}
             onChange={(e) => updateAnswer(q.questionId, q.propertyTypeId, 'responseText', e.target.value)}
             placeholder="Enter your answer..."
+            readOnly={isReadOnly}
           />
         )}
 
@@ -302,6 +309,7 @@ export default function SurveySectionPage() {
             value={answer.responseNumber ?? ''}
             onChange={(e) => updateAnswer(q.questionId, q.propertyTypeId, 'responseNumber', e.target.value ? parseInt(e.target.value) : null)}
             placeholder="Enter number..."
+            readOnly={isReadOnly}
           />
         )}
 
@@ -313,6 +321,7 @@ export default function SurveySectionPage() {
                 name={`q-${q.fnSurveyQuestionId}`}
                 checked={answer.responseBoolean === true}
                 onChange={() => updateAnswer(q.questionId, q.propertyTypeId, 'responseBoolean', true)}
+                disabled={isReadOnly}
               />
               Yes
             </label>
@@ -322,6 +331,7 @@ export default function SurveySectionPage() {
                 name={`q-${q.fnSurveyQuestionId}`}
                 checked={answer.responseBoolean === false}
                 onChange={() => updateAnswer(q.questionId, q.propertyTypeId, 'responseBoolean', false)}
+                disabled={isReadOnly}
               />
               No
             </label>
@@ -334,6 +344,7 @@ export default function SurveySectionPage() {
             className="question-input"
             value={answer.responseDate || ''}
             onChange={(e) => updateAnswer(q.questionId, q.propertyTypeId, 'responseDate', e.target.value)}
+            readOnly={isReadOnly}
           />
         )}
 
@@ -346,6 +357,7 @@ export default function SurveySectionPage() {
                   name={`q-${q.fnSurveyQuestionId}`}
                   checked={answer.multipleChoiceOptionId === opt.optionId}
                   onChange={() => updateAnswer(q.questionId, q.propertyTypeId, 'multipleChoiceOptionId', opt.optionId)}
+                  disabled={isReadOnly}
                 />
                 {opt.optionText}
               </label>
@@ -368,6 +380,7 @@ export default function SurveySectionPage() {
                       : current.filter(v => v !== id);
                     updateAnswer(q.questionId, q.propertyTypeId, 'responseText', updated.join(','));
                   }}
+                  disabled={isReadOnly}
                 />
                 {opt.optionText}
               </label>
@@ -384,6 +397,7 @@ export default function SurveySectionPage() {
                 onChange={(e) => {
                   updateAnswer(q.questionId, q.propertyTypeId, 'responseText', e.target.checked ? 'NONE' : '');
                 }}
+                disabled={isReadOnly}
               />
               None
             </label>
@@ -394,6 +408,7 @@ export default function SurveySectionPage() {
                 onChange={(e) => updateAnswer(q.questionId, q.propertyTypeId, 'responseText', e.target.value)}
                 placeholder="Please explain..."
                 rows={3}
+                readOnly={isReadOnly}
               />
             )}
           </div>
@@ -450,68 +465,68 @@ export default function SurveySectionPage() {
       )}
 
       <div className="survey-pagination">
-        {(page > 0 || currentSectionIdx > 0) && (
+        {isReadOnly ? (
           <button
-            className="btn-secondary btn-nav"
-            onClick={async () => {
-              if (page > 0) {
-                await handlePageChange(page - 1);
-              } else if (currentSectionIdx > 0) {
-                await saveCurrent();
-                navigate(`/client/survey/${requiredSections[currentSectionIdx - 1].key}`);
-              }
-            }}
-            disabled={saving}
-          >
-            Previous Page
-          </button>
-        )}
-
-        {/* {!(isLastPage && isLastSection) && (
-          <button
-            type="button"
             className="btn-primary btn-nav"
-            onClick={handleDownloadPdf}
-            disabled={!fileId || downloadingPdf}
+            onClick={() => navigate('/client/survey')}
           >
-            {downloadingPdf ? 'Downloading...' : 'Download Survey'}
+            Back to Survey
           </button>
-        )} */}
-
-        {isLastPage && isLastSection ? (
-          <>
-            <button
-              className="btn-secondary btn-nav"
-              onClick={handleSave}
-              disabled={saving || submitting}
-            >
-              Save Pending Future Changes
-            </button>
-            <button
-              className="btn-primary btn-nav"
-              onClick={handleSaveAndSubmit}
-              disabled={saving || submitting}
-            >
-              {submitting ? 'Submitting...' : activeRequest?.submittedForReviewDate ? 'Resubmit' : 'Finalize Answers & Submit'}
-            </button>
-          </>
         ) : (
-          <button
-            className="btn-secondary btn-nav"
-            onClick={async () => {
-              if (page < totalPages - 1) {
-                await handlePageChange(page + 1);
-              } else {
-                await saveCurrent();
-                if (currentSectionIdx < requiredSections.length - 1) {
-                  navigate(`/client/survey/${requiredSections[currentSectionIdx + 1].key}`);
-                }
-              }
-            }}
-            disabled={saving}
-          >
-            {saving ? 'Saving...' : 'Next Page'}
-          </button>
+          <>
+            {(page > 0 || currentSectionIdx > 0) && (
+              <button
+                className="btn-secondary btn-nav"
+                onClick={async () => {
+                  if (page > 0) {
+                    await handlePageChange(page - 1);
+                  } else if (currentSectionIdx > 0) {
+                    await saveCurrent();
+                    navigate(`/client/survey/${requiredSections[currentSectionIdx - 1].key}`);
+                  }
+                }}
+                disabled={saving}
+              >
+                Previous Page
+              </button>
+            )}
+
+            {isLastPage && isLastSection ? (
+              <>
+                <button
+                  className="btn-secondary btn-nav"
+                  onClick={handleSave}
+                  disabled={saving || submitting}
+                >
+                  Save Pending Future Changes
+                </button>
+                <button
+                  className="btn-primary btn-nav"
+                  onClick={handleSaveAndSubmit}
+                  disabled={saving || submitting}
+                >
+                  {submitting ? 'Submitting...' : 'Finalize Answers & Submit'}
+                </button>
+              </>
+            ) : (
+              <button
+                className="btn-secondary btn-nav"
+                onClick={async () => {
+                  if (page < totalPages - 1) {
+                    await handlePageChange(page + 1);
+                  } else {
+                    await saveCurrent();
+                    if (currentSectionIdx < requiredSections.length - 1) {
+                      navigate(`/client/survey/${requiredSections[currentSectionIdx + 1].key}`);
+                    }
+                  }
+                }}
+                disabled={saving}
+              >
+                {saving ? 'Saving...' : 'Next Page'}
+              </button>
+            )}
+          </>
         )}
       </div>
     </div>

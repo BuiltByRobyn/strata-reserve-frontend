@@ -152,12 +152,13 @@ export const Dashboard = () => {
 
     const surveyTask = {
       id: 'survey',
-      title: activeRequest?.submittedForReviewDate ? 'Review Your Survey' : 'Complete Your Survey',
-      description: activeRequest?.submittedForReviewDate ? 'Your survey has been submitted for review.' : 'Continue where you left off',
-      buttonLabel: activeRequest?.submittedForReviewDate ? 'Review Survey' : 'Open Survey',
+      title: surveyCompleted ? 'Your Completed Survey' : 'Complete Your Survey',
+      description: surveyCompleted ? 'All answers have been saved' : 'Continue where you left off',
+      buttonLabel: surveyCompleted ? 'Review Survey' : 'Open Survey',
       path: surveyPath,
       navState: undefined as Record<string, unknown> | undefined,
       completed: surveyCompleted,
+      finalized: surveyCompleted,
     };
 
     const documentsTask = {
@@ -202,6 +203,7 @@ export const Dashboard = () => {
         path: '/client/timelines',
         navState: { scrollToDeadlines: true } as Record<string, unknown> | undefined,
         completed: timelineTargetDate != null,
+        finalized: timelineTargetDate != null,
       },
     ];
   }, [activeAppointment, activeRequest, documentsCompleted, docsFinalized, missingRequiredDocumentCount, sectionProgress, surveyCompleted, timelineTargetDate]);

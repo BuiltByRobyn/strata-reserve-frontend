@@ -12,6 +12,10 @@
   justify-content: center;
   z-index: 1100;
   padding: $spacing-md;
+
+  &:has(.modal-preview) {
+    padding: 0;
+  }
 }
 
 .modal-content {
@@ -36,13 +40,15 @@
   &.modal-large {
     width: 100%;
     max-width: 900px;
+    height: 100%;
   }
 
   &.modal-preview {
-    width: 95vw;
-    height: 90vh;
+    width: 100vw;
+    height: 100vh;
     max-width: none;
-    max-height: 90vh;
+    max-height: 100vh;
+    border-radius: 0;
 
     .modal-body {
       flex: 1;

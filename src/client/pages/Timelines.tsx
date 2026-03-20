@@ -126,7 +126,11 @@ const Timelines = () => {
     noAgmToDate: noAGMToDate,
     lastDepreciationReportDate: lastDepreciationReport ? `${lastDepreciationReport}-01-01` : null,
     noReportToDate: noReportToDate,
-    targetDate: targetDate || null,
+    targetDate: targetDate.trim()
+      ? targetDate
+      : (autoTargetDate && autoTargetDate >= today
+          ? autoTargetDate.toISOString().split('T')[0]
+          : null),
   });
 
   const handleCalculate = async (e: React.FormEvent) => {

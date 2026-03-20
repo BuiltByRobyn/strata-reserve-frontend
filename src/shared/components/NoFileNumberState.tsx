@@ -1,17 +1,35 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useActivationRequest } from '../hooks/useActivationRequest';
 import { Modal } from './Modal';
 import { LoadingSpinner } from './LoadingSpinner';
 
 export const NoFileNumberState = () => {
   const { request, loading, createRequest } = useActivationRequest();
-  const [showModal, setShowModal] = useState(false);
+  const [showThankYou, setShowThankYou] = useState(false);
+  const [showRejection, setShowRejection] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (
+      request?.status === 'Rejected' &&
+      request.rejectionReason &&
+      !localStorage.getItem(`activation_rejection_seen_${request.activationRequestId}`)
+    ) {
+      setShowRejection(true);
+    }
+  }, [request?.activationRequestId, request?.status, request?.rejectionReason]);
+
+  const handleDismissRejection = () => {
+    if (request) {
+      localStorage.setItem(`activation_rejection_seen_${request.activationRequestId}`, '1');
+    }
+    setShowRejection(false);
+  };
 
   const handleRequest = async () => {
     setSubmitting(true);
     const ok = await createRequest();
-    if (ok) setShowModal(true);
+    if (ok) setShowThankYou(true);
     setSubmitting(false);
   };
 
@@ -35,12 +53,32 @@ export const NoFileNumberState = () => {
       )}
 
       <Modal
-        isOpen={showModal}
-        onClose={() => setShowModal(false)}
+        isOpen={showRejection}
+        onClose={handleDismissRejection}
+        title="Activation Request Update"
+        size="medium"
+        footer={
+          <button className="btn-primary" onClick={handleDismissRejection}>
+            OK
+          </button>
+        }
+      >
+        <div className="rejection-notice-content">
+          <p>Your activation request was not approved.</p>
+          {request?.rejectionReason && (
+            <p className="rejection-notice-reason">{request.rejectionReason}</p>
+          )}
+          <p>You may submit a new request at any time.</p>
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={showThankYou}
+        onClose={() => setShowThankYou(false)}
         title="Thank You"
         size="medium"
         footer={
-          <button className="btn-primary" onClick={() => setShowModal(false)}>
+          <button className="btn-primary" onClick={() => setShowThankYou(false)}>
             Close
           </button>
         }

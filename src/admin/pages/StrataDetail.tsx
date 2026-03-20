@@ -10,6 +10,7 @@ import { useSurvey } from "../../shared/hooks/useSurvey";
 import { useQuestions } from "../../shared/hooks/useQuestions";
 import { useUsers } from "../../shared/hooks/useUsers";
 import { useApiClient } from "../../shared/hooks/useApiClient";
+import { useActivationRequests } from "../../shared/hooks/useActivationRequests";
 import { MultiSelectDropdown } from "../../shared/components/MultiSelectDropdown";
 import { OfferAppointmentModal } from "../components/OfferAppointmentModal";
 import { LoadingSpinner } from "../../shared/components/LoadingSpinner";
@@ -21,6 +22,7 @@ import { SurveyProgressBar } from "../../shared/components/SurveyProgressBar";
 import {
   InputField,
   FormRow,
+  TextareaField,
 } from "../../shared/components/FormField";
 import { SingleSelectDropdown } from "../../shared/components/SingleSelectDropdown";
 import {
@@ -38,7 +40,7 @@ import { useDocumentReview } from "../hooks/useDocumentReview";
 import type { SRDocRequirement } from "../../shared/types/document.types";
 import { API_BASE } from "../../shared/lib/api";
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from "../../shared/utils/constants";
-import { formatTypeName, formatDate, getStatusBadgeClass, formatNaStatus } from "../../shared/utils/formatters";
+import { formatTypeName, formatDate, getStatusBadgeClass, formatNaStatus, getUserDisplayName } from "../../shared/utils/formatters";
 import { groupByDocumentType } from "../../shared/utils/documentUtils";
 import { parseLocalDate, formatDateShort } from "../../shared/utils/dateUtils";
 import { getFilenameFromDisposition, triggerBlobDownload } from "../../shared/utils/fileUtils";
@@ -76,6 +78,7 @@ export default function StrataDetailPage() {
   const { services, documentTypes, reviewStatuses, locations } = useLookups();
   const { users: allUsers } = useUsers();
   const api = useApiClient();
+  const { requests: activationRequests, rejectRequest: rejectActivationRequest } = useActivationRequests();
 
   const [appointmentTypes, setAppointmentTypes] = useState<AppointmentType[]>([]);
   const [filterPropertyTypeIds, setFilterPropertyTypeIds] = useState<number[]>([]);
@@ -97,10 +100,24 @@ export default function StrataDetailPage() {
   const [archivedSurveySection, setArchivedSurveySection] = useState("exterior");
 
   const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [rejectMode, setRejectMode] = useState(false);
+  const [rejectionReason, setRejectionReason] = useState('');
+  const [rejecting, setRejecting] = useState(false);
   const autoOpenedCreateRef = useRef(false);
+
+  const resetCreateModal = () => {
+    setSrFormData(INITIAL_SR_FORM);
+    setCreateFileNumberValue('');
+    setSrFormError(null);
+    setCreateFileNumberError(null);
+    setRejectMode(false);
+    setRejectionReason('');
+  };
+
   useEffect(() => {
     if (location.state?.openCreateSR && !autoOpenedCreateRef.current) {
       autoOpenedCreateRef.current = true;
+      resetCreateModal();
       setCreateModalOpen(true);
     }
   }, [location.state?.openCreateSR]);
@@ -134,7 +151,7 @@ export default function StrataDetailPage() {
   const [wizardVersionConfig, setWizardVersionConfig] = useState<Record<number, Record<number, string[]>>>({});
   const [wizardStepError, setWizardStepError] = useState<string | null>(null);
   const [docFilterPropertyTypeIds, setDocFilterPropertyTypeIds] = useState<number[]>([]);
-  const { fetchReview, submitReview, review: docReview, loading: reviewLoading } = useDocumentReview();
+  const { fetchReview, submitReview, review: docReview, requirements: reviewRequirements, loading: reviewLoading } = useDocumentReview();
 
   const [surveyRequirements, setSurveyRequirements] = useState<{ propertyTypeId: number }[]>([]);
   const [surveyReqModalOpen, setSurveyReqModalOpen] = useState(false);
@@ -149,6 +166,13 @@ export default function StrataDetailPage() {
   const [previewDocName, setPreviewDocName] = useState('');
   const [offerModalOpen, setOfferModalOpen] = useState(false);
   const strataId = id ? parseInt(id) : null;
+
+  const pendingActivationRequest = useMemo(() =>
+    activationRequests.find(
+      (r) => r.status === 'Pending' && r.strataProfile?.strata.strataId === strataId
+    ) ?? null,
+    [activationRequests, strataId]
+  );
 
   const loadData = useCallback(async () => {
     if (!strataId) return;
@@ -223,10 +247,7 @@ export default function StrataDetailPage() {
   }, [activeTab, activeRequest?.fileId, fetchDocRequirements]);
 
   const handleOpenCreateModal = () => {
-    setSrFormData(INITIAL_SR_FORM);
-    setCreateFileNumberValue('');
-    setSrFormError(null);
-    setCreateFileNumberError(null);
+    resetCreateModal();
     setCreateModalOpen(true);
   };
 
@@ -243,20 +264,38 @@ export default function StrataDetailPage() {
     setSrSubmitting(true);
     setSrFormError(null);
 
+    const requestedByProfileId = pendingActivationRequest?.strataProfile?.profile.id ?? user.id;
+
     try {
       const result = await createFileNumber({
         serviceId: parseInt(srFormData.serviceId),
         strataId: strata.strataId,
-        requestedByProfileId: user.id,
+        requestedByProfileId,
         fileNumber: createFileNumberValue,
       });
       setActiveRequest(result);
+      resetCreateModal();
       setCreateModalOpen(false);
-      setCreateFileNumberValue('');
     } catch (err) {
       setSrFormError(err instanceof Error ? err.message : "Failed to create file number");
     } finally {
       setSrSubmitting(false);
+    }
+  };
+
+  const handleRejectActivationRequest = async () => {
+    if (!pendingActivationRequest) return;
+    setRejecting(true);
+    try {
+      const ok = await rejectActivationRequest(pendingActivationRequest.activationRequestId, rejectionReason.trim());
+      if (ok) {
+        resetCreateModal();
+        setCreateModalOpen(false);
+      } else {
+        setSrFormError('Failed to reject the request. Please try again.');
+      }
+    } finally {
+      setRejecting(false);
     }
   };
 
@@ -421,6 +460,8 @@ export default function StrataDetailPage() {
     for (const dtId of selectedDtIds) {
       const labels = wizardVersionConfig[ptId]?.[dtId] ?? [''];
       if (labels.length > 1 && labels.some(l => !l.trim())) return false;
+      const trimmed = labels.map(l => l.trim()).filter(l => l !== '');
+      if (new Set(trimmed).size !== trimmed.length) return false;
     }
     return true;
   };
@@ -985,7 +1026,6 @@ export default function StrataDetailPage() {
               <MultiSelectDropdown
                 label="Property Types"
                 options={(strata?.strataPropertyTypes ?? [])
-                  .filter(spt => docRequirements.some(r => r.propertyTypeId === spt.propertyType.propertyTypeId))
                   .map(spt => ({ value: spt.propertyType.propertyTypeId, label: spt.propertyType.propertyTypeName }))
                   .sort((a, b) => a.label.localeCompare(b.label))}
                 selectedValues={docFilterPropertyTypeIds}
@@ -1399,22 +1439,59 @@ export default function StrataDetailPage() {
 
       <Modal
         isOpen={createModalOpen}
-        onClose={() => { setCreateModalOpen(false); setCreateFileNumberValue(''); }}
-        title="Create a New File"
+        onClose={() => { resetCreateModal(); setCreateModalOpen(false); }}
+        title={pendingActivationRequest ? "Activation Request" : "Create a New File"}
         size="large"
         className="modal-create-sr"
         footer={
           <>
-            <button className="btn-secondary" onClick={() => { setCreateModalOpen(false); setCreateFileNumberValue(''); }}>
+            <button className="btn-secondary" onClick={() => { resetCreateModal(); setCreateModalOpen(false); }}>
               Cancel
             </button>
-            <button
-              className="btn-primary"
-              onClick={handleCreateFileNumber}
-              disabled={srSubmitting || !srFormData.serviceId}
-            >
-              {srSubmitting ? "Creating..." : "Create Request"}
-            </button>
+            {pendingActivationRequest ? (
+              rejectMode ? (
+                <>
+                  <button
+                    className="btn-secondary"
+                    onClick={() => { setRejectMode(false); setRejectionReason(''); setSrFormError(null); }}
+                  >
+                    Back
+                  </button>
+                  <button
+                    className="btn-delete"
+                    onClick={handleRejectActivationRequest}
+                    disabled={rejecting}
+                  >
+                    {rejecting ? 'Rejecting...' : 'Confirm Rejection'}
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    className="btn-delete"
+                    onClick={() => setRejectMode(true)}
+                    disabled={srSubmitting}
+                  >
+                    Reject Request
+                  </button>
+                  <button
+                    className="btn-primary"
+                    onClick={handleCreateFileNumber}
+                    disabled={srSubmitting || !srFormData.serviceId}
+                  >
+                    {srSubmitting ? 'Creating...' : 'Approve Request'}
+                  </button>
+                </>
+              )
+            ) : (
+              <button
+                className="btn-primary"
+                onClick={handleCreateFileNumber}
+                disabled={srSubmitting || !srFormData.serviceId}
+              >
+                {srSubmitting ? "Creating..." : "Create Request"}
+              </button>
+            )}
           </>
         }
       >
@@ -1449,7 +1526,11 @@ export default function StrataDetailPage() {
           <FormRow>
             <InputField
               label="Requested By"
-              value={user && 'fullName' in user ? user.fullName : ''}
+              value={
+                pendingActivationRequest?.strataProfile?.profile
+                  ? getUserDisplayName(pendingActivationRequest.strataProfile.profile, 'Unknown client')
+                  : (user && 'fullName' in user ? user.fullName : '')
+              }
               onChange={() => {}}
               disabled
             />
@@ -1465,6 +1546,17 @@ export default function StrataDetailPage() {
               required
             />
           </FormRow>
+
+          {rejectMode && (
+            <div className="rejection-reason-section">
+              <TextareaField
+                label="Rejection Reason (optional)"
+                value={rejectionReason}
+                onChange={(e) => setRejectionReason(e.target.value)}
+                rows={3}
+              />
+            </div>
+          )}
 
         </form>
       </Modal>
@@ -1721,15 +1813,21 @@ export default function StrataDetailPage() {
                             />
                           </td>
                           <td>
-                            {count > 1 && labels.map((label, i) => (
-                              <input
-                                key={i}
-                                type="text"
-                                placeholder={`Version ${i + 1} label`}
-                                value={label}
-                                onChange={e => handleVersionLabelChange(ptId, dtId, i, e.target.value)}
-                              />
-                            ))}
+                            {count > 1 && labels.map((label, i) => {
+                              const isDuplicate = label.trim() !== '' && labels.some((l, j) => j !== i && l.trim() === label.trim());
+                              return (
+                                <div key={i} className="version-label-field">
+                                  <input
+                                    type="text"
+                                    placeholder={`Version ${i + 1} label`}
+                                    value={label}
+                                    className={isDuplicate ? 'input--error' : ''}
+                                    onChange={e => handleVersionLabelChange(ptId, dtId, i, e.target.value)}
+                                  />
+                                  {isDuplicate && <span className="version-label-error">Duplicate label</span>}
+                                </div>
+                              );
+                            })}
                           </td>
                         </tr>
                       );
@@ -1746,10 +1844,11 @@ export default function StrataDetailPage() {
         isOpen={docReviewModalOpen}
         onClose={() => setDocReviewModalOpen(false)}
         fileId={activeRequest?.fileId ?? null}
-        docRequirements={docRequirements}
+        docRequirements={reviewRequirements}
         reviewStatuses={reviewStatuses}
         review={docReview}
         loading={reviewLoading}
+        token={session?.access_token || ''}
         onSubmit={async (fileId, input) => {
           const ok = await submitReview(fileId, input);
           if (ok) {

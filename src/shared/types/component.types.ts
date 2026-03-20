@@ -1,7 +1,7 @@
 import type { ReactNode, InputHTMLAttributes, SelectHTMLAttributes, TextareaHTMLAttributes } from 'react';
 import type { SurveySection } from './survey.types';
 import type { StrataPropertyType, InspectorAvailableDate, CreateInspectorAvailableDateInput, UpdateInspectorAvailableDateInput, AppointmentRequest, AppointmentWithDetails, AppointmentTimeSlot, Profile, ReviewStatus } from './entities.types';
-import type { SRDocRequirement } from './fnDocRequirement.types';
+import type { SRDocRequirement } from './document.types';
 import type { BatchDocumentReviewInput, DocumentReviewResult, RequiredDocumentChecklist, NaStatusValue } from './document.types';
 
 export interface Column<T> {
@@ -245,6 +245,7 @@ export interface DocumentReviewModalProps {
   reviewStatuses: ReviewStatus[];
   review: DocumentReviewResult | null;
   loading: boolean;
+  token: string;
   onSubmit: (fileId: number, input: BatchDocumentReviewInput) => Promise<void>;
 }
 

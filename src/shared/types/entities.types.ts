@@ -324,7 +324,7 @@ export interface FileNumber {
   strata?: Strata;
   requestedBy?: ProfileBasic;
   clientPropertyTypes?: Array<{ propertyTypeId: number }>;
-  latestDocumentUploadDate?: string | null;
+  latestDocumentFinalizedDate?: string | null;
   latestSurveyAnswerDate?: string | null;
   appointments?: Array<{
     appointmentId: number;

@@ -123,22 +123,16 @@ export default function TimelinesPage() {
         rows.push({ id: `${srId}-file-opened`, date: fileOpened, deadlineType: 'File Opened', strataPlan, complexName, strataId, fileNumber: sr });
       }
 
-      // Most Recent Document Upload
-      const latestDocUpload = parseLocalDate(sr.latestDocumentUploadDate);
-      if (latestDocUpload) {
-        rows.push({ id: `${srId}-doc-upload`, date: latestDocUpload, deadlineType: 'Most Recent Document Upload', strataPlan, complexName, strataId, fileNumber: sr });
+      // Documents Finalized
+      const latestDocFinalized = parseLocalDate(sr.latestDocumentFinalizedDate);
+      if (latestDocFinalized) {
+        rows.push({ id: `${srId}-doc-finalized`, date: latestDocFinalized, deadlineType: 'Documents Finalized', strataPlan, complexName, strataId, fileNumber: sr });
       }
 
-      // Survey Submitted
+      // Survey Answers Finalized
       const surveySubmitted = parseLocalDate(sr.submittedForReviewDate);
       if (surveySubmitted) {
-        rows.push({ id: `${srId}-survey-submitted`, date: surveySubmitted, deadlineType: 'Survey Submitted', strataPlan, complexName, strataId, fileNumber: sr });
-      }
-
-      // Last Survey Answer Date
-      const latestSurveyAnswer = parseLocalDate(sr.latestSurveyAnswerDate);
-      if (latestSurveyAnswer) {
-        rows.push({ id: `${srId}-survey-answer`, date: latestSurveyAnswer, deadlineType: 'Last Survey Answer Date', strataPlan, complexName, strataId, fileNumber: sr });
+        rows.push({ id: `${srId}-survey-submitted`, date: surveySubmitted, deadlineType: 'Survey Answers Finalized', strataPlan, complexName, strataId, fileNumber: sr });
       }
     }
 
@@ -179,16 +173,29 @@ export default function TimelinesPage() {
     }
 
     // Tab filters
+    const pastFirst = ['fiscalYear', 'fileOpened', 'surveySubmitted', 'documentUpload'].includes(filterDeadlineType);
     if (activeTab === 'overdue') {
       rows = rows.filter(r => r.date < today);
     } else if (activeTab === 'next7') {
-      const in7 = new Date(today);
-      in7.setDate(in7.getDate() + 7);
-      rows = rows.filter(r => r.date >= today && r.date <= in7);
+      if (pastFirst) {
+        const past7 = new Date(today);
+        past7.setDate(past7.getDate() - 7);
+        rows = rows.filter(r => r.date >= past7 && r.date <= today);
+      } else {
+        const in7 = new Date(today);
+        in7.setDate(in7.getDate() + 7);
+        rows = rows.filter(r => r.date >= today && r.date <= in7);
+      }
     } else if (activeTab === 'next30') {
-      const in30 = new Date(today);
-      in30.setDate(in30.getDate() + 30);
-      rows = rows.filter(r => r.date >= today && r.date <= in30);
+      if (pastFirst) {
+        const past30 = new Date(today);
+        past30.setDate(past30.getDate() - 30);
+        rows = rows.filter(r => r.date >= past30 && r.date <= today);
+      } else {
+        const in30 = new Date(today);
+        in30.setDate(in30.getDate() + 30);
+        rows = rows.filter(r => r.date >= today && r.date <= in30);
+      }
     }
 
     // Deadline Type dropdown
@@ -199,9 +206,8 @@ export default function TimelinesPage() {
         depreciation: ['Last Depreciation Report Date', 'Next Projected Depreciation'],
         target: ['Target Date'],
         fileOpened: ['File Opened'],
-        documentUpload: ['Most Recent Document Upload'],
-        surveySubmitted: ['Survey Submitted'],
-        surveyAnswer: ['Last Survey Answer Date'],
+        documentUpload: ['Documents Finalized'],
+        surveySubmitted: ['Survey Answers Finalized'],
       };
       const matches = typeMap[filterDeadlineType];
       if (matches) rows = rows.filter(r => matches.includes(r.deadlineType));
@@ -232,11 +238,13 @@ export default function TimelinesPage() {
     return rows;
   }, [deadlineRows, showPastDates, activeTab, filterDeadlineType, filterStrataName, filterStrataPlan, dateFrom, dateTo, today]);
 
+  const isPastFirstType = ['fiscalYear', 'fileOpened', 'surveySubmitted', 'documentUpload'].includes(filterDeadlineType);
+
   const deadlineTabs = [
     { key: 'all', label: 'All Deadlines' },
     { key: 'overdue', label: 'Overdue' },
-    { key: 'next7', label: 'Next 7 Days' },
-    { key: 'next30', label: 'Next 30 Days' },
+    { key: 'next7', label: isPastFirstType ? 'Last 7 Days' : 'Next 7 Days' },
+    { key: 'next30', label: isPastFirstType ? 'Last 30 Days' : 'Next 30 Days' },
   ];
 
   const calendarMilestones = useMemo((): CalendarMilestone[] => {
@@ -576,15 +584,21 @@ export default function TimelinesPage() {
         <SingleSelectDropdown
           label="Deadline Type"
           value={filterDeadlineType}
-          onChange={setFilterDeadlineType}
+          onChange={(val) => {
+            setFilterDeadlineType(val);
+            if (['fiscalYear', 'fileOpened', 'surveySubmitted', 'documentUpload'].includes(val)) {
+              setShowPastDates(true);
+            } else {
+              setShowPastDates(false);
+            }
+          }}
           options={[
             { value: 'fiscalYear', label: 'Fiscal Year Start' },
             { value: 'agm', label: 'AGM' },
             { value: 'target', label: 'Target Date' },
             { value: 'fileOpened', label: 'File Opened' },
-            { value: 'documentUpload', label: 'Document Upload' },
-            { value: 'surveySubmitted', label: 'Survey Submitted' },
-            { value: 'surveyAnswer', label: 'Last Survey Answer' },
+            { value: 'documentUpload', label: 'Documents Finalized' },
+            { value: 'surveySubmitted', label: 'Survey Answers Finalized' },
           ]}
           placeholder="All Types"
         />

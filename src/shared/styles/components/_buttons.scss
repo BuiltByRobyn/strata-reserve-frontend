@@ -123,6 +123,20 @@
   font-size: 0.9375rem;
 }
 
+.rejection-notice-content {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+
+  .rejection-notice-reason {
+    background: $color-error-bg;
+    border: 1px solid $color-error-border;
+    border-radius: $border-radius-sm;
+    color: $color-error-text;
+    padding: $spacing-sm $spacing-md;
+  }
+}
+
 // Inline text link button
 .btn-link {
   background: none;

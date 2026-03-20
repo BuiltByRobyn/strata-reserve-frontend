@@ -298,7 +298,7 @@ export default function StrataPage() {
         data={filteredStratas}
         keyExtractor={(s) => s.strataId}
         loading={loading}
-        emptyMessage="No strata properties found. Click 'Create New Strata' to create one."
+        emptyMessage="No strata properties found with an active file number. Click 'Create New Strata' to create one, or click 'Show Inacitve' to view dormant properties."
         onRowClick={(strata) => {
           if (isDesktop) {
             navigate(`/admin/strata/${strata.strataId}`);
