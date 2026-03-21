@@ -6,6 +6,7 @@ import { TextareaField, FormRow } from '../../shared/components/FormField';
 import { SingleSelectDropdown } from '../../shared/components/SingleSelectDropdown';
 import { MultiSelectDropdown } from '../../shared/components/MultiSelectDropdown';
 import type { CreateQuestionInput, QuestionFormData } from '../../shared/types/survey.types';
+import type { BaseModalProps } from '../../shared/types/component.types';
 
 const CATEGORIES = ['Exterior', 'Interior', 'Services', 'Clubhouse', 'Amenity Room', 'Legal', 'Council Concerns', 'Septic Fields'];
 
@@ -22,12 +23,7 @@ const initialFormData: QuestionFormData = {
   informationText: '', serviceId: undefined, propertyTypeIds: [], multipleChoiceOptions: [],
 };
 
-interface Props {
-  isOpen: boolean;
-  onClose: () => void;
-}
-
-export function CreateQuestionModal({ isOpen, onClose }: Props) {
+export function CreateQuestionModal({ isOpen, onClose }: BaseModalProps) {
   const { createQuestion } = useQuestions();
   const { questionTypes, services, propertyTypes } = useLookups();
 
@@ -63,13 +59,14 @@ export function CreateQuestionModal({ isOpen, onClose }: Props) {
     onClose();
   };
 
+  const isFormValid =
+    !!formData.questionText.trim() &&
+    !!formData.questionCategory &&
+    !!formData.questionTypeId &&
+    !!formData.serviceId;
+
   const handleSubmit = async (e?: React.FormEvent) => {
     e?.preventDefault();
-    if (!formData.questionText.trim()) { setFormError('Question text is required'); return; }
-    if (!formData.questionCategory) { setFormError('Category is required'); return; }
-    if (!formData.questionTypeId) { setFormError('Question type is required'); return; }
-    if (!formData.serviceId) { setFormError('Service is required'); return; }
-
     setIsSubmitting(true);
     setFormError(null);
     try {
@@ -101,7 +98,7 @@ export function CreateQuestionModal({ isOpen, onClose }: Props) {
       footer={
         <>
           <button className="btn-secondary" onClick={handleClose}>Cancel</button>
-          <button className="btn-primary" onClick={() => handleSubmit()} disabled={isSubmitting}>
+          <button className="btn-primary" onClick={() => handleSubmit()} disabled={!isFormValid || isSubmitting}>
             {isSubmitting ? 'Saving...' : 'Save'}
           </button>
         </>

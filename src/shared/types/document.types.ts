@@ -2,6 +2,8 @@ import type { ReviewStatus } from './entities.types';
 
 export type { ReviewStatus };
 
+export type NaStatusValue = 'not_available' | 'not_applicable';
+
 export interface DocumentUploadData {
   documentName: string;
   file: File | null;
@@ -28,6 +30,7 @@ export interface UploadedDocument {
   notes?: string;
   reviewStatusId?: number | null;
   propertyTypeId?: number | null;
+  fnDocRequirementId?: number | null;
 }
 
 export interface DocumentWithDetails {
@@ -39,7 +42,7 @@ export interface DocumentWithDetails {
   notes?: string;
   documentType: { documentTypeId: number; typeName: string };
   fileNumber: {
-    fileNumberId: number;
+    fileId: number;
     strata: { strataId: number; strataPlan: string | null; complexName: string | null };
   };
   uploadedBy: { id: string; firstName?: string | null; lastName?: string | null; displayName?: string | null };
@@ -47,11 +50,21 @@ export interface DocumentWithDetails {
 }
 
 export interface RequiredDocumentChecklist {
-  requiredDocumentId: number;
-  isRequired: boolean;
+  fnDocRequirementId: number;
+  fileId: number;
+  documentTypeId: number;
+  propertyTypeId: number | null;
+  versionLabel: string;
   documentType: { documentTypeId: number; typeName: string };
-  propertyType?: { propertyTypeId: number; propertyTypeName: string } | null;
-  uploadedDocument?: UploadedDocument | null;
+  propertyType: { propertyTypeId: number; propertyTypeName: string } | null;
+  naStatus: NaStatusValue | null;
+  uploadedDocument: {
+    fileNumberDocumentId: number;
+    fileName: string;
+    filePath: string;
+    uploadedAt: string;
+    fnDocRequirementId: number | null;
+  } | null;
 }
 
 export interface DocumentPreviewData {
@@ -73,14 +86,21 @@ export interface DocumentPreviewModalProps {
 
 export interface SRDocRequirement {
   fnDocRequirementId: number;
-  fileNumberId: number;
+  fileId: number;
   documentTypeId: number;
   propertyTypeId: number | null;
-  isRequired: boolean;
-  quantity: number;
+  versionLabel: string;
   notes: string | null;
   documentType: { documentTypeId: number; typeName: string };
   propertyType: { propertyTypeId: number; propertyTypeName: string } | null;
+  naStatus: { status: NaStatusValue } | null;
+  fileNumberDocuments: Array<{
+    fileNumberDocumentId: number;
+    fileName: string;
+    filePath: string;
+    uploadedAt: string;
+    fnDocRequirementId: number | null;
+  }>;
 }
 
 export interface UploadDocumentParams {
@@ -88,6 +108,8 @@ export interface UploadDocumentParams {
   file: File;
   documentTypeId: number;
   strataId: string;
+  fnDocRequirementId?: number;
+  isReplace?: boolean;
   strataName?: string;
   notes?: string;
   propertyTypeId?: number;
@@ -106,4 +128,30 @@ export interface SRUploadedDocument {
   uploadedBy: { id: string; firstName?: string | null; lastName?: string | null; displayName?: string | null };
   reviewStatus?: { reviewStatusId: number; statusName: string } | null;
   propertyType?: { propertyTypeId: number; propertyTypeName: string } | null;
+}
+
+export interface BatchDocumentReviewItem {
+  fnDocRequirementId: number;
+  reviewStatusId: number;
+  notes?: string;
+}
+
+export interface BatchDocumentReviewInput {
+  items: BatchDocumentReviewItem[];
+}
+
+export interface DocumentReviewResultItem {
+  reviewItemId: number;
+  fnDocRequirementId: number;
+  reviewStatus: { reviewStatusId: number; statusName: string };
+  notes: string | null;
+}
+
+export interface DocumentReviewResult {
+  reviewId: number;
+  fileId: number;
+  reviewedAt: string;
+  clientNotifiedAt: string | null;
+  reviewedBy: { id: string; firstName: string | null; lastName: string | null };
+  items: DocumentReviewResultItem[];
 }

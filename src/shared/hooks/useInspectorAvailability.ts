@@ -58,6 +58,17 @@ export const useInspectorAvailability = (inspectorProfileId?: string) => {
     }
   }, [api, fetchAvailableDates]);
 
+  const createAvailableDatesBatch = useCallback(async (
+    inputs: CreateInspectorAvailableDateInput[],
+    onProgress?: (current: number, total: number) => void
+  ): Promise<void> => {
+    for (let i = 0; i < inputs.length; i++) {
+      await api.post<InspectorAvailableDate>('/admin/inspector-availability', inputs[i]);
+      onProgress?.(i + 1, inputs.length);
+    }
+    await fetchAvailableDates();
+  }, [api, fetchAvailableDates]);
+
   const updateAvailableDate = useCallback(async (id: number, input: UpdateInspectorAvailableDateInput): Promise<InspectorAvailableDate | null> => {
     try {
       const result = await api.put<InspectorAvailableDate>(`/admin/inspector-availability/${id}`, input);
@@ -113,6 +124,7 @@ export const useInspectorAvailability = (inspectorProfileId?: string) => {
     refetch: fetchAvailableDates,
     getAvailableDateById,
     createAvailableDate,
+    createAvailableDatesBatch,
     updateAvailableDate,
     deleteAvailableDate,
     getAvailableDatesByRange

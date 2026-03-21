@@ -1,14 +1,16 @@
 import { useState, useMemo } from 'react';
 import { useInspectorAvailability } from '../../shared/hooks/useInspectorAvailability';
+import { useUsers } from '../../shared/hooks/useUsers';
 import { useMediaQuery } from '../../shared/hooks/useMediaQuery';
 import { DataTable, type Column } from '../../shared/components/DataTable';
 import { Modal } from '../../shared/components/Modal';
 import { LoadingSpinner } from '../../shared/components/LoadingSpinner';
 import { InputField } from '../../shared/components/FormField';
 import { SingleSelectDropdown } from '../../shared/components/SingleSelectDropdown';
-import { formatDateShort, getUserDisplayName } from '../../shared/lib/formatters';
-import { parseLocalDate } from '../../shared/lib/dateUtils';
+import { formatDateShort, getUserDisplayName } from '../../shared/utils/formatters';
+import { parseLocalDate } from '../../shared/utils/dateUtils';
 import type { InspectorAvailableDate } from '../../shared/types/entities.types';
+import { getInspectorOptions } from '../../shared/utils/userUtils';
 import { InspectorAvailabilityModal } from './InspectorAvailabilityModal.tsx';
 import { DeleteAvailabilityModal } from './DeleteAvailabilityModal.tsx';
 
@@ -30,7 +32,8 @@ const formatTime = (timeStr: string | null): string => {
 };
 
 export const InspectorAvailabilityManager = () => {
-    const { availableDates, loading, error, deleteAvailableDate, createAvailableDate, updateAvailableDate } = useInspectorAvailability();
+    const { availableDates, loading, error, deleteAvailableDate, createAvailableDatesBatch, updateAvailableDate } = useInspectorAvailability();
+    const { users } = useUsers();
     const isDesktop = useMediaQuery('(min-width: 750px)');
 
     // Filter state
@@ -39,17 +42,7 @@ export const InspectorAvailabilityManager = () => {
     const [filterInspector, setFilterInspector] = useState('');
     const [showPastDates, setShowPastDates] = useState(false);
 
-    const inspectorOptions = useMemo(() => {
-        const seen = new Map<string, string>();
-        for (const d of availableDates) {
-            if (!seen.has(d.inspectorProfileId)) {
-                seen.set(d.inspectorProfileId, getUserDisplayName(d.inspectorProfile));
-            }
-        }
-        return Array.from(seen.entries())
-            .map(([value, label]) => ({ value, label }))
-            .sort((a, b) => a.label.localeCompare(b.label));
-    }, [availableDates]);
+    const inspectorOptions = useMemo(() => getInspectorOptions(users), [users]);
 
     const filteredDates = useMemo(() => {
         let result = availableDates;
@@ -239,13 +232,14 @@ export const InspectorAvailabilityManager = () => {
                     }}
                     actions={renderActions}
                     actionsColumnHeader="ACTIONS"
+                    emptyMessage={filterInspector ? 'This inspector currently has no availability' : 'No availability found.'}
                 />
             ) : (
                 <>
                     {loading && <LoadingSpinner />}
                     {!loading && filteredDates.length === 0 && (
                         <div className="data-table-empty">
-                            <p>No availability found.</p>
+                            <p>{filterInspector ? 'This inspector currently has no availability' : 'No availability found.'}</p>
                         </div>
                     )}
                     {!loading && filteredDates.length > 0 && (
@@ -329,7 +323,7 @@ export const InspectorAvailabilityManager = () => {
                     isOpen={isModalOpen}
                     onClose={handleCloseModal}
                     initialData={selectedBlock}
-                    onSubmitCreate={createAvailableDate}
+                    onSubmitBulkCreate={createAvailableDatesBatch}
                     onSubmitUpdate={updateAvailableDate}
                     onDeleteClick={() => selectedBlock && handleOpenDelete(selectedBlock)}
                 />

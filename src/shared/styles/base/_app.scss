@@ -43,6 +43,10 @@
       padding-bottom: $spacing-md;
     }
   }
+
+  &--full {
+    max-width: none;
+  }
 }
 
 .page-subtitle {

@@ -76,7 +76,7 @@ export const Login = () => {
 
         <div className="login-header">
           <h1>Strata Reserve Planning</h1>
-          <p className="login-subtitle">Information Report Portal</p>
+          <p className="login-subtitle">Data Collection Portal</p>
         </div>
 
         <form onSubmit={handleSubmit} className="login-form">
@@ -160,8 +160,8 @@ export const Login = () => {
         <div className="login-footer">
           <p className="help-text">
             Need help? Contact our support team at{" "}
-            <a href="mailto:support@stratareserveplanning.com">
-              support@stratareserveplanning.com
+            <a href="mailto:clientcare@stratareserveplanning.com">
+              clientcare@stratareserveplanning.com
             </a>
           </p>
           <div className="footer-links">

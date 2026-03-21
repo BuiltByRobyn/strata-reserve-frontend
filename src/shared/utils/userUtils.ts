@@ -1,5 +1,5 @@
 import type { Profile } from '../types/entities.types';
-import { getUserDisplayName } from '../lib/formatters';
+import { getUserDisplayName } from './formatters';
 
 export const getInspectorOptions = (
   users: Profile[]

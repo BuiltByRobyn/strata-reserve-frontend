@@ -2,8 +2,16 @@
 
 .modal-body:has(.document-preview-container) {
   padding: 0;
-  overflow-x: hidden;
-  overflow-y: auto;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.document-preview-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
 .document-preview-loading {
@@ -19,11 +27,15 @@
   }
 }
 
+.document-preview-content {
+  flex: 1;
+  min-height: 0;
+}
+
 .document-preview-iframe {
   width: 100%;
-  min-height: 80vh;
+  height: 100%;
   border: none;
-  border-radius: $border-radius-md;
 }
 
 .document-preview-image {

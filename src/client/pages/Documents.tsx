@@ -4,177 +4,134 @@ import { useClientDocuments } from '../../shared/hooks/useClientDocuments';
 import { useClientFileNumber } from '../../shared/hooks/useClientFileNumber';
 import { useAuth } from '../../shared/contexts/AuthContext';
 import { LoadingSpinner } from '../../shared/components/LoadingSpinner';
-import { Modal } from '../../shared/components/Modal';
+import { NoFileNumberState } from '../../shared/components/NoFileNumberState';
 import { DocumentPreviewModal } from '../../shared/components/DocumentPreviewModal';
-import { formatTypeName } from '../../shared/lib/formatters';
-import { validateFileType, validateFileSize } from '../../shared/lib/validation';
 import { PropertyTypeSelector } from '../components/PropertyTypeSelector';
-import type { RequiredDocumentChecklist } from '../../shared/types/document.types';
-
-const DOCS_PER_PAGE = 5;
+import { VersionDocumentRow } from '../components/VersionDocumentRow';
+import { validateFileType, validateFileSize } from '../../shared/utils/validation';
+import { groupByDocumentType } from '../../shared/utils/documentUtils';
+import type { RequiredDocumentChecklist, NaStatusValue } from '../../shared/types/document.types';
 
 export default function ClientDocumentsPage() {
   const navigate = useNavigate();
   const { session } = useAuth();
-  const { activeRequest, fileNumberId, loading: srLoading, submitForReview } = useClientFileNumber();
+  const { activeRequest, fileId, loading: srLoading } = useClientFileNumber();
   const {
     requiredDocuments,
     loading,
     error,
     fetchRequiredDocuments,
     uploadDocument,
+    setNaStatus,
     uploading,
   } = useClientDocuments();
 
-  const [page, setPage] = useState(0);
-  const [naStatuses, setNaStatuses] = useState<Map<number, 'not_available' | 'not_applicable'>>(new Map());
-  const [uploadingTypeId, setUploadingTypeId] = useState<number | null>(null);
-  const [uploadingPropertyTypeId, setUploadingPropertyTypeId] = useState<number | undefined>(undefined);
-  const [uploadingPropertyTypeName, setUploadingPropertyTypeName] = useState<string | undefined>(undefined);
+  const [expandedDocTypes, setExpandedDocTypes] = useState<Set<string>>(new Set());
+  const [pendingUpload, setPendingUpload] = useState<{ req: RequiredDocumentChecklist; isReplace: boolean } | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
-  const [showThankYou, setShowThankYou] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [requiredDocsReady, setRequiredDocsReady] = useState(false);
-
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewDocId, setPreviewDocId] = useState<number | null>(null);
   const [previewDocName, setPreviewDocName] = useState('');
 
   const fileInputRef = useRef<HTMLInputElement>(null);
-
   const strataPlan = activeRequest?.strata?.strataPlan || '';
-  const isSubmitted = !!activeRequest?.submittedForReviewDate;
 
-  const clientPropertyTypeIds = useMemo(() => {
-    return activeRequest?.clientPropertyTypes?.map(cpt => cpt.propertyTypeId) || [];
-  }, [activeRequest]);
+  const clientPropertyTypeIds = useMemo(
+    () => activeRequest?.clientPropertyTypes?.map(cpt => cpt.propertyTypeId) || [],
+    [activeRequest]
+  );
 
-  const filteredDocuments = useMemo(() => {
-    let docs: RequiredDocumentChecklist[];
+  const filteredRequirements = useMemo(() => {
     if (clientPropertyTypeIds.length === 0) {
-      docs = requiredDocuments.filter(d => !d.propertyType);
-    } else {
-      docs = requiredDocuments.filter(d =>
-        !d.propertyType || clientPropertyTypeIds.includes(d.propertyType.propertyTypeId)
-      );
+      return requiredDocuments.filter(d => !d.propertyType);
     }
-    return [...docs].sort((a, b) => {
-      const nameA = a.propertyType?.propertyTypeName || '';
-      const nameB = b.propertyType?.propertyTypeName || '';
-      return nameA.localeCompare(nameB);
-    });
+    return requiredDocuments.filter(
+      d => !d.propertyType || clientPropertyTypeIds.includes(d.propertyType.propertyTypeId)
+    );
   }, [requiredDocuments, clientPropertyTypeIds]);
 
-  const allMandatoryUploaded = useMemo(() => {
-    return filteredDocuments
-      .filter(d => d.isRequired)
-      .every(d => !!d.uploadedDocument);
-  }, [filteredDocuments]);
-
-  useEffect(() => {
-    if (fileNumberId) {
-      fetchRequiredDocuments(fileNumberId).then(() => setRequiredDocsReady(true));
-    }
-  }, [fileNumberId, fetchRequiredDocuments]);
-
-  useEffect(() => {
-    if (isSubmitted) {
-      setShowThankYou(true);
-    }
-  }, [isSubmitted]);
-
-  const totalPages = Math.ceil(filteredDocuments.length / DOCS_PER_PAGE);
-  const pageItems = filteredDocuments.slice(
-    page * DOCS_PER_PAGE,
-    (page + 1) * DOCS_PER_PAGE,
+  const allAnswered = useMemo(
+    () => filteredRequirements.length > 0 &&
+      filteredRequirements.every(d => !!d.uploadedDocument || !!d.naStatus),
+    [filteredRequirements]
   );
-  const isLastPage = page >= totalPages - 1;
 
-  const handleUploadClick = (documentTypeId: number, propertyTypeId?: number, propertyTypeName?: string) => {
-    setUploadingTypeId(documentTypeId);
-    setUploadingPropertyTypeId(propertyTypeId);
-    setUploadingPropertyTypeName(propertyTypeName);
+  const groupedByPropertyType = useMemo(() => {
+    const map = new Map<string, RequiredDocumentChecklist[]>();
+    for (const req of filteredRequirements) {
+      const groupKey = req.propertyType?.propertyTypeName || 'General';
+      if (!map.has(groupKey)) map.set(groupKey, []);
+      map.get(groupKey)!.push(req);
+    }
+    return map;
+  }, [filteredRequirements]);
+
+  useEffect(() => {
+    if (fileId) fetchRequiredDocuments(fileId);
+  }, [fileId, fetchRequiredDocuments]);
+
+  const handleUploadClick = (req: RequiredDocumentChecklist, isReplace: boolean) => {
+    setPendingUpload({ req, isReplace });
     setUploadError(null);
     fileInputRef.current?.click();
   };
 
   const handleFileSelected = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || !uploadingTypeId || !strataPlan) return;
+    if (!file || !pendingUpload || !strataPlan || !fileId) return;
 
     const typeError = validateFileType(file);
-    if (typeError) { setUploadError(typeError); setUploadingTypeId(null); setUploadingPropertyTypeId(undefined); setUploadingPropertyTypeName(undefined); return; }
+    if (typeError) { setUploadError(typeError); setPendingUpload(null); if (fileInputRef.current) fileInputRef.current.value = ''; return; }
 
     const sizeError = validateFileSize(file);
-    if (sizeError) { setUploadError(sizeError); setUploadingTypeId(null); setUploadingPropertyTypeId(undefined); setUploadingPropertyTypeName(undefined); return; }
+    if (sizeError) { setUploadError(sizeError); setPendingUpload(null); if (fileInputRef.current) fileInputRef.current.value = ''; return; }
 
+    const { req, isReplace } = pendingUpload;
     setUploadError(null);
-    const success = await uploadDocument(file, uploadingTypeId, strataPlan, undefined, uploadingPropertyTypeId, uploadingPropertyTypeName);
 
-    if (success && fileNumberId) {
-      await fetchRequiredDocuments(fileNumberId);
-    }
-
-    setUploadingTypeId(null);
-    setUploadingPropertyTypeId(undefined);
-    setUploadingPropertyTypeName(undefined);
-    if (fileInputRef.current) fileInputRef.current.value = '';
-  }, [uploadingTypeId, uploadingPropertyTypeId, uploadingPropertyTypeName, strataPlan, uploadDocument, fileNumberId, fetchRequiredDocuments]);
-
-  const handlePageChange = (newPage: number) => {
-    setPage(newPage);
-    window.scrollTo(0, 0);
-  };
-
-  const handleSave = () => {
-    navigate('/client/dashboard');
-  };
-
-  const handleSaveAndSubmit = async () => {
-    setSubmitting(true);
-    const success = await submitForReview();
-    setSubmitting(false);
-    if (success) {
-      setShowThankYou(true);
-    }
-  };
-
-  const handleThankYouClose = () => {
-    setShowThankYou(false);
-  };
-
-  const toggleNaStatus = (docTypeId: number, status: 'not_available' | 'not_applicable') => {
-    setNaStatuses(prev => {
-      const next = new Map(prev);
-      if (next.get(docTypeId) === status) {
-        next.delete(docTypeId);
-      } else {
-        next.set(docTypeId, status);
-      }
-      return next;
+    await uploadDocument({
+      file,
+      documentTypeId: req.documentType.documentTypeId,
+      strataId: strataPlan,
+      fnDocRequirementId: req.fnDocRequirementId,
+      fileId,
+      isReplace,
+      propertyTypeId: req.propertyType?.propertyTypeId,
+      propertyTypeName: req.propertyType?.propertyTypeName,
+      strataName: activeRequest?.strata?.complexName || strataPlan,
     });
-  };
 
-  const handlePreview = (doc: RequiredDocumentChecklist) => {
-    if (!doc.uploadedDocument) return;
-    setPreviewDocId(doc.uploadedDocument.fileNumberDocumentId);
-    setPreviewDocName(doc.uploadedDocument.fileName);
+    setPendingUpload(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  }, [pendingUpload, strataPlan, fileId, uploadDocument, activeRequest]);
+
+  const handleSetNaStatus = useCallback(async (req: RequiredDocumentChecklist, status: NaStatusValue) => {
+    if (!fileId) return;
+    if (req.naStatus === status) return;
+    await setNaStatus(fileId, req.fnDocRequirementId, status);
+  }, [fileId, setNaStatus]);
+
+  const handlePreview = (req: RequiredDocumentChecklist) => {
+    if (!req.uploadedDocument) return;
+    setPreviewDocId(req.uploadedDocument.fileNumberDocumentId);
+    setPreviewDocName(req.uploadedDocument.fileName);
     setPreviewOpen(true);
   };
 
-  const handleClosePreview = () => {
-    setPreviewOpen(false);
-    setPreviewDocId(null);
-    setPreviewDocName('');
+  const docsFinalized = fileId ? !!localStorage.getItem(`docs_finalized_${fileId}`) : false;
+
+  const handleFinalize = () => {
+    if (fileId) localStorage.setItem(`docs_finalized_${fileId}`, 'true');
+    navigate('/client/dashboard', { state: { justFinalizedDocs: true } });
   };
 
-  if (srLoading || loading || (fileNumberId && !requiredDocsReady)) return <LoadingSpinner />;
+  if (srLoading || loading) return <LoadingSpinner />;
 
-  if (!fileNumberId) {
+  if (!fileId) {
     return (
-      <div className="page-container">
+      <div className="page-container page-container--full">
         <h1>Documents</h1>
-        <p>No active file number found. Please contact your administrator.</p>
+        <NoFileNumberState />
       </div>
     );
   }
@@ -184,9 +141,7 @@ export default function ClientDocumentsPage() {
       <div className="client-documents-page">
         <div className="page-header">
           <h1>Documents</h1>
-          <p className="page-subtitle">
-            We just need a little information before we can show your documents.
-          </p>
+          <p className="page-subtitle">We just need a little information before we can show your documents.</p>
         </div>
         <PropertyTypeSelector
           availablePropertyTypes={activeRequest.strata.strataPropertyTypes}
@@ -201,7 +156,7 @@ export default function ClientDocumentsPage() {
       <div className="page-header">
         <h1>Documents</h1>
         <p className="page-subtitle">
-          Upload the required documents for your strata. Mandatory documents must be provided.
+          Upload the required documents for your strata. Mark any unavailable documents as Not Available or Not Applicable.
         </p>
       </div>
 
@@ -211,167 +166,83 @@ export default function ClientDocumentsPage() {
       <input
         ref={fileInputRef}
         type="file"
-        accept=".pdf,.doc,.docx,.jpg,.jpeg"
-        style={{ display: 'none' }}
+        accept=".pdf,.doc,.docx,.xlsx,.xls,.jpg,.jpeg,.png"
+        className="file-input-hidden"
         onChange={handleFileSelected}
       />
 
-      {filteredDocuments.length === 0 ? (
+      {filteredRequirements.length === 0 ? (
         <div className="empty-state">
-          <p>No required documents found for this file number.</p>
+          <p>No documents have been requested for this file number yet.</p>
         </div>
       ) : (
         <>
           <div className="document-list">
-            {(() => {
-              const groups: { name: string; items: { item: RequiredDocumentChecklist; globalIndex: number }[] }[] = [];
-              pageItems.forEach((item, index) => {
-                const groupName = item.propertyType?.propertyTypeName || 'General';
-                let group = groups.find(g => g.name === groupName);
-                if (!group) {
-                  group = { name: groupName, items: [] };
-                  groups.push(group);
-                }
-                group.items.push({ item, globalIndex: page * DOCS_PER_PAGE + index + 1 });
-              });
-              return groups.map(group => (
-                <div key={group.name} className="document-group">
-                  <h3 className="document-group-title">{group.name}</h3>
-                  {group.items.map(({ item, globalIndex }) => {
-                    const typeName = formatTypeName(item.documentType.typeName);
-                    const isUploaded = !!item.uploadedDocument;
-                    const naStatus = naStatuses.get(item.documentType.documentTypeId);
-                    const isUploadingThis = uploadingTypeId === item.documentType.documentTypeId && uploading;
+            {Array.from(groupedByPropertyType.entries()).map(([groupName, reqs]) => {
+              const docTypeGroups = groupByDocumentType(reqs);
 
+              return (
+                <div key={groupName} className="document-group">
+                  <h3 className="document-group-title">{groupName}</h3>
+                  {Array.from(docTypeGroups.entries()).map(([typeName, versions]) => {
+                    const key = `${groupName}__${typeName}`;
+                    const isExpanded = expandedDocTypes.has(key);
                     return (
-                      <div
-                        key={item.requiredDocumentId}
-                        className={`document-item${isUploaded ? ' uploaded' : ''}`}
-                      >
-                        <div className="document-info">
-                          <span className="document-number">{globalIndex}.</span>
+                      <div key={typeName} className="document-type-group">
+                        <button
+                          className="document-type-group__header"
+                          onClick={() => setExpandedDocTypes(prev => {
+                            const next = new Set(prev);
+                            if (next.has(key)) next.delete(key); else next.add(key);
+                            return next;
+                          })}
+                        >
+                          <span className={`document-type-group__arrow${isExpanded ? ' expanded' : ''}`}>▶</span>
                           <span className="document-name">{typeName}</span>
-                        </div>
-                        <div className="document-badges">
-                          {isUploaded
-                            ? <span className="uploaded-badge">Uploaded</span>
-                            : item.isRequired && <span className="mandatory-badge">Mandatory</span>
-                          }
-                        </div>
-
-                        <div className="document-actions">
-                          {isUploaded ? (
-                            <>
-                              <button
-                                className="btn-view"
-                                onClick={() => handlePreview(item)}
-                              >
-                                View
-                              </button>
-                              <button
-                                className="btn-replace"
-                                onClick={() => handleUploadClick(item.documentType.documentTypeId, item.propertyType?.propertyTypeId, item.propertyType?.propertyTypeName)}
-                                disabled={isUploadingThis}
-                              >
-                                {isUploadingThis ? 'Uploading...' : 'Replace'}
-                              </button>
-                            </>
-                          ) : naStatus ? (
-                            <span className="na-status">
-                              {naStatus === 'not_available' ? 'Not Available' : 'Not Applicable'}
-                            </span>
-                          ) : (
-                            <>
-                              <button
-                                className="btn-upload"
-                                onClick={() => handleUploadClick(item.documentType.documentTypeId, item.propertyType?.propertyTypeId, item.propertyType?.propertyTypeName)}
-                                disabled={isUploadingThis}
-                              >
-                                {isUploadingThis ? 'Uploading...' : 'Upload'}
-                              </button>
-                              {!item.isRequired && (
-                                <>
-                                  <button
-                                    className="btn-not-available"
-                                    onClick={() => toggleNaStatus(item.documentType.documentTypeId, 'not_available')}
-                                  >
-                                    Not Available
-                                  </button>
-                                  <button
-                                    className="btn-not-applicable"
-                                    onClick={() => toggleNaStatus(item.documentType.documentTypeId, 'not_applicable')}
-                                  >
-                                    Not Applicable
-                                  </button>
-                                </>
-                              )}
-                            </>
-                          )}
-                        </div>
+                        </button>
+                        {isExpanded && (
+                          <div className="version-list">
+                            {versions.map(req => (
+                              <VersionDocumentRow
+                                key={req.fnDocRequirementId}
+                                requirement={req}
+                                uploading={uploading && pendingUpload?.req.fnDocRequirementId === req.fnDocRequirementId}
+                                onUpload={handleUploadClick}
+                                onSetNaStatus={handleSetNaStatus}
+                                onPreview={handlePreview}
+                              />
+                            ))}
+                          </div>
+                        )}
                       </div>
                     );
                   })}
                 </div>
-              ));
-            })()}
+              );
+            })}
           </div>
 
-          <div className="documents-pagination">
-            {page > 0 && (
-              <button
-                className="btn-secondary btn-nav"
-                onClick={() => handlePageChange(page - 1)}
-              >
-                Previous Step
-              </button>
-            )}
+          {allAnswered && (
+            <div className="all-answered-banner">
+              <p>{docsFinalized ? 'Your documents will be reviewed shortly.' : 'All documents have been addressed. You can now finalize and submit.'}</p>
+            </div>
+          )}
 
-            {isLastPage ? (
-              <>
-                <button className="btn-secondary btn-nav" onClick={handleSave}>
-                  Save
-                </button>
-                {allMandatoryUploaded && (
-                  <button
-                    className="btn-primary btn-nav"
-                    onClick={handleSaveAndSubmit}
-                    disabled={submitting}
-                  >
-                    {submitting ? 'Submitting...' : isSubmitted ? 'Resubmit' : 'Save and Submit'}
-                  </button>
-                )}
-              </>
-            ) : (
-              <button
-                className="btn-primary btn-nav"
-                onClick={() => handlePageChange(page + 1)}
-              >
-                Next Step
-              </button>
-            )}
+          <div className="documents-actions">
+            <button
+              className="btn-primary btn-nav"
+              onClick={handleFinalize}
+              disabled={!allAnswered || docsFinalized}
+            >
+              Finalize and Submit
+            </button>
           </div>
         </>
       )}
 
-      <Modal
-        isOpen={showThankYou}
-        onClose={handleThankYouClose}
-        title="Thank You"
-        size="medium"
-        footer={
-          <button className="btn-primary" onClick={handleThankYouClose}>
-            Close
-          </button>
-        }
-      >
-        <div className="thank-you-content">
-          <p>Thank you for submitting your documents. We will review them shortly.</p>
-        </div>
-      </Modal>
-
       <DocumentPreviewModal
         isOpen={previewOpen}
-        onClose={handleClosePreview}
+        onClose={() => { setPreviewOpen(false); setPreviewDocId(null); setPreviewDocName(''); }}
         documentId={previewDocId}
         documentName={previewDocName}
         token={session?.access_token || ''}

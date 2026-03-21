@@ -344,7 +344,7 @@ const StrataMembers = () => {
             <InputField
               label="Associated Company"
               value={formData.companyName}
-              placeholder="Enter company name"
+              placeholder="Enter strata management company name"
               onChange={(e) =>
                 setFormData((prev) => ({ ...prev, companyName: e.target.value }))
               }

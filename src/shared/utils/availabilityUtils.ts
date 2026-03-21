@@ -1,5 +1,13 @@
 export const TIME_REGEX = /(?:T|^)(\d{2}:\d{2})/;
 
+export function isWithin48Hours(appointmentDate: string, slotTime: string): boolean {
+  const dateStr = appointmentDate.split('T')[0];
+  const appointmentStart = new Date(`${dateStr}T${slotTime}:00Z`);
+  const now = new Date();
+  const diffMs = appointmentStart.getTime() - now.getTime();
+  return diffMs < 48 * 60 * 60 * 1000;
+}
+
 export const extractTimeFromISO = (isoString: string | null | undefined): string => {
     if (!isoString) return '';
     const match = isoString.match(TIME_REGEX);
@@ -15,3 +23,12 @@ export const expandDateRange = (startDate: string, endDate: string): string[] =>
     }
     return dates;
 };
+
+export const isWeekend = (dateStr: string): boolean => {
+    const d = new Date(dateStr + 'T12:00:00');
+    const day = d.getDay();
+    return day === 0 || day === 6;
+};
+
+export const expandWeekdayDateRange = (startDate: string, endDate: string): string[] =>
+    expandDateRange(startDate, endDate).filter(d => !isWeekend(d));

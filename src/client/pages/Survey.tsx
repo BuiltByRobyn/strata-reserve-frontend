@@ -7,22 +7,58 @@ import { useApiClient } from '../../shared/hooks/useApiClient';
 import { SurveyProgressBar } from '../../shared/components/SurveyProgressBar';
 import { LoadingSpinner } from '../../shared/components/LoadingSpinner';
 import { Modal } from '../../shared/components/Modal';
+import { NoFileNumberState } from '../../shared/components/NoFileNumberState';
 import { getFilenameFromDisposition, triggerBlobDownload } from '../../shared/utils/fileUtils';
 import {
   SURVEY_SECTIONS,
 } from '../../shared/types/survey.types';
+import type { SurveyQuestion, SurveyResponse } from '../../shared/types/survey.types';
 
 export default function SurveyPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { activeRequest, fileNumberId, loading: srLoading } = useClientFileNumber();
+  const { activeRequest, fileId, loading: srLoading } = useClientFileNumber();
   const { questions, responses, loading, fetchQuestions, fetchResponses } = useSurvey();
   const api = useApiClient();
 
   const [showThankYou, setShowThankYou] = useState(false);
   const [showTimelinesMessage, setShowTimelinesMessage] = useState(false);
   const [downloadingPdf, setDownloadingPdf] = useState(false);
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
   const isSubmitted = !!activeRequest?.submittedForReviewDate;
+
+  const handleSectionClick = (sectionKey: string) => {
+    if (isSubmitted) {
+      setExpandedSections(prev => {
+        const next = new Set(prev);
+        if (next.has(sectionKey)) next.delete(sectionKey); else next.add(sectionKey);
+        return next;
+      });
+    } else {
+      navigate(`/client/survey/${sectionKey}`);
+    }
+  };
+
+  const formatAnswer = (q: SurveyQuestion, response: SurveyResponse | undefined): string => {
+    if (!response) return '—';
+    if (q.questionType === 'boolean') {
+      return response.responseBoolean === true ? 'Yes' : response.responseBoolean === false ? 'No' : '—';
+    }
+    if (q.questionType === 'none_or_explain') {
+      return response.responseText === 'NONE' ? 'None' : response.responseText || '—';
+    }
+    if (q.questionType === 'multiple_choice') {
+      const opt = q.multipleChoiceOptions.find(o => o.optionId === response.multipleChoiceOptionId);
+      return opt?.optionText || '—';
+    }
+    if (q.questionType === 'checkbox') {
+      const ids = (response.responseText || '').split(',').map(Number).filter(Boolean);
+      return ids.map(id => q.multipleChoiceOptions.find(o => o.optionId === id)?.optionText).filter(Boolean).join(', ') || '—';
+    }
+    if (q.questionType === 'date') return response.responseDate || '—';
+    if (q.questionType === 'number') return response.responseNumber != null ? String(response.responseNumber) : '—';
+    return response.responseText || '—';
+  };
 
   useEffect(() => {
     if (isSubmitted) {
@@ -38,11 +74,11 @@ export default function SurveyPage() {
   }, [location.state]);
 
   useEffect(() => {
-    if (fileNumberId) {
-      fetchQuestions(fileNumberId);
-      fetchResponses(fileNumberId);
+    if (fileId) {
+      fetchQuestions(fileId);
+      fetchResponses(fileId);
     }
-  }, [fileNumberId, fetchQuestions, fetchResponses]);
+  }, [fileId, fetchQuestions, fetchResponses]);
 
   const getSectionQuestionCount = (sectionKey: string) => {
     const sectionConfig = SURVEY_SECTIONS.find(s => s.key === sectionKey);
@@ -67,7 +103,7 @@ export default function SurveyPage() {
   };
 
   const handleDownloadPdf = async () => {
-    if (!fileNumberId) return;
+    if (!fileId) return;
     setDownloadingPdf(true);
     try {
       const res = await api.rawFetch('/client/file-numbers/active/survey/pdf');
@@ -96,11 +132,11 @@ export default function SurveyPage() {
 
   if (srLoading || loading) return <LoadingSpinner />;
 
-  if (!fileNumberId) {
+  if (!fileId) {
     return (
       <div className="survey-page">
         <h1>Surveys</h1>
-        <p>No active file number found. Please contact your administrator.</p>
+        <NoFileNumberState />
       </div>
     );
   }
@@ -114,9 +150,9 @@ export default function SurveyPage() {
             type="button"
             className="btn-primary"
             onClick={handleDownloadPdf}
-            disabled={!fileNumberId || downloadingPdf}
+            disabled={!fileId || downloadingPdf}
           >
-            {downloadingPdf ? 'Downloading...' : 'Download Survey'}
+            {downloadingPdf ? 'Downloading...' : isSubmitted ? 'Download Completed Survey' : 'Download Survey'}
           </button>
         )}
       </div>
@@ -145,23 +181,44 @@ export default function SurveyPage() {
           return total > 0;
         }).map((section) => {
           const complete = isSectionComplete(section.key);
+          const isExpanded = expandedSections.has(section.key);
+          const sectionQs = isSubmitted
+            ? questions.filter(q => q.questionCategory === section.label && q.parentQuestionId == null)
+            : [];
 
           return (
-            <div
-              key={section.key}
-              className="survey-section-item"
-              onClick={() => navigate(`/client/survey/${section.key}`)}
-              role="button"
-              tabIndex={0}
-              onKeyDown={(e) => e.key === 'Enter' && navigate(`/client/survey/${section.key}`)}
-            >
-              <div className="section-info">
-                <span className="section-label">{section.label}</span>
-                <span className="section-description">{section.description}</span>
+            <div key={section.key} className="survey-section-group">
+              <div
+                className="survey-section-item"
+                onClick={() => handleSectionClick(section.key)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => e.key === 'Enter' && handleSectionClick(section.key)}
+              >
+                <div className="section-info">
+                  {isSubmitted && (
+                    <span className={`survey-section-arrow${isExpanded ? ' expanded' : ''}`}>▶</span>
+                  )}
+                  <span className="section-label">{section.label}</span>
+                  <span className="section-description">{section.description}</span>
+                </div>
+                <span className={`section-status ${complete ? 'complete' : 'incomplete'}`}>
+                  {complete ? 'Complete' : 'Incomplete'}
+                </span>
               </div>
-              <span className={`section-status ${complete ? 'complete' : 'incomplete'}`}>
-                {complete ? 'Complete' : 'Incomplete'}
-              </span>
+              {isSubmitted && isExpanded && (
+                <div className="survey-section-answers">
+                  {sectionQs.map((q, i) => {
+                    const response = responses.find(r => r.questionId === q.questionId);
+                    return (
+                      <div key={q.fnSurveyQuestionId} className="survey-answer-row">
+                        <span className="survey-answer-row__question">{i + 1}. {q.questionText}</span>
+                        <span className="survey-answer-row__answer">{formatAnswer(q, response)}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           );
         })}

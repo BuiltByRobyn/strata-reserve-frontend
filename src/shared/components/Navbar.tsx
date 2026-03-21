@@ -26,8 +26,8 @@ export function Navbar({ variant, navItems, userInfoRows, loading }: NavbarProps
         <div className="navbar-brand">
           <img src="/logonobg.svg" alt="Building Icon" />
           <div className="navbar-brand-titles">
-            <span>Strata Reserve</span>
-            <div className="navbar-brand-text">Information Report Portal</div>
+            <span>Strata Reserve Planning</span>
+            <div className="navbar-brand-text">Data Collection Portal</div>
           </div>
         </div>
 
@@ -69,12 +69,12 @@ export function Navbar({ variant, navItems, userInfoRows, loading }: NavbarProps
                   {label}
                 </NavLink>
               ))}
-              <button
+              <a
                 onClick={() => { handleLogout(); closeMobileMenu(); }}
-                className="nav-link logout-btn"
+                className="nav-link logout"
               >
-                <img src="/icons/logout-icon.svg" alt="" />Sign Out
-              </button>
+                Sign Out
+              </a>
             </>
           )}
         </div>

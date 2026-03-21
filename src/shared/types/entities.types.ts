@@ -50,26 +50,6 @@ export interface StrataProfileSection {
   section: Section;
 }
 
-export interface Company {
-  companyId: number;
-  companyName: string;
-  companyTelephone: string | null;
-  createdAt: string;
-  updatedAt: string;
-  _count?: {
-    stratas: number;
-  };
-}
-
-export interface CreateCompanyInput {
-  companyName: string;
-  companyTelephone?: string;
-}
-
-export interface UpdateCompanyInput {
-  companyName?: string;
-  companyTelephone?: string | null;
-}
 
 export interface StrataBasic {
   strataId: number;
@@ -94,12 +74,11 @@ export interface Strata extends StrataBasic {
   website: string | null;
   legalTypeId: number | null;
   propertyTypeId: number | null;
-  companyId: number | null;
+  companyName: string | null;
   locationId: number | null;
   fiscalYearEnd: string | null;
   createdAt: string;
   updatedAt: string;
-  company?: { companyId: number; companyName: string } | null;
   legalType?: { legalTypeId: number; legalTypeName: string } | null;
   propertyType?: { propertyTypeId: number; propertyTypeName: string } | null;
   location?: Location | null;
@@ -121,7 +100,6 @@ export interface DocumentNote {
 }
 
 export interface StrataWithDetails extends Strata {
-  company: Company | null;
   legalType: LegalType | null;
   propertyType: PropertyType | null;
   strataNotes: StrataNoteWithCreator[];
@@ -166,7 +144,6 @@ export interface CreateStrataInput {
   website?: string;
   legalTypeId?: number;
   propertyTypeId?: number;
-  companyId?: number;
   locationId?: number | null;
   sectionIds?: number[];
   propertyTypeIds?: number[];
@@ -224,7 +201,7 @@ export interface StrataProfilePropertyType {
 
 export interface StrataProfileWithStrata extends StrataEmployee {
   strata: StrataBasic & {
-    company?: { companyName: string } | null;
+    companyName?: string | null;
     strataPropertyTypes?: StrataPropertyType[];
   };
   strataProfileSections?: StrataProfileSection[];
@@ -319,7 +296,8 @@ export interface AppointmentType {
 }
 
 export interface FileNumber {
-  fileNumberId: number;
+  fileId: number;
+  fileNumber: string | null;
   requestDate: string;
   status: string; // Draft, Pending Approval, Approved, Rejected, Appointment Scheduled, Completed
   submittedForReviewDate: string | null;
@@ -338,6 +316,7 @@ export interface FileNumber {
   appointmentOfferedAt?: string | null;
   appointmentOfferedByProfileId?: string | null;
   appointmentOfferTypeId?: number | null;
+  appointmentOfferType?: { isDraftMeeting: boolean } | null;
   appointmentOfferInspectorId?: string | null;
   appointmentOfferSecondInspectorId?: string | null;
   rebookingRequestedAt?: string | null;
@@ -345,13 +324,14 @@ export interface FileNumber {
   strata?: Strata;
   requestedBy?: ProfileBasic;
   clientPropertyTypes?: Array<{ propertyTypeId: number }>;
-  latestDocumentUploadDate?: string | null;
+  latestDocumentFinalizedDate?: string | null;
   latestSurveyAnswerDate?: string | null;
   appointments?: Array<{
     appointmentId: number;
     appointmentDate: string;
     status: string;
     timeSlotId: number;
+    appointmentType?: { isDraftMeeting: boolean } | null;
   }>;
   _count?: {
     questionResponses: number;
@@ -375,6 +355,7 @@ export interface CreateFileNumberInput {
   serviceId: number;
   strataId: number;
   requestedByProfileId: string;
+  fileNumber: string;
   notes?: string;
 }
 
@@ -385,7 +366,7 @@ export interface AppointmentRequest {
   specialRequirements: string | null;
   status: string; // Pending Review, Approved, Rejected, Cancelled
   requestDate: string;
-  fileNumberId: number;
+  fileId: number;
   appointmentTypeId: number;
   firstChoiceTimeSlotId: number;
   secondChoiceTimeSlotId: number | null;
@@ -395,7 +376,7 @@ export interface AppointmentRequest {
   secondChoiceTimeSlot?: AppointmentTimeSlot | null;
   requestedBy?: ProfileBasic;
   fileNumber?: {
-    fileNumberId: number;
+    fileId: number;
     status: string;
     requestDate: string;
     strata: StrataBasic & { location?: Location | null };
@@ -426,7 +407,7 @@ export interface Appointment {
   completionNote: string | null;
   completedAt: string | null;
   appointmentRequestId: number;
-  fileNumberId: number;
+  fileId: number;
   appointmentTypeId: number;
   timeSlotId: number;
   inspectorProfileId: string | null;
@@ -436,7 +417,7 @@ export interface AppointmentWithDetails extends Appointment {
   appointmentType: AppointmentType;
   timeSlot: AppointmentTimeSlot;
   fileNumber: {
-    fileNumberId: number;
+    fileId: number;
     strata: StrataBasic & { location?: Location | null };
     service: Service;
     appointmentOfferSecondInspector?: ProfileBasic | null;
@@ -528,6 +509,25 @@ export interface PropertyTypeRequest {
 }
 
 // ============================================
+// Activation Request Types
+// ============================================
+
+export interface ActivationRequest {
+  activationRequestId: number;
+  strataProfileId: number;
+  status: string; // Pending, Approved, Rejected
+  rejectionReason: string | null;
+  reviewedByProfileId: string | null;
+  createdAt: string;
+  reviewedAt: string | null;
+  strataProfile?: {
+    profile: ProfileBasic & { email?: string | null };
+    strata: StrataBasic;
+  };
+  reviewedBy?: ProfileBasic | null;
+}
+
+// ============================================
 // API Response Types
 // ============================================
 
@@ -551,15 +551,12 @@ export interface StrataAssociation {
 export interface BaseProfileFormData {
   companyName: string;
   role: string;
-  address: string;
-  city: string;
-  province: string;
-  postalCode: string;
   email: string;
 }
 
 export interface AdminProfileFormData extends BaseProfileFormData {
   contactName: string;
+  phoneNumber: string;
 }
 
 export interface ClientProfileFormData extends BaseProfileFormData {
@@ -582,10 +579,7 @@ export interface UpdateAdminProfileInput {
   fullName?: string;
   email?: string;
   companyName?: string;
-  address?: string;
-  city?: string;
-  province?: string;
-  postalCode?: string;
+  phoneNumber?: string;
 }
 
 export interface UserFormData {
@@ -599,3 +593,13 @@ export interface UserFormData {
 }
 
 export type AuthFetchFn = (url: string, options?: RequestInit) => Promise<Response>;
+
+export interface InAppNotification {
+  notificationId: number;
+  type: string;
+  message: string;
+  isRead: boolean;
+  createdAt: string;
+  fileId?: number | null;
+  referenceId?: number | null;
+}

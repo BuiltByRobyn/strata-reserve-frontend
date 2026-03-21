@@ -42,7 +42,7 @@ export function formatYMD(date: Date | string): string {
 
 export function getDeadlineAbbrev(deadlineType: DeadlineType): 'D' | 'O' | 'T' {
   if (deadlineType === 'Target Date') return 'T';
-  if (deadlineType === 'File Opened' || deadlineType === 'Most Recent Document Upload') return 'D';
+  if (deadlineType === 'File Opened' || deadlineType === 'Documents Finalized') return 'D';
   return 'O';
 }
 

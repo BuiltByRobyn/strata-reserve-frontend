@@ -15,8 +15,8 @@ export const LegalLayout: React.FC<LegalLayoutProps> = ({ title, children }) => 
                     <div className="legal-logo" onClick={() => navigate('/login')}>
                         <img src="/logonobg.png" alt="Strata Reserve Planning Logo" />
                         <div className="logo-text">
-                            <span className="brand">Strata Reserve</span>
-                            <span className="subbrand">Planning</span>
+                            <span className="brand">Strata Reserve Planning</span>
+                            <span className="subbrand">Data Collection Postal</span>
                         </div>
                     </div>
                 </div>

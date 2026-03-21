@@ -1,4 +1,4 @@
-import type { AppointmentRequest, FileNumber, PropertyTypeRequest } from './entities.types';
+import type { ActivationRequest, AppointmentRequest, FileNumber, PropertyTypeRequest } from './entities.types';
 
 // ─── Admin Dashboard Types ────────────────────────────────────────────────────
 
@@ -35,17 +35,27 @@ export type UrgentCard =
       title: string;
       description: string;
       request: FileNumber;
+    }
+  | {
+      id: string;
+      kind: 'activation-request';
+      tone: 'overdue' | 'due-today' | 'upcoming';
+      badge: string;
+      priority: number;
+      createdAt: string;
+      title: string;
+      description: string;
+      request: ActivationRequest;
     };
 
 export interface ActivityCard {
   id: string;
-  kind: 'document' | 'survey' | 'appointment' | 'request';
+  kind: 'survey';
   title: string;
   description: string;
   timestamp: string;
   actionLabel: string;
   actionPath: string;
-  actionState?: Record<string, unknown>;
 }
 
 // ─── Client Dashboard Types ───────────────────────────────────────────────────

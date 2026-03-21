@@ -29,7 +29,7 @@ export interface SurveyResponse {
   questionId: number;
   propertyTypeId: number;
   multipleChoiceOptionId: number | null;
-  fileNumberId: number;
+  fileId: number;
   answeredByProfileId: string;
   createdAt: string;
   updatedAt: string;

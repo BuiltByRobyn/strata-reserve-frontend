@@ -70,7 +70,7 @@ export const PrivacyPolicy: React.FC = () => {
                     <li>Full name (first name and last name)</li>
                     <li>Email address</li>
                     <li>Telephone number(s)</li>
-                    <li>Company name and professional affiliation</li>
+                    <li>Strata management company name and professional affiliation</li>
                     <li>Role or position within a strata corporation (e.g., property manager, council member)</li>
                     <li>Account credentials (email and password, managed through our authentication provider)</li>
                 </ul>
@@ -81,7 +81,7 @@ export const PrivacyPolicy: React.FC = () => {
                     <li>Property addresses (including unit number, street address, city, province, and postal code)</li>
                     <li>Legal type classifications and property type classifications</li>
                     <li>Fiscal year end dates</li>
-                    <li>Management company associations</li>
+                    <li>Strata management company associations</li>
                 </ul>
 
                 <h3>2.3 Strata Member Information</h3>

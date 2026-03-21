@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Modal } from './Modal';
 import { LoadingSpinner } from './LoadingSpinner';
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../lib/constants';
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../utils/constants';
 import type { DocumentPreviewModalProps } from '../types/document.types';
 
 const getFileType = (contentType: string): 'pdf' | 'image' | 'other' => {

@@ -15,7 +15,7 @@ function App() {
           {clientRoutes}
         </Routes>
       </Router>
-      <Toaster position="bottom-right" />
+      <Toaster position="top-center" />
     </AuthProvider>
   );
 }

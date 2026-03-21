@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Modal } from '../../shared/components/Modal';
 import { AppointmentInfoDisplay } from './AppointmentInfoDisplay';
-import { getUserDisplayName } from '../../shared/lib/formatters';
+import { getUserDisplayName } from '../../shared/utils/formatters';
 import type { CancelAppointmentModalProps } from '../../shared/types/component.types';
 
 const CancelAppointmentModal = ({

@@ -123,9 +123,10 @@
   border-radius: $border-radius-md;
   border-width: 1px;
   border-style: solid;
-  padding: $spacing-lg;
+  padding: $spacing-md;
   display: flex;
   flex-direction: column;
+  justify-content: center;
   gap: $spacing-sm;
   text-align: center;
 
@@ -142,6 +143,12 @@
   }
 }
 
+.timelines-overview-card__title {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-bold;
+  color: $color-text-secondary;
+}
+
 .timelines-overview-card__value {
   font-size: $font-size-lg;
   font-weight: $font-weight-bold;
@@ -149,6 +156,13 @@
 }
 
 .timelines-overview-card__label {
-  font-size: $font-size-sm;
+  font-size: $font-size-xs;
   color: $color-text-secondary;
+}
+
+.timelines-overview-card__subvalue {
+  font-size: $font-size-base;
+  font-weight: $font-weight-bold;
+  color: $color-primary-dark;
+  padding-top: $spacing-sm;
 }

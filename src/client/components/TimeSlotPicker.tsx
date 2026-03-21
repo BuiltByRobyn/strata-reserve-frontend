@@ -1,5 +1,5 @@
-import { formatTime12h } from '../../shared/lib/formatters';
-import { SLOT_END_TIMES } from '../../shared/lib/constants';
+import { formatTime12h } from '../../shared/utils/formatters';
+import { SLOT_END_TIMES } from '../../shared/utils/constants';
 import type { TimeSlotPickerProps } from '../../shared/types/appointment.types';
 
 const TimeSlotPicker = ({ slots, selectedSlotId, onSelectSlot, label }: TimeSlotPickerProps) => {

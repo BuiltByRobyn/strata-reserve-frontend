@@ -8,6 +8,7 @@ import { useMediaQuery } from '../../shared/hooks/useMediaQuery';
 import type { AdminUser } from '../../shared/types/auth.types';
 import type { AdminProfileFormData as ProfileData } from '../../shared/types/entities.types';
 import { API_BASE } from '../../shared/lib/api';
+import { formatPhoneNumber, validatePhoneNumber } from '../../shared/utils/strataUtils';
 import { InspectorAvailabilityManager } from '../components/InspectorAvailabilityManager';
 import { CompanyHolidaysManager } from '../components/CompanyHolidaysManager';
 import { MobileDropdown } from '../../shared/components/MobileDropdown';
@@ -23,11 +24,8 @@ export default function ProfilePage() {
   const [profileData, setProfileData] = useState<ProfileData>({
     companyName: 'Strata Reserve Planning',
     contactName: '',
+    phoneNumber: '',
     role: 'Administrator',
-    address: '',
-    city: '',
-    province: '',
-    postalCode: '',
     email: 'admin@admin.com'
   });
 
@@ -38,6 +36,7 @@ export default function ProfilePage() {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState(location.state?.tab || 'holidays');
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+  const [phoneError, setPhoneError] = useState<string | null>(null);
   const isDesktop = useMediaQuery('(min-width: 750px)');
 
   // Fetch profile on mount
@@ -84,10 +83,11 @@ export default function ProfilePage() {
   };
 
   const handleFieldChange = (field: keyof ProfileData, value: string) => {
-    setProfileData(prev => ({
-      ...prev,
-      [field]: value
-    }));
+    const formatted = field === 'phoneNumber' ? formatPhoneNumber(value) : value;
+    setProfileData(prev => ({ ...prev, [field]: formatted }));
+    if (field === 'phoneNumber') {
+      setPhoneError(formatted && !validatePhoneNumber(formatted) ? 'Please enter a valid phone number (e.g. 604 123 4567)' : null);
+    }
     setSuccessMessage(null);
     setError(null);
   };
@@ -106,10 +106,7 @@ export default function ProfilePage() {
         body: JSON.stringify({
           fullName: profileData.contactName,
           companyName: profileData.companyName,
-          address: profileData.address,
-          city: profileData.city,
-          province: profileData.province,
-          postalCode: profileData.postalCode
+          phoneNumber: profileData.phoneNumber
         })
       });
 
@@ -138,27 +135,32 @@ export default function ProfilePage() {
     field,
     value,
     placeholder = '',
-    readOnly = false
+    readOnly = false,
+    error,
+    type = 'text'
   }: {
     label: string;
     field: keyof ProfileData;
     value: string;
     placeholder?: string;
     readOnly?: boolean;
+    error?: string | null;
+    type?: string;
   }) => (
-    <div className={`profile-field${readOnly ? ' read-only' : ''}`}>
+    <div className={`profile-field${readOnly ? ' read-only' : ''}${error ? ' has-error' : ''}`}>
       <div className="field-label">{label}</div>
       {readOnly ? (
         <div className="field-value">{value}</div>
       ) : (
         <input
-          type="text"
+          type={type}
           value={value}
           onChange={(e) => handleFieldChange(field, e.target.value)}
           placeholder={placeholder}
           className="field-input"
         />
       )}
+      {error && <div className="field-error">{error}</div>}
     </div>
   );
 
@@ -294,31 +296,12 @@ export default function ProfilePage() {
 
             <div className="profile-grid one-column">
               <ProfileField
-                label="Address"
-                field="address"
-                value={profileData.address}
-                placeholder="Enter address"
-              />
-            </div>
-
-            <div className="profile-grid three-columns">
-              <ProfileField
-                label="City"
-                field="city"
-                value={profileData.city}
-                placeholder="Enter city"
-              />
-              <ProfileField
-                label="Province"
-                field="province"
-                value={profileData.province}
-                placeholder="Enter province"
-              />
-              <ProfileField
-                label="Postal Code"
-                field="postalCode"
-                value={profileData.postalCode}
-                placeholder="Enter postal code"
+                label="Phone Number"
+                field="phoneNumber"
+                value={profileData.phoneNumber}
+                placeholder="604 123 4567"
+                type="tel"
+                error={phoneError}
               />
             </div>
           </section>

@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Modal } from '../../shared/components/Modal';
 import { SingleSelectDropdown } from '../../shared/components/SingleSelectDropdown';
-import { formatDateMedium, formatTime12h, getUserDisplayName } from '../../shared/lib/formatters';
+import { formatDateMedium, formatTime12h, getUserDisplayName } from '../../shared/utils/formatters';
 import { getInspectorOptions } from '../../shared/utils/userUtils';
 import type { AppointmentRequestReviewModalProps } from '../../shared/types/component.types';
 
@@ -13,6 +13,8 @@ const AppointmentRequestReviewModal = ({
   onReview,
 }: AppointmentRequestReviewModalProps) => {
   const [inspectorId, setInspectorId] = useState('');
+  const [addSecondInspector, setAddSecondInspector] = useState(false);
+  const [secondInspectorId, setSecondInspectorId] = useState('');
   const [rejectionReason, setRejectionReason] = useState('');
   const [comments, setComments] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -24,18 +26,19 @@ const AppointmentRequestReviewModal = ({
   const strataName = sr?.strata?.complexName || sr?.strata?.strataPlan || 'Unknown';
 
   const inspectorOptions = getInspectorOptions(inspectors);
+  const secondInspectorOptions = useMemo(
+    () => inspectorOptions.filter(o => o.value !== inspectorId),
+    [inspectorOptions, inspectorId]
+  );
 
   const handleApprove = async (choiceNum: number) => {
-    if (!inspectorId) {
-      setError('Please assign an inspector before approving');
-      return;
-    }
     setSubmitting(true);
     setError(null);
     const result = await onReview(request.appointmentRequestId, {
       approved: true,
       approvedDateChoice: choiceNum,
       inspectorProfileId: inspectorId,
+      secondInspectorProfileId: addSecondInspector && secondInspectorId ? secondInspectorId : undefined,
       comments: comments.trim() || undefined,
     });
     setSubmitting(false);
@@ -47,10 +50,6 @@ const AppointmentRequestReviewModal = ({
   };
 
   const handleReject = async () => {
-    if (!rejectionReason.trim()) {
-      setError('Please provide a rejection reason');
-      return;
-    }
     setSubmitting(true);
     setError(null);
     const result = await onReview(request.appointmentRequestId, {
@@ -68,6 +67,8 @@ const AppointmentRequestReviewModal = ({
 
   const resetAndClose = () => {
     setInspectorId('');
+    setAddSecondInspector(false);
+    setSecondInspectorId('');
     setRejectionReason('');
     setComments('');
     setError(null);
@@ -105,7 +106,7 @@ const AppointmentRequestReviewModal = ({
               type="button"
               className="btn btn-primary btn-sm"
               onClick={() => handleApprove(1)}
-              disabled={submitting}
+              disabled={!inspectorId || submitting}
             >
               Approve First Choice
             </button>
@@ -120,7 +121,7 @@ const AppointmentRequestReviewModal = ({
                 type="button"
                 className="btn btn-primary btn-sm"
                 onClick={() => handleApprove(2)}
-                disabled={submitting}
+                disabled={!inspectorId || submitting}
               >
                 Approve Second Choice
               </button>
@@ -140,9 +141,36 @@ const AppointmentRequestReviewModal = ({
           required
           options={inspectorOptions}
           value={inspectorId}
-          onChange={setInspectorId}
+          onChange={(val) => {
+            setInspectorId(val);
+            if (val === secondInspectorId) setSecondInspectorId('');
+          }}
           placeholder="Select an inspector..."
         />
+
+        {addSecondInspector && (
+          <SingleSelectDropdown
+            label="Additional Inspector"
+            options={secondInspectorOptions}
+            value={secondInspectorId}
+            onChange={setSecondInspectorId}
+            placeholder="Select additional inspector..."
+          />
+        )}
+
+        <div className="review-modal__section">
+          <label className="offer-modal__checkbox-label">
+            <input
+              type="checkbox"
+              checked={addSecondInspector}
+              onChange={(e) => {
+                setAddSecondInspector(e.target.checked);
+                if (!e.target.checked) setSecondInspectorId('');
+              }}
+            />
+            Add additional inspector
+          </label>
+        </div>
 
         <div className="review-modal__section">
           <label htmlFor="review-comments">Comments (Optional)</label>
@@ -168,7 +196,7 @@ const AppointmentRequestReviewModal = ({
             type="button"
             className="btn btn-danger btn-sm"
             onClick={handleReject}
-            disabled={submitting}
+            disabled={!rejectionReason.trim() || submitting}
           >
             {submitting ? 'Processing...' : 'Reject Request'}
           </button>

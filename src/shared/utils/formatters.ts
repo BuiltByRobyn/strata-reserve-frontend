@@ -33,6 +33,9 @@ export const getUserDisplayName = (
   return user.displayName || `${user.firstName || ''} ${user.lastName || ''}`.trim() || fallback;
 };
 
+export const formatNaStatus = (status: string): string =>
+  status === 'not_available' ? 'Not Available' : 'Not Applicable';
+
 export const getStatusBadgeClass = (statusName?: string): string => {
   if (!statusName) return 'status-badge pending';
   switch (statusName.toLowerCase()) {

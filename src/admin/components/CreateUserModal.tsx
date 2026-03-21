@@ -7,6 +7,8 @@ import { InputField, FormRow } from '../../shared/components/FormField';
 import { SingleSelectDropdown } from '../../shared/components/SingleSelectDropdown';
 import { MultiSelectDropdown } from '../../shared/components/MultiSelectDropdown';
 import type { CreateUserInput, UserFormData } from '../../shared/types/entities.types';
+import type { BaseModalProps } from '../../shared/types/component.types';
+import { formatPhoneNumber, validatePhoneNumber } from '../../shared/utils/strataUtils';
 
 const initialFormData: UserFormData = {
   firstName: '',
@@ -18,19 +20,19 @@ const initialFormData: UserFormData = {
   strataAssociations: [{ strataId: 0, strataPosition: '', sectionIds: [], propertyTypeIds: [] }],
 };
 
-interface Props {
-  isOpen: boolean;
-  onClose: () => void;
-}
-
-export function CreateUserModal({ isOpen, onClose }: Props) {
-  const { createUser } = useUsers();
+export function CreateUserModal({ isOpen, onClose }: BaseModalProps) {
+  const { createUser, users } = useUsers();
   const { stratas } = useStrata();
-  const { userTypes, propertyTypes } = useLookups();
+  const { userTypes } = useLookups();
 
   const [formData, setFormData] = useState<UserFormData>(initialFormData);
   const [formError, setFormError] = useState<string | null>(null);
+  const [emailError, setEmailError] = useState<string | null>(null);
+  const [phoneError, setPhoneError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const selectedUserType = userTypes.find(ut => ut.userTypeId === formData.userTypeId);
+  const isClientType = selectedUserType?.userTypeName?.toLowerCase().replace(/-/g, ' ') === 'client';
 
   const updateField = <K extends keyof UserFormData>(field: K, value: UserFormData[K]) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -63,19 +65,28 @@ export function CreateUserModal({ isOpen, onClose }: Props) {
   const handleClose = () => {
     setFormData(initialFormData);
     setFormError(null);
+    setEmailError(null);
+    setPhoneError(null);
     onClose();
   };
 
+  const validAssociations = formData.strataAssociations.filter(sa => sa.strataId > 0);
+
+  const isFormValid =
+    !!formData.firstName.trim() &&
+    !!formData.lastName.trim() &&
+    !!formData.email.trim() &&
+    !emailError &&
+    validatePhoneNumber(formData.phoneNumber) &&
+    !phoneError &&
+    !!formData.userTypeId &&
+    (!isClientType || (
+      validAssociations.length > 0 &&
+      validAssociations.every(sa => sa.propertyTypeIds && sa.propertyTypeIds.length > 0)
+    ));
+
   const handleSubmit = async (e?: React.FormEvent) => {
     e?.preventDefault();
-    if (!formData.firstName.trim()) { setFormError('First Name is required'); return; }
-    if (!formData.lastName.trim()) { setFormError('Last Name is required'); return; }
-    if (!formData.email.trim()) { setFormError('Email is required'); return; }
-    if (!formData.phoneNumber.trim()) { setFormError('Phone Number is required'); return; }
-    if (!formData.userTypeId) { setFormError('User Type is required'); return; }
-    const validAssociations = formData.strataAssociations.filter(sa => sa.strataId > 0);
-    if (validAssociations.length === 0) { setFormError('At least one Strata association is required'); return; }
-
     setIsSubmitting(true);
     setFormError(null);
     try {
@@ -84,7 +95,7 @@ export function CreateUserModal({ isOpen, onClose }: Props) {
         lastName: formData.lastName.trim(),
         email: formData.email.trim(),
         phoneNumber: formData.phoneNumber.trim(),
-        userTypeId: formData.userTypeId,
+        userTypeId: formData.userTypeId!,
         companyName: formData.companyName.trim() || undefined,
         strataAssociations: validAssociations,
       };
@@ -103,10 +114,11 @@ export function CreateUserModal({ isOpen, onClose }: Props) {
       onClose={handleClose}
       title="Create New User"
       size="large"
+      className="modal-user-form"
       footer={
         <>
           <button className="btn-secondary" onClick={handleClose}>Cancel</button>
-          <button className="btn-primary" onClick={() => handleSubmit()} disabled={isSubmitting}>
+          <button className="btn-primary" onClick={() => handleSubmit()} disabled={!isFormValid || isSubmitting}>
             {isSubmitting ? 'Saving...' : 'Create User'}
           </button>
         </>
@@ -121,8 +133,44 @@ export function CreateUserModal({ isOpen, onClose }: Props) {
         </FormRow>
 
         <FormRow>
-          <InputField label="Email" type="email" required value={formData.email} onChange={(e) => updateField('email', e.target.value)} placeholder="user@example.com" />
-          <InputField label="Phone Number" type="tel" required value={formData.phoneNumber} onChange={(e) => updateField('phoneNumber', e.target.value)} placeholder="Enter phone number" />
+          <InputField
+            label="Email"
+            type="email"
+            required
+            value={formData.email}
+            onChange={(e) => {
+              const val = e.target.value;
+              updateField('email', val);
+              const trimmed = val.trim();
+              if (trimmed && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
+                setEmailError('Please enter a valid email address');
+              } else if (trimmed && users.some(u => u.email?.toLowerCase() === trimmed.toLowerCase())) {
+                setEmailError('A user with this email already exists');
+              } else {
+                setEmailError(null);
+              }
+            }}
+            placeholder="user@example.com"
+            error={emailError || undefined}
+          />
+          <InputField
+            label="Phone Number"
+            type="tel"
+            required
+            value={formData.phoneNumber}
+            onChange={(e) => {
+              const raw = e.target.value;
+              updateField('phoneNumber', formatPhoneNumber(raw));
+              setPhoneError(/[^0-9\s]/.test(raw) ? 'Format: 778 252 9222' : null);
+            }}
+            onBlur={() => {
+              if (formData.phoneNumber && !validatePhoneNumber(formData.phoneNumber)) {
+                setPhoneError('Format: 778 252 9222');
+              }
+            }}
+            placeholder="778 252 9222"
+            error={phoneError || undefined}
+          />
         </FormRow>
 
         <FormRow>
@@ -131,13 +179,13 @@ export function CreateUserModal({ isOpen, onClose }: Props) {
             required
             value={formData.userTypeId?.toString() || ''}
             onChange={(val) => updateField('userTypeId', val ? parseInt(val) : undefined)}
-            options={userTypes.map(ut => ({ value: ut.userTypeId, label: ut.userTypeName }))}
-            placeholder="--- Select User Type ---"
+            options={userTypes.map(ut => ({ value: ut.userTypeId, label: ut.userTypeName.replace(/-/g, ' ') }))}
+            placeholder="Select User Type"
           />
-          <InputField label="Associated Company" value={formData.companyName} onChange={(e) => updateField('companyName', e.target.value)} placeholder="Enter company name" />
+          <InputField label="Associated Company" value={formData.companyName} onChange={(e) => updateField('companyName', e.target.value)} placeholder="Enter strata management company name" />
         </FormRow>
 
-        {formData.strataAssociations.map((association, index) => {
+        {isClientType && formData.strataAssociations.map((association, index) => {
           const selectedStrata = stratas.find(s => s.strataId === association.strataId);
           const otherSelectedIds = formData.strataAssociations.filter((_, i) => i !== index).map(a => a.strataId).filter(id => id > 0);
           const availableStratas = stratas.filter(s => !otherSelectedIds.includes(s.strataId));
@@ -148,23 +196,31 @@ export function CreateUserModal({ isOpen, onClose }: Props) {
                   label={`Strata Plan${index === 0 ? '' : ` ${index + 1}`}`}
                   required
                   value={association.strataId?.toString() || ''}
-                  onChange={(val) => { updateStrataAssociation(index, 'strataId', val); updateStrataAssociationSections(index, []); }}
+                  onChange={(val) => {
+                  updateStrataAssociation(index, 'strataId', val);
+                  updateStrataAssociationSections(index, []);
+                  const newStrata = stratas.find(s => s.strataId === Number(val));
+                  updateStrataAssociationPropertyTypes(index, newStrata?.strataPropertyTypes?.map(spt => spt.propertyType.propertyTypeId) || []);
+                }}
                   options={availableStratas.map(s => ({ value: s.strataId, label: s.strataPlan || s.complexName || `Strata ${s.strataId}` })).sort((a, b) => a.label.localeCompare(b.label))}
                   placeholder="Select Strata Plan"
                 />
                 <InputField label={`Associated Strata${index === 0 ? '' : ` ${index + 1}`}`} required value={selectedStrata?.complexName || ''} disabled placeholder="Strata name" />
               </FormRow>
-              <MultiSelectDropdown
-                label={`Property Types${index === 0 ? '' : ` ${index + 1}`}`}
-                options={
-                  selectedStrata?.strataPropertyTypes?.length
-                    ? selectedStrata.strataPropertyTypes.map(spt => ({ value: spt.propertyType.propertyTypeId, label: spt.propertyType.propertyTypeName })).sort((a, b) => a.label.localeCompare(b.label))
-                    : propertyTypes.map(pt => ({ value: pt.propertyTypeId, label: pt.propertyTypeName })).sort((a, b) => a.label.localeCompare(b.label))
-                }
-                selectedValues={association.propertyTypeIds || []}
-                onChange={(values) => updateStrataAssociationPropertyTypes(index, values)}
-                placeholder="Select property types"
-              />
+              {isClientType && (
+                <MultiSelectDropdown
+                  label={`Property Types${index === 0 ? '' : ` ${index + 1}`}`}
+                  required
+                  options={
+                    (selectedStrata?.strataPropertyTypes ?? [])
+                      .map(spt => ({ value: spt.propertyType.propertyTypeId, label: spt.propertyType.propertyTypeName }))
+                      .sort((a, b) => a.label.localeCompare(b.label))
+                  }
+                  selectedValues={association.propertyTypeIds || []}
+                  onChange={(values) => updateStrataAssociationPropertyTypes(index, values)}
+                  placeholder="Select property types"
+                />
+              )}
             </div>
           );
         })}

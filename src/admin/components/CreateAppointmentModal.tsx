@@ -5,20 +5,16 @@ import { useUsers } from '../../shared/hooks/useUsers';
 import { useFileNumbers } from '../../shared/hooks/useFileNumbers';
 import { Modal } from '../../shared/components/Modal';
 import { SingleSelectDropdown } from '../../shared/components/SingleSelectDropdown';
-import { formatTime12h } from '../../shared/lib/formatters';
+import { formatTime12h } from '../../shared/utils/formatters';
 import { getInspectorOptions } from '../../shared/utils/userUtils';
+import type { BaseModalProps } from '../../shared/types/component.types';
 
-interface Props {
-  isOpen: boolean;
-  onClose: () => void;
-}
-
-export function CreateAppointmentModal({ isOpen, onClose }: Props) {
+export function CreateAppointmentModal({ isOpen, onClose }: BaseModalProps) {
   const { createAppointment, fetchTimeSlots, fetchAppointmentTypes, checkInspectorAvailability, createInspectorAvailability } = useAppointments();
   const { users } = useUsers();
   const { fileNumbers, refetch: fetchFileNumbers } = useFileNumbers();
 
-  const [createForm, setCreateForm] = useState({ fileNumberId: '', appointmentDate: '', timeSlotId: '', appointmentTypeId: '', inspectorProfileId: '' });
+  const [createForm, setCreateForm] = useState({ fileId: '', appointmentDate: '', timeSlotId: '', appointmentTypeId: '', inspectorProfileId: '' });
   const [addSecondInspector, setAddSecondInspector] = useState(false);
   const [secondInspectorId, setSecondInspectorId] = useState('');
   const [createError, setCreateError] = useState<string | null>(null);
@@ -31,7 +27,7 @@ export function CreateAppointmentModal({ isOpen, onClose }: Props) {
 
   useEffect(() => {
     if (!isOpen) return;
-    setCreateForm({ fileNumberId: '', appointmentDate: '', timeSlotId: '', appointmentTypeId: '', inspectorProfileId: '' });
+    setCreateForm({ fileId: '', appointmentDate: '', timeSlotId: '', appointmentTypeId: '', inspectorProfileId: '' });
     setAddSecondInspector(false);
     setSecondInspectorId('');
     setCreateError(null);
@@ -44,22 +40,20 @@ export function CreateAppointmentModal({ isOpen, onClose }: Props) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
-  const validateCreateForm = useCallback(() => {
-    const missing: string[] = [];
-    if (!createForm.fileNumberId) missing.push('Strata');
-    if (!createForm.appointmentTypeId) missing.push('Appointment Type');
-    if (!createForm.appointmentDate) missing.push('Date');
-    if (!createForm.timeSlotId) missing.push('Time Slot');
-    if (!createForm.inspectorProfileId) missing.push('Inspector');
-    return missing;
-  }, [createForm]);
+  const isFormValid = !!(
+    createForm.fileId &&
+    createForm.appointmentTypeId &&
+    createForm.appointmentDate &&
+    createForm.timeSlotId &&
+    createForm.inspectorProfileId
+  );
 
   const submitAppointment = useCallback(async () => {
     setCreateSubmitting(true);
     setCreateError(null);
     try {
       await createAppointment({
-        fileNumberId: parseInt(createForm.fileNumberId),
+        fileId: parseInt(createForm.fileId),
         appointmentDate: createForm.appointmentDate,
         timeSlotId: parseInt(createForm.timeSlotId),
         appointmentTypeId: parseInt(createForm.appointmentTypeId),
@@ -76,8 +70,6 @@ export function CreateAppointmentModal({ isOpen, onClose }: Props) {
   }, [createForm, createAppointment, addSecondInspector, secondInspectorId, onClose]);
 
   const handleCreateAppointment = useCallback(async () => {
-    const missing = validateCreateForm();
-    if (missing.length > 0) { setCreateError(`Please select: ${missing.join(', ')}`); return; }
     setCreateSubmitting(true);
     setCreateError(null);
     try {
@@ -92,7 +84,7 @@ export function CreateAppointmentModal({ isOpen, onClose }: Props) {
       setCreateError(err instanceof Error ? err.message : 'Failed to create appointment');
       setCreateSubmitting(false);
     }
-  }, [validateCreateForm, checkInspectorAvailability, createForm, submitAppointment]);
+  }, [checkInspectorAvailability, createForm, submitAppointment]);
 
   const handleConfirmUnavailable = useCallback(async () => {
     setCreateSubmitting(true);
@@ -115,7 +107,7 @@ export function CreateAppointmentModal({ isOpen, onClose }: Props) {
       footer={showAvailabilityWarning ? undefined : (
         <>
           <button className="btn btn-secondary" onClick={onClose} disabled={createSubmitting}>Cancel</button>
-          <button className="btn btn-primary" onClick={handleCreateAppointment} disabled={createSubmitting}>
+          <button className="btn btn-primary" onClick={handleCreateAppointment} disabled={!isFormValid || createSubmitting}>
             {createSubmitting ? 'Checking...' : 'Add Appointment'}
           </button>
         </>
@@ -139,14 +131,14 @@ export function CreateAppointmentModal({ isOpen, onClose }: Props) {
             <SingleSelectDropdown
               label="Strata"
               required
-              options={fileNumbers.map(sr => ({ value: String(sr.fileNumberId), label: `${sr.strata?.strataPlan || ''} - ${sr.strata?.complexName || 'Unknown'}` }))}
-              value={createForm.fileNumberId}
-              onChange={(val) => setCreateForm(prev => ({ ...prev, fileNumberId: val }))}
+              options={fileNumbers.map(sr => ({ value: String(sr.fileId), label: `${sr.strata?.strataPlan || ''} - ${sr.strata?.complexName || 'Unknown'}` }))}
+              value={createForm.fileId}
+              onChange={(val) => setCreateForm(prev => ({ ...prev, fileId: val }))}
               placeholder="Select a strata..."
             />
 
-            {createForm.fileNumberId && (() => {
-              const sr = fileNumbers.find(s => String(s.fileNumberId) === createForm.fileNumberId);
+            {createForm.fileId && (() => {
+              const sr = fileNumbers.find(s => String(s.fileId) === createForm.fileId);
               const loc = sr?.strata?.location?.locationName;
               return loc ? (
                 <div className="form-field">

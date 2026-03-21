@@ -9,7 +9,7 @@ export const TermsOfUse: React.FC = () => {
 
             <section>
                 <p>
-                    Welcome to the Strata Reserve Planning Information Report Portal. These Terms of
+                    Welcome to the Strata Reserve Planning Data Collection Portal. These Terms of
                     Use ("Terms") constitute a legally binding agreement between you and Strata Reserve
                     Planning ("SRP", "we", "us", or "our"), a company operating under the laws of
                     British Columbia, Canada. By accessing or using the Portal, you agree to be bound

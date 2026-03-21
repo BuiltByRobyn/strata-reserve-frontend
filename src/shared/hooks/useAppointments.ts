@@ -100,6 +100,7 @@ export const useAppointments = () => {
       approvedDateChoice?: number;
       rejectionReason?: string;
       inspectorProfileId?: string;
+      secondInspectorProfileId?: string;
       comments?: string;
     }
   ): Promise<{ success: boolean; error?: string }> => {
@@ -140,7 +141,7 @@ export const useAppointments = () => {
   }, [api]);
 
   const createAppointment = useCallback(async (data: {
-    fileNumberId: number;
+    fileId: number;
     appointmentDate: string;
     timeSlotId: number;
     appointmentTypeId: number;

@@ -12,6 +12,7 @@ import { SingleSelectDropdown } from '../../shared/components/SingleSelectDropdo
 import { MultiSelectDropdown } from '../../shared/components/MultiSelectDropdown';
 import { useMediaQuery } from '../../shared/hooks/useMediaQuery';
 import type { UserWithStratas, CreateUserInput, UserFormData } from '../../shared/types/entities.types';
+import { formatPhoneNumber, validatePhoneNumber } from '../../shared/utils/strataUtils';
 
 const initialFormData: UserFormData = {
   firstName: '',
@@ -35,8 +36,11 @@ export default function UsersPage() {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState<UserWithStratas | null>(null);
   const [deleteSubmitting, setDeleteSubmitting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [formData, setFormData] = useState<UserFormData>(initialFormData);
   const [formError, setFormError] = useState<string | null>(null);
+  const [emailError, setEmailError] = useState<string | null>(null);
+  const [phoneError, setPhoneError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [viewingUser, setViewingUser] = useState<UserWithStratas | null>(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
@@ -98,6 +102,9 @@ export default function UsersPage() {
 
   const isDesktop = useMediaQuery('(min-width: 750px)');
 
+  const selectedUserType = userTypes.find(ut => ut.userTypeId === formData.userTypeId);
+  const isClientType = selectedUserType?.userTypeName?.toLowerCase().replace(/-/g, ' ') === 'client';
+
   const mobileColumns: Column<UserWithStratas>[] = [
     {
       key: 'fullName',
@@ -150,44 +157,63 @@ export default function UsersPage() {
   ];
 
   const getViewUserRows = (user: UserWithStratas): { label: string; value: string }[] => {
-    const companies = user.strataProfiles
-      ?.map(se => se.strata.company?.companyName)
-      .filter(Boolean);
-    const uniqueCompanies = companies?.length ? [...new Set(companies)] : [];
-    const associatedCompany = uniqueCompanies.length
-      ? uniqueCompanies.join(', ')
-      : (user.companyName || 'N/A');
+    const isClient = user.userType?.userTypeName?.toLowerCase().replace(/-/g, ' ') === 'client';
 
-    const associatedStrata = user.strataProfiles?.length
-      ? user.strataProfiles
-          .map(se => se.strata.complexName || se.strata.strataPlan || '')
-          .filter(Boolean)
-          .join(', ') || 'N/A'
-      : 'N/A';
-
-    const strataIds = user.strataProfiles?.length
-      ? user.strataProfiles
-          .map(se => se.strata.strataPlan ?? String(se.strata.strataId))
-          .filter(Boolean)
-          .join(', ') || 'N/A'
-      : 'N/A';
-
-    return [
+    const rows: { label: string; value: string }[] = [
       { label: 'First name', value: user.firstName ?? '-' },
       { label: 'Last name', value: user.lastName ?? '-' },
       { label: 'Email', value: user.email ?? '-' },
       { label: 'Phone Number', value: user.phoneNumber ?? '-' },
       { label: 'User Type', value: user.userType?.userTypeName ?? '-' },
-      { label: 'Associated Company', value: associatedCompany },
-      { label: 'Associated Strata', value: associatedStrata },
-      { label: 'Strata ID', value: strataIds }
     ];
+
+    if (isClient) {
+      const companies = user.strataProfiles
+        ?.map(se => se.strata.company?.companyName)
+        .filter(Boolean);
+      const uniqueCompanies = companies?.length ? [...new Set(companies)] : [];
+      const associatedCompany = uniqueCompanies.length
+        ? uniqueCompanies.join(', ')
+        : (user.companyName || 'N/A');
+
+      const associatedStrata = user.strataProfiles?.length
+        ? user.strataProfiles
+            .map(se => se.strata.complexName || se.strata.strataPlan || '')
+            .filter(Boolean)
+            .join(', ') || 'N/A'
+        : 'N/A';
+
+      const strataIds = user.strataProfiles?.length
+        ? user.strataProfiles
+            .map(se => se.strata.strataPlan ?? String(se.strata.strataId))
+            .filter(Boolean)
+            .join(', ') || 'N/A'
+        : 'N/A';
+
+      const strataRoles = user.strataProfiles?.length
+        ? user.strataProfiles
+            .map(se => se.strataPosition)
+            .filter(Boolean)
+            .join(', ') || 'N/A'
+        : 'N/A';
+
+      rows.push(
+        { label: 'Associated Company', value: associatedCompany },
+        { label: 'Associated Strata', value: associatedStrata },
+        { label: 'Strata ID', value: strataIds },
+        { label: 'Strata Role', value: strataRoles },
+      );
+    }
+
+    return rows;
   };
 
   const openCreateModal = () => {
     setEditingUser(null);
     setFormData(initialFormData);
     setFormError(null);
+    setEmailError(null);
+    setPhoneError(null);
     setIsModalOpen(true);
   };
 
@@ -219,40 +245,28 @@ export default function UsersPage() {
         : [{ strataId: 0, strataPosition: '', sectionIds: [] as number[], propertyTypeIds: [] as number[] }]
     });
     setFormError(null);
+    setEmailError(null);
+    setPhoneError(null);
     setIsModalOpen(true);
   };
 
+  const validAssociations = formData.strataAssociations.filter(sa => sa.strataId > 0);
+
+  const isFormValid =
+    !!formData.firstName.trim() &&
+    !!formData.lastName.trim() &&
+    !!formData.email.trim() &&
+    !emailError &&
+    validatePhoneNumber(formData.phoneNumber) &&
+    !phoneError &&
+    !!formData.userTypeId &&
+    (!isClientType || (
+      validAssociations.length > 0 &&
+      validAssociations.every(sa => sa.propertyTypeIds && sa.propertyTypeIds.length > 0)
+    ));
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    // Validation
-    if (!formData.firstName.trim()) {
-      setFormError('First Name is required');
-      return;
-    }
-    if (!formData.lastName.trim()) {
-      setFormError('Last Name is required');
-      return;
-    }
-    if (!formData.email.trim()) {
-      setFormError('Email is required');
-      return;
-    }
-    if (!formData.phoneNumber.trim()) {
-      setFormError('Phone Number is required');
-      return;
-    }
-    if (!formData.userTypeId) {
-      setFormError('User Type is required');
-      return;
-    }
-
-    const validAssociations = formData.strataAssociations.filter(sa => sa.strataId > 0);
-    if (validAssociations.length === 0) {
-      setFormError('At least one Strata association is required');
-      return;
-    }
-
     setIsSubmitting(true);
     setFormError(null);
 
@@ -262,7 +276,7 @@ export default function UsersPage() {
         lastName: formData.lastName.trim(),
         email: formData.email.trim(),
         phoneNumber: formData.phoneNumber.trim(),
-        userTypeId: formData.userTypeId,
+        userTypeId: formData.userTypeId!,
         companyName: formData.companyName.trim() || undefined,
         strataAssociations: validAssociations
       };
@@ -321,16 +335,17 @@ export default function UsersPage() {
   const handleDelete = async () => {
     if (!userToDelete) return;
     setDeleteSubmitting(true);
+    setDeleteError(null);
     try {
       await deleteUser(userToDelete.id);
-    } catch (err) {
-      // error is logged in the hook
-    } finally {
-      setDeleteSubmitting(false);
       setDeleteModalOpen(false);
       setIsModalOpen(false);
       setEditingUser(null);
       setUserToDelete(null);
+    } catch (err) {
+      setDeleteError(err instanceof Error ? err.message : 'Failed to delete user');
+    } finally {
+      setDeleteSubmitting(false);
     }
   };
 
@@ -373,7 +388,7 @@ export default function UsersPage() {
             label="Role"
             value={filterUserTypeId}
             onChange={(val) => setFilterUserTypeId(val)}
-            options={userTypes.map(ut => ({ value: ut.userTypeId, label: ut.userTypeName })).sort((a, b) => a.label.localeCompare(b.label))}
+            options={userTypes.map(ut => ({ value: ut.userTypeId, label: ut.userTypeName.replace(/-/g, ' ') })).sort((a, b) => a.label.localeCompare(b.label))}
             placeholder="All Roles"
           />
           <MultiSelectDropdown
@@ -416,6 +431,7 @@ export default function UsersPage() {
         onClose={() => setIsModalOpen(false)}
         title={editingUser ? 'Edit User' : 'Create New User'}
         size="large"
+        className="modal-user-form"
         footer={
           <>
             <button
@@ -436,7 +452,7 @@ export default function UsersPage() {
             <button
               className="btn-primary"
               onClick={handleSubmit}
-              disabled={isSubmitting}
+              disabled={!isFormValid || isSubmitting}
             >
               {isSubmitting ? 'Saving...' : editingUser ? 'Update User' : 'Create User'}
             </button>
@@ -469,17 +485,39 @@ export default function UsersPage() {
               type="email"
               required
               value={formData.email}
-              onChange={(e) => updateField('email', e.target.value)}
+              onChange={(e) => {
+                const val = e.target.value;
+                updateField('email', val);
+                const trimmed = val.trim();
+                if (trimmed && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
+                  setEmailError('Please enter a valid email address');
+                } else if (trimmed && users.some(u => u.id !== editingUser?.id && u.email?.toLowerCase() === trimmed.toLowerCase())) {
+                  setEmailError('A user with this email already exists');
+                } else {
+                  setEmailError(null);
+                }
+              }}
               placeholder="user@example.com"
               disabled={!!editingUser}
+              error={emailError || undefined}
             />
             <InputField
               label="Phone Number"
               type="tel"
               required
               value={formData.phoneNumber}
-              onChange={(e) => updateField('phoneNumber', e.target.value)}
-              placeholder="Enter phone number"
+              onChange={(e) => {
+                const raw = e.target.value;
+                updateField('phoneNumber', formatPhoneNumber(raw));
+                setPhoneError(/[^0-9\s]/.test(raw) ? 'Format: 778 252 9222' : null);
+              }}
+              onBlur={() => {
+                if (formData.phoneNumber && !validatePhoneNumber(formData.phoneNumber)) {
+                  setPhoneError('Format: 778 252 9222');
+                }
+              }}
+              placeholder="778 252 9222"
+              error={phoneError || undefined}
             />
           </FormRow>
 
@@ -491,20 +529,20 @@ export default function UsersPage() {
               onChange={(val) => updateField('userTypeId', val ? parseInt(val) : undefined)}
               options={userTypes.map(ut => ({
                 value: ut.userTypeId,
-                label: ut.userTypeName
+                label: ut.userTypeName.replace(/-/g, ' ')
               }))}
-              placeholder="--- Select User Type ---"
+              placeholder="Select User Type"
             />
             <InputField
-              label="Associated Company"
+              label="Strata Management Company (if applicable)"
               value={formData.companyName}
               onChange={(e) => updateField('companyName', e.target.value)}
-              placeholder="Enter company name"
+              placeholder="Enter strata management company name"
             />
           </FormRow>
 
           {/* Strata Associations */}
-          {formData.strataAssociations.map((association, index) => {
+          {isClientType && formData.strataAssociations.map((association, index) => {
             const selectedStrata = stratas.find(s => s.strataId === association.strataId);
             const otherSelectedIds = formData.strataAssociations
               .filter((_, i) => i !== index)
@@ -522,6 +560,8 @@ export default function UsersPage() {
                     onChange={(val) => {
                       updateStrataAssociation(index, 'strataId', val);
                       updateStrataAssociationSections(index, []);
+                      const newStrata = stratas.find(s => s.strataId === Number(val));
+                      updateStrataAssociationPropertyTypes(index, newStrata?.strataPropertyTypes?.map(spt => spt.propertyType.propertyTypeId) || []);
                     }}
                     options={availableStratas.map(s => ({
                       value: s.strataId,
@@ -537,38 +577,39 @@ export default function UsersPage() {
                     placeholder="Strata name"
                   />
                 </FormRow>
-                <FormRow>
-                  <MultiSelectDropdown
-                    label={`Property Types${index === 0 ? '' : ` ${index + 1}`}`}
-                    options={
-                      selectedStrata?.strataPropertyTypes?.length
-                        ? selectedStrata.strataPropertyTypes
-                            .map(spt => ({ value: spt.propertyType.propertyTypeId, label: spt.propertyType.propertyTypeName }))
-                            .sort((a, b) => a.label.localeCompare(b.label))
-                        : propertyTypes.map(pt => ({ value: pt.propertyTypeId, label: pt.propertyTypeName })).sort((a, b) => a.label.localeCompare(b.label))
-                    }
-                    selectedValues={association.propertyTypeIds || []}
-                    onChange={(values) => updateStrataAssociationPropertyTypes(index, values)}
-                    placeholder="Select property types"
-                  />
-                  <div className="form-field" style={{ display: 'flex', flexDirection: 'column' }}>
-                    <label className="field-label">Strata Role</label>
-                    <div className="role-options" style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '1.5rem', flex: 1 }}>
-                      {['Property Manager', 'Councillor'].map((r) => (
-                        <label key={r} style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.875rem', whiteSpace: 'nowrap' }}>
-                          <input
-                            type="radio"
-                            name={`role-${index}`}
-                            checked={association.strataPosition === r}
-                            onChange={() => updateStrataAssociation(index, 'strataPosition', r)}
-                            style={{ margin: 0 }}
-                          />
-                          {r}
-                        </label>
-                      ))}
+                {isClientType && (
+                  <FormRow>
+                    <MultiSelectDropdown
+                      label={`Property Types${index === 0 ? '' : ` ${index + 1}`}`}
+                      required
+                      options={
+                        (selectedStrata?.strataPropertyTypes ?? [])
+                          .map(spt => ({ value: spt.propertyType.propertyTypeId, label: spt.propertyType.propertyTypeName }))
+                          .sort((a, b) => a.label.localeCompare(b.label))
+                      }
+                      selectedValues={association.propertyTypeIds || []}
+                      onChange={(values) => updateStrataAssociationPropertyTypes(index, values)}
+                      placeholder="Select property types"
+                    />
+                    <div className="form-field" style={{ display: 'flex', flexDirection: 'column' }}>
+                      <label className="field-label">Strata Role</label>
+                      <div className="role-options" style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '1.5rem', flex: 1 }}>
+                        {['Property Manager', 'Councillor'].map((r) => (
+                          <label key={r} style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.875rem', whiteSpace: 'nowrap' }}>
+                            <input
+                              type="radio"
+                              name={`role-${index}`}
+                              checked={association.strataPosition === r}
+                              onChange={() => updateStrataAssociation(index, 'strataPosition', r)}
+                              style={{ margin: 0 }}
+                            />
+                            {r}
+                          </label>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                </FormRow>
+                  </FormRow>
+                )}
               </div>
             );
           })}
@@ -626,12 +667,12 @@ export default function UsersPage() {
 
       <Modal
         isOpen={deleteModalOpen}
-        onClose={() => { setDeleteModalOpen(false); setUserToDelete(null); }}
+        onClose={() => { setDeleteModalOpen(false); setUserToDelete(null); setDeleteError(null); }}
         title="Delete User"
         size="small"
         footer={
           <>
-            <button className="btn-secondary" onClick={() => { setDeleteModalOpen(false); setUserToDelete(null); }}>
+            <button className="btn-secondary" onClick={() => { setDeleteModalOpen(false); setUserToDelete(null); setDeleteError(null); }}>
               Cancel
             </button>
             <button
@@ -645,6 +686,7 @@ export default function UsersPage() {
         }
       >
         <div className="delete-confirmation">
+          {deleteError && <div className="form-error">{deleteError}</div>}
           <p>Are you sure you want to delete user "{userToDelete ? `${userToDelete.firstName || ''} ${userToDelete.lastName || ''}`.trim() || userToDelete.email : ''}"?</p>
           <p className="delete-warning">This action cannot be undone.</p>
         </div>
