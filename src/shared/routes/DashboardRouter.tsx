@@ -3,7 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 
 export const DashboardRouter = () => {
-  const { user, loading } = useAuth();
+  const { user, session, loading } = useAuth();
 
   if (loading) {
     return <LoadingSpinner />;
@@ -11,6 +11,10 @@ export const DashboardRouter = () => {
 
   if (!user) {
     return <Navigate to="/login" replace />;
+  }
+
+  if (session?.user?.user_metadata?.must_change_password) {
+    return <Navigate to="/set-password" replace />;
   }
 
   if (user.role === 'admin') {
