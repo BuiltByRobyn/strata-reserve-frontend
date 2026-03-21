@@ -1,4 +1,6 @@
 import { useState, type FormEvent } from 'react';
+import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import { Modal } from './Modal';
 import { useAuth } from '../contexts/AuthContext';
 import { PasswordToggleButton } from './PasswordToggleButton';
@@ -14,9 +16,9 @@ export const ChangePasswordModal = ({ isOpen, onClose }: BaseModalProps) => {
   
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
   
-  const { updatePassword, signIn, user } = useAuth();
+  const navigate = useNavigate();
+  const { updatePassword, signIn, signOut, user } = useAuth();
 
   const handleClose = () => {
     setCurrentPassword('');
@@ -26,7 +28,6 @@ export const ChangePasswordModal = ({ isOpen, onClose }: BaseModalProps) => {
     setShowNewPassword(false);
     setShowConfirmPassword(false);
     setError(null);
-    setSuccess(false);
     onClose();
   };
 
@@ -71,10 +72,12 @@ export const ChangePasswordModal = ({ isOpen, onClose }: BaseModalProps) => {
         throw authError; // Supabase errors typically have a .message property
       }
       
-      setSuccess(true);
-      setTimeout(() => {
-        handleClose();
-      }, 2000);
+      handleClose();
+      toast.success('Password changed successfully! You will be signed out shortly.', { duration: 3000 });
+      setTimeout(async () => {
+        await signOut();
+        navigate('/login');
+      }, 3000);
       
     } catch (err: any) {
       console.error('Password change error:', err);
@@ -91,35 +94,25 @@ export const ChangePasswordModal = ({ isOpen, onClose }: BaseModalProps) => {
       title="Change Password"
       footer={
         <div className="modal-footer-actions">
-          {!success && (
-            <>
-              <button
-                className="btn btn-secondary"
-                onClick={handleClose}
-                disabled={saving}
-              >
-                Cancel
-              </button>
-              <button
-                className="btn btn-primary"
-                onClick={handleSubmit}
-                disabled={saving || !currentPassword || !newPassword || !confirmPassword}
-              >
-                {saving ? 'Saving...' : 'Update Password'}
-              </button>
-            </>
-          )}
+          <button
+            className="btn btn-secondary"
+            onClick={handleClose}
+            disabled={saving}
+          >
+            Cancel
+          </button>
+          <button
+            className="btn btn-primary"
+            onClick={handleSubmit}
+            disabled={saving || !currentPassword || !newPassword || !confirmPassword}
+          >
+            {saving ? 'Saving...' : 'Update Password'}
+          </button>
         </div>
       }
     >
       <div className="change-password-form">
-        {success ? (
-          <div className="alert alert-success" style={{ textAlign: 'center', padding: '2rem' }}>
-            <strong>Password updated successfully!</strong>
-            <p style={{ marginTop: '0.5rem', marginBottom: 0 }}>You can now use your new password to log in.</p>
-          </div>
-        ) : (
-          <form className="login-form" onSubmit={handleSubmit}>
+        <form className="login-form" onSubmit={handleSubmit}>
             {error && (
               <div className="alert alert-error" style={{ marginBottom: '1rem' }}>
                 {error}
@@ -207,16 +200,10 @@ export const ChangePasswordModal = ({ isOpen, onClose }: BaseModalProps) => {
                 />
                 <PasswordToggleButton showPassword={showConfirmPassword} onToggle={() => setShowConfirmPassword(!showConfirmPassword)} />
               </div>
-              {confirmPassword && confirmPassword !== newPassword && (
-                <div style={{ color: '#ef4444', fontSize: '12px', marginTop: '0.5rem' }}>
-                  Passwords do not match.
-                </div>
-              )}
             </div>
             
             <button type="submit" style={{ display: 'none' }}>Submit</button>
           </form>
-        )}
       </div>
     </Modal>
   );

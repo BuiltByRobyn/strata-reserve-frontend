@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react';
+import { createContext, useContext, useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import type { ReactNode } from 'react';
 import type { User, Session } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabaseClient';
@@ -10,6 +10,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<AppUser | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // Incremented on every signOut so in-flight fetchUserProfile calls can detect
+  // they started before the sign-out and discard their stale result.
+  const signOutGenerationRef = useRef(0);
 
   const fetchUserProfile = async (supabaseUser: User): Promise<AppUser | null> => {
     try {
@@ -97,28 +101,31 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // callback context to avoid Navigator.locks deadlock
     const handleSession = async (session: Session | null): Promise<void> => {
       if (!isMounted) return;
-      
+
       setSession(session);
-      
+
       if (session?.user) {
         // console.log('User authenticated, fetching profile for:', session.user.email);
+        const generationAtStart = signOutGenerationRef.current;
         try {
           const appUser = await fetchUserProfile(session.user);
-          
-          if (!isMounted) return;
-          
+
+          // Discard stale result if signOut was called while we were fetching
+          if (!isMounted || signOutGenerationRef.current !== generationAtStart) return;
+
           if (!appUser) {
-            console.error('Profile not found. Signing out.');
-            await supabase.auth.signOut();
+            // Do NOT sign out here — calling signOut() destroys the session for
+            // newly invited users who are mid-way through the /auth/callback →
+            // /set-password flow. Just leave user as null so routing handles it.
+            console.error('Profile not found for user:', session.user.id);
             setUser(null);
-            setSession(null);
           } else {
             // console.log('Profile loaded:', appUser);
             setUser(appUser);
           }
         } catch (error) {
           console.error('Error fetching profile:', error);
-          if (isMounted) {
+          if (isMounted && signOutGenerationRef.current === generationAtStart) {
             setUser(null);
           }
         }
@@ -176,6 +183,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const signOut = useCallback(async () => {
+    signOutGenerationRef.current++;
     await supabase.auth.signOut();
     setUser(null);
     setSession(null);

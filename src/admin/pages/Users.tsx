@@ -147,7 +147,7 @@ export default function UsersPage() {
       header: 'Management Company',
       render: (user) => {
         const companies = user.strataProfiles
-          ?.map(se => se.strata.company?.companyName)
+          ?.map(se => se.strata.companyName)
           .filter(Boolean);
         const unique = companies?.length ? [...new Set(companies)] : [];
         if (unique.length) return unique.join(', ');
@@ -169,7 +169,7 @@ export default function UsersPage() {
 
     if (isClient) {
       const companies = user.strataProfiles
-        ?.map(se => se.strata.company?.companyName)
+        ?.map(se => se.strata.companyName)
         .filter(Boolean);
       const uniqueCompanies = companies?.length ? [...new Set(companies)] : [];
       const associatedCompany = uniqueCompanies.length
