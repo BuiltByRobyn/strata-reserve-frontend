@@ -227,7 +227,6 @@ export interface ProfileBasic {
 }
 
 export interface Profile extends ProfileBasic {
-  isAdmin: boolean | null;
   createdAt: string;
   phoneNumber: string | null;
   userTypeId: number | null;

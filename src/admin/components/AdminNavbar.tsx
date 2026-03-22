@@ -14,7 +14,7 @@ const ADMIN_NAV_ITEMS = [
 
 export const AdminNavbar = () => {
   const { user } = useAuth();
-  const adminUser = user?.role === 'admin' ? user : null;
+  const adminUser = user && user.role !== 'client' ? user : null;
 
   return (
     <Navbar

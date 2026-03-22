@@ -126,7 +126,7 @@ export const Dashboard = () => {
     fetchFileNumbers({ archived: false });
   }, [fetchFileNumbers]);
 
-  const adminName = user?.role === 'admin' ? user.fullName : 'Admin';
+  const adminName = user && user.role !== 'client' ? user.fullName : 'Admin';
 
   const getPropertyTypeNames = (ids: number[]) => ids
     .map((id) => propertyTypes.find((propertyType) => propertyType.propertyTypeId === id)?.propertyTypeName || `Type ${id}`)

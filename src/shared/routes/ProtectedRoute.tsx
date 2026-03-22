@@ -5,7 +5,7 @@ import { Unauthorized } from '../pages/Unauthorized';
 import type { ProtectedRouteProps } from '../types/component.types';
 
 export const ProtectedRoute = ({ children, requireAdmin, requireClient }: ProtectedRouteProps) => {
-  const { user, loading, isAdmin, isClient } = useAuth();
+  const { user, loading, isAdmin, isInspector, isAssistant, isClient } = useAuth();
 
   if (loading) {
     return <LoadingSpinner />;
@@ -15,7 +15,7 @@ export const ProtectedRoute = ({ children, requireAdmin, requireClient }: Protec
     return <Navigate to="/login" replace />;
   }
 
-  if (requireAdmin && !isAdmin) {
+  if (requireAdmin && !isAdmin && !isInspector && !isAssistant) {
     return <Unauthorized />;
   }
 

@@ -17,7 +17,7 @@ export const DashboardRouter = () => {
     return <Navigate to="/set-password" replace />;
   }
 
-  if (user.role === 'admin') {
+  if (user.role === 'admin' || user.role === 'inspector' || user.role === 'assistant') {
     return <Navigate to="/admin/dashboard" replace />;
   } else {
     return <Navigate to="/client/dashboard" replace />;

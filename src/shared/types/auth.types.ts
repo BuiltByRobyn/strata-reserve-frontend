@@ -11,6 +11,26 @@ export interface AdminUser {
   createdAt: string;
 }
 
+export interface InspectorUser {
+  id: string;
+  email: string;
+  role: 'inspector';
+  fullName: string;
+  firstName: string;
+  lastName: string;
+  createdAt: string;
+}
+
+export interface AssistantUser {
+  id: string;
+  email: string;
+  role: 'assistant';
+  fullName: string;
+  firstName: string;
+  lastName: string;
+  createdAt: string;
+}
+
 export interface ClientUser {
   id: string;
   email: string;
@@ -23,7 +43,7 @@ export interface ClientUser {
   createdAt: string;
 }
 
-export type AppUser = AdminUser | ClientUser;
+export type AppUser = AdminUser | InspectorUser | AssistantUser | ClientUser;
 
 export interface AuthContextType {
   user: AppUser | null;
@@ -34,5 +54,7 @@ export interface AuthContextType {
   resetPasswordForEmail: (email: string) => Promise<{ error: AuthError | null }>;
   updatePassword: (newPassword: string) => Promise<{ error: AuthError | null }>;
   isAdmin: boolean;
+  isInspector: boolean;
+  isAssistant: boolean;
   isClient: boolean;
 }

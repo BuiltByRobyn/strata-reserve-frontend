@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useState, useCallback, useMemo, u
 import type { ReactNode } from 'react';
 import type { User, Session } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabaseClient';
-import type { AppUser, AdminUser, ClientUser, AuthContextType } from '../types/auth.types';
+import type { AppUser, AdminUser, InspectorUser, AssistantUser, ClientUser, AuthContextType } from '../types/auth.types';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -37,7 +37,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       // console.log('Profile data retrieved:', profile);
 
-      if (profile.is_admin) {
+      if (profile.user_type_id === 1) {
         console.log('User is ADMIN');
         const adminUser: AdminUser = {
           id: supabaseUser.id,
@@ -50,7 +50,32 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           createdAt: supabaseUser.created_at,
         };
         return adminUser;
+      } else if (profile.user_type_id === 2) {
+        console.log('User is INSPECTOR');
+        const inspectorUser: InspectorUser = {
+          id: supabaseUser.id,
+          email: supabaseUser.email!,
+          role: 'inspector' as const,
+          fullName: profile.display_name || `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || 'Inspector',
+          firstName: profile.first_name || '',
+          lastName: profile.last_name || '',
+          createdAt: supabaseUser.created_at,
+        };
+        return inspectorUser;
+      } else if (profile.user_type_id === 4) {
+        console.log('User is ASSISTANT');
+        const assistantUser: AssistantUser = {
+          id: supabaseUser.id,
+          email: supabaseUser.email!,
+          role: 'assistant' as const,
+          fullName: profile.display_name || `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || 'Assistant',
+          firstName: profile.first_name || '',
+          lastName: profile.last_name || '',
+          createdAt: supabaseUser.created_at,
+        };
+        return assistantUser;
       } else {
+        // user_type_id === 3 (Client) or any unrecognized type
         // console.log('User is CLIENT');
 
         let strataId: number | null = null;
@@ -212,6 +237,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     resetPasswordForEmail,
     updatePassword,
     isAdmin: user?.role === 'admin',
+    isInspector: user?.role === 'inspector',
+    isAssistant: user?.role === 'assistant',
     isClient: user?.role === 'client',
   }), [user, session, loading, signIn, signOut, updatePassword, resetPasswordForEmail]);
 
