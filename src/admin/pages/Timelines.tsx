@@ -88,7 +88,6 @@ export default function TimelinesPage() {
 
       const fiscalDate = parseLocalDate(sr.fiscalYearEnd);
       const lastAgm = parseLocalDate(sr.lastAgmDate);
-      const lastReport = parseLocalDate(sr.lastDepreciationReportDate);
       const target = parseLocalDate(sr.targetDate);
 
       // Fiscal Year Start

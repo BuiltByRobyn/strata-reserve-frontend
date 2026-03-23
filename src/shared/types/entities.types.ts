@@ -246,6 +246,10 @@ export interface UpdateProfileInput {
   phoneNumber?: string;
 }
 
+export interface Company {
+  companyName: string;
+}
+
 export interface CompanyWithStratas extends Company {
   stratas: Strata[];
 }

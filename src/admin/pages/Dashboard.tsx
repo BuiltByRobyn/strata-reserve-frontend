@@ -491,7 +491,7 @@ export const Dashboard = () => {
             </div>
           ) : (
             <div className="dashboard-appointments-grid">
-              {upcomingTargetDates.map(({ fn, date }) => (
+              {upcomingTargetDates.map(({ fn }) => (
                 <div key={fn.fileId} className="appointment-card">
                   <span className="appointment-card__time">{formatShortDate(fn.targetDate)}</span>
                   <h3 className="appointment-card__title">{fn.strata?.complexName || fn.strata?.strataPlan || 'Unknown'}</h3>
@@ -568,7 +568,7 @@ export const Dashboard = () => {
         isOpen={availabilityModalOpen}
         onClose={() => setAvailabilityModalOpen(false)}
         initialData={null}
-        onSubmitCreate={createAvailableDate}
+        onSubmitBulkCreate={async (inputs) => { for (const input of inputs) { await createAvailableDate(input); } }}
         onSubmitUpdate={() => Promise.resolve()}
         onDeleteClick={() => {}}
       />

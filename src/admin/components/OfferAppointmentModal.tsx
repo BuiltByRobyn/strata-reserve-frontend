@@ -82,7 +82,7 @@ export const OfferAppointmentModal = ({
     try {
       // Update strata location if changed
       if (locationId !== initialLocationId) {
-        await onUpdateLocation(strataId, locationId);
+        await onUpdateLocation(strataId, locationId!);
       }
       if (notes.trim() && onAddNote) {
         await onAddNote(notes.trim());
