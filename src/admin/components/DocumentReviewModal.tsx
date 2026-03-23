@@ -98,7 +98,7 @@ export function DocumentReviewModal({
 
     fetchPreview();
     return () => { cancelled = true; };
-  }, [isOpen, currentIndex, token, review]);
+  }, [isOpen, currentIndex, token, review, docRequirements]);
 
   useEffect(() => {
     return () => cleanupBlob(blobUrl);
@@ -165,7 +165,7 @@ export function DocumentReviewModal({
     }
   };
 
-  const footer = review ? (
+  const footer = loading ? null : review ? (
     <button className="btn-secondary" onClick={handleClose}>Close</button>
   ) : (
     <div className="doc-review-actions">

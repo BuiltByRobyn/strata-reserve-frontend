@@ -98,13 +98,15 @@ export const Dashboard = () => {
     );
   }, [clientPropertyTypeIds, requiredDocuments]);
 
-  const requiredDocumentCount = useMemo(
-    () => filteredRequiredDocuments.filter((doc) => doc.isRequired).length,
+  const requiredDocumentCount = filteredRequiredDocuments.length;
+
+  const uploadedRequiredDocumentCount = useMemo(
+    () => filteredRequiredDocuments.filter((doc) => doc.uploadedDocument).length,
     [filteredRequiredDocuments],
   );
 
-  const uploadedRequiredDocumentCount = useMemo(
-    () => filteredRequiredDocuments.filter((doc) => doc.isRequired && doc.uploadedDocument).length,
+  const acknowledgedDocumentCount = useMemo(
+    () => filteredRequiredDocuments.filter((doc) => doc.uploadedDocument || doc.naStatus).length,
     [filteredRequiredDocuments],
   );
 
@@ -132,13 +134,25 @@ export const Dashboard = () => {
   const answeredSurveyQuestions = sectionProgress.reduce((acc, s) => acc + s.answered, 0);
   const timelineTargetDate = timelines?.targetDate || activeRequest?.targetDate || null;
 
-  const overallPct = useMemo(() => {
-    const total = totalSurveyQuestions + requiredDocumentCount;
-    if (total === 0) return 0;
-    return Math.round(((answeredSurveyQuestions + uploadedRequiredDocumentCount) / total) * 100);
-  }, [answeredSurveyQuestions, totalSurveyQuestions, uploadedRequiredDocumentCount, requiredDocumentCount]);
+  const TIMELINE_FIELD_COUNT = 4;
 
-  const surveyCompleted = totalSurveyQuestions > 0 && answeredSurveyQuestions >= totalSurveyQuestions;
+  const completedTimelines = useMemo(() => {
+    if (!timelines) return 0;
+    let count = 0;
+    if (timelines.fiscalYearEnd) count++;
+    if (timelines.lastAgmDate || timelines.noAgmToDate) count++;
+    if (timelines.lastDepreciationReportDate || timelines.noReportToDate) count++;
+    if (timelines.targetDate) count++;
+    return count;
+  }, [timelines]);
+
+  const overallPct = useMemo(() => {
+    const total = totalSurveyQuestions + requiredDocumentCount + TIMELINE_FIELD_COUNT;
+    if (total === 0) return 0;
+    return Math.round(((answeredSurveyQuestions + acknowledgedDocumentCount + completedTimelines) / total) * 100);
+  }, [answeredSurveyQuestions, totalSurveyQuestions, acknowledgedDocumentCount, requiredDocumentCount, completedTimelines]);
+
+  const surveyCompleted = !!activeRequest?.submittedForReviewDate;
   const documentsCompleted = requiredDocumentCount > 0 && missingRequiredDocumentCount === 0;
 
   const tasks = useMemo(() => {
@@ -251,9 +265,8 @@ export const Dashboard = () => {
           {totalSurveyQuestions > 0 && (
             <span>Questions: {answeredSurveyQuestions}/{totalSurveyQuestions} completed</span>
           )}
-          {requiredDocumentCount > 0 && (
-            <span>Documents: {uploadedRequiredDocumentCount}/{requiredDocumentCount} uploaded</span>
-          )}
+          <span>Documents: {acknowledgedDocumentCount}/{requiredDocumentCount} submitted</span>
+          <span>Timelines: {completedTimelines}/{TIMELINE_FIELD_COUNT} completed</span>
         </div>
       </div>
 

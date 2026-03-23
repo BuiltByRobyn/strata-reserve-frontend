@@ -1,4 +1,8 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { DndContext, closestCenter } from '@dnd-kit/core';
+import { SortableContext, useSortable, arrayMove, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import type { DragEndEvent } from '@dnd-kit/core';
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import toast from "react-hot-toast";
 import { useStrata } from "../../shared/hooks/useStrata";
@@ -57,6 +61,22 @@ const INITIAL_SR_FORM: CreateSRFormData = {
   fileNumber: "",
   serviceId: "",
 };
+
+function SortableSurveyQuestionItem({ id, text }: { id: number; text: string }) {
+  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id });
+  return (
+    <div
+      ref={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform), transition, cursor: 'grab' }}
+      className="sortable-survey-question-item"
+      {...attributes}
+      {...listeners}
+    >
+      <span className="drag-handle">⠿</span>
+      <span>{text}</span>
+    </div>
+  );
+}
 
 export default function StrataDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -158,6 +178,9 @@ export default function StrataDetailPage() {
   const [surveyReqSaving, setSurveyReqSaving] = useState(false);
   const [surveyReqFormData, setSurveyReqFormData] = useState<Record<number, number[]>>({});
   const [surveyReqInitialData, setSurveyReqInitialData] = useState<Record<number, number[]>>({});
+  const [surveyReqSortOrders, setSurveyReqSortOrders] = useState<Record<string, number[]>>({});
+  const [surveyConfigStep, setSurveyConfigStep] = useState<'select' | number>('select');
+  const [surveyReorderOpen, setSurveyReorderOpen] = useState<Record<string, boolean>>({});
 
   const [downloadingDocs, setDownloadingDocs] = useState(false);
   const [downloadingSurveyPdf, setDownloadingSurveyPdf] = useState(false);
@@ -234,6 +257,7 @@ export default function StrataDetailPage() {
         activeSurvey.fetchArchivedResponses(activeRequest.fileId),
         fetchDocRequirements(activeRequest.fileId),
         fetchSurveyRequirements(activeRequest.fileId),
+        fetchReview(activeRequest.fileId),
       ]).finally(() => setDataReady(true));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -495,24 +519,36 @@ export default function StrataDetailPage() {
 
   const openSurveyReqModal = () => {
     const formData: Record<number, number[]> = {};
+    const initialSortOrders: Record<string, number[]> = {};
     const existingQuestions = activeSurvey.questions;
 
     for (const spt of strata?.strataPropertyTypes ?? []) {
       const ptId = spt.propertyType.propertyTypeId;
       if (existingQuestions.length > 0) {
-        const ptQuestionIds = existingQuestions
-          .filter(q => q.propertyTypeId === ptId && q.parentQuestionId == null)
-          .map(q => q.questionId);
-        formData[ptId] = [...new Set(ptQuestionIds)];
+        const ptQuestions = existingQuestions.filter(q => q.propertyTypeId === ptId && q.parentQuestionId == null);
+        formData[ptId] = [...new Set(ptQuestions.map(q => q.questionId))];
+        const categories = [...new Set(ptQuestions.map(q => q.questionCategory))];
+        for (const cat of categories) {
+          initialSortOrders[`${ptId}:${cat}`] = ptQuestions
+            .filter(q => q.questionCategory === cat)
+            .sort((a, b) => a.sortOrder - b.sortOrder)
+            .map(q => q.questionId);
+        }
       } else {
-        formData[ptId] = allQuestions
-          .filter(q => q.parentQuestionId == null && q.questionPropertyTypes.some(qpt => qpt.propertyTypeId === ptId))
-          .map(q => q.questionId);
+        const defaultQs = allQuestions.filter(q => q.parentQuestionId == null && (q.questionPropertyTypes.length === 0 || q.questionPropertyTypes.some(qpt => qpt.propertyTypeId === ptId)));
+        formData[ptId] = defaultQs.map(q => q.questionId);
+        const categories = [...new Set(defaultQs.map(q => q.questionCategory))];
+        for (const cat of categories) {
+          initialSortOrders[`${ptId}:${cat}`] = defaultQs.filter(q => q.questionCategory === cat).map(q => q.questionId);
+        }
       }
     }
 
     setSurveyReqFormData(formData);
     setSurveyReqInitialData(formData);
+    setSurveyReqSortOrders(initialSortOrders);
+    setSurveyConfigStep('select');
+    setSurveyReorderOpen({});
     setSurveyReqModalOpen(true);
   };
 
@@ -588,13 +624,29 @@ export default function StrataDetailPage() {
   const handleSaveSurveyRequirements = async () => {
     if (!activeRequest) return;
     setSurveyReqSaving(true);
+    const availableQuestions = allQuestions.filter(q => q.parentQuestionId == null);
+    const allCategories = [...new Set(availableQuestions.map(q => q.questionCategory))].sort();
     try {
       const selections = Object.entries(surveyReqFormData)
         .filter(([, questionIds]) => questionIds.length > 0)
-        .map(([propertyTypeId, questionIds]) => ({
-          propertyTypeId: parseInt(propertyTypeId),
-          questionIds,
-        }));
+        .map(([propertyTypeId, questionIds]) => {
+          const ptId = parseInt(propertyTypeId);
+          const finalOrder: number[] = [];
+          for (const cat of allCategories) {
+            const key = `${ptId}:${cat}`;
+            const catOrdered = (surveyReqSortOrders[key] ?? []).filter(id => questionIds.includes(id));
+            const catUnordered = questionIds.filter(id =>
+              !catOrdered.includes(id) &&
+              availableQuestions.find(q => q.questionId === id && q.questionCategory === cat)
+            );
+            finalOrder.push(...catOrdered, ...catUnordered);
+          }
+          const uncategorized = questionIds.filter(id => !finalOrder.includes(id));
+          return {
+            propertyTypeId: ptId,
+            questions: [...finalOrder, ...uncategorized].map((id, idx) => ({ id, sortOrder: idx + 1 })),
+          };
+        });
 
       const res = await authFetch(
         `${API_BASE}/admin/file-numbers/${activeRequest.fileId}/survey-requirements`,
@@ -606,8 +658,10 @@ export default function StrataDetailPage() {
       );
       const data = await res.json();
       if (data.success) {
-        fetchSurveyRequirements(activeRequest.fileId);
-        activeSurvey.fetchQuestions(activeRequest.fileId);
+        await Promise.all([
+          fetchSurveyRequirements(activeRequest.fileId),
+          activeSurvey.fetchQuestions(activeRequest.fileId),
+        ]);
       }
       setSurveyReqModalOpen(false);
     } catch {
@@ -808,7 +862,10 @@ export default function StrataDetailPage() {
                       const subQuestions = subQuestionsMap.get(`${q.questionId}-${ptId}`) ?? [];
                       return (
                         <div key={q.fnSurveyQuestionId} className="admin-answer-item">
-                          <div className="answer-question">{q.questionText}</div>
+                          <div className="answer-question">
+                            {q.questionText}
+                            {q.isRequired && <span className="required-mark">*</span>}
+                          </div>
                           <div className="answer-response">{renderAnswerValue(q, getResponse)}</div>
                           {subQuestions.length > 0 && (
                             <div className="admin-sub-answers">
@@ -1176,7 +1233,10 @@ export default function StrataDetailPage() {
                               );
                               return (
                                 <div key={questionId} className="admin-answer-item archived-answer-group">
-                                  <div className="answer-question">{q.questionText}</div>
+                                  <div className="answer-question">
+                                    {q.questionText}
+                                    {q.isRequired && <span className="required-mark">*</span>}
+                                  </div>
                                   {sorted.map(resp => (
                                     <div key={resp.responseId} className="archived-response-entry">
                                       <div className="archived-response-header">
@@ -1264,7 +1324,16 @@ export default function StrataDetailPage() {
                                             >
                                               {latestDoc.fileName}
                                             </button>
-                                            <span className="status-badge pending">Pending Review</span>
+                                            {(() => {
+                                              const reviewItem = docReview?.items?.find(i => i.fnDocRequirementId === r.fnDocRequirementId);
+                                              return reviewItem ? (
+                                                <span className={`status-badge ${reviewItem.reviewStatus.statusName.toLowerCase().replace(/\s+/g, '-')}`}>
+                                                  {reviewItem.reviewStatus.statusName}
+                                                </span>
+                                              ) : (
+                                                <span className="status-badge pending">Pending Review</span>
+                                              );
+                                            })()}
                                           </div>
                                         ) : naStatus ? (
                                           <span className="status-badge na-status">
@@ -1853,7 +1922,11 @@ export default function StrataDetailPage() {
           const ok = await submitReview(fileId, input);
           if (ok) {
             setDocReviewModalOpen(false);
-            if (activeRequest) fetchDocRequirements(activeRequest.fileId);
+            if (activeRequest) {
+              fetchDocRequirements(activeRequest.fileId);
+              fetchReview(activeRequest.fileId);
+            }
+            setOfferModalOpen(true);
           }
         }}
       />
@@ -1865,73 +1938,153 @@ export default function StrataDetailPage() {
         size="large"
         className="modal-configure-surveys"
         footer={
-          <>
-            <button className="btn-secondary" onClick={() => setSurveyReqModalOpen(false)}>
-              Cancel
-            </button>
-            <button
-              className="btn-primary"
-              onClick={handleSaveSurveyRequirements}
-              disabled={surveyReqSaving}
-            >
-              {surveyReqSaving ? "Saving..." : "Save Configuration"}
-            </button>
-          </>
+          surveyConfigStep === 'select' ? (
+            <>
+              <button className="btn-secondary" onClick={() => setSurveyReqModalOpen(false)}>Cancel</button>
+              <button className="btn-primary" onClick={() => setSurveyConfigStep(0)}>Next</button>
+            </>
+          ) : (
+            <>
+              <button className="btn-secondary" onClick={() => setSurveyConfigStep((surveyConfigStep as number) === 0 ? 'select' : (surveyConfigStep as number) - 1)}>Back</button>
+              {(surveyConfigStep as number) < (strata?.strataPropertyTypes ?? []).length - 1 ? (
+                <button className="btn-primary" onClick={() => setSurveyConfigStep((surveyConfigStep as number) + 1)}>Next</button>
+              ) : (
+                <button className="btn-primary" onClick={handleSaveSurveyRequirements} disabled={surveyReqSaving}>
+                  {surveyReqSaving ? 'Saving...' : 'Save Configuration'}
+                </button>
+              )}
+            </>
+          )
         }
       >
         <div className="doc-req-modal-body">
           {(strata?.strataPropertyTypes ?? []).length === 0 ? (
             <p className="notes-empty">No property types assigned to this strata. Assign property types first.</p>
-          ) : (
-            (strata?.strataPropertyTypes ?? []).map(spt => {
-              const ptId = spt.propertyType.propertyTypeId;
-              const availableQuestions = allQuestions.filter(q =>
-                q.parentQuestionId == null
-              );
+          ) : surveyConfigStep === 'select' ? (
+            <div className="doc-req-wizard">
+              <p className="doc-req-wizard__subtitle">Select which questions to include for each property type.</p>
+              {(strata?.strataPropertyTypes ?? []).map(spt => {
+                const ptId = spt.propertyType.propertyTypeId;
+                const availableQuestions = allQuestions.filter(q => q.parentQuestionId == null);
+                const allCategories = [...new Set(availableQuestions.map(q => q.questionCategory))];
+                const selectedIds = surveyReqFormData[ptId] ?? [];
 
-              const handleSelectAll = () => {
-                setSurveyReqFormData(prev => ({
-                  ...prev,
-                  [ptId]: availableQuestions.map(q => q.questionId)
-                }));
-              };
+                const handleChange = (values: number[]) => {
+                  setSurveyReqFormData(prev => ({ ...prev, [ptId]: values }));
+                  setSurveyReqSortOrders(prev => {
+                    const updated = { ...prev };
+                    for (const cat of allCategories) {
+                      const key = `${ptId}:${cat}`;
+                      const catQIds = availableQuestions.filter(q => q.questionCategory === cat).map(q => q.questionId);
+                      const kept = (prev[key] ?? []).filter(id => values.includes(id) && catQIds.includes(id));
+                      const added = values.filter(id => catQIds.includes(id) && !kept.includes(id));
+                      updated[key] = [...kept, ...added];
+                    }
+                    return updated;
+                  });
+                };
 
-              const handleDeselectAll = () => {
-                setSurveyReqFormData(prev => ({
-                  ...prev,
-                  [ptId]: []
-                }));
-              };
-
-              return (
-                <div key={ptId} className="doc-req-section">
-                  <div className="doc-req-section-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                    <h3 className="doc-req-section-title" style={{ margin: 0 }}>{spt.propertyType.propertyTypeName}</h3>
-                    <div className="doc-req-section-actions">
-                      <button className="btn-text-primary" style={{ marginRight: '0.5rem' }} onClick={handleSelectAll}>Select All</button>
-                      <button className="btn-text-primary" style={{ marginRight: '0.5rem' }} onClick={handleDeselectAll}>Deselect All</button>
-                      <button className="btn-text-primary" onClick={() => setSurveyReqFormData(prev => ({ ...prev, [ptId]: surveyReqInitialData[ptId] ?? [] }))}>Revert to Initial</button>
+                return (
+                  <div key={ptId} className="doc-req-section">
+                    <div className="doc-req-section-header">
+                      <h3 className="doc-req-section-title">{spt.propertyType.propertyTypeName}</h3>
+                      <div className="doc-req-section-actions">
+                        <button className="btn-text-primary" onClick={() => handleChange(availableQuestions.map(q => q.questionId))}>Select All</button>
+                        <button className="btn-text-primary" onClick={() => handleChange([])}>Deselect All</button>
+                        <button className="btn-text-primary" onClick={() => handleChange(
+                          allQuestions
+                            .filter(q => q.parentQuestionId == null && (q.questionPropertyTypes.length === 0 || q.questionPropertyTypes.some(qpt => qpt.propertyTypeId === ptId)))
+                            .map(q => q.questionId)
+                        )}>Revert to Initial</button>
+                      </div>
                     </div>
+                    <MultiSelectDropdown
+                      label=""
+                      searchable
+                      options={availableQuestions.map(q => ({
+                        value: q.questionId,
+                        label: `[${q.questionCategory}] ${q.questionText}`,
+                        isTemplate: q.questionPropertyTypes.some(qpt => qpt.propertyTypeId === ptId),
+                      })).sort((a, b) => {
+                        if (a.isTemplate !== b.isTemplate) return a.isTemplate ? -1 : 1;
+                        return a.label.localeCompare(b.label);
+                      }).map(({ value, label }) => ({ value, label }))}
+                      selectedValues={selectedIds}
+                      onChange={handleChange}
+                      placeholder="Select questions for this property type"
+                    />
                   </div>
-                  <MultiSelectDropdown
-                    label="Required Questions"
-                    searchable
-                    options={availableQuestions.map(q => ({
-                      value: q.questionId,
-                      label: `[${q.questionCategory}] ${q.questionText}`,
-                      isTemplate: q.questionPropertyTypes.some(qpt => qpt.propertyTypeId === ptId)
-                    })).sort((a, b) => {
-                      if (a.isTemplate !== b.isTemplate) return a.isTemplate ? -1 : 1;
-                      return a.label.localeCompare(b.label);
-                    }).map(({ value, label }) => ({ value, label }))}
-                    selectedValues={surveyReqFormData[ptId] ?? []}
-                    onChange={(values) => setSurveyReqFormData(prev => ({ ...prev, [ptId]: values }))}
-                    placeholder="Select questions for this property type"
-                  />
-                </div>
-              );
-            })
-          )}
+                );
+              })}
+            </div>
+          ) : (() => {
+            const spt = (strata?.strataPropertyTypes ?? [])[surveyConfigStep as number];
+            if (!spt) return null;
+            const ptId = spt.propertyType.propertyTypeId;
+            const availableQuestions = allQuestions.filter(q => q.parentQuestionId == null);
+            const selectedIds = surveyReqFormData[ptId] ?? [];
+            const selectedQuestions = availableQuestions.filter(q => selectedIds.includes(q.questionId));
+            const categories = [...new Set(selectedQuestions.map(q => q.questionCategory))].sort();
+
+            return (
+              <div>
+                <h3 className="doc-req-wizard__pt-heading">{spt.propertyType.propertyTypeName}</h3>
+                {selectedIds.length === 0 ? (
+                  <p className="notes-empty">No questions selected for this property type. Go back to add questions.</p>
+                ) : (
+                  categories.map(category => {
+                    const catQuestions = availableQuestions.filter(q => q.questionCategory === category);
+                    const catSelectedIds = selectedIds.filter(id => catQuestions.some(q => q.questionId === id));
+                    const key = `${ptId}:${category}`;
+                    const isOpen = surveyReorderOpen[key] ?? false;
+                    const orderedIds = (surveyReqSortOrders[key] ?? [])
+                      .filter(id => catSelectedIds.includes(id))
+                      .concat(catSelectedIds.filter(id => !(surveyReqSortOrders[key] ?? []).includes(id)));
+
+                    const handleDragEnd = (event: DragEndEvent) => {
+                      const { active, over } = event;
+                      if (!over || active.id === over.id) return;
+                      setSurveyReqSortOrders(prev => {
+                        const items = [...orderedIds];
+                        const oldIdx = items.indexOf(Number(active.id));
+                        const newIdx = items.indexOf(Number(over.id));
+                        return { ...prev, [key]: arrayMove(items, oldIdx, newIdx) };
+                      });
+                    };
+
+                    return (
+                      <div key={category} className="survey-category-section">
+                        <div className="survey-category-header">
+                          <span className="survey-category-label">{category} ({catSelectedIds.length})</span>
+                          <button
+                            className="btn-text-primary"
+                            onClick={() => setSurveyReorderOpen(prev => ({ ...prev, [key]: !prev[key] }))}
+                          >
+                            {isOpen ? '▲ Close order' : '▼ Set order'}
+                          </button>
+                        </div>
+                        {isOpen && (
+                          <div className="survey-sort-order">
+                            <p className="survey-sort-order-label">Drag to set display order:</p>
+                            <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                              <SortableContext items={orderedIds} strategy={verticalListSortingStrategy}>
+                                {orderedIds.map(id => {
+                                  const q = catQuestions.find(q => q.questionId === id);
+                                  return q ? (
+                                    <SortableSurveyQuestionItem key={id} id={id} text={q.questionText} />
+                                  ) : null;
+                                })}
+                              </SortableContext>
+                            </DndContext>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            );
+          })()}
         </div>
       </Modal>
 

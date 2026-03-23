@@ -232,6 +232,10 @@ export interface BaseModalProps {
   onClose: () => void;
 }
 
+export interface CreateQuestionModalProps extends BaseModalProps {
+  parentQuestionId?: number | null;
+}
+
 export interface ToastProps {
   message: string | null;
   onDismiss: () => void;

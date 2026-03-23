@@ -41,6 +41,8 @@ export default function SurveyPage() {
 
   const formatAnswer = (q: SurveyQuestion, response: SurveyResponse | undefined): string => {
     if (!response) return '—';
+    if (response.responseText === 'NOT_APPLICABLE') return 'Not Applicable';
+    if (response.responseText === 'UNKNOWN') return 'Unknown';
     if (q.questionType === 'boolean') {
       return response.responseBoolean === true ? 'Yes' : response.responseBoolean === false ? 'No' : '—';
     }
@@ -61,10 +63,14 @@ export default function SurveyPage() {
   };
 
   useEffect(() => {
-    if (isSubmitted) {
-      setShowThankYou(true);
+    if (isSubmitted && fileId) {
+      const key = `survey_thanked_${fileId}`;
+      if (!localStorage.getItem(key)) {
+        setShowThankYou(true);
+        localStorage.setItem(key, 'true');
+      }
     }
-  }, [isSubmitted]);
+  }, [isSubmitted, fileId]);
 
   useEffect(() => {
     if (location.state?.fromTimelines) {
@@ -94,8 +100,11 @@ export default function SurveyPage() {
     return { total: sectionQuestions.length, answered };
   };
 
-  const totalQuestions = questions.length;
-  const totalAnswered = responses.length;
+  const parentQuestionKeys = new Set(
+    questions.filter(q => q.parentQuestionId == null).map(q => `${q.questionId}-${q.propertyTypeId}`)
+  );
+  const totalQuestions = parentQuestionKeys.size;
+  const totalAnswered = responses.filter(r => parentQuestionKeys.has(`${r.questionId}-${r.propertyTypeId}`)).length;
 
   const isSectionComplete = (sectionKey: string) => {
     const { total, answered } = getSectionQuestionCount(sectionKey);
@@ -106,7 +115,10 @@ export default function SurveyPage() {
     if (!fileId) return;
     setDownloadingPdf(true);
     try {
-      const res = await api.rawFetch('/client/file-numbers/active/survey/pdf');
+      const url = isSubmitted
+        ? '/client/file-numbers/active/survey/pdf'
+        : '/client/file-numbers/active/survey/pdf?blank=true';
+      const res = await api.rawFetch(url);
       if (!res.ok) {
         let message = `Download failed (${res.status})`;
         try {
@@ -152,7 +164,7 @@ export default function SurveyPage() {
             onClick={handleDownloadPdf}
             disabled={!fileId || downloadingPdf}
           >
-            {downloadingPdf ? 'Downloading...' : isSubmitted ? 'Download Completed Survey' : 'Download Survey'}
+            {downloadingPdf ? 'Downloading...' : isSubmitted ? 'Download Submitted Answers' : 'Download Survey'}
           </button>
         )}
       </div>
@@ -224,6 +236,12 @@ export default function SurveyPage() {
         })}
       </div>
 
+      {isSubmitted && (
+        <p className="survey-change-note">
+          If you need to change your answers, please email clientcare@stratareserveplanning.com
+        </p>
+      )}
+
       <Modal
         isOpen={showThankYou}
         onClose={() => setShowThankYou(false)}
@@ -236,7 +254,9 @@ export default function SurveyPage() {
         }
       >
         <div className="thank-you-content">
-          <p>Thank you for submitting your survey answers. Please submit your documents to finalize your report.</p>
+          <p>
+            Thank you for submitting your survey answers. Once your documents are also finalized, a strata reserve planning team member will review your submissions within 3–5 business days.
+          </p>
         </div>
       </Modal>
     </div>

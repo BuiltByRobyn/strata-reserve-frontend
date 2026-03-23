@@ -1,13 +1,13 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { useSurvey } from '../../shared/hooks/useSurvey';
 import { useClientFileNumber } from '../../shared/hooks/useClientFileNumber';
-// import { useApiClient } from '../../shared/hooks/useApiClient';
+import { useApiClient } from '../../shared/hooks/useApiClient';
 import { SurveyProgressBar } from '../../shared/components/SurveyProgressBar';
 import { SurveyCategoryNav } from '../../shared/components/SurveyCategoryNav';
 import { LoadingSpinner } from '../../shared/components/LoadingSpinner';
-// import { getFilenameFromDisposition, triggerBlobDownload } from '../../shared/utils/fileUtils';
+import { getFilenameFromDisposition, triggerBlobDownload } from '../../shared/utils/fileUtils';
 import {
   SURVEY_SECTIONS,
 } from '../../shared/types/survey.types';
@@ -29,7 +29,7 @@ export default function SurveySectionPage() {
     saveResponses,
     getResponseForQuestion,
   } = useSurvey();
-  // const api = useApiClient();
+  const api = useApiClient();
 
   const isReadOnly = !!activeRequest?.submittedForReviewDate;
 
@@ -37,9 +37,7 @@ export default function SurveySectionPage() {
   const [localAnswers, setLocalAnswers] = useState<Record<string, SaveResponsePayload>>({});
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
-  // const [downloadingPdf, setDownloadingPdf] = useState(false);
-  const prevPageRef = useRef(page);
-  const prevSectionRef = useRef(section);
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
 
   useEffect(() => {
     if (fileId) {
@@ -69,7 +67,7 @@ export default function SurveySectionPage() {
   }
 
   const requiredSections = SURVEY_SECTIONS.filter(s =>
-    allQuestions.some(q => q.questionCategory === s.label)
+    allQuestions.some(q => q.questionCategory === s.label && q.parentQuestionId == null)
   );
 
   const totalPages = Math.ceil(sectionQuestions.length / QUESTIONS_PER_PAGE);
@@ -82,8 +80,11 @@ export default function SurveySectionPage() {
   const currentSectionIdx = requiredSections.findIndex(s => s.key === section);
   const isLastSection = currentSectionIdx >= requiredSections.length - 1;
 
-  const totalAnswered = responses.length;
-  const totalQuestions = allQuestions.length;
+  const parentQuestionKeys = new Set(
+    allQuestions.filter(q => q.parentQuestionId == null).map(q => `${q.questionId}-${q.propertyTypeId}`)
+  );
+  const totalQuestions = parentQuestionKeys.size;
+  const totalAnswered = responses.filter(r => parentQuestionKeys.has(`${r.questionId}-${r.propertyTypeId}`)).length;
 
   const buildPendingPayloads = useCallback(() => {
     return Object.values(localAnswers).filter(a => {
@@ -106,13 +107,6 @@ export default function SurveySectionPage() {
     }
   }, [fileId, buildPendingPayloads, saveResponses]);
 
-  useEffect(() => {
-    if (prevPageRef.current !== page || prevSectionRef.current !== section) {
-      prevPageRef.current = page;
-      prevSectionRef.current = section;
-    }
-  }, [page, section]);
-
   // Reset to first page when navigating to a new section
   useEffect(() => {
     setPage(0);
@@ -132,7 +126,8 @@ export default function SurveySectionPage() {
 
   const handleSave = async () => {
     await saveCurrent();
-    navigate('/client/dashboard');
+    toast('Your answers have been saved but not yet finalized, and can still be edited.', { icon: 'ℹ️' });
+    navigate('/client/survey');
   };
 
   const handleSaveAndSubmit = async () => {
@@ -150,30 +145,55 @@ export default function SurveySectionPage() {
     }
   };
 
-  // const handleDownloadPdf = async () => {
-  //   if (!fileId) return;
-  //   setDownloadingPdf(true);
-  //   try {
-  //     const res = await api.rawFetch('/client/file-numbers/active/survey/pdf');
-  //     if (!res.ok) {
-  //       let message = `Download failed (${res.status})`;
-  //       try {
-  //         const data = await res.json();
-  //         if (data?.error) message = data.error;
-  //       } catch { /* ignore */ }
-  //       throw new Error(message);
-  //     }
-  //     const blob = await res.blob();
-  //     const filename =
-  //       getFilenameFromDisposition(res.headers.get('Content-Disposition')) ||
-  //       `Survey-Answers-${activeRequest?.strata?.strataPlan || 'Survey'}.pdf`;
-  //     triggerBlobDownload(blob, filename);
-  //   } catch (err) {
-  //     toast.error(err instanceof Error ? err.message : 'Download failed');
-  //   } finally {
-  //     setDownloadingPdf(false);
-  //   }
-  // };
+  const handleToggleFlag = useCallback((questionId: number, propertyTypeId: number, flag: 'NOT_APPLICABLE' | 'UNKNOWN') => {
+    const key = `${questionId}-${propertyTypeId}`;
+    setLocalAnswers(prev => {
+      const current = prev[key]?.responseText;
+      return {
+        ...prev,
+        [key]: {
+          questionId,
+          propertyTypeId,
+          responseText: current === flag ? null : flag,
+          responseNumber: null,
+          responseBoolean: null,
+          responseDate: null,
+          multipleChoiceOptionId: null,
+        },
+      };
+    });
+  }, []);
+
+  const handleSaveAndDownload = async () => {
+    if (!fileId) return;
+    await saveCurrent();
+    setDownloadingPdf(true);
+    try {
+      const res = await api.rawFetch('/client/file-numbers/active/survey/pdf');
+      if (!res.ok) {
+        let message = `Download failed (${res.status})`;
+        try {
+          const data = await res.json();
+          if (data?.error) message = data.error;
+        } catch { /* ignore */ }
+        throw new Error(message);
+      }
+      const blob = await res.blob();
+      const filename =
+        getFilenameFromDisposition(res.headers.get('Content-Disposition')) ||
+        `Survey-Answers-${activeRequest?.strata?.strataPlan || 'Survey'}.pdf`;
+      triggerBlobDownload(blob, filename);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Download failed');
+    } finally {
+      setDownloadingPdf(false);
+    }
+  };
+
+  const handleManualSave = async () => {
+    await saveCurrent();
+    toast.success('Progress saved!');
+  };
 
   const updateAnswer = (questionId: number, propertyTypeId: number, field: keyof SaveResponsePayload, value: unknown) => {
     const key = `${questionId}-${propertyTypeId}`;
@@ -220,7 +240,6 @@ export default function SurveySectionPage() {
       <div key={q.fnSurveyQuestionId} className="survey-sub-question">
         <label className="question-label">
           <span className="sub-label-badge">{String.fromCharCode(97 + index)}.</span> {q.questionText}
-          {q.isRequired && <span className="required-mark">*</span>}
         </label>
         {q.questionType === 'textarea' && (
           <textarea
@@ -261,7 +280,8 @@ export default function SurveySectionPage() {
     const questionNumber = page * QUESTIONS_PER_PAGE + index + 1;
     const subQuestions = subQuestionsMap.get(`${q.questionId}-${q.propertyTypeId}`) ?? [];
 
-    const hasAnswer = (
+    const isFlagged = answer.responseText === 'NOT_APPLICABLE' || answer.responseText === 'UNKNOWN';
+    const hasAnswer = !isFlagged && (
       (answer.responseText != null && answer.responseText.trim() !== '') ||
       answer.responseNumber != null ||
       answer.responseBoolean != null ||
@@ -280,7 +300,32 @@ export default function SurveySectionPage() {
           <p className="question-info">{q.informationText}</p>
         )}
 
-        {q.questionType === 'textarea' && (
+        {!isReadOnly && (
+          <div className="question-flag-buttons">
+            <button
+              type="button"
+              className={`btn-flag${answer.responseText === 'UNKNOWN' ? ' btn-flag--active' : ''}`}
+              onClick={() => handleToggleFlag(q.questionId, q.propertyTypeId, 'UNKNOWN')}
+            >
+              Unknown
+            </button>
+            <button
+              type="button"
+              className={`btn-flag${answer.responseText === 'NOT_APPLICABLE' ? ' btn-flag--active' : ''}`}
+              onClick={() => handleToggleFlag(q.questionId, q.propertyTypeId, 'NOT_APPLICABLE')}
+            >
+              Not Applicable
+            </button>
+          </div>
+        )}
+
+        {isFlagged && (
+          <p className="question-flag-label">
+            {answer.responseText === 'NOT_APPLICABLE' ? 'Not Applicable' : 'Unknown'}
+          </p>
+        )}
+
+        {!isFlagged && q.questionType === 'textarea' && (
           <textarea
             className="question-input question-textarea"
             value={answer.responseText || ''}
@@ -291,7 +336,7 @@ export default function SurveySectionPage() {
           />
         )}
 
-        {q.questionType === 'text' && (
+        {!isFlagged && q.questionType === 'text' && (
           <input
             type="text"
             className="question-input"
@@ -302,7 +347,7 @@ export default function SurveySectionPage() {
           />
         )}
 
-        {q.questionType === 'number' && (
+        {!isFlagged && q.questionType === 'number' && (
           <input
             type="number"
             className="question-input"
@@ -313,7 +358,7 @@ export default function SurveySectionPage() {
           />
         )}
 
-        {q.questionType === 'boolean' && (
+        {!isFlagged && q.questionType === 'boolean' && (
           <div className="question-boolean">
             <label>
               <input
@@ -338,7 +383,7 @@ export default function SurveySectionPage() {
           </div>
         )}
 
-        {q.questionType === 'date' && (
+        {!isFlagged && q.questionType === 'date' && (
           <input
             type="date"
             className="question-input"
@@ -348,7 +393,7 @@ export default function SurveySectionPage() {
           />
         )}
 
-        {q.questionType === 'multiple_choice' && (
+        {!isFlagged && q.questionType === 'multiple_choice' && (
           <div className="question-choices">
             {q.multipleChoiceOptions.map((opt) => (
               <label key={opt.optionId} className="choice-option">
@@ -365,7 +410,7 @@ export default function SurveySectionPage() {
           </div>
         )}
 
-        {q.questionType === 'checkbox' && (
+        {!isFlagged && q.questionType === 'checkbox' && (
           <div className="question-choices question-checkboxes">
             {q.multipleChoiceOptions.map((opt) => (
               <label key={opt.optionId} className="choice-option">
@@ -388,7 +433,7 @@ export default function SurveySectionPage() {
           </div>
         )}
 
-        {q.questionType === 'none_or_explain' && (
+        {!isFlagged && q.questionType === 'none_or_explain' && (
           <div className="question-none-or-explain">
             <label className="choice-option">
               <input
@@ -404,7 +449,7 @@ export default function SurveySectionPage() {
             {answer.responseText !== 'NONE' && (
               <textarea
                 className="question-input question-textarea"
-                value={answer.responseText === 'NONE' ? '' : (answer.responseText || '')}
+                value={answer.responseText || ''}
                 onChange={(e) => updateAnswer(q.questionId, q.propertyTypeId, 'responseText', e.target.value)}
                 placeholder="Please explain..."
                 rows={3}
@@ -447,6 +492,8 @@ export default function SurveySectionPage() {
       <h1>{sectionConfig?.label || 'Survey'} Survey</h1>
 
       <SurveyProgressBar answered={totalAnswered} total={totalQuestions} />
+
+      <p className="section-instruction">Please complete the questions in the boxes if applicable, otherwise please check the not applicable button</p>
 
       <div className="survey-questions-container">
         {!hasQuestions ? (
@@ -501,6 +548,13 @@ export default function SurveySectionPage() {
                   Save Pending Future Changes
                 </button>
                 <button
+                  className="btn-secondary btn-nav"
+                  onClick={handleSaveAndDownload}
+                  disabled={saving || submitting || downloadingPdf}
+                >
+                  {downloadingPdf ? 'Downloading...' : 'Save and Download PDF'}
+                </button>
+                <button
                   className="btn-primary btn-nav"
                   onClick={handleSaveAndSubmit}
                   disabled={saving || submitting}
@@ -509,14 +563,15 @@ export default function SurveySectionPage() {
                 </button>
               </>
             ) : (
-              <button
-                className="btn-secondary btn-nav"
-                onClick={async () => {
-                  if (page < totalPages - 1) {
-                    await handlePageChange(page + 1);
-                  } else {
-                    await saveCurrent();
-                    if (currentSectionIdx < requiredSections.length - 1) {
+              <>
+                <button
+                  className="btn-secondary btn-nav"
+                  onClick={async () => {
+                    if (page < totalPages - 1) {
+                      await handlePageChange(page + 1);
+                    } else {
+                      await saveCurrent();
+                      if (currentSectionIdx < requiredSections.length - 1) {
                       navigate(`/client/survey/${requiredSections[currentSectionIdx + 1].key}`);
                     }
                   }
@@ -524,7 +579,8 @@ export default function SurveySectionPage() {
                 disabled={saving}
               >
                 {saving ? 'Saving...' : 'Next Page'}
-              </button>
+                </button>
+              </>
             )}
           </>
         )}

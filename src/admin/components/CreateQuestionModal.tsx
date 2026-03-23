@@ -6,7 +6,7 @@ import { TextareaField, FormRow } from '../../shared/components/FormField';
 import { SingleSelectDropdown } from '../../shared/components/SingleSelectDropdown';
 import { MultiSelectDropdown } from '../../shared/components/MultiSelectDropdown';
 import type { CreateQuestionInput, QuestionFormData } from '../../shared/types/survey.types';
-import type { BaseModalProps } from '../../shared/types/component.types';
+import type { CreateQuestionModalProps } from '../../shared/types/component.types';
 
 const CATEGORIES = ['Exterior', 'Interior', 'Services', 'Clubhouse', 'Amenity Room', 'Legal', 'Council Concerns', 'Septic Fields'];
 
@@ -23,7 +23,7 @@ const initialFormData: QuestionFormData = {
   informationText: '', serviceId: undefined, propertyTypeIds: [], multipleChoiceOptions: [],
 };
 
-export function CreateQuestionModal({ isOpen, onClose }: BaseModalProps) {
+export function CreateQuestionModal({ isOpen, onClose, parentQuestionId }: CreateQuestionModalProps) {
   const { createQuestion } = useQuestions();
   const { questionTypes, services, propertyTypes } = useLookups();
 
@@ -79,6 +79,7 @@ export function CreateQuestionModal({ isOpen, onClose }: BaseModalProps) {
         serviceIds: [{ serviceId: formData.serviceId, sortOrder: 1 }],
         propertyTypeIds: formData.propertyTypeIds,
         multipleChoiceOptions: showMcOptions() ? formData.multipleChoiceOptions.filter(o => o.optionText.trim()) : [],
+        parentQuestionId: parentQuestionId ?? null,
       };
       await createQuestion(input);
       handleClose();
@@ -93,7 +94,7 @@ export function CreateQuestionModal({ isOpen, onClose }: BaseModalProps) {
     <Modal
       isOpen={isOpen}
       onClose={handleClose}
-      title="Create New Question"
+      title={parentQuestionId ? 'Create Sub-question' : 'Create New Question'}
       size="large"
       footer={
         <>

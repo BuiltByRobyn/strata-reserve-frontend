@@ -14,8 +14,6 @@ export const useDocumentReview = () => {
   const [loading, setLoading] = useState(false);
 
   const fetchReview = useCallback(async (fileId: number) => {
-    setReview(null);
-    setRequirements([]);
     setLoading(true);
     try {
       const data = await api.get<DocumentReviewResponse>(`/admin/file-numbers/${fileId}/document-review`);
@@ -23,8 +21,6 @@ export const useDocumentReview = () => {
       setRequirements(data.requirements ?? []);
     } catch (err) {
       console.error('Error fetching document review:', err);
-      setReview(null);
-      setRequirements([]);
     } finally {
       setLoading(false);
     }

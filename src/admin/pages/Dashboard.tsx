@@ -526,7 +526,7 @@ export const Dashboard = () => {
                   <p className="activity-card__detail">{activity.description}</p>
                   <button
                     className="btn-action btn-action--ghost"
-                    onClick={() => navigate(activity.actionPath)}
+                    onClick={() => { navigate(activity.actionPath); window.scrollTo(0, 0); }}
                   >
                     {activity.actionLabel}
                   </button>

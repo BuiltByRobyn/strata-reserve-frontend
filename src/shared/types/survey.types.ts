@@ -84,6 +84,8 @@ export interface AdminQuestion {
   subLabel: string | null;
   questionText: string;
   isRequired: boolean;
+  allowNa: boolean;
+  allowUnavailable: boolean;
   informationText: string | null;
   questionCategory: string;
   questionTypeId: number;
@@ -91,18 +93,22 @@ export interface AdminQuestion {
   questionServices: { questionServiceId: number; serviceId: number; sortOrder: number; service: { serviceId: number; serviceName: string } }[];
   questionPropertyTypes: { questionPropertyTypeId: number; propertyTypeId: number; propertyType: { propertyTypeId: number; propertyTypeName: string } }[];
   multipleChoiceOptions: { multipleChoiceOptionId: number; optionText: string; sortOrder: number }[];
+  subQuestions?: { questionId: number; subLabel: string | null; questionText: string; isRequired: boolean; questionTypeId: number; questionCategory: string; informationText: string | null }[];
   createdAt: string;
 }
 
 export interface CreateQuestionInput {
   questionText: string;
   isRequired: boolean;
+  allowNa?: boolean;
+  allowUnavailable?: boolean;
   informationText?: string | null;
   questionCategory: string;
   questionTypeId: number;
   serviceIds: { serviceId: number; sortOrder: number }[];
   propertyTypeIds: number[];
   multipleChoiceOptions?: { optionText: string; sortOrder: number }[];
+  parentQuestionId?: number | null;
 }
 
 export interface UpdateQuestionInput extends Partial<CreateQuestionInput> {}
@@ -112,8 +118,11 @@ export interface QuestionFormData {
   questionCategory: string;
   questionTypeId: number | undefined;
   isRequired: boolean;
+  allowNa: boolean;
+  allowUnavailable: boolean;
   informationText: string;
   serviceId: number | undefined;
   propertyTypeIds: number[];
   multipleChoiceOptions: { optionText: string; sortOrder: number }[];
+  parentQuestionId?: number | null;
 }

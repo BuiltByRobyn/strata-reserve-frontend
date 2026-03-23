@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
+import { useAuth } from "../contexts/AuthContext";
 import { PasswordToggleButton } from "../components/PasswordToggleButton";
 import { calculatePasswordStrength } from "../utils/passwordUtils";
 import type { PasswordStrength } from "../utils/passwordUtils";
@@ -32,6 +33,7 @@ export const ResetPassword = () => {
   const [resendError, setResendError] = useState("");
 
   const navigate = useNavigate();
+  const { signOut } = useAuth();
   const verifyAttempted = useRef(false);
 
   useEffect(() => {
@@ -118,17 +120,15 @@ export const ResetPassword = () => {
     try {
       const { error: updateError } = await supabase.auth.updateUser({
         password,
+        data: { must_change_password: false },
       });
       if (updateError) {
         setFormError(updateError.message);
         setLoading(false);
         return;
       }
+      await signOut();
       setPageState("success");
-      setTimeout(() => {
-        supabase.auth.signOut();
-        navigate("/login");
-      }, 2000);
     } catch {
       setFormError("An unexpected error occurred. Please try again.");
       setLoading(false);
@@ -176,6 +176,31 @@ export const ResetPassword = () => {
                   : "Choose a new secure password for your account"}
           </p>
         </div>
+
+        {pageState === "success" && (
+          <div className="success-message">
+            <svg
+              className="success-icon"
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+              <polyline points="22 4 12 14.01 9 11.01" />
+            </svg>
+            <p>Your password has been reset successfully.</p>
+            <button
+              className="set-password-btn"
+              onClick={() => navigate("/login")}
+            >
+              Return to Login
+            </button>
+          </div>
+        )}
 
         {pageState === "loading" && (
           <div
@@ -249,25 +274,6 @@ export const ResetPassword = () => {
             </form>
           ))}
 
-        {pageState === "success" && (
-          <div className="success-message">
-            <svg
-              className="success-icon"
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-              <polyline points="22 4 12 14.01 9 11.01" />
-            </svg>
-            <p>Your password has been reset successfully.</p>
-            <p className="redirect-text">Redirecting to login…</p>
-          </div>
-        )}
 
         {pageState === "form" && (
           <form onSubmit={handlePasswordSubmit} className="set-password-form">
@@ -367,9 +373,9 @@ export const ResetPassword = () => {
 
         <div className="set-password-footer">
           <p className="help-text">
-            Need help? Contact our support team at{" "}
-            <a href="mailto:support@stratareserveplanning.com">
-              support@stratareserveplanning.com
+            Need help? Contact our clientcare team at{" "}
+            <a href="mailto:clientcare@stratareserveplanning.com">
+              clientcare@stratareserveplanning.com
             </a>
           </p>
         </div>
