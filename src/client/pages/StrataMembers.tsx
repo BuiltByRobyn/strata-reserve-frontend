@@ -38,6 +38,7 @@ const StrataMembers = () => {
     companyName: '',
   });
   const [role, setRole] = useState('');
+  const [roleTouched, setRoleTouched] = useState(false);
 
   const fetchMembers = async () => {
     if (!user || user.role !== 'client') return;
@@ -291,7 +292,7 @@ const StrataMembers = () => {
       {/* Update Personal Details Modal */}
       <Modal
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        onClose={() => { setIsModalOpen(false); setRoleTouched(false); }}
         title="Update Personal Details"
         footer={
           <div className="modal-footer-actions">
@@ -351,17 +352,22 @@ const StrataMembers = () => {
             />
           </FormRow>
 
-          <div className="strata-members__role-field" style={{ display: 'flex', flexDirection: 'column' }}>
-            <label className="strata-members__role-label" style={{ marginBottom: '0.75rem' }}>Strata Role</label>
-            <div className="strata-members__role-options" style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '1.5rem', flex: 1 }}>
+          {roleTouched && !role && (
+            <span className="strata-members__role-error">Please select a strata role</span>
+          )}
+          <div className="strata-members__role-field">
+            <label className="strata-members__role-label">
+              Strata Role <span className="required">*</span>
+            </label>
+            <div className="strata-members__role-options">
               {STRATA_ROLES.map((r) => (
-                <label key={r} className="strata-members__role-checkbox" style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.875rem', whiteSpace: 'nowrap' }}>
+                <label key={r} className="strata-members__role-checkbox">
                   <input
                     type="radio"
                     name="role"
                     checked={role === r}
                     onChange={() => setRole(r)}
-                    style={{ margin: 0 }}
+                    onBlur={() => setRoleTouched(true)}
                   />
                   {r}
                 </label>

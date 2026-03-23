@@ -161,14 +161,14 @@ export function CreateUserModal({ isOpen, onClose }: BaseModalProps) {
             onChange={(e) => {
               const raw = e.target.value;
               updateField('phoneNumber', formatPhoneNumber(raw));
-              setPhoneError(/[^0-9\s]/.test(raw) ? 'Format: 778 252 9222' : null);
+              setPhoneError(/[^0-9\s]/.test(raw) ? 'Format: 778 123 4567' : null);
             }}
             onBlur={() => {
               if (formData.phoneNumber && !validatePhoneNumber(formData.phoneNumber)) {
-                setPhoneError('Format: 778 252 9222');
+                setPhoneError('Format: 778 123 4567');
               }
             }}
-            placeholder="778 252 9222"
+            placeholder="778 123 4567"
             error={phoneError || undefined}
           />
         </FormRow>
@@ -182,7 +182,9 @@ export function CreateUserModal({ isOpen, onClose }: BaseModalProps) {
             options={userTypes.map(ut => ({ value: ut.userTypeId, label: ut.userTypeName.replace(/-/g, ' ') }))}
             placeholder="Select User Type"
           />
-          <InputField label="Associated Company" value={formData.companyName} onChange={(e) => updateField('companyName', e.target.value)} placeholder="Enter strata management company name" />
+          {isClientType && (
+            <InputField label="Strata Management Company (if applicable)" value={formData.companyName} onChange={(e) => updateField('companyName', e.target.value)} placeholder="Enter strata management company name" />
+          )}
         </FormRow>
 
         {isClientType && formData.strataAssociations.map((association, index) => {

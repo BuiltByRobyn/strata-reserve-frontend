@@ -262,7 +262,10 @@ export default function UsersPage() {
     !!formData.userTypeId &&
     (!isClientType || (
       validAssociations.length > 0 &&
-      validAssociations.every(sa => sa.propertyTypeIds && sa.propertyTypeIds.length > 0)
+      validAssociations.every(sa =>
+        sa.propertyTypeIds && sa.propertyTypeIds.length > 0 &&
+        !!sa.strataPosition
+      )
     ));
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -509,14 +512,14 @@ export default function UsersPage() {
               onChange={(e) => {
                 const raw = e.target.value;
                 updateField('phoneNumber', formatPhoneNumber(raw));
-                setPhoneError(/[^0-9\s]/.test(raw) ? 'Format: 778 252 9222' : null);
+                setPhoneError(/[^0-9\s]/.test(raw) ? 'Format: 778 123 4567' : null);
               }}
               onBlur={() => {
                 if (formData.phoneNumber && !validatePhoneNumber(formData.phoneNumber)) {
-                  setPhoneError('Format: 778 252 9222');
+                  setPhoneError('Format: 778 123 4567');
                 }
               }}
-              placeholder="778 252 9222"
+              placeholder="778 123 4567"
               error={phoneError || undefined}
             />
           </FormRow>
@@ -533,12 +536,14 @@ export default function UsersPage() {
               }))}
               placeholder="Select User Type"
             />
-            <InputField
-              label="Strata Management Company (if applicable)"
-              value={formData.companyName}
-              onChange={(e) => updateField('companyName', e.target.value)}
-              placeholder="Enter strata management company name"
-            />
+            {isClientType && (
+              <InputField
+                label="Strata Management Company (if applicable)"
+                value={formData.companyName}
+                onChange={(e) => updateField('companyName', e.target.value)}
+                placeholder="Enter strata management company name"
+              />
+            )}
           </FormRow>
 
           {/* Strata Associations */}
@@ -591,22 +596,24 @@ export default function UsersPage() {
                       onChange={(values) => updateStrataAssociationPropertyTypes(index, values)}
                       placeholder="Select property types"
                     />
-                    <div className="form-field" style={{ display: 'flex', flexDirection: 'column' }}>
-                      <label className="field-label">Strata Role</label>
-                      <div className="role-options" style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '1.5rem', flex: 1 }}>
+                    <div className="form-field strata-role-field">
+                      <label className="field-label">Strata Role <span className="required">*</span></label>
+                      <div className="role-options">
                         {['Property Manager', 'Councillor'].map((r) => (
-                          <label key={r} style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.875rem', whiteSpace: 'nowrap' }}>
+                          <label key={r} className="role-option">
                             <input
                               type="radio"
                               name={`role-${index}`}
                               checked={association.strataPosition === r}
                               onChange={() => updateStrataAssociation(index, 'strataPosition', r)}
-                              style={{ margin: 0 }}
                             />
                             {r}
                           </label>
                         ))}
                       </div>
+                      {association.strataId > 0 && !association.strataPosition && (
+                        <span className="error-text">Please select a strata role</span>
+                      )}
                     </div>
                   </FormRow>
                 )}
