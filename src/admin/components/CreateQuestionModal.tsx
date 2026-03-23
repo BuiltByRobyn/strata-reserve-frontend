@@ -20,6 +20,7 @@ const formatTypeName = (name: string) =>
 
 const initialFormData: QuestionFormData = {
   questionText: '', questionCategory: '', questionTypeId: undefined, isRequired: false,
+  allowNa: false, allowUnavailable: false,
   informationText: '', serviceId: undefined, propertyTypeIds: [], multipleChoiceOptions: [],
 };
 
@@ -73,10 +74,10 @@ export function CreateQuestionModal({ isOpen, onClose, parentQuestionId }: Creat
       const input: CreateQuestionInput = {
         questionText: formData.questionText.trim(),
         questionCategory: formData.questionCategory,
-        questionTypeId: formData.questionTypeId,
+        questionTypeId: formData.questionTypeId!,
         isRequired: formData.isRequired,
         informationText: formData.informationText.trim() || null,
-        serviceIds: [{ serviceId: formData.serviceId, sortOrder: 1 }],
+        serviceIds: [{ serviceId: formData.serviceId!, sortOrder: 1 }],
         propertyTypeIds: formData.propertyTypeIds,
         multipleChoiceOptions: showMcOptions() ? formData.multipleChoiceOptions.filter(o => o.optionText.trim()) : [],
         parentQuestionId: parentQuestionId ?? null,

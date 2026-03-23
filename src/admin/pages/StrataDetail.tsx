@@ -44,7 +44,7 @@ import { useDocumentReview } from "../hooks/useDocumentReview";
 import type { SRDocRequirement } from "../../shared/types/document.types";
 import { API_BASE } from "../../shared/lib/api";
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from "../../shared/utils/constants";
-import { formatTypeName, formatDate, getStatusBadgeClass, formatNaStatus, getUserDisplayName } from "../../shared/utils/formatters";
+import { formatTypeName, formatNaStatus, getUserDisplayName } from "../../shared/utils/formatters";
 import { groupByDocumentType } from "../../shared/utils/documentUtils";
 import { parseLocalDate, formatDateShort } from "../../shared/utils/dateUtils";
 import { getFilenameFromDisposition, triggerBlobDownload } from "../../shared/utils/fileUtils";
@@ -177,7 +177,7 @@ export default function StrataDetailPage() {
   const [surveyReqModalOpen, setSurveyReqModalOpen] = useState(false);
   const [surveyReqSaving, setSurveyReqSaving] = useState(false);
   const [surveyReqFormData, setSurveyReqFormData] = useState<Record<number, number[]>>({});
-  const [surveyReqInitialData, setSurveyReqInitialData] = useState<Record<number, number[]>>({});
+  const [_surveyReqInitialData, setSurveyReqInitialData] = useState<Record<number, number[]>>({});
   const [surveyReqSortOrders, setSurveyReqSortOrders] = useState<Record<string, number[]>>({});
   const [surveyConfigStep, setSurveyConfigStep] = useState<'select' | number>('select');
   const [surveyReorderOpen, setSurveyReorderOpen] = useState<Record<string, boolean>>({});
@@ -562,6 +562,15 @@ export default function StrataDetailPage() {
     setPreviewModalOpen(false);
     setPreviewDocId(null);
     setPreviewDocName('');
+  };
+
+  const handleDeleteDoc = async (docId: number) => {
+    try {
+      await authFetch(`${API_BASE}/admin/documents/${docId}`, { method: 'DELETE' });
+      await loadData();
+    } catch (err) {
+      console.error('Failed to delete document', err);
+    }
   };
 
   const handleDownloadDocuments = async () => {

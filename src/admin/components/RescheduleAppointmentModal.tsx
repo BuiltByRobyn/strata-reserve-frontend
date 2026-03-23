@@ -45,7 +45,7 @@ const RescheduleAppointmentModal = ({
       const secondId = hasExistingSecondInspector
         ? (secondInspectorId || existingSecondInspector.id)
         : (addSecondInspector && secondInspectorId ? secondInspectorId : undefined);
-      await onReschedule(appointment.appointmentId, newDate, newTimeSlotId, {
+      await onReschedule(appointment.appointmentId, newDate, newTimeSlotId!, {
         inspectorProfileId: inspectorId,
         secondInspectorProfileId: secondId,
         reason: reason.trim() || undefined,

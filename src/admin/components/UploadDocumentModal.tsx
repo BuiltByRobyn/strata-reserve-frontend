@@ -72,7 +72,7 @@ export function UploadDocumentModal({ isOpen, onClose }: BaseModalProps) {
     setUploadError(null);
     const selectedPt = strataPropertyTypes.find(pt => pt.propertyTypeId === uploadForm.propertyTypeId);
     try {
-      const result = await uploadDocument(uploadForm.file, uploadForm.documentTypeId, uploadForm.strataId, uploadForm.strataName || undefined, uploadForm.notes || undefined, uploadForm.propertyTypeId || undefined, selectedPt?.propertyTypeName || undefined);
+      const result = await uploadDocument(uploadForm.file!, uploadForm.documentTypeId!, uploadForm.strataId, uploadForm.strataName || undefined, uploadForm.notes || undefined, uploadForm.propertyTypeId || undefined, selectedPt?.propertyTypeName || undefined);
       const srId = result?.document?.file_number_id;
       if (srId && uploadForm.documentTypeId) {
         try {

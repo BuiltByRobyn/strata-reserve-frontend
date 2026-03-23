@@ -190,10 +190,6 @@ export default function SurveySectionPage() {
     }
   };
 
-  const handleManualSave = async () => {
-    await saveCurrent();
-    toast.success('Progress saved!');
-  };
 
   const updateAnswer = (questionId: number, propertyTypeId: number, field: keyof SaveResponsePayload, value: unknown) => {
     const key = `${questionId}-${propertyTypeId}`;

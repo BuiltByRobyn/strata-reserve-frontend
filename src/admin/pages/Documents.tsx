@@ -195,15 +195,6 @@ export default function DocumentsPage() {
     }
   ];
 
-  const openStatusModal = (doc: DocumentWithDetails) => {
-    setSelectedDocument(doc);
-    setStatusForm({
-      reviewStatusId: doc.reviewStatus?.reviewStatusId?.toString() || '',
-      notes: doc.notes || ''
-    });
-    setIsStatusModalOpen(true);
-  };
-
   const handleStatusUpdate = async () => {
     if (!selectedDocument || !statusForm.reviewStatusId) return;
 
