@@ -19,7 +19,7 @@ export interface BookingChoice {
 }
 
 export interface BookingFormData {
-  fileNumberId: number;
+  fileId: number;
   appointmentTypeId: number;
   firstChoice: BookingChoice;
   secondChoice: BookingChoice | null;
@@ -66,6 +66,7 @@ export interface BookingCalendarProps {
   loading: boolean;
   milestones?: CalendarMilestone[];
   bookedDate?: string | null;
+  bookedTime?: string | null;
   variant?: 'booking' | 'client' | 'timelines';
   onMilestoneCellClick?: (date: string) => void;
   hideLabels?: boolean;

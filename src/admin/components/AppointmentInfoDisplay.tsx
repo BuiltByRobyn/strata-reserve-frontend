@@ -1,4 +1,4 @@
-import { formatDateMedium, formatTime12h } from '../../shared/lib/formatters';
+import { formatDateMedium, formatTime12h } from '../../shared/utils/formatters';
 import type { AppointmentInfoDisplayProps } from './AppointmentInfoDisplay.type';
 
 export const AppointmentInfoDisplay = ({

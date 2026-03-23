@@ -3,7 +3,7 @@ import { useApiClient } from './useApiClient';
 import { useAuth } from '../contexts/AuthContext';
 import type { DocumentWithDetails } from '../types/document.types';
 import type { DocumentsState } from '../types/hooks.types';
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../lib/constants';
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../utils/constants';
 import { supabaseUploadDocument, supabaseDeleteDocument } from '../lib/documentService';
 
 export const useDocuments = () => {

@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { Modal } from '../../shared/components/Modal';
 import { LoadingSpinner } from '../../shared/components/LoadingSpinner';
+import { NoFileNumberState } from '../../shared/components/NoFileNumberState';
 import { useAuth } from '../../shared/contexts/AuthContext';
 import { useClientAppointments } from '../../shared/hooks/useClientAppointments';
 import { useClientDocuments } from '../../shared/hooks/useClientDocuments';
@@ -8,7 +10,7 @@ import { useClientFileNumber } from '../../shared/hooks/useClientFileNumber';
 import { usePropertyTypeRequest } from '../../shared/hooks/usePropertyTypeRequest';
 import { useSurvey } from '../../shared/hooks/useSurvey';
 import { useTimelines } from '../../shared/hooks/useTimelines';
-import { parseLocalDate, parseTimestamp } from '../../shared/lib/dateUtils';
+import { parseLocalDate, parseTimestamp } from '../../shared/utils/dateUtils';
 import type { ActiveAppointmentResponse, AppointmentNotification } from '../../shared/types/appointment.types';
 import { SURVEY_SECTIONS } from '../../shared/types/survey.types';
 
@@ -21,9 +23,9 @@ const formatShortDate = (value: string | null | undefined) => {
 export const Dashboard = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { activeRequest, fileNumberId, loading: requestLoading } = useClientFileNumber();
+  const { activeRequest, fileId, loading: requestLoading } = useClientFileNumber();
   const { loading: propertyTypeLoading } = usePropertyTypeRequest();
-  const { timelines, loading: timelinesLoading } = useTimelines(fileNumberId);
+  const { timelines, loading: timelinesLoading } = useTimelines(fileId);
   const { questions, responses, loading: surveyLoading, fetchQuestions, fetchResponses } = useSurvey();
   const {
     requiredDocuments,
@@ -32,13 +34,15 @@ export const Dashboard = () => {
   } = useClientDocuments();
   const { getActiveAppointment, getNotifications } = useClientAppointments();
 
+  const location = useLocation();
+  const [showDocsModal, setShowDocsModal] = useState(false);
   const [activeAppointment, setActiveAppointment] = useState<ActiveAppointmentResponse>(null);
   const [appointmentLoading, setAppointmentLoading] = useState(true);
   const [notifications, setNotifications] = useState<AppointmentNotification[]>([]);
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    if (!fileNumberId) {
+    if (!fileId) {
       setAppointmentLoading(false);
       setActiveAppointment(null);
       return;
@@ -59,17 +63,26 @@ export const Dashboard = () => {
     });
 
     return () => { ignore = true; };
-  }, [fileNumberId, getActiveAppointment, getNotifications]);
+  }, [fileId, getActiveAppointment, getNotifications]);
 
   useEffect(() => {
-    if (!fileNumberId) return;
-    fetchQuestions(fileNumberId);
-    fetchResponses(fileNumberId);
-    fetchRequiredDocuments(fileNumberId);
-  }, [fetchQuestions, fetchRequiredDocuments, fetchResponses, fileNumberId]);
+    if (!fileId) return;
+    fetchQuestions(fileId);
+    fetchResponses(fileId);
+    fetchRequiredDocuments(fileId);
+  }, [fetchQuestions, fetchRequiredDocuments, fetchResponses, fileId]);
+
+  useEffect(() => {
+    if (location.state?.justFinalizedDocs) {
+      setShowDocsModal(true);
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, []);
+
+  const docsFinalized = fileId ? !!localStorage.getItem(`docs_finalized_${fileId}`) : false;
 
   const welcomeName = user?.role === 'client' ? user.firstName || 'there' : 'there';
-  const dashboardTitle = activeRequest?.strata?.complexName || activeRequest?.strata?.strataPlan || 'Your Strata Reserve project';
+  const dashboardTitle = activeRequest?.strata?.complexName || activeRequest?.strata?.strataPlan || 'Your Strata Reserve Planning - Data Collection Portal';
 
   const clientPropertyTypeIds = useMemo(
     () => activeRequest?.clientPropertyTypes?.map((pt) => pt.propertyTypeId) || [],
@@ -85,13 +98,15 @@ export const Dashboard = () => {
     );
   }, [clientPropertyTypeIds, requiredDocuments]);
 
-  const requiredDocumentCount = useMemo(
-    () => filteredRequiredDocuments.filter((doc) => doc.isRequired).length,
+  const requiredDocumentCount = filteredRequiredDocuments.length;
+
+  const uploadedRequiredDocumentCount = useMemo(
+    () => filteredRequiredDocuments.filter((doc) => doc.uploadedDocument).length,
     [filteredRequiredDocuments],
   );
 
-  const uploadedRequiredDocumentCount = useMemo(
-    () => filteredRequiredDocuments.filter((doc) => doc.isRequired && doc.uploadedDocument).length,
+  const acknowledgedDocumentCount = useMemo(
+    () => filteredRequiredDocuments.filter((doc) => doc.uploadedDocument || doc.naStatus).length,
     [filteredRequiredDocuments],
   );
 
@@ -119,11 +134,26 @@ export const Dashboard = () => {
   const answeredSurveyQuestions = sectionProgress.reduce((acc, s) => acc + s.answered, 0);
   const timelineTargetDate = timelines?.targetDate || activeRequest?.targetDate || null;
 
+  const TIMELINE_FIELD_COUNT = 4;
+
+  const completedTimelines = useMemo(() => {
+    if (!timelines) return 0;
+    let count = 0;
+    if (timelines.fiscalYearEnd) count++;
+    if (timelines.lastAgmDate || timelines.noAgmToDate) count++;
+    if (timelines.lastDepreciationReportDate || timelines.noReportToDate) count++;
+    if (timelines.targetDate) count++;
+    return count;
+  }, [timelines]);
+
   const overallPct = useMemo(() => {
-    const total = totalSurveyQuestions + requiredDocumentCount;
+    const total = totalSurveyQuestions + requiredDocumentCount + TIMELINE_FIELD_COUNT;
     if (total === 0) return 0;
-    return Math.round(((answeredSurveyQuestions + uploadedRequiredDocumentCount) / total) * 100);
-  }, [answeredSurveyQuestions, totalSurveyQuestions, uploadedRequiredDocumentCount, requiredDocumentCount]);
+    return Math.round(((answeredSurveyQuestions + acknowledgedDocumentCount + completedTimelines) / total) * 100);
+  }, [answeredSurveyQuestions, totalSurveyQuestions, acknowledgedDocumentCount, requiredDocumentCount, completedTimelines]);
+
+  const surveyCompleted = !!activeRequest?.submittedForReviewDate;
+  const documentsCompleted = requiredDocumentCount > 0 && missingRequiredDocumentCount === 0;
 
   const tasks = useMemo(() => {
     const incompleteSectionKey = sectionProgress.find((s) => !s.complete)?.key;
@@ -134,7 +164,32 @@ export const Dashboard = () => {
       (activeRequest?.rebookingRequestedAt || (activeRequest?.appointmentOfferedAt && !activeAppointment))
     );
 
-    // When booking action is needed, replace Deadlines with the inspection card
+    const surveyTask = {
+      id: 'survey',
+      title: surveyCompleted ? 'Your Completed Survey' : 'Complete Your Survey',
+      description: surveyCompleted ? 'All answers have been saved' : 'Continue where you left off',
+      buttonLabel: surveyCompleted ? 'Review Survey' : 'Open Survey',
+      path: surveyPath,
+      navState: undefined as Record<string, unknown> | undefined,
+      completed: surveyCompleted,
+      finalized: surveyCompleted,
+    };
+
+    const documentsTask = {
+      id: 'documents',
+      title: 'Upload Documents',
+      description: docsFinalized
+        ? 'View submitted documents'
+        : missingRequiredDocumentCount > 0
+          ? `${missingRequiredDocumentCount} required document${missingRequiredDocumentCount === 1 ? '' : 's'} still to upload`
+          : 'Submit requested documents',
+      buttonLabel: missingRequiredDocumentCount > 0 ? 'Upload Documents' : 'View Documents',
+      path: '/client/documents',
+      navState: undefined as Record<string, unknown> | undefined,
+      completed: documentsCompleted,
+      finalized: docsFinalized,
+    };
+
     if (bookingActionNeeded) {
       const inspectionTitle = activeRequest?.rebookingRequestedAt ? 'Rebook Your Inspection' : 'Book Your Inspection';
       const inspectionDesc = activeRequest?.rebookingRequestedAt
@@ -143,47 +198,15 @@ export const Dashboard = () => {
       const inspectionLabel = activeRequest?.rebookingRequestedAt ? 'Book Inspection Date' : 'Select Dates';
 
       return [
-        { id: 'inspection', title: inspectionTitle, description: inspectionDesc, buttonLabel: inspectionLabel, path: '/client/inspection-date', navState: undefined },
-        {
-          id: 'survey',
-          title: activeRequest?.submittedForReviewDate ? 'Review Your Survey' : 'Complete Your Survey',
-          description: activeRequest?.submittedForReviewDate ? 'Your survey has been submitted for review.' : 'Continue where you left off',
-          buttonLabel: activeRequest?.submittedForReviewDate ? 'Review Survey' : 'Open Survey',
-          path: surveyPath,
-          navState: undefined,
-        },
-        {
-          id: 'documents',
-          title: 'Upload Documents',
-          description: missingRequiredDocumentCount > 0
-            ? `${missingRequiredDocumentCount} required document${missingRequiredDocumentCount === 1 ? '' : 's'} still to upload`
-            : 'Submit required forms',
-          buttonLabel: missingRequiredDocumentCount > 0 ? 'Upload Documents' : 'View Documents',
-          path: '/client/documents',
-          navState: undefined,
-        },
+        surveyTask,
+        documentsTask,
+        { id: 'inspection', title: inspectionTitle, description: inspectionDesc, buttonLabel: inspectionLabel, path: '/client/inspection-date', navState: undefined as Record<string, unknown> | undefined, completed: false },
       ];
     }
 
     return [
-      {
-        id: 'survey',
-        title: activeRequest?.submittedForReviewDate ? 'Review Your Survey' : 'Complete Your Survey',
-        description: activeRequest?.submittedForReviewDate ? 'Your survey has been submitted for review.' : 'Continue where you left off',
-        buttonLabel: activeRequest?.submittedForReviewDate ? 'Review Survey' : 'Open Survey',
-        path: surveyPath,
-        navState: undefined,
-      },
-      {
-        id: 'documents',
-        title: 'Upload Documents',
-        description: missingRequiredDocumentCount > 0
-          ? `${missingRequiredDocumentCount} required document${missingRequiredDocumentCount === 1 ? '' : 's'} still to upload`
-          : 'Submit required forms',
-        buttonLabel: missingRequiredDocumentCount > 0 ? 'Upload Documents' : 'View Documents',
-        path: '/client/documents',
-        navState: undefined,
-      },
+      surveyTask,
+      documentsTask,
       {
         id: 'timelines',
         title: 'Deadlines',
@@ -192,10 +215,12 @@ export const Dashboard = () => {
           : 'View cut off dates and updates on your report',
         buttonLabel: 'View Timeline',
         path: '/client/timelines',
-        navState: { scrollToDeadlines: true } as Record<string, unknown>,
+        navState: { scrollToDeadlines: true } as Record<string, unknown> | undefined,
+        completed: timelineTargetDate != null,
+        finalized: timelineTargetDate != null,
       },
     ];
-  }, [activeAppointment, activeRequest, missingRequiredDocumentCount, sectionProgress, timelineTargetDate]);
+  }, [activeAppointment, activeRequest, documentsCompleted, docsFinalized, missingRequiredDocumentCount, sectionProgress, surveyCompleted, timelineTargetDate]);
 
   const dashboardLoading = requestLoading || propertyTypeLoading || surveyLoading || documentsLoading || timelinesLoading || appointmentLoading;
 
@@ -208,13 +233,7 @@ export const Dashboard = () => {
           <h1>Welcome, {welcomeName}</h1>
           <p className="dashboard-subtitle">Dashboard</p>
         </div>
-        <div className="dashboard-surface">
-          <section className="dashboard-section">
-            <div className="empty-actions empty-actions--spacious">
-              <p>No active service request was found for your account. Please contact the SRP team for help.</p>
-            </div>
-          </section>
-        </div>
+        <NoFileNumberState />
       </div>
     );
   }
@@ -246,20 +265,22 @@ export const Dashboard = () => {
           {totalSurveyQuestions > 0 && (
             <span>Questions: {answeredSurveyQuestions}/{totalSurveyQuestions} completed</span>
           )}
-          {requiredDocumentCount > 0 && (
-            <span>Documents: {uploadedRequiredDocumentCount}/{requiredDocumentCount} uploaded</span>
-          )}
+          <span>Documents: {acknowledgedDocumentCount}/{requiredDocumentCount} submitted</span>
+          <span>Timelines: {completedTimelines}/{TIMELINE_FIELD_COUNT} completed</span>
         </div>
       </div>
 
       <h2 className="client-tasks-heading">Priority Tasks</h2>
       <div className="priority-tasks-grid">
-        {tasks.map((task, index) => (
-          <div key={task.id} className={`priority-task-card${index === 0 ? ' priority-task-card--active' : ''}`}>
+        {tasks.map((task) => (
+          <div
+            key={task.id}
+            className={`priority-task-card${task.completed ? ' priority-task-card--active' : ''}${'finalized' in task && task.finalized ? ' priority-task-card--finalized' : ''}`}
+          >
             <h3 className="priority-task-card__title">{task.title}</h3>
             <p className="priority-task-card__desc">{task.description}</p>
             <button
-              className={`btn-action ${index === 0 ? 'btn-action--primary' : 'btn-action--secondary'}`}
+              className={'finalized' in task && task.finalized ? 'btn-primary' : 'btn-action btn-action--secondary'}
               onClick={() => navigate(task.path, { state: task.navState })}
             >
               {task.buttonLabel}
@@ -267,6 +288,22 @@ export const Dashboard = () => {
           </div>
         ))}
       </div>
+
+      {activeAppointment?.type === 'pending_request' && (
+        <div className="appointment-status-card appointment-status-card--pending">
+          <p className="appointment-status-card__label">PENDING REVIEW</p>
+          <p className="appointment-status-card__text">Your inspection request is awaiting confirmation from our team.</p>
+        </div>
+      )}
+
+      {activeAppointment?.type === 'scheduled' && (
+        <div className="appointment-status-card appointment-status-card--scheduled">
+          <p className="appointment-status-card__label">CONFIRMED</p>
+          <p className="appointment-status-card__text">
+            Your {activeAppointment.data.appointmentType.typeName} on {formatShortDate(activeAppointment.data.appointmentDate)} at {activeAppointment.data.timeSlot.slotName} has been approved.
+          </p>
+        </div>
+      )}
 
       {notifications.some((n) => !dismissed.has(`${n.type}__${n.date}`)) && (
         <div className="client-notifications">
@@ -306,6 +343,23 @@ export const Dashboard = () => {
             })}
         </div>
       )}
+      <Modal
+        isOpen={showDocsModal}
+        onClose={() => setShowDocsModal(false)}
+        title="Documents Submitted"
+        size="small"
+        footer={
+          <button className="btn-primary" onClick={() => setShowDocsModal(false)}>
+            Got it
+          </button>
+        }
+      >
+        <p>
+          Thank you for finalizing your document submission. Once your survey answers are also
+          finalized, a strata reserve planning team member will review your submissions within
+          3–5 business days.
+        </p>
+      </Modal>
     </div>
   );
 };

@@ -2,8 +2,8 @@ import { useState, useEffect, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { PasswordToggleButton } from '../components/PasswordToggleButton';
-import { calculatePasswordStrength } from '../lib/passwordUtils';
-import type { PasswordStrength } from '../lib/passwordUtils';
+import { calculatePasswordStrength } from '../utils/passwordUtils';
+import type { PasswordStrength } from '../utils/passwordUtils';
 
 export const SetPassword = () => {
   const [password, setPassword] = useState('');
@@ -59,7 +59,8 @@ export const SetPassword = () => {
     try {
       // Update the user's password
       const { error: updateError } = await supabase.auth.updateUser({
-        password: password
+        password: password,
+        data: { must_change_password: false }
       });
 
       if (updateError) {
@@ -182,8 +183,8 @@ export const SetPassword = () => {
         <div className="set-password-footer">
           <p className="help-text">
             Need help? Contact our support team at{' '}
-            <a href="mailto:support@stratareserveplanning.com">
-              support@stratareserveplanning.com
+            <a href="mailto:clientcare@stratareserveplanning.com">
+              clientcare@stratareserveplanning.com
             </a>
           </p>
         </div>

@@ -1,6 +1,8 @@
 import type { ReactNode, InputHTMLAttributes, SelectHTMLAttributes, TextareaHTMLAttributes } from 'react';
 import type { SurveySection } from './survey.types';
-import type { StrataPropertyType, InspectorAvailableDate, CreateInspectorAvailableDateInput, UpdateInspectorAvailableDateInput, AppointmentRequest, AppointmentWithDetails, AppointmentTimeSlot, Profile } from './entities.types';
+import type { StrataPropertyType, InspectorAvailableDate, CreateInspectorAvailableDateInput, UpdateInspectorAvailableDateInput, AppointmentRequest, AppointmentWithDetails, AppointmentTimeSlot, Profile, ReviewStatus } from './entities.types';
+import type { SRDocRequirement } from './document.types';
+import type { BatchDocumentReviewInput, DocumentReviewResult, RequiredDocumentChecklist, NaStatusValue } from './document.types';
 
 export interface Column<T> {
   key: string;
@@ -128,7 +130,7 @@ export interface InspectorAvailabilityModalProps {
   isOpen: boolean;
   onClose: () => void;
   initialData: InspectorAvailableDate | null;
-  onSubmitCreate: (data: CreateInspectorAvailableDateInput) => Promise<any>;
+  onSubmitBulkCreate: (inputs: CreateInspectorAvailableDateInput[], onProgress: (current: number, total: number) => void) => Promise<void>;
   onSubmitUpdate: (id: number, data: UpdateInspectorAvailableDateInput) => Promise<any>;
   onDeleteClick?: () => void;
 }
@@ -161,7 +163,7 @@ export interface DeleteAvailabilityModalProps {
 export interface OfferAppointmentModalProps {
   isOpen: boolean;
   onClose: () => void;
-  fileNumberId: number;
+  fileId: number;
   strataPlan: string;
   targetDate: string | null;
   appointmentTypes: import('./entities.types').AppointmentType[];
@@ -172,7 +174,7 @@ export interface OfferAppointmentModalProps {
   locations: import('./entities.types').Location[];
   initialLocationId: number | null;
   strataId: number;
-  onSubmit: (fileNumberId: number, data: {
+  onSubmit: (fileId: number, data: {
     appointmentTypeId?: number;
     inspectorProfileId?: string;
     secondInspectorProfileId?: string;
@@ -189,6 +191,7 @@ export interface AppointmentRequestReviewModalProps {
   onReview: (requestId: number, data: {
     approved: boolean;
     inspectorProfileId?: string;
+    secondInspectorProfileId?: string;
     approvedDateChoice?: number;
     rejectionReason?: string;
     comments?: string;
@@ -224,12 +227,36 @@ export interface RescheduleAppointmentModalProps {
   }) => Promise<any>;
 }
 
-export interface ChangePasswordModalProps {
+export interface BaseModalProps {
   isOpen: boolean;
   onClose: () => void;
+}
+
+export interface CreateQuestionModalProps extends BaseModalProps {
+  parentQuestionId?: number | null;
 }
 
 export interface ToastProps {
   message: string | null;
   onDismiss: () => void;
+}
+
+export interface DocumentReviewModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  fileId: number | null;
+  docRequirements: SRDocRequirement[];
+  reviewStatuses: ReviewStatus[];
+  review: DocumentReviewResult | null;
+  loading: boolean;
+  token: string;
+  onSubmit: (fileId: number, input: BatchDocumentReviewInput) => Promise<void>;
+}
+
+export interface VersionDocumentRowProps {
+  requirement: RequiredDocumentChecklist;
+  uploading: boolean;
+  onUpload: (req: RequiredDocumentChecklist, isReplace: boolean) => void;
+  onSetNaStatus: (req: RequiredDocumentChecklist, status: NaStatusValue) => void;
+  onPreview: (req: RequiredDocumentChecklist) => void;
 }

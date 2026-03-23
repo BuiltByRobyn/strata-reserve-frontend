@@ -1,18 +1,23 @@
 import { useState, useEffect, type FormEvent } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, useLocation, Link } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { PasswordToggleButton } from "../components/PasswordToggleButton";
 
 export const Login = () => {
+  const { signIn, resetPasswordForEmail, user } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const locationError = (location.state as { error?: string; successMessage?: string } | null)?.error ?? "";
+  const locationSuccess = (location.state as { successMessage?: string } | null)?.successMessage ?? "";
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
+  const [error, setError] = useState(locationError);
+  const [successMessage] = useState(locationSuccess);
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [isForgotPasswordMode, setIsForgotPasswordMode] = useState(false);
   const [resetMessage, setResetMessage] = useState("");
-  const { signIn, resetPasswordForEmail, user } = useAuth();
-  const navigate = useNavigate();
 
   // Check if Supabase is configured
   const isSupabaseConfigured = !!(
@@ -76,10 +81,15 @@ export const Login = () => {
 
         <div className="login-header">
           <h1>Strata Reserve Planning</h1>
-          <p className="login-subtitle">Information Report Portal</p>
+          <p className="login-subtitle">Data Collection Portal</p>
         </div>
 
         <form onSubmit={handleSubmit} className="login-form">
+          {successMessage && (
+            <div className="success-message" style={{ color: 'green', marginBottom: '1rem', textAlign: 'center', padding: '0.75rem', backgroundColor: '#f0fdf4', border: '1px solid #86efac', borderRadius: '6px' }}>
+              {successMessage}
+            </div>
+          )}
           <div className="form-group">
             <label htmlFor="email">Email</label>
             <input
@@ -160,8 +170,8 @@ export const Login = () => {
         <div className="login-footer">
           <p className="help-text">
             Need help? Contact our support team at{" "}
-            <a href="mailto:support@stratareserveplanning.com">
-              support@stratareserveplanning.com
+            <a href="mailto:clientcare@stratareserveplanning.com">
+              clientcare@stratareserveplanning.com
             </a>
           </p>
           <div className="footer-links">

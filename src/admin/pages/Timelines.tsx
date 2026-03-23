@@ -13,8 +13,8 @@ import type { FileNumber } from '../../shared/types/entities.types';
 import type { UpdateTimelinesInput, DeadlineType, DeadlineRow, EditFormData } from '../../shared/types/timeline.types';
 import type { CalendarMilestone } from '../../shared/types/appointment.types';
 import { API_BASE } from '../../shared/lib/api';
-import { parseLocalDate, toDateInputValue } from '../../shared/lib/dateUtils';
-import { getNextAnniversary, formatDateDisplay, formatYMD, getDeadlineAbbrev, daysBetween, hasConfirmedTimelines } from '../../shared/lib/timelineUtils';
+import { parseLocalDate, toDateInputValue } from '../../shared/utils/dateUtils';
+import { getNextAnniversary, formatDateDisplay, formatYMD, getDeadlineAbbrev, daysBetween, hasConfirmedTimelines } from '../../shared/utils/timelineUtils';
 
 
 export default function TimelinesPage() {
@@ -84,7 +84,7 @@ export default function TimelinesPage() {
       const strataId = sr.strata?.strataId ?? 0;
       const strataPlan = sr.strata?.strataPlan || '—';
       const complexName = sr.strata?.complexName || '—';
-      const srId = sr.fileNumberId;
+      const srId = sr.fileId;
 
       const fiscalDate = parseLocalDate(sr.fiscalYearEnd);
       const lastAgm = parseLocalDate(sr.lastAgmDate);
@@ -112,17 +112,6 @@ export default function TimelinesPage() {
         rows.push({ id: `${srId}-agm`, date: nextAgm, deadlineType: 'Next Projected AGM', strataPlan, complexName, strataId, fileNumber: sr });
       }
 
-      // Last Depreciation Report Date (historical)
-      if (lastReport) {
-        rows.push({ id: `${srId}-last-dep`, date: lastReport, deadlineType: 'Last Depreciation Report Date', strataPlan, complexName, strataId, fileNumber: sr });
-      }
-
-      // Next Projected Depreciation
-      if (lastReport) {
-        const nextReport = getNextAnniversary(lastReport, today);
-        rows.push({ id: `${srId}-dep`, date: nextReport, deadlineType: 'Next Projected Depreciation', strataPlan, complexName, strataId, fileNumber: sr });
-      }
-
       // Target Date
       if (target) {
         rows.push({ id: `${srId}-target`, date: target, deadlineType: 'Target Date', strataPlan, complexName, strataId, fileNumber: sr });
@@ -134,22 +123,16 @@ export default function TimelinesPage() {
         rows.push({ id: `${srId}-file-opened`, date: fileOpened, deadlineType: 'File Opened', strataPlan, complexName, strataId, fileNumber: sr });
       }
 
-      // Most Recent Document Upload
-      const latestDocUpload = parseLocalDate(sr.latestDocumentUploadDate);
-      if (latestDocUpload) {
-        rows.push({ id: `${srId}-doc-upload`, date: latestDocUpload, deadlineType: 'Most Recent Document Upload', strataPlan, complexName, strataId, fileNumber: sr });
+      // Documents Finalized
+      const latestDocFinalized = parseLocalDate(sr.latestDocumentFinalizedDate);
+      if (latestDocFinalized) {
+        rows.push({ id: `${srId}-doc-finalized`, date: latestDocFinalized, deadlineType: 'Documents Finalized', strataPlan, complexName, strataId, fileNumber: sr });
       }
 
-      // Survey Submitted
+      // Survey Answers Finalized
       const surveySubmitted = parseLocalDate(sr.submittedForReviewDate);
       if (surveySubmitted) {
-        rows.push({ id: `${srId}-survey-submitted`, date: surveySubmitted, deadlineType: 'Survey Submitted', strataPlan, complexName, strataId, fileNumber: sr });
-      }
-
-      // Last Survey Answer Date
-      const latestSurveyAnswer = parseLocalDate(sr.latestSurveyAnswerDate);
-      if (latestSurveyAnswer) {
-        rows.push({ id: `${srId}-survey-answer`, date: latestSurveyAnswer, deadlineType: 'Last Survey Answer Date', strataPlan, complexName, strataId, fileNumber: sr });
+        rows.push({ id: `${srId}-survey-submitted`, date: surveySubmitted, deadlineType: 'Survey Answers Finalized', strataPlan, complexName, strataId, fileNumber: sr });
       }
     }
 
@@ -190,16 +173,29 @@ export default function TimelinesPage() {
     }
 
     // Tab filters
+    const pastFirst = ['fiscalYear', 'fileOpened', 'surveySubmitted', 'documentUpload'].includes(filterDeadlineType);
     if (activeTab === 'overdue') {
       rows = rows.filter(r => r.date < today);
     } else if (activeTab === 'next7') {
-      const in7 = new Date(today);
-      in7.setDate(in7.getDate() + 7);
-      rows = rows.filter(r => r.date >= today && r.date <= in7);
+      if (pastFirst) {
+        const past7 = new Date(today);
+        past7.setDate(past7.getDate() - 7);
+        rows = rows.filter(r => r.date >= past7 && r.date <= today);
+      } else {
+        const in7 = new Date(today);
+        in7.setDate(in7.getDate() + 7);
+        rows = rows.filter(r => r.date >= today && r.date <= in7);
+      }
     } else if (activeTab === 'next30') {
-      const in30 = new Date(today);
-      in30.setDate(in30.getDate() + 30);
-      rows = rows.filter(r => r.date >= today && r.date <= in30);
+      if (pastFirst) {
+        const past30 = new Date(today);
+        past30.setDate(past30.getDate() - 30);
+        rows = rows.filter(r => r.date >= past30 && r.date <= today);
+      } else {
+        const in30 = new Date(today);
+        in30.setDate(in30.getDate() + 30);
+        rows = rows.filter(r => r.date >= today && r.date <= in30);
+      }
     }
 
     // Deadline Type dropdown
@@ -210,9 +206,8 @@ export default function TimelinesPage() {
         depreciation: ['Last Depreciation Report Date', 'Next Projected Depreciation'],
         target: ['Target Date'],
         fileOpened: ['File Opened'],
-        documentUpload: ['Most Recent Document Upload'],
-        surveySubmitted: ['Survey Submitted'],
-        surveyAnswer: ['Last Survey Answer Date'],
+        documentUpload: ['Documents Finalized'],
+        surveySubmitted: ['Survey Answers Finalized'],
       };
       const matches = typeMap[filterDeadlineType];
       if (matches) rows = rows.filter(r => matches.includes(r.deadlineType));
@@ -243,17 +238,19 @@ export default function TimelinesPage() {
     return rows;
   }, [deadlineRows, showPastDates, activeTab, filterDeadlineType, filterStrataName, filterStrataPlan, dateFrom, dateTo, today]);
 
+  const isPastFirstType = ['fiscalYear', 'fileOpened', 'surveySubmitted', 'documentUpload'].includes(filterDeadlineType);
+
   const deadlineTabs = [
     { key: 'all', label: 'All Deadlines' },
     { key: 'overdue', label: 'Overdue' },
-    { key: 'next7', label: 'Next 7 Days' },
-    { key: 'next30', label: 'Next 30 Days' },
+    { key: 'next7', label: isPastFirstType ? 'Last 7 Days' : 'Next 7 Days' },
+    { key: 'next30', label: isPastFirstType ? 'Last 30 Days' : 'Next 30 Days' },
   ];
 
   const calendarMilestones = useMemo((): CalendarMilestone[] => {
     return filteredRows.map(row => ({
       date: formatYMD(row.date),
-      label: `${String(row.fileNumber.fileNumberId).padStart(9, '0')}\n${row.strataPlan}:${getDeadlineAbbrev(row.deadlineType)}`,
+      label: `${(row.fileNumber.fileNumber ?? '—')}\n${row.strataPlan}:${getDeadlineAbbrev(row.deadlineType)}`,
     }));
   }, [filteredRows]);
 
@@ -265,7 +262,7 @@ export default function TimelinesPage() {
     return [
       { label: 'Strata Plan', value: row.strataPlan },
       { label: 'Complex Name', value: row.complexName },
-      { label: 'File Number', value: String(row.fileNumber.fileNumberId).padStart(9, '0') },
+      { label: 'File Number', value: (row.fileNumber.fileNumber ?? '—') },
       { label: 'Deadline Type', value: row.deadlineType },
       { label: 'Date', value: formatDateDisplay(row.date) },
       { label: 'Days Open', value: opened ? String(daysBetween(opened, today)) : '—' },
@@ -312,7 +309,7 @@ export default function TimelinesPage() {
         payload.targetDate = null;
       }
       const response = await authFetch(
-        `${API_BASE}/admin/file-numbers/${recordToDelete.fileNumberId}/timelines`,
+        `${API_BASE}/admin/file-numbers/${recordToDelete.fileId}/timelines`,
         { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }
       );
       const data = await response.json();
@@ -441,7 +438,7 @@ export default function TimelinesPage() {
       }
     }
 
-    const targetSrId = isCreating ? parseInt(selectedCreateSrId) : editingRecord?.fileNumberId;
+    const targetSrId = isCreating ? parseInt(selectedCreateSrId) : editingRecord?.fileId;
     if (!targetSrId) return;
 
     setIsSubmitting(true);
@@ -587,16 +584,21 @@ export default function TimelinesPage() {
         <SingleSelectDropdown
           label="Deadline Type"
           value={filterDeadlineType}
-          onChange={setFilterDeadlineType}
+          onChange={(val) => {
+            setFilterDeadlineType(val);
+            if (['fiscalYear', 'fileOpened', 'surveySubmitted', 'documentUpload'].includes(val)) {
+              setShowPastDates(true);
+            } else {
+              setShowPastDates(false);
+            }
+          }}
           options={[
             { value: 'fiscalYear', label: 'Fiscal Year Start' },
             { value: 'agm', label: 'AGM' },
-            { value: 'depreciation', label: 'Depreciation Report' },
             { value: 'target', label: 'Target Date' },
             { value: 'fileOpened', label: 'File Opened' },
-            { value: 'documentUpload', label: 'Document Upload' },
-            { value: 'surveySubmitted', label: 'Survey Submitted' },
-            { value: 'surveyAnswer', label: 'Last Survey Answer' },
+            { value: 'documentUpload', label: 'Documents Finalized' },
+            { value: 'surveySubmitted', label: 'Survey Answers Finalized' },
           ]}
           placeholder="All Types"
         />
@@ -777,8 +779,8 @@ export default function TimelinesPage() {
                 value={selectedCreateSrId}
                 onChange={setSelectedCreateSrId}
                 options={unconfirmedList.map(sr => ({
-                  value: sr.fileNumberId,
-                  label: `${sr.strata?.strataPlan || sr.strata?.complexName || `SR #${sr.fileNumberId}`} — ${sr.strata?.complexName || ''}`.trim(),
+                  value: sr.fileId,
+                  label: `${sr.strata?.strataPlan || sr.strata?.complexName || `SR #${sr.fileId}`} — ${sr.strata?.complexName || ''}`.trim(),
                 }))}
                 placeholder="Select a file number"
               />
@@ -808,14 +810,14 @@ export default function TimelinesPage() {
                 />
                 <label htmlFor="create-no-agm">No AGM to date</label>
               </div>
-              <InputField
-                label="Date of last depreciation report"
-                type="date"
+              <SingleSelectDropdown
+                label="Year of last depreciation report"
                 required={!formData.noReportToDate}
-                value={formData.lastDepreciationReportDate}
-                onChange={(e) => setFormData(prev => ({ ...prev, lastDepreciationReportDate: e.target.value }))}
+                value={formData.lastDepreciationReportDate ? formData.lastDepreciationReportDate.substring(0, 4) : ''}
+                onChange={(year) => setFormData(prev => ({ ...prev, lastDepreciationReportDate: year ? `${year}-01-01` : '' }))}
+                options={Array.from({ length: 41 }, (_, i) => new Date().getFullYear() - i).map(y => ({ value: y, label: String(y) }))}
+                placeholder="Select year"
                 disabled={formData.noReportToDate}
-                max={maxDateToday}
               />
               <div className="timelines-checkbox">
                 <input
@@ -869,14 +871,14 @@ export default function TimelinesPage() {
 
           {!isCreating && isDepreciationType && (
             <>
-              <InputField
-                label="Date of last depreciation report"
-                type="date"
+              <SingleSelectDropdown
+                label="Year of last depreciation report"
                 required={!formData.noReportToDate}
-                value={formData.lastDepreciationReportDate}
-                onChange={(e) => setFormData(prev => ({ ...prev, lastDepreciationReportDate: e.target.value }))}
+                value={formData.lastDepreciationReportDate ? formData.lastDepreciationReportDate.substring(0, 4) : ''}
+                onChange={(year) => setFormData(prev => ({ ...prev, lastDepreciationReportDate: year ? `${year}-01-01` : '' }))}
+                options={Array.from({ length: 41 }, (_, i) => new Date().getFullYear() - i).map(y => ({ value: y, label: String(y) }))}
+                placeholder="Select year"
                 disabled={formData.noReportToDate}
-                max={maxDateToday}
               />
               <div className="timelines-checkbox">
                 <input

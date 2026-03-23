@@ -34,7 +34,7 @@ export const useClientFileNumber = () => {
   const submitForReview = useCallback(async (): Promise<{ success: boolean; error?: string }> => {
     if (!activeRequest) return { success: false, error: 'No active request' };
     try {
-      await api.post(`/client/file-numbers/${activeRequest.fileNumberId}/submit`);
+      await api.post(`/client/file-numbers/${activeRequest.fileId}/submit`);
       await fetchActiveRequest();
       return { success: true };
     } catch {
@@ -44,7 +44,7 @@ export const useClientFileNumber = () => {
 
   return {
     activeRequest,
-    fileNumberId: activeRequest?.fileNumberId ?? null,
+    fileId: activeRequest?.fileId ?? null,
     loading,
     refetch: fetchActiveRequest,
     submitForReview,

@@ -1,5 +1,5 @@
 import { forwardRef } from 'react';
-import { formatTime12h } from '../../shared/lib/formatters';
+import { formatTime12h } from '../../shared/utils/formatters';
 import type { AvailableMeetingDatesProps } from '../../shared/types/appointment.types';
 
 function formatDayHeading(dateStr: string): string {

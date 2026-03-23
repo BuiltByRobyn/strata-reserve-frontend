@@ -1,15 +1,15 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Modal } from '../../shared/components/Modal';
 import { SingleSelectDropdown } from '../../shared/components/SingleSelectDropdown';
-import { formatDateShort } from '../../shared/lib/formatters';
+import { formatDateShort } from '../../shared/utils/formatters';
 import { getInspectorOptions } from '../../shared/utils/userUtils';
 import type { OfferAppointmentModalProps } from '../../shared/types/component.types';
-import { LOCATION_DISPLAY_ORDER } from '../../shared/lib/constants';
+import { LOCATION_DISPLAY_ORDER } from '../../shared/utils/constants';
 
 export const OfferAppointmentModal = ({
   isOpen,
   onClose,
-  fileNumberId,
+  fileId,
   strataPlan,
   targetDate,
   appointmentTypes,
@@ -74,17 +74,9 @@ export const OfferAppointmentModal = ({
     [appointmentTypes]
   );
 
-  const isValid = selectedTypeId != null && locationId != null;
+  const isValid = selectedTypeId != null && locationId != null && !!inspectorId;
 
   const handleSubmit = async () => {
-    if (selectedTypeId == null) {
-      setError('Please select an appointment type');
-      return;
-    }
-    if (locationId == null) {
-      setError('Please select a location for this strata');
-      return;
-    }
     setSaving(true);
     setError(null);
     try {
@@ -95,7 +87,7 @@ export const OfferAppointmentModal = ({
       if (notes.trim() && onAddNote) {
         await onAddNote(notes.trim());
       }
-      await onSubmit(fileNumberId, {
+      await onSubmit(fileId, {
         appointmentTypeId: selectedTypeId ?? undefined,
         inspectorProfileId: inspectorId || undefined,
         secondInspectorProfileId: addSecondInspector && secondInspectorId ? secondInspectorId : undefined,
@@ -165,7 +157,7 @@ export const OfferAppointmentModal = ({
 
         <div className="offer-modal__row">
           <div className="offer-modal__field">
-            <span className="offer-modal__label">Assign Inspector (optional)</span>
+            <span className="offer-modal__label">Assign Inspector <span className="offer-modal__required">*</span></span>
             <SingleSelectDropdown
               label=""
               options={inspectorOptions}

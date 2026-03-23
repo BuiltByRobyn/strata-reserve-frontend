@@ -37,18 +37,10 @@ export const CompanyHolidayModal = ({
     setError(null);
   }, [initialData, isOpen]);
 
+  const isFormValid = !!formData.holidayName.trim() && !!formData.holidayDate;
+
   const handleSubmit = async () => {
     try {
-      if (!formData.holidayName.trim() || !formData.holidayDate) {
-        throw new Error('Please fill in Holiday Name and Holiday Date.');
-      }
-
-      const today = new Date().toISOString().split('T')[0];
-      if (!formData.isRecurringAnnually && formData.holidayDate < today) {
-        setError('Holiday date cannot be in the past.');
-        return;
-      }
-
       setSaving(true);
       setError(null);
 
@@ -83,7 +75,7 @@ export const CompanyHolidayModal = ({
           Remove Holiday
         </button>
       )}
-      <button className="btn-primary" onClick={handleSubmit} disabled={saving}>
+      <button className="btn-primary" onClick={handleSubmit} disabled={!isFormValid || saving}>
         {saving ? 'Saving...' : initialData ? 'Update Holiday' : 'Add Holiday'}
       </button>
     </>

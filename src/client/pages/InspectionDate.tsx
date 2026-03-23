@@ -6,12 +6,13 @@ import { useTimelines } from '../../shared/hooks/useTimelines';
 import { useLookups } from '../../shared/hooks/useLookups';
 import { LoadingSpinner } from '../../shared/components/LoadingSpinner';
 import { Modal } from '../../shared/components/Modal';
-import { formatDateLong, formatTime12h, getUserDisplayName } from '../../shared/lib/formatters';
+import { formatDateLong, formatTime12h, getUserDisplayName } from '../../shared/utils/formatters';
 import BookingCalendar from '../../shared/components/BookingCalendar';
 import AvailableMeetingDates from '../components/AvailableMeetingDates';
 import BookingConfirmation from '../components/BookingConfirmation';
 import { Toast } from '../../shared/components/Toast';
 import type { AvailableDay, AvailableSlot, BookingChoice, BookingStep, ActiveAppointmentResponse, CalendarMilestone } from '../../shared/types/appointment.types';
+import { isWithin48Hours } from '../../shared/utils/availabilityUtils';
 
 /** Next anniversary of baseDate strictly after referenceDate */
 function getNextAnniversary(baseDate: Date, referenceDate: Date): Date {
@@ -58,8 +59,8 @@ const InspectionDate = () => {
   } = useClientAppointments();
   const { appointmentTypes } = useLookups();
 
-  const fileNumberId = activeRequest?.fileNumberId ?? null;
-  const { timelines } = useTimelines(fileNumberId);
+  const fileId = activeRequest?.fileId ?? null;
+  const { timelines } = useTimelines(fileId);
 
   const [activeAppointment, setActiveAppointment] = useState<ActiveAppointmentResponse>(null);
   const [availability, setAvailability] = useState<AvailableDay[]>([]);
@@ -78,6 +79,7 @@ const InspectionDate = () => {
   const [toastMsg, setToastMsg] = useState<string | null>(null);
   const [draftMeetingEligible, setDraftMeetingEligible] = useState(false);
   const [bookingDraftMeeting, setBookingDraftMeeting] = useState(false);
+  const [lastInspectionDate, setLastInspectionDate] = useState<string | null>(null);
   const [showWelcomeModal, setShowWelcomeModal] = useState(false);
 
   const isOffered = !!activeRequest?.appointmentOfferedAt;
@@ -89,13 +91,13 @@ const InspectionDate = () => {
 
   // Welcome modal: show once per file number (persists across sessions)
   useEffect(() => {
-    if (!fileNumberId || !isOffered) return;
-    const key = `welcome-modal-shown-${fileNumberId}`;
+    if (!fileId || !isOffered) return;
+    const key = `welcome-modal-shown-${fileId}`;
     if (!localStorage.getItem(key)) {
       setShowWelcomeModal(true);
       localStorage.setItem(key, '1');
     }
-  }, [fileNumberId, isOffered]);
+  }, [fileId, isOffered]);
 
   const loadActiveAppointment = useCallback(async () => {
     const data = await getActiveAppointment();
@@ -120,7 +122,7 @@ const InspectionDate = () => {
   }, [srLoading, activeRequest, loadActiveAppointment]);
 
   const loadAvailability = useCallback(async (isDraft = false) => {
-    if (!fileNumberId) return;
+    if (!fileId) return;
     setCalendarLoading(true);
     const today = new Date();
     const start = new Date(today);
@@ -130,10 +132,10 @@ const InspectionDate = () => {
 
     const startStr = start.toISOString().split('T')[0];
     const endStr = end.toISOString().split('T')[0];
-    const data = await getAvailability(startStr, endStr, fileNumberId, isDraft);
+    const data = await getAvailability(startStr, endStr, fileId, isDraft);
     setAvailability(data);
     setCalendarLoading(false);
-  }, [fileNumberId, getAvailability]);
+  }, [fileId, getAvailability]);
 
   useEffect(() => {
     const currentType = activeAppointment?.type ?? null;
@@ -144,33 +146,41 @@ const InspectionDate = () => {
   }, [activeAppointment]);
 
   useEffect(() => {
-    if (!isOffered || !fileNumberId || pageLoading || hasFetchedAvailability.current) return;
+    if (!isOffered || !fileId || pageLoading || hasFetchedAvailability.current) return;
     if (activeAppointment?.type === 'completed_draft') {
       setCalendarLoading(false);
       return;
     }
     hasFetchedAvailability.current = true;
-    checkDraftMeetingEligibility(fileNumberId).then(eligible => {
-      setDraftMeetingEligible(eligible);
-      if (eligible) {
+    checkDraftMeetingEligibility(fileId).then(result => {
+      setDraftMeetingEligible(result.eligible);
+      setLastInspectionDate(result.lastInspectionDate);
+      if (result.eligible) {
         setBookingDraftMeeting(true);
         loadAvailability(true);
       } else {
         loadAvailability(bookingDraftMeeting);
       }
     });
-  }, [isOffered, activeAppointment, fileNumberId, pageLoading, loadAvailability, bookingDraftMeeting, checkDraftMeetingEligibility]);
+  }, [isOffered, activeAppointment, fileId, pageLoading, loadAvailability, bookingDraftMeeting, checkDraftMeetingEligibility]);
 
   // Re-fetch availability when user returns to the tab (handles inspector changes by admin)
   useEffect(() => {
     const handleFocus = () => {
-      if (isOffered && fileNumberId && activeAppointment?.type !== 'pending_request') {
+      if (isOffered && fileId && activeAppointment?.type !== 'pending_request') {
         loadAvailability(bookingDraftMeeting);
       }
     };
     window.addEventListener('focus', handleFocus);
     return () => window.removeEventListener('focus', handleFocus);
-  }, [isOffered, activeAppointment, fileNumberId, loadAvailability, bookingDraftMeeting]);
+  }, [isOffered, activeAppointment, fileId, loadAvailability, bookingDraftMeeting]);
+
+  const filteredAvailability = useMemo(() =>
+    availability
+      .map(day => ({ ...day, slots: day.slots.filter(slot => !isWithin48Hours(day.date, slot.slotTime)) }))
+      .filter(day => day.slots.length > 0),
+    [availability]
+  );
 
   // Compute timeline milestones for the calendar
   const milestones = useMemo((): CalendarMilestone[] => {
@@ -179,10 +189,15 @@ const InspectionDate = () => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    // "Approved" milestone on the date the appointment was offered
+    // "File Opened" milestone on the date the appointment was offered
     if (activeRequest?.appointmentOfferedAt) {
       const offeredDate = formatYMD(new Date(activeRequest.appointmentOfferedAt));
-      result.push({ date: offeredDate, label: 'Approved' });
+      result.push({ date: offeredDate, label: 'File Opened' });
+    }
+
+    // "Inspection Date" milestone shown only when booking a draft meeting
+    if (bookingDraftMeeting && lastInspectionDate) {
+      result.push({ date: lastInspectionDate, label: 'Inspection Date' });
     }
 
     if (!timelines) return result;
@@ -246,7 +261,7 @@ const InspectionDate = () => {
     }
 
     return result;
-  }, [timelines, activeRequest?.appointmentOfferedAt]);
+  }, [timelines, activeRequest?.appointmentOfferedAt, bookingDraftMeeting, lastInspectionDate]);
 
   const handleDateSelect = (date: string) => {
     setSelectedDate(date);
@@ -289,7 +304,7 @@ const InspectionDate = () => {
   };
 
   const handleSubmit = async () => {
-    if (!firstChoice || !fileNumberId) return;
+    if (!firstChoice || !fileId) return;
 
     if (!secondChoice) {
       setErrorMsg('Please select a second choice date and time slot');
@@ -308,7 +323,7 @@ const InspectionDate = () => {
     setErrorMsg(null);
 
     const result = await createRequest({
-      fileNumberId,
+      fileId,
       appointmentTypeId: selectedType.appointmentTypeId,
       firstChoiceDate: firstChoice.date,
       firstChoiceTimeSlotId: firstChoice.timeSlotId,
@@ -323,6 +338,7 @@ const InspectionDate = () => {
       setSuccessMsg('Your appointment request has been submitted successfully!');
       resetBooking();
       await loadActiveAppointment();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } else {
       const msg = result.error || 'Failed to submit request';
       if (msg.includes('no longer available') || msg.includes('Please choose a different')) {
@@ -566,12 +582,13 @@ const InspectionDate = () => {
             <div className="inspection-date__calendar-section">
               <BookingCalendar
                 variant="client"
-                availability={hasScheduledAppointment ? [] : availability}
+                availability={hasScheduledAppointment ? [] : filteredAvailability}
                 selectedDate={canBook || isPending ? selectedDate : null}
                 onSelectDate={canBook || isPending ? handleDateSelect : () => {}}
                 loading={calendarLoading}
                 milestones={milestones}
                 bookedDate={bookedDateStr}
+                bookedTime={scheduledApt?.timeSlot?.slotTime ?? null}
               />
             </div>
 
@@ -601,7 +618,7 @@ const InspectionDate = () => {
                   )}
                   <AvailableMeetingDates
                     ref={meetingDatesRef}
-                    availability={availability}
+                    availability={filteredAvailability}
                     onSelectSlot={canBook ? handleCardSlotSelect : () => {}}
                     firstChoice={firstChoice}
                     secondChoice={secondChoice}

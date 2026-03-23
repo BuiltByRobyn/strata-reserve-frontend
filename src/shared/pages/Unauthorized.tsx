@@ -6,7 +6,7 @@ export const Unauthorized = () => {
   const { user } = useAuth();
 
   const handleGoBack = () => {
-    if (user?.role === 'admin') {
+    if (user?.role === 'admin' || user?.role === 'inspector' || user?.role === 'assistant') {
       navigate('/admin/dashboard');
     } else if (user?.role === 'client') {
       navigate('/client/dashboard');

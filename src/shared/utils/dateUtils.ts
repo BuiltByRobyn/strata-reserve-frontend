@@ -53,22 +53,11 @@ export function getSlotTimeRange(
 ): string {
   const [h] = slotTime.split(':');
   const startHour = parseInt(h);
-  let endHour: number;
-  let endMin = 0;
+  const endHour = isDraftMeeting ? startHour + 1 : isFullDay ? 18 : startHour + 4;
 
-  if (isDraftMeeting) {
-    endHour = startHour;
-    endMin = 30;
-  } else if (isFullDay) {
-    endHour = 18;
-  } else {
-    endHour = startHour + 4;
-  }
+  const fmt = (hr: number) => hr.toString().padStart(2, '0') + ':00';
 
-  const fmt = (hr: number, min: number) =>
-    `${hr.toString().padStart(2, '0')}:${min.toString().padStart(2, '0')}`;
-
-  return `${fmt(startHour, 0)} - ${fmt(endHour, endMin)}`;
+  return `${fmt(startHour)} - ${fmt(endHour)}`;
 }
 
 /** Safely parse a timestamp string into a Date, returning null if invalid */
@@ -78,7 +67,6 @@ export function parseTimestamp(value: string | null | undefined): Date | null {
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
-/** Convert "HH:mm" or "HH:mm:ss" to "H:00 AM/PM" */
 export function formatTime12h(time: string): string {
   const [h] = time.split(':');
   const hour = parseInt(h);

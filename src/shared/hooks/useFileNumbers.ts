@@ -58,6 +58,11 @@ export const useFileNumbers = () => {
     return result;
   }, [api]);
 
+  const updateFileNumber = useCallback(async (id: number, fileNumber: string): Promise<FileNumber | null> => {
+    const result = await api.put<FileNumber>(`/admin/file-numbers/${id}/file-number`, { fileNumber });
+    return result;
+  }, [api]);
+
   const deleteFileNumber = useCallback(async (id: number): Promise<boolean> => {
     await api.del(`/admin/file-numbers?id=${id}`);
     return true;
@@ -79,6 +84,7 @@ export const useFileNumbers = () => {
     getActiveByStrata,
     getFileNumberById,
     createFileNumber,
+    updateFileNumber,
     deleteFileNumber,
     offerAppointment
   };

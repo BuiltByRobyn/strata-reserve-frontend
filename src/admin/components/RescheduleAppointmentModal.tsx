@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Modal } from '../../shared/components/Modal';
 import { SingleSelectDropdown } from '../../shared/components/SingleSelectDropdown';
 import { AppointmentInfoDisplay } from './AppointmentInfoDisplay';
-import { formatTime12h, getUserDisplayName } from '../../shared/lib/formatters';
+import { formatTime12h, getUserDisplayName } from '../../shared/utils/formatters';
 import { getInspectorOptions } from '../../shared/utils/userUtils';
 import type { RescheduleAppointmentModalProps } from '../../shared/types/component.types';
 
@@ -16,7 +16,7 @@ const RescheduleAppointmentModal = ({
 }: RescheduleAppointmentModalProps) => {
   const [newDate, setNewDate] = useState('');
   const [newTimeSlotId, setNewTimeSlotId] = useState<number | null>(null);
-  const [inspectorId, setInspectorId] = useState('');
+  const [inspectorId, setInspectorId] = useState(appointment?.inspectorProfileId || '');
   const [addSecondInspector, setAddSecondInspector] = useState(false);
   const [secondInspectorId, setSecondInspectorId] = useState('');
   const [reason, setReason] = useState('');
@@ -36,11 +36,9 @@ const RescheduleAppointmentModal = ({
   const effectivePrimaryId = inspectorId || appointment.inspectorProfileId || '';
   const secondInspectorOptions = inspectorOptions.filter(o => o.value !== effectivePrimaryId);
 
+  const isFormValid = !!newDate && !!newTimeSlotId && !!inspectorId;
+
   const handleSubmit = async () => {
-    if (!newDate || !newTimeSlotId) {
-      setError('Please select a new date and time slot');
-      return;
-    }
     setSubmitting(true);
     setError(null);
     try {
@@ -48,7 +46,7 @@ const RescheduleAppointmentModal = ({
         ? (secondInspectorId || existingSecondInspector.id)
         : (addSecondInspector && secondInspectorId ? secondInspectorId : undefined);
       await onReschedule(appointment.appointmentId, newDate, newTimeSlotId, {
-        inspectorProfileId: inspectorId || undefined,
+        inspectorProfileId: inspectorId,
         secondInspectorProfileId: secondId,
         reason: reason.trim() || undefined,
       });
@@ -63,7 +61,7 @@ const RescheduleAppointmentModal = ({
   const resetAndClose = () => {
     setNewDate('');
     setNewTimeSlotId(null);
-    setInspectorId('');
+    setInspectorId(appointment.inspectorProfileId || '');
     setAddSecondInspector(false);
     setSecondInspectorId('');
     setReason('');
@@ -119,14 +117,15 @@ const RescheduleAppointmentModal = ({
           </div>
 
           <SingleSelectDropdown
-            label="Reassign Inspector (optional)"
+            label="Inspector *"
+            required
             options={inspectorOptions}
             value={inspectorId}
             onChange={(val) => {
               setInspectorId(val);
               if (val === secondInspectorId) setSecondInspectorId('');
             }}
-            placeholder={`${currentInspector} (current)`}
+            placeholder={currentInspector}
           />
 
           {hasExistingSecondInspector ? (
@@ -181,7 +180,7 @@ const RescheduleAppointmentModal = ({
           <button type="button" className="btn btn-secondary" onClick={resetAndClose} disabled={submitting}>
             Cancel
           </button>
-          <button type="button" className="btn btn-danger" onClick={handleSubmit} disabled={submitting}>
+          <button type="button" className="btn btn-danger" onClick={handleSubmit} disabled={!isFormValid || submitting}>
             {submitting ? 'Rescheduling...' : 'Reschedule'}
           </button>
         </div>

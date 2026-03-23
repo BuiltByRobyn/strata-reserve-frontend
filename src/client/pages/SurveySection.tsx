@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { useSurvey } from '../../shared/hooks/useSurvey';
@@ -18,7 +18,7 @@ const QUESTIONS_PER_PAGE = 5;
 export default function SurveySectionPage() {
   const { section } = useParams<{ section: string }>();
   const navigate = useNavigate();
-  const { activeRequest, fileNumberId, loading: srLoading, submitForReview } = useClientFileNumber();
+  const { activeRequest, fileId, loading: srLoading, submitForReview } = useClientFileNumber();
   const {
     questions: allQuestions,
     responses,
@@ -31,20 +31,20 @@ export default function SurveySectionPage() {
   } = useSurvey();
   const api = useApiClient();
 
+  const isReadOnly = !!activeRequest?.submittedForReviewDate;
+
   const [page, setPage] = useState(0);
   const [localAnswers, setLocalAnswers] = useState<Record<string, SaveResponsePayload>>({});
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [downloadingPdf, setDownloadingPdf] = useState(false);
-  const prevPageRef = useRef(page);
-  const prevSectionRef = useRef(section);
 
   useEffect(() => {
-    if (fileNumberId) {
-      fetchQuestions(fileNumberId);
-      fetchResponses(fileNumberId);
+    if (fileId) {
+      fetchQuestions(fileId);
+      fetchResponses(fileId);
     }
-  }, [fileNumberId, fetchQuestions, fetchResponses]);
+  }, [fileId, fetchQuestions, fetchResponses]);
 
   const sectionConfig = SURVEY_SECTIONS.find(s => s.key === section);
 
@@ -67,7 +67,7 @@ export default function SurveySectionPage() {
   }
 
   const requiredSections = SURVEY_SECTIONS.filter(s =>
-    allQuestions.some(q => q.questionCategory === s.label)
+    allQuestions.some(q => q.questionCategory === s.label && q.parentQuestionId == null)
   );
 
   const totalPages = Math.ceil(sectionQuestions.length / QUESTIONS_PER_PAGE);
@@ -80,8 +80,11 @@ export default function SurveySectionPage() {
   const currentSectionIdx = requiredSections.findIndex(s => s.key === section);
   const isLastSection = currentSectionIdx >= requiredSections.length - 1;
 
-  const totalAnswered = responses.length;
-  const totalQuestions = allQuestions.length;
+  const parentQuestionKeys = new Set(
+    allQuestions.filter(q => q.parentQuestionId == null).map(q => `${q.questionId}-${q.propertyTypeId}`)
+  );
+  const totalQuestions = parentQuestionKeys.size;
+  const totalAnswered = responses.filter(r => parentQuestionKeys.has(`${r.questionId}-${r.propertyTypeId}`)).length;
 
   const buildPendingPayloads = useCallback(() => {
     return Object.values(localAnswers).filter(a => {
@@ -96,20 +99,13 @@ export default function SurveySectionPage() {
   }, [localAnswers]);
 
   const saveCurrent = useCallback(async () => {
-    if (!fileNumberId) return;
+    if (!fileId) return;
     const payloads = buildPendingPayloads();
     if (payloads.length > 0) {
-      await saveResponses(fileNumberId, payloads);
+      await saveResponses(fileId, payloads);
       setLocalAnswers({});
     }
-  }, [fileNumberId, buildPendingPayloads, saveResponses]);
-
-  useEffect(() => {
-    if (prevPageRef.current !== page || prevSectionRef.current !== section) {
-      prevPageRef.current = page;
-      prevSectionRef.current = section;
-    }
-  }, [page, section]);
+  }, [fileId, buildPendingPayloads, saveResponses]);
 
   // Reset to first page when navigating to a new section
   useEffect(() => {
@@ -130,7 +126,8 @@ export default function SurveySectionPage() {
 
   const handleSave = async () => {
     await saveCurrent();
-    navigate('/client/dashboard');
+    toast('Your answers have been saved but not yet finalized, and can still be edited.', { icon: 'ℹ️' });
+    navigate('/client/survey');
   };
 
   const handleSaveAndSubmit = async () => {
@@ -148,8 +145,28 @@ export default function SurveySectionPage() {
     }
   };
 
-  const handleDownloadPdf = async () => {
-    if (!fileNumberId) return;
+  const handleToggleFlag = useCallback((questionId: number, propertyTypeId: number, flag: 'NOT_APPLICABLE' | 'UNKNOWN') => {
+    const key = `${questionId}-${propertyTypeId}`;
+    setLocalAnswers(prev => {
+      const current = prev[key]?.responseText;
+      return {
+        ...prev,
+        [key]: {
+          questionId,
+          propertyTypeId,
+          responseText: current === flag ? null : flag,
+          responseNumber: null,
+          responseBoolean: null,
+          responseDate: null,
+          multipleChoiceOptionId: null,
+        },
+      };
+    });
+  }, []);
+
+  const handleSaveAndDownload = async () => {
+    if (!fileId) return;
+    await saveCurrent();
     setDownloadingPdf(true);
     try {
       const res = await api.rawFetch('/client/file-numbers/active/survey/pdf');
@@ -171,6 +188,11 @@ export default function SurveySectionPage() {
     } finally {
       setDownloadingPdf(false);
     }
+  };
+
+  const handleManualSave = async () => {
+    await saveCurrent();
+    toast.success('Progress saved!');
   };
 
   const updateAnswer = (questionId: number, propertyTypeId: number, field: keyof SaveResponsePayload, value: unknown) => {
@@ -218,7 +240,6 @@ export default function SurveySectionPage() {
       <div key={q.fnSurveyQuestionId} className="survey-sub-question">
         <label className="question-label">
           <span className="sub-label-badge">{String.fromCharCode(97 + index)}.</span> {q.questionText}
-          {q.isRequired && <span className="required-mark">*</span>}
         </label>
         {q.questionType === 'textarea' && (
           <textarea
@@ -227,6 +248,7 @@ export default function SurveySectionPage() {
             onChange={(e) => updateAnswer(q.questionId, q.propertyTypeId, 'responseText', e.target.value)}
             placeholder="Enter your answer..."
             rows={2}
+            readOnly={isReadOnly}
           />
         )}
         {q.questionType === 'text' && (
@@ -236,6 +258,7 @@ export default function SurveySectionPage() {
             value={answer.responseText || ''}
             onChange={(e) => updateAnswer(q.questionId, q.propertyTypeId, 'responseText', e.target.value)}
             placeholder="Enter your answer..."
+            readOnly={isReadOnly}
           />
         )}
         {q.questionType === 'number' && (
@@ -245,6 +268,7 @@ export default function SurveySectionPage() {
             value={answer.responseNumber ?? ''}
             onChange={(e) => updateAnswer(q.questionId, q.propertyTypeId, 'responseNumber', e.target.value ? parseInt(e.target.value) : null)}
             placeholder="Enter number..."
+            readOnly={isReadOnly}
           />
         )}
       </div>
@@ -256,7 +280,8 @@ export default function SurveySectionPage() {
     const questionNumber = page * QUESTIONS_PER_PAGE + index + 1;
     const subQuestions = subQuestionsMap.get(`${q.questionId}-${q.propertyTypeId}`) ?? [];
 
-    const hasAnswer = (
+    const isFlagged = answer.responseText === 'NOT_APPLICABLE' || answer.responseText === 'UNKNOWN';
+    const hasAnswer = !isFlagged && (
       (answer.responseText != null && answer.responseText.trim() !== '') ||
       answer.responseNumber != null ||
       answer.responseBoolean != null ||
@@ -275,37 +300,65 @@ export default function SurveySectionPage() {
           <p className="question-info">{q.informationText}</p>
         )}
 
-        {q.questionType === 'textarea' && (
+        {!isReadOnly && (
+          <div className="question-flag-buttons">
+            <button
+              type="button"
+              className={`btn-flag${answer.responseText === 'UNKNOWN' ? ' btn-flag--active' : ''}`}
+              onClick={() => handleToggleFlag(q.questionId, q.propertyTypeId, 'UNKNOWN')}
+            >
+              Unknown
+            </button>
+            <button
+              type="button"
+              className={`btn-flag${answer.responseText === 'NOT_APPLICABLE' ? ' btn-flag--active' : ''}`}
+              onClick={() => handleToggleFlag(q.questionId, q.propertyTypeId, 'NOT_APPLICABLE')}
+            >
+              Not Applicable
+            </button>
+          </div>
+        )}
+
+        {isFlagged && (
+          <p className="question-flag-label">
+            {answer.responseText === 'NOT_APPLICABLE' ? 'Not Applicable' : 'Unknown'}
+          </p>
+        )}
+
+        {!isFlagged && q.questionType === 'textarea' && (
           <textarea
             className="question-input question-textarea"
             value={answer.responseText || ''}
             onChange={(e) => updateAnswer(q.questionId, q.propertyTypeId, 'responseText', e.target.value)}
             placeholder="Enter your answer..."
             rows={3}
+            readOnly={isReadOnly}
           />
         )}
 
-        {q.questionType === 'text' && (
+        {!isFlagged && q.questionType === 'text' && (
           <input
             type="text"
             className="question-input"
             value={answer.responseText || ''}
             onChange={(e) => updateAnswer(q.questionId, q.propertyTypeId, 'responseText', e.target.value)}
             placeholder="Enter your answer..."
+            readOnly={isReadOnly}
           />
         )}
 
-        {q.questionType === 'number' && (
+        {!isFlagged && q.questionType === 'number' && (
           <input
             type="number"
             className="question-input"
             value={answer.responseNumber ?? ''}
             onChange={(e) => updateAnswer(q.questionId, q.propertyTypeId, 'responseNumber', e.target.value ? parseInt(e.target.value) : null)}
             placeholder="Enter number..."
+            readOnly={isReadOnly}
           />
         )}
 
-        {q.questionType === 'boolean' && (
+        {!isFlagged && q.questionType === 'boolean' && (
           <div className="question-boolean">
             <label>
               <input
@@ -313,6 +366,7 @@ export default function SurveySectionPage() {
                 name={`q-${q.fnSurveyQuestionId}`}
                 checked={answer.responseBoolean === true}
                 onChange={() => updateAnswer(q.questionId, q.propertyTypeId, 'responseBoolean', true)}
+                disabled={isReadOnly}
               />
               Yes
             </label>
@@ -322,22 +376,24 @@ export default function SurveySectionPage() {
                 name={`q-${q.fnSurveyQuestionId}`}
                 checked={answer.responseBoolean === false}
                 onChange={() => updateAnswer(q.questionId, q.propertyTypeId, 'responseBoolean', false)}
+                disabled={isReadOnly}
               />
               No
             </label>
           </div>
         )}
 
-        {q.questionType === 'date' && (
+        {!isFlagged && q.questionType === 'date' && (
           <input
             type="date"
             className="question-input"
             value={answer.responseDate || ''}
             onChange={(e) => updateAnswer(q.questionId, q.propertyTypeId, 'responseDate', e.target.value)}
+            readOnly={isReadOnly}
           />
         )}
 
-        {q.questionType === 'multiple_choice' && (
+        {!isFlagged && q.questionType === 'multiple_choice' && (
           <div className="question-choices">
             {q.multipleChoiceOptions.map((opt) => (
               <label key={opt.optionId} className="choice-option">
@@ -346,6 +402,7 @@ export default function SurveySectionPage() {
                   name={`q-${q.fnSurveyQuestionId}`}
                   checked={answer.multipleChoiceOptionId === opt.optionId}
                   onChange={() => updateAnswer(q.questionId, q.propertyTypeId, 'multipleChoiceOptionId', opt.optionId)}
+                  disabled={isReadOnly}
                 />
                 {opt.optionText}
               </label>
@@ -353,7 +410,7 @@ export default function SurveySectionPage() {
           </div>
         )}
 
-        {q.questionType === 'checkbox' && (
+        {!isFlagged && q.questionType === 'checkbox' && (
           <div className="question-choices question-checkboxes">
             {q.multipleChoiceOptions.map((opt) => (
               <label key={opt.optionId} className="choice-option">
@@ -368,6 +425,7 @@ export default function SurveySectionPage() {
                       : current.filter(v => v !== id);
                     updateAnswer(q.questionId, q.propertyTypeId, 'responseText', updated.join(','));
                   }}
+                  disabled={isReadOnly}
                 />
                 {opt.optionText}
               </label>
@@ -375,7 +433,7 @@ export default function SurveySectionPage() {
           </div>
         )}
 
-        {q.questionType === 'none_or_explain' && (
+        {!isFlagged && q.questionType === 'none_or_explain' && (
           <div className="question-none-or-explain">
             <label className="choice-option">
               <input
@@ -384,16 +442,18 @@ export default function SurveySectionPage() {
                 onChange={(e) => {
                   updateAnswer(q.questionId, q.propertyTypeId, 'responseText', e.target.checked ? 'NONE' : '');
                 }}
+                disabled={isReadOnly}
               />
               None
             </label>
             {answer.responseText !== 'NONE' && (
               <textarea
                 className="question-input question-textarea"
-                value={answer.responseText === 'NONE' ? '' : (answer.responseText || '')}
+                value={answer.responseText || ''}
                 onChange={(e) => updateAnswer(q.questionId, q.propertyTypeId, 'responseText', e.target.value)}
                 placeholder="Please explain..."
                 rows={3}
+                readOnly={isReadOnly}
               />
             )}
           </div>
@@ -410,7 +470,7 @@ export default function SurveySectionPage() {
 
   if (srLoading || loading) return <LoadingSpinner />;
 
-  if (!fileNumberId) {
+  if (!fileId) {
     return (
       <div className="survey-section-page">
         <p>No active file number found. Please contact your administrator.</p>
@@ -433,6 +493,8 @@ export default function SurveySectionPage() {
 
       <SurveyProgressBar answered={totalAnswered} total={totalQuestions} />
 
+      <p className="section-instruction">Please complete the questions in the boxes if applicable, otherwise please check the not applicable button</p>
+
       <div className="survey-questions-container">
         {!hasQuestions ? (
           <div className="survey-coming-soon">
@@ -450,68 +512,77 @@ export default function SurveySectionPage() {
       )}
 
       <div className="survey-pagination">
-        {(page > 0 || currentSectionIdx > 0) && (
+        {isReadOnly ? (
           <button
-            className="btn-secondary btn-nav"
-            onClick={async () => {
-              if (page > 0) {
-                await handlePageChange(page - 1);
-              } else if (currentSectionIdx > 0) {
-                await saveCurrent();
-                navigate(`/client/survey/${requiredSections[currentSectionIdx - 1].key}`);
-              }
-            }}
-            disabled={saving}
-          >
-            Previous Step
-          </button>
-        )}
-
-        {!(isLastPage && isLastSection) && (
-          <button
-            type="button"
             className="btn-primary btn-nav"
-            onClick={handleDownloadPdf}
-            disabled={!fileNumberId || downloadingPdf}
+            onClick={() => navigate('/client/survey')}
           >
-            {downloadingPdf ? 'Downloading...' : 'Download Survey'}
+            Back to Survey
           </button>
-        )}
-
-        {isLastPage && isLastSection ? (
-          <>
-            <button
-              className="btn-secondary btn-nav"
-              onClick={handleSave}
-              disabled={saving || submitting}
-            >
-              Save
-            </button>
-            <button
-              className="btn-primary btn-nav"
-              onClick={handleSaveAndSubmit}
-              disabled={saving || submitting}
-            >
-              {submitting ? 'Submitting...' : activeRequest?.submittedForReviewDate ? 'Resubmit' : 'Save and Submit'}
-            </button>
-          </>
         ) : (
-          <button
-            className="btn-secondary btn-nav"
-            onClick={async () => {
-              if (page < totalPages - 1) {
-                await handlePageChange(page + 1);
-              } else {
-                await saveCurrent();
-                if (currentSectionIdx < requiredSections.length - 1) {
-                  navigate(`/client/survey/${requiredSections[currentSectionIdx + 1].key}`);
-                }
-              }
-            }}
-            disabled={saving}
-          >
-            {saving ? 'Saving...' : 'Next Step'}
-          </button>
+          <>
+            {(page > 0 || currentSectionIdx > 0) && (
+              <button
+                className="btn-secondary btn-nav"
+                onClick={async () => {
+                  if (page > 0) {
+                    await handlePageChange(page - 1);
+                  } else if (currentSectionIdx > 0) {
+                    await saveCurrent();
+                    navigate(`/client/survey/${requiredSections[currentSectionIdx - 1].key}`);
+                  }
+                }}
+                disabled={saving}
+              >
+                Previous Page
+              </button>
+            )}
+
+            {isLastPage && isLastSection ? (
+              <>
+                <button
+                  className="btn-secondary btn-nav"
+                  onClick={handleSave}
+                  disabled={saving || submitting}
+                >
+                  Save Pending Future Changes
+                </button>
+                <button
+                  className="btn-secondary btn-nav"
+                  onClick={handleSaveAndDownload}
+                  disabled={saving || submitting || downloadingPdf}
+                >
+                  {downloadingPdf ? 'Downloading...' : 'Save and Download PDF'}
+                </button>
+                <button
+                  className="btn-primary btn-nav"
+                  onClick={handleSaveAndSubmit}
+                  disabled={saving || submitting}
+                >
+                  {submitting ? 'Submitting...' : 'Finalize Answers & Submit'}
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  className="btn-secondary btn-nav"
+                  onClick={async () => {
+                    if (page < totalPages - 1) {
+                      await handlePageChange(page + 1);
+                    } else {
+                      await saveCurrent();
+                      if (currentSectionIdx < requiredSections.length - 1) {
+                      navigate(`/client/survey/${requiredSections[currentSectionIdx + 1].key}`);
+                    }
+                  }
+                }}
+                disabled={saving}
+              >
+                {saving ? 'Saving...' : 'Next Page'}
+                </button>
+              </>
+            )}
+          </>
         )}
       </div>
     </div>

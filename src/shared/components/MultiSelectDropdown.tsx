@@ -30,10 +30,7 @@ export function MultiSelectDropdown({
   };
 
   const filteredOptions = searchable && search
-    ? options.filter(opt =>
-        selectedValues.includes(opt.value) ||
-        opt.label.toLowerCase().includes(search.toLowerCase())
-      )
+    ? options.filter(opt => opt.label.toLowerCase().includes(search.toLowerCase()))
     : options;
 
   const selectedCount = selectedValues.length;

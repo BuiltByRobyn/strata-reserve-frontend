@@ -61,7 +61,7 @@ export const useLookups = () => {
       setState({
         userTypes: userTypes || [],
         legalTypes: legalTypes || [],
-        propertyTypes: propertyTypes || [],
+        propertyTypes: (propertyTypes || []).filter((pt: PropertyType) => pt.propertyTypeName !== 'Other'),
         services: services || [],
         documentTypes: documentTypes || [],
         reviewStatuses: reviewStatuses || [],

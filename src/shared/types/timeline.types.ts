@@ -1,7 +1,7 @@
 import type { FileNumber } from './entities.types';
 
 export interface TimelineData {
-  fileNumberId: number;
+  fileId: number;
   requestDate: string;
   fiscalYearEnd: string | null;
   lastAgmDate: string | null;
@@ -9,6 +9,7 @@ export interface TimelineData {
   lastDepreciationReportDate: string | null;
   noReportToDate: boolean;
   targetDate: string | null;
+  timelinesSubmittedAt: string | null;
 }
 
 export interface UpdateTimelinesInput {
@@ -20,7 +21,7 @@ export interface UpdateTimelinesInput {
   targetDate?: string | null;
 }
 
-export type DeadlineType = 'Fiscal Year Start' | 'Last AGM Date' | 'Next Projected AGM' | 'Last Depreciation Report Date' | 'Next Projected Depreciation' | 'Target Date' | 'File Opened' | 'Most Recent Document Upload' | 'Survey Submitted' | 'Last Survey Answer Date';
+export type DeadlineType = 'Fiscal Year Start' | 'Last AGM Date' | 'Next Projected AGM' | 'Last Depreciation Report Date' | 'Next Projected Depreciation' | 'Target Date' | 'File Opened' | 'Documents Finalized' | 'Survey Answers Finalized';
 
 export interface DeadlineRow {
   id: string;
