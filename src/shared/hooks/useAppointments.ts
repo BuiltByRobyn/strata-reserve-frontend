@@ -63,7 +63,7 @@ export const useAppointments = () => {
     id: number,
     appointmentDate: string,
     timeSlotId: number,
-    options?: { inspectorProfileId?: string; secondInspectorProfileId?: string; reason?: string }
+    options?: { inspectorProfileId?: string; secondInspectorProfileId?: string | null; reason?: string }
   ): Promise<boolean> => {
     try {
       await api.put(`/admin/appointments/${id}/reschedule`, {
