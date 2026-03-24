@@ -24,7 +24,12 @@ export const ClientNavbar = ({ activeRequest }: { activeRequest: FileNumber | nu
         a => a.status === 'Completed' && a.appointmentType?.isDraftMeeting === false
       ) ?? false;
       const isDraft = isDraftByOffer || hasCompletedInspection;
-      items.push({ to: '/client/inspection-date', label: isDraft ? 'Draft Meeting' : 'Inspection Date' });
+      const draftCompleted = isDraft && (activeRequest.appointments?.some(
+        a => a.status === 'Completed' && a.appointmentType?.isDraftMeeting === true
+      ) ?? false);
+      if (!draftCompleted) {
+        items.push({ to: '/client/inspection-date', label: isDraft ? 'Draft Meeting' : 'Inspection Date' });
+      }
     }
     return items;
   }, [activeRequest?.appointmentOfferedAt, activeRequest?.appointmentOfferType?.isDraftMeeting, activeRequest?.appointments]);

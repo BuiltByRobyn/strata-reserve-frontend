@@ -84,60 +84,40 @@ const StrataInformation = () => {
       <div className="strata-info__card">
         <h2 className="strata-info__section-title">Basic Information</h2>
 
-        <div className="strata-info__row strata-info__row--2col">
-          <div className="strata-info__field">
-            <span className="strata-info__label">Strata Plan</span>
-            <span className="strata-info__value">{strata.strataPlan || 'N/A'}</span>
-          </div>
-          <div className="strata-info__field">
-            <span className="strata-info__label">Complex Name</span>
-            <span className="strata-info__value">{strata.complexName || 'N/A'}</span>
-          </div>
+        <div className="strata-info__field">
+          <span className="strata-info__label">Strata Plan</span>
+          <span className="strata-info__value">{strata.strataPlan || 'N/A'}</span>
+        </div>
+        <div className="strata-info__field">
+          <span className="strata-info__label">Complex Name</span>
+          <span className="strata-info__value">{strata.complexName || 'N/A'}</span>
+        </div>
+        <div className="strata-info__field">
+          <span className="strata-info__label">Address</span>
+          <span className="strata-info__value">{strata.streetName || 'N/A'}</span>
+        </div>
+        <div className="strata-info__field">
+          <span className="strata-info__label">City</span>
+          <span className="strata-info__value">{strata.town || 'N/A'}</span>
+        </div>
+        <div className="strata-info__field">
+          <span className="strata-info__label">Province</span>
+          <span className="strata-info__value">{strata.province || 'N/A'}</span>
+        </div>
+        <div className="strata-info__field">
+          <span className="strata-info__label">Postal Code</span>
+          <span className="strata-info__value">{strata.postalCode || 'N/A'}</span>
         </div>
 
-        <div className="strata-info__divider" />
+        <h2 className="strata-info__section-title strata-info__section-title--spaced">Property Type</h2>
 
-        <div className="strata-info__row">
-          <div className="strata-info__field">
-            <span className="strata-info__label">Address</span>
-            <span className="strata-info__value">{strata.streetName || 'N/A'}</span>
-          </div>
+        <div className="strata-info__field">
+          <span className="strata-info__label">Property Type</span>
+          <span className="strata-info__value">{strata.propertyType?.propertyTypeName || 'N/A'}</span>
         </div>
-
-        <div className="strata-info__divider" />
-
-        <div className="strata-info__row strata-info__row--3col">
-          <div className="strata-info__field">
-            <span className="strata-info__label">City</span>
-            <span className="strata-info__value">{strata.town || 'N/A'}</span>
-          </div>
-          <div className="strata-info__field">
-            <span className="strata-info__label">Province</span>
-            <span className="strata-info__value">{strata.province || 'N/A'}</span>
-          </div>
-          <div className="strata-info__field">
-            <span className="strata-info__label">Postal Code</span>
-            <span className="strata-info__value">{strata.postalCode || 'N/A'}</span>
-          </div>
-        </div>
-
-        <div className="strata-info__divider" />
-
-        <h2 className="strata-info__section-title">Property Type</h2>
-
-        <div className="strata-info__row strata-info__row--2col">
-          <div className="strata-info__field">
-            <span className="strata-info__label">Property Type</span>
-            <span className="strata-info__value">
-              {strata.propertyType?.propertyTypeName || 'N/A'}
-            </span>
-          </div>
-          <div className="strata-info__field">
-            <span className="strata-info__label">Legal Type</span>
-            <span className="strata-info__value">
-              {strata.legalType?.legalTypeName || 'N/A'}
-            </span>
-          </div>
+        <div className="strata-info__field strata-info__field--last">
+          <span className="strata-info__label">Legal Type</span>
+          <span className="strata-info__value">{strata.legalType?.legalTypeName || 'N/A'}</span>
         </div>
       </div>
     </div>

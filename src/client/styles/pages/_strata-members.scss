@@ -11,10 +11,16 @@
 
 .strata-members__card-header {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin: $spacing-lg auto;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: $spacing-sm;
+  margin: $spacing-md auto $spacing-md;
 
+  @include respond-to(desktop) {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
 
   h2 {
     margin: 0;
@@ -27,6 +33,7 @@
 .strata-members__badge {
   display: inline-block;
   padding: $spacing-xs $spacing-md;
+  margin-top: 0.8rem;
   border: 1.5px solid $color-accent-brown;
   border-radius: 9999px;
   font-size: 0.8125rem;
@@ -34,42 +41,62 @@
   color: $color-accent-brown;
   background: rgba($color-accent-yellow, 0.1);
   text-align: center;
-}
 
-.strata-members__table {
-  width: 100%;
-  margin-bottom: $spacing-sm;
-}
-
-.strata-members__table-header,
-.strata-members__table-row {
-  display: grid;
-  grid-template-columns: 1fr 1.5fr 1fr;
-  gap: $spacing-sm;
-  padding: $spacing-sm 0;
-
-  @include respond-below(sm) {
-    grid-template-columns: 1fr 1fr;
-    gap: $spacing-xs;
+  @include respond-to(desktop) {
+    margin-top: 0;
   }
 }
 
-.strata-members__table-header {
+.strata-members__list {
+  margin-bottom: $spacing-sm;
+
+  @include respond-to(desktop) {
+    display: grid;
+    grid-template-columns: 1fr 1.5fr 1fr;
+    gap: $spacing-sm;
+    padding: $spacing-sm 0;
+    border-top: 1px solid $color-border-light;
+    border-bottom: 1px solid $color-border-light;
+  }
+
+  &--other {
+    @include respond-to(desktop) {
+      grid-template-columns: 1fr 1.5fr 1.5fr 1fr;
+    }
+  }
+}
+
+.strata-members__list-item {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+  padding: $spacing-md 0;
   border-bottom: 1px solid $color-border-light;
 
-  span {
-    font-size: 0.8125rem;
-    font-weight: 600;
-    color: $color-text-light;
+  &--last {
+    border-bottom: none;
+  }
+
+  @include respond-to(desktop) {
+    border-bottom: none;
+    padding: $spacing-sm 0;
+
+    &--last {
+      align-items: flex-end;
+      justify-content: center;
+    }
   }
 }
 
-.strata-members__table-row {
-  span {
-    font-size: 0.9375rem;
-    color: $color-text-dark;
-    word-break: break-word;
-  }
+.strata-members__list-label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: $color-text-light;
+}
+
+.strata-members__list-value {
+  font-size: 0.9375rem;
+  color: $color-text-dark;
 }
 
 .strata-members__update-btn {
@@ -146,12 +173,52 @@
   .form-row {
     margin-bottom: $spacing-md;
   }
+
+  .form-field {
+    margin-bottom: $spacing-md;
+  }
 }
 
-.strata-members__request-cell {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
+.update-details-login-section {
+  margin-top: $spacing-xl;
+
+  h3 {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: $color-text-dark;
+    margin-bottom: $spacing-sm;
+    padding-bottom: $spacing-sm;
+    border-bottom: 1px solid $color-border-light;
+  }
+}
+
+.update-details-login-email {
+  margin-bottom: $spacing-sm;
+
+  &__label {
+    font-size: 0.875rem;
+    color: $color-text-light;
+    margin-bottom: $spacing-xs;
+  }
+
+  &__value {
+    font-size: 0.875rem;
+    color: $color-text-dark;
+  }
+}
+
+.update-details-change-password {
+  background: none;
+  border: none;
+  padding: 0;
+  color: $color-error;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+
+  &:hover {
+    text-decoration: underline;
+  }
 }
 
 .strata-members__request-btn {

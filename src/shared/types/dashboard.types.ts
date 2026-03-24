@@ -46,11 +46,22 @@ export type UrgentCard =
       title: string;
       description: string;
       request: ActivationRequest;
+    }
+  | {
+      id: string;
+      kind: 'finalized';
+      tone: 'overdue' | 'due-today' | 'upcoming';
+      badge: string;
+      priority: number;
+      createdAt: string;
+      title: string;
+      description: string;
+      strataId: number;
     };
 
 export interface ActivityCard {
   id: string;
-  kind: 'survey';
+  kind: 'survey' | 'profile';
   title: string;
   description: string;
   timestamp: string;

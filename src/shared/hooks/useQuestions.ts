@@ -44,6 +44,12 @@ export const useQuestions = () => {
     return true;
   }, [api, fetchQuestions]);
 
+  const setSubQuestions = useCallback(async (parentId: number, subQuestionIds: number[]) => {
+    const result = await api.put<AdminQuestion>(`/admin/questions/${parentId}/sub-questions`, { subQuestionIds });
+    await fetchQuestions();
+    return result;
+  }, [api, fetchQuestions]);
+
   useEffect(() => {
     fetchQuestions();
   }, [fetchQuestions]);
@@ -54,5 +60,6 @@ export const useQuestions = () => {
     createQuestion,
     updateQuestion,
     deleteQuestion,
+    setSubQuestions,
   };
 };

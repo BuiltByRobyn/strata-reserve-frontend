@@ -17,13 +17,14 @@ export function DocumentReviewModal({
   docRequirements,
   reviewStatuses,
   review,
+  initialSelections,
   loading,
   token,
   onSubmit,
 }: DocumentReviewModalProps) {
   const items = docRequirements
-    .filter(r => r.fileNumberDocuments.length > 0)
-    .map(r => ({ req: r, doc: r.fileNumberDocuments[0] }));
+    .filter(r => r.fileNumberDocuments.length > 0 || r.naStatus !== null)
+    .map(r => ({ req: r, doc: r.fileNumberDocuments[0] ?? null }));
 
   const approveStatus = reviewStatuses.find(rs => rs.statusName.toLowerCase().includes('approv'));
   const denyStatus = reviewStatuses.find(rs =>
@@ -33,16 +34,24 @@ export function DocumentReviewModal({
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [statusSelections, setStatusSelections] = useState<Record<number, number>>({});
+  const [notesSelections, setNotesSelections] = useState<Record<number, string>>({});
+  const [denyModalOpen, setDenyModalOpen] = useState(false);
+  const [denyNote, setDenyNote] = useState('');
   const [blobUrl, setBlobUrl] = useState<string | null>(null);
   const [fileContentType, setFileContentType] = useState('');
   const [loadingPreview, setLoadingPreview] = useState(false);
   const [previewError, setPreviewError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [docResultMap, setDocResultMap] = useState<Record<number, 'success' | 'error'>>({});
 
   useEffect(() => {
     if (isOpen) {
       setCurrentIndex(0);
-      setStatusSelections({});
+      setStatusSelections(initialSelections ?? {});
+      setNotesSelections({});
+      setDenyModalOpen(false);
+      setDenyNote('');
+      setDocResultMap({});
     }
   }, [isOpen]);
 
@@ -53,13 +62,18 @@ export function DocumentReviewModal({
   useEffect(() => {
     if (!isOpen || items.length === 0 || review) return;
 
-    const currentDoc = items[currentIndex]?.doc;
-    if (!currentDoc || !token) return;
-
-    let cancelled = false;
+    // Always clear previous preview state when switching items
     setBlobUrl(prev => { cleanupBlob(prev); return null; });
     setFileContentType('');
     setPreviewError(null);
+
+    const currentDoc = items[currentIndex]?.doc;
+    if (!currentDoc || !token) {
+      setLoadingPreview(false);
+      return;
+    }
+
+    let cancelled = false;
     setLoadingPreview(true);
 
     const fetchPreview = async () => {
@@ -115,6 +129,19 @@ export function DocumentReviewModal({
     });
   };
 
+  const handleConfirmDeny = () => {
+    if (!currentReqId || !denyStatus) return;
+    setStatusSelections(prev => ({ ...prev, [currentReqId]: denyStatus.reviewStatusId }));
+    if (denyNote.trim()) {
+      setNotesSelections(prev => ({ ...prev, [currentReqId]: denyNote.trim() }));
+    }
+    setDenyModalOpen(false);
+    setDenyNote('');
+    if (currentIndex < items.length - 1) {
+      setCurrentIndex(i => i + 1);
+    }
+  };
+
   const handleClose = () => {
     cleanupBlob(blobUrl);
     setBlobUrl(null);
@@ -127,10 +154,16 @@ export function DocumentReviewModal({
     const submitItems = items.map(({ req }) => ({
       fnDocRequirementId: req.fnDocRequirementId,
       reviewStatusId: statusSelections[req.fnDocRequirementId],
-      notes: undefined,
+      notes: notesSelections[req.fnDocRequirementId],
     }));
-    await onSubmit(fileId, { items: submitItems });
-    setSubmitting(false);
+    try {
+      await onSubmit(fileId, { items: submitItems });
+      setDocResultMap(Object.fromEntries(items.map(({ req }) => [req.fnDocRequirementId, 'success'])));
+    } catch {
+      setDocResultMap(Object.fromEntries(items.map(({ req }) => [req.fnDocRequirementId, 'error'])));
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const allReviewed = items.length > 0 && items.every(({ req }) => !!statusSelections[req.fnDocRequirementId]);
@@ -144,6 +177,7 @@ export function DocumentReviewModal({
     const { req, doc } = currentItem;
     const typeName = req.documentType.typeName;
     const version = req.versionLabel && req.versionLabel !== 'Default' ? ` — ${req.versionLabel}` : '';
+    if (!doc) return `${typeName}${version} — N/A`;
     return `${typeName}${version} — ${doc.fileName}`;
   };
 
@@ -178,7 +212,11 @@ export function DocumentReviewModal({
         >
           Back
         </button>
-        <span className="doc-review-nav-badge">{currentIndex + 1} / {items.length}</span>
+        <span className="doc-review-nav-badge">
+          {currentIndex + 1} / {items.length}
+          {docResultMap[currentReqId!] === 'success' && <span className="doc-result doc-result--success">Saved</span>}
+          {docResultMap[currentReqId!] === 'error' && <span className="doc-result doc-result--error">Failed</span>}
+        </span>
         {currentIndex < items.length - 1 ? (
           <button className="btn-secondary" onClick={() => setCurrentIndex(i => i + 1)}>
             Next
@@ -198,7 +236,12 @@ export function DocumentReviewModal({
           {approveStatus && (
             <button
               className={`btn-approve${currentSelection === approveStatus.reviewStatusId ? ' btn-approve--active' : ''}`}
-              onClick={() => handleStatusToggle(currentReqId!, approveStatus.reviewStatusId)}
+              onClick={() => {
+                handleStatusToggle(currentReqId!, approveStatus.reviewStatusId);
+                if (currentSelection !== approveStatus.reviewStatusId && currentIndex < items.length - 1) {
+                  setCurrentIndex(i => i + 1);
+                }
+              }}
             >
               Approve
             </button>
@@ -206,7 +249,13 @@ export function DocumentReviewModal({
           {denyStatus && (
             <button
               className={`btn-deny${currentSelection === denyStatus.reviewStatusId ? ' btn-deny--active' : ''}`}
-              onClick={() => handleStatusToggle(currentReqId!, denyStatus.reviewStatusId)}
+              onClick={() => {
+                if (currentSelection === denyStatus.reviewStatusId) {
+                  handleStatusToggle(currentReqId!, denyStatus.reviewStatusId);
+                } else {
+                  setDenyModalOpen(true);
+                }
+              }}
             >
               Deny
             </button>
@@ -216,7 +265,19 @@ export function DocumentReviewModal({
     </div>
   );
 
+  const denyModalFooter = (
+    <div className="deny-modal__actions">
+      <button className="btn-secondary" onClick={() => { setDenyModalOpen(false); setDenyNote(''); }}>
+        Cancel
+      </button>
+      <button className="btn-deny btn-deny--active" onClick={handleConfirmDeny}>
+        Confirm Deny
+      </button>
+    </div>
+  );
+
   return (
+    <>
     <Modal
       isOpen={isOpen}
       onClose={handleClose}
@@ -247,14 +308,14 @@ export function DocumentReviewModal({
                 const req = docRequirements.find(r => r.fnDocRequirementId === item.fnDocRequirementId);
                 return (
                   <tr key={item.reviewItemId} className="doc-review-row">
-                    <td>{req?.documentType.typeName || '—'}</td>
-                    <td>{req?.versionLabel || 'Default'}</td>
-                    <td>
+                    <td data-label="Document">{req?.documentType.typeName || '—'}</td>
+                    <td data-label="Version">{req?.versionLabel || 'Default'}</td>
+                    <td data-label="Status">
                       <span className={`status-badge status-badge--${item.reviewStatus.statusName.toLowerCase().replace(/\s+/g, '-')}`}>
                         {item.reviewStatus.statusName}
                       </span>
                     </td>
-                    <td>{item.notes || '—'}</td>
+                    <td data-label="Client Feedback">{item.notes || '—'}</td>
                   </tr>
                 );
               })}
@@ -265,21 +326,56 @@ export function DocumentReviewModal({
         <p className="notes-empty">No uploaded documents to review yet.</p>
       ) : (
         <div className="document-preview-container">
-          {loadingPreview && (
-            <div className="document-preview-loading">
-              <LoadingSpinner />
+          {currentItem?.doc === null && currentItem?.req.naStatus ? (
+            <div className="doc-na-preview">
+              <p>
+                Client stated that this document is{' '}
+                <strong>
+                  {currentItem.req.naStatus.status === 'not_available' ? 'Not Available' : 'Not Applicable'}
+                </strong>.
+              </p>
             </div>
-          )}
-          {previewError && (
-            <div className="alert alert-error">{previewError}</div>
-          )}
-          {!loadingPreview && !previewError && blobUrl && (
-            <div className="document-preview-content">
-              {renderPreview()}
-            </div>
+          ) : (
+            <>
+              {loadingPreview && (
+                <div className="document-preview-loading">
+                  <LoadingSpinner />
+                </div>
+              )}
+              {previewError && (
+                <div className="alert alert-error">{previewError}</div>
+              )}
+              {!loadingPreview && !previewError && blobUrl && (
+                <div className="document-preview-content">
+                  {renderPreview()}
+                </div>
+              )}
+            </>
           )}
         </div>
       )}
     </Modal>
+    <Modal
+      isOpen={denyModalOpen}
+      onClose={() => { setDenyModalOpen(false); setDenyNote(''); }}
+      title="Deny Document"
+      size="small"
+      footer={denyModalFooter}
+    >
+      <div className="deny-modal">
+        <div className="form-field">
+          <label htmlFor="deny-feedback">Feedback for client</label>
+          <textarea
+            id="deny-feedback"
+            className="deny-modal__textarea"
+            value={denyNote}
+            onChange={(e) => setDenyNote(e.target.value)}
+            rows={4}
+            placeholder="Explain why this document was denied..."
+          />
+        </div>
+      </div>
+    </Modal>
+    </>
   );
 }

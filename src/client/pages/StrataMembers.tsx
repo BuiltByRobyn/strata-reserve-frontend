@@ -4,7 +4,7 @@ import { useAuthFetch } from '../../shared/hooks/useAuthFetch';
 import { supabase } from '../../shared/lib/supabaseClient';
 import { LoadingSpinner } from '../../shared/components/LoadingSpinner';
 import { Modal } from '../../shared/components/Modal';
-import { InputField, FormRow } from '../../shared/components/FormField';
+import { InputField } from '../../shared/components/FormField';
 import { ChangePasswordModal } from '../../shared/components/ChangePasswordModal';
 import type { StrataMemberInfo, StrataProfileResult, PropertyType } from '../../shared/types/entities.types';
 import { API_BASE } from '../../shared/lib/api';
@@ -57,6 +57,12 @@ const StrataMembers = () => {
         .from('strata_profiles')
         .select(`
           strata_position,
+          strata_profile_property_type(
+            property_type:property_type_id(
+              property_type_id,
+              property_type_name
+            )
+          ),
           profile:profile_id (
             id,
             first_name,
@@ -72,6 +78,9 @@ const StrataMembers = () => {
 
       const mapped: StrataMemberInfo[] = (members || []).map((m: any) => {
         const p = m.profile as unknown as StrataProfileResult;
+        const propertyTypeNames = (m.strata_profile_property_type || [])
+          .map((spt: any) => spt.property_type?.property_type_name)
+          .filter(Boolean);
         return {
           profileId: p.id,
           firstName: p.first_name,
@@ -80,6 +89,7 @@ const StrataMembers = () => {
           phoneNumber: p.phone_number,
           position: m.strata_position,
           companyName: p.company_name,
+          propertyTypeNames,
         };
       });
 
@@ -223,33 +233,44 @@ const StrataMembers = () => {
           </span>
         </div>
 
-        <div className="strata-members__table">
-          <div className="strata-members__table-header">
-            <span>Name</span>
-            <span>Strata Section</span>
-            <span>{isCurrentUser ? '' : 'Phone Number'}</span>
+        <div className={`strata-members__list${isCurrentUser ? '' : ' strata-members__list--other'}`}>
+          <div className="strata-members__list-item">
+            <span className="strata-members__list-label">Name</span>
+            <span className="strata-members__list-value">{fullName}</span>
           </div>
-          <div className="strata-members__table-row">
-            <span>{fullName}</span>
-            {isCurrentUser ? (
-              <>
-                <span>{propertyTypeLabel}</span>
-                <span className="strata-members__request-cell">
-                  <button
-                    className="strata-members__request-btn"
-                    onClick={openSectionModal}
-                  >
-                    Request Section Change
-                  </button>
+          {isCurrentUser ? (
+            <>
+              <div className="strata-members__list-item">
+                <span className="strata-members__list-label">Strata Section</span>
+                <span className="strata-members__list-value">{propertyTypeLabel}</span>
+              </div>
+              <div className="strata-members__list-item strata-members__list-item--last">
+                <button
+                  className="strata-members__request-btn"
+                  onClick={openSectionModal}
+                >
+                  Request Section Change
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="strata-members__list-item">
+                <span className="strata-members__list-label">Strata Section</span>
+                <span className="strata-members__list-value">
+                  {member.propertyTypeNames?.join(', ') || 'N/A'}
                 </span>
-              </>
-            ) : (
-              <>
-                <span>{member.email || 'N/A'}</span>
-                <span>{member.phoneNumber || 'N/A'}</span>
-              </>
-            )}
-          </div>
+              </div>
+              <div className="strata-members__list-item">
+                <span className="strata-members__list-label">Email</span>
+                <span className="strata-members__list-value">{member.email || 'N/A'}</span>
+              </div>
+              <div className="strata-members__list-item strata-members__list-item--last">
+                <span className="strata-members__list-label">Phone Number</span>
+                <span className="strata-members__list-value">{member.phoneNumber || 'N/A'}</span>
+              </div>
+            </>
+          )}
         </div>
 
         {isCurrentUser && (
@@ -314,43 +335,38 @@ const StrataMembers = () => {
         }
       >
         <div className="update-details-form">
-          <FormRow>
-            <InputField
-              label="First Name"
-              required
-              value={formData.firstName}
-              onChange={(e) =>
-                setFormData((prev) => ({ ...prev, firstName: e.target.value }))
-              }
-            />
-            <InputField
-              label="Last Name"
-              required
-              value={formData.lastName}
-              onChange={(e) =>
-                setFormData((prev) => ({ ...prev, lastName: e.target.value }))
-              }
-            />
-          </FormRow>
-
-          <FormRow>
-            <InputField
-              label="Phone Number"
-              required
-              value={formData.phoneNumber}
-              onChange={(e) =>
-                setFormData((prev) => ({ ...prev, phoneNumber: e.target.value }))
-              }
-            />
-            <InputField
-              label="Associated Company"
-              value={formData.companyName}
-              placeholder="Enter strata management company name"
-              onChange={(e) =>
-                setFormData((prev) => ({ ...prev, companyName: e.target.value }))
-              }
-            />
-          </FormRow>
+          <InputField
+            label="First Name"
+            required
+            value={formData.firstName}
+            onChange={(e) =>
+              setFormData((prev) => ({ ...prev, firstName: e.target.value }))
+            }
+          />
+          <InputField
+            label="Last Name"
+            required
+            value={formData.lastName}
+            onChange={(e) =>
+              setFormData((prev) => ({ ...prev, lastName: e.target.value }))
+            }
+          />
+          <InputField
+            label="Phone Number"
+            required
+            value={formData.phoneNumber}
+            onChange={(e) =>
+              setFormData((prev) => ({ ...prev, phoneNumber: e.target.value }))
+            }
+          />
+          <InputField
+            label="Associated Company"
+            value={formData.companyName}
+            placeholder="Enter strata management company name"
+            onChange={(e) =>
+              setFormData((prev) => ({ ...prev, companyName: e.target.value }))
+            }
+          />
 
           {roleTouched && !role && (
             <span className="strata-members__role-error">Please select a strata role</span>
@@ -375,22 +391,19 @@ const StrataMembers = () => {
             </div>
           </div>
 
-          <div className="login-details-section" style={{ marginTop: '2rem' }}>
-            <h3 style={{ fontSize: '1.125rem', fontWeight: 600, marginBottom: '0.5rem', color: '#1a1a1a' }}>Login Details</h3>
-            <hr style={{ border: 'none', borderTop: '1px solid #e5e7eb', marginBottom: '1rem' }} />
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div>
-                <div style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '0.25rem' }}>Email</div>
-                <div style={{ fontSize: '0.875rem', color: '#111827' }}>{currentUser?.email || user?.email}</div>
-              </div>
-              <button
-                type="button"
-                style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.875rem', fontWeight: 500 }}
-                onClick={() => setIsPasswordModalOpen(true)}
-              >
-                Change Password
-              </button>
+          <div className="update-details-login-section">
+            <h3>Login Details</h3>
+            <div className="update-details-login-email">
+              <div className="update-details-login-email__label">Email</div>
+              <div className="update-details-login-email__value">{currentUser?.email || user?.email}</div>
             </div>
+            <button
+              type="button"
+              className="update-details-change-password"
+              onClick={() => setIsPasswordModalOpen(true)}
+            >
+              Change Password
+            </button>
           </div>
         </div>
       </Modal>

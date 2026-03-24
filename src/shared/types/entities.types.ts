@@ -130,6 +130,7 @@ export interface StrataMemberInfo {
   phoneNumber: string | null;
   position: string | null;
   companyName?: string | null;
+  propertyTypeNames?: string[];
 }
 
 export interface CreateStrataInput {
@@ -605,4 +606,15 @@ export interface InAppNotification {
   createdAt: string;
   fileId?: number | null;
   referenceId?: number | null;
+}
+
+export interface ProfileActivity {
+  activityLogId: number;
+  strataProfileId: number;
+  changedFields: Record<string, unknown>;
+  changedAt: string;
+  strataProfile: {
+    strata: { strataId: number; strataPlan: string | null; complexName: string | null } | null;
+    profile: { firstName: string | null; lastName: string | null; displayName: string | null } | null;
+  };
 }

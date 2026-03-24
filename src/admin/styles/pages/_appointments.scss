@@ -533,6 +533,16 @@
     margin-bottom: $spacing-md;
   }
 
+  &__inspector-row {
+    display: flex;
+    gap: $spacing-md;
+    margin-bottom: $spacing-sm;
+
+    > .form-field {
+      flex: 1;
+    }
+  }
+
   &__comments {
     margin-bottom: $spacing-md;
 
@@ -904,6 +914,10 @@
     flex-direction: column;
     gap: $spacing-md;
     margin-bottom: $spacing-md;
+  }
+
+  &__primary-inspector {
+    margin-bottom: 0;
   }
 
   &__slot-buttons {

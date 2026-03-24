@@ -1,5 +1,5 @@
 import type { ReactNode, InputHTMLAttributes, SelectHTMLAttributes, TextareaHTMLAttributes } from 'react';
-import type { SurveySection } from './survey.types';
+import type { SurveySection, AdminQuestion } from './survey.types';
 import type { StrataPropertyType, InspectorAvailableDate, CreateInspectorAvailableDateInput, UpdateInspectorAvailableDateInput, AppointmentRequest, AppointmentWithDetails, AppointmentTimeSlot, Profile, ReviewStatus } from './entities.types';
 import type { SRDocRequirement } from './document.types';
 import type { BatchDocumentReviewInput, DocumentReviewResult, RequiredDocumentChecklist, NaStatusValue } from './document.types';
@@ -234,6 +234,8 @@ export interface BaseModalProps {
 
 export interface CreateQuestionModalProps extends BaseModalProps {
   parentQuestionId?: number | null;
+  onCreated?: (questionId: number) => void;
+  parentQuestion?: AdminQuestion | null;
 }
 
 export interface ToastProps {
@@ -248,6 +250,7 @@ export interface DocumentReviewModalProps {
   docRequirements: SRDocRequirement[];
   reviewStatuses: ReviewStatus[];
   review: DocumentReviewResult | null;
+  initialSelections?: Record<number, number>;
   loading: boolean;
   token: string;
   onSubmit: (fileId: number, input: BatchDocumentReviewInput) => Promise<void>;
@@ -259,4 +262,5 @@ export interface VersionDocumentRowProps {
   onUpload: (req: RequiredDocumentChecklist, isReplace: boolean) => void;
   onSetNaStatus: (req: RequiredDocumentChecklist, status: NaStatusValue) => void;
   onPreview: (req: RequiredDocumentChecklist) => void;
+  readOnly?: boolean;
 }

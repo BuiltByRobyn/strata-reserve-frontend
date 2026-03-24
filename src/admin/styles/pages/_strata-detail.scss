@@ -752,6 +752,11 @@
     .documents-header-actions {
       display: flex;
       gap: $spacing-sm;
+
+      @include respond-below(lg) {
+        flex-direction: column;
+        width: 100%;
+      }
     }
   }
 
@@ -1285,6 +1290,42 @@
       border-bottom: 1px solid $color-border-light;
       vertical-align: middle;
     }
+
+    @include respond-below(lg) {
+      thead {
+        display: none;
+      }
+
+      tbody tr {
+        display: block;
+        border: 1px solid $color-border-light;
+        border-radius: $border-radius-sm;
+        margin-bottom: $spacing-sm;
+        background: $color-white;
+      }
+
+      td {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: $spacing-xs $spacing-sm;
+        border-bottom: 1px solid rgba($color-border-light, 0.6);
+        text-align: right;
+
+        &:last-child {
+          border-bottom: none;
+        }
+
+        &::before {
+          content: attr(data-label);
+          font-weight: $font-weight-medium;
+          color: $color-primary;
+          text-align: left;
+          flex-shrink: 0;
+          margin-right: $spacing-sm;
+        }
+      }
+    }
   }
 
   .doc-review-row {
@@ -1319,6 +1360,27 @@
   &__decisions {
     display: flex;
     gap: $spacing-sm;
+  }
+
+  @include respond-below(lg) {
+    flex-direction: column;
+
+    &__nav {
+      width: 100%;
+      justify-content: space-between;
+    }
+
+    &__decisions {
+      width: 100%;
+      flex-direction: column;
+
+      .btn-approve,
+      .btn-deny {
+        width: 100%;
+        padding: $spacing-sm $spacing-md;
+        font-size: $font-size-sm;
+      }
+    }
   }
 }
 
@@ -1369,6 +1431,39 @@
   &:hover {
     background: $color-error-text;
     color: $color-white;
+  }
+}
+
+.deny-modal {
+  &__textarea {
+    width: 100%;
+    padding: $spacing-sm;
+    border: 1px solid $color-border-light;
+    border-radius: $border-radius-sm;
+    font-size: $font-size-sm;
+    resize: vertical;
+    box-sizing: border-box;
+
+    &:focus {
+      outline: none;
+      border-color: $color-error-text;
+    }
+  }
+
+  &__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: $spacing-sm;
+
+    @include respond-below(lg) {
+      flex-direction: column;
+
+      button {
+        width: 100%;
+        padding: $spacing-sm $spacing-md;
+        font-size: $font-size-sm;
+      }
+    }
   }
 }
 

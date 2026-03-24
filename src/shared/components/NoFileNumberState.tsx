@@ -7,15 +7,23 @@ export const NoFileNumberState = () => {
   const { request, loading, createRequest } = useActivationRequest();
   const [showThankYou, setShowThankYou] = useState(false);
   const [showRejection, setShowRejection] = useState(false);
+  const [showApproval, setShowApproval] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
+    if (!request) return;
     if (
-      request?.status === 'Rejected' &&
+      request.status === 'Rejected' &&
       request.rejectionReason &&
       !localStorage.getItem(`activation_rejection_seen_${request.activationRequestId}`)
     ) {
       setShowRejection(true);
+    }
+    if (
+      request.status === 'Approved' &&
+      !localStorage.getItem(`activation_approval_seen_${request.activationRequestId}`)
+    ) {
+      setShowApproval(true);
     }
   }, [request?.activationRequestId, request?.status, request?.rejectionReason]);
 
@@ -24,6 +32,13 @@ export const NoFileNumberState = () => {
       localStorage.setItem(`activation_rejection_seen_${request.activationRequestId}`, '1');
     }
     setShowRejection(false);
+  };
+
+  const handleDismissApproval = () => {
+    if (request) {
+      localStorage.setItem(`activation_approval_seen_${request.activationRequestId}`, '1');
+    }
+    setShowApproval(false);
   };
 
   const handleRequest = async () => {
@@ -69,6 +84,24 @@ export const NoFileNumberState = () => {
             <p className="rejection-notice-reason">{request.rejectionReason}</p>
           )}
           <p>You may submit a new request at any time.</p>
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={showApproval}
+        onClose={handleDismissApproval}
+        title="Account Activated"
+        size="medium"
+        footer={
+          <button className="btn-primary" onClick={handleDismissApproval}>
+            Close
+          </button>
+        }
+      >
+        <div className="thank-you-content">
+          <p>
+            Your activation request has been approved. Your account is now active and your file number has been assigned. Please refresh the page to continue.
+          </p>
         </div>
       </Modal>
 

@@ -264,7 +264,7 @@ export default function UsersPage() {
       validAssociations.length > 0 &&
       validAssociations.every(sa =>
         sa.propertyTypeIds && sa.propertyTypeIds.length > 0 &&
-        !!sa.strataPosition
+        (!!editingUser || !!sa.strataPosition)
       )
     ));
 
@@ -596,8 +596,13 @@ export default function UsersPage() {
                       onChange={(values) => updateStrataAssociationPropertyTypes(index, values)}
                       placeholder="Select property types"
                     />
-                    <div className="form-field strata-role-field">
-                      <label className="field-label">Strata Role <span className="required">*</span></label>
+                    <div className="strata-role-field">
+                      <div className="strata-role-field__header">
+                        <label className="field-label">Strata Role <span className="required">*</span></label>
+                        {association.strataId > 0 && !association.strataPosition && (
+                          <span className="error-text">Please select a strata role</span>
+                        )}
+                      </div>
                       <div className="role-options">
                         {['Property Manager', 'Councillor'].map((r) => (
                           <label key={r} className="role-option">
@@ -611,9 +616,6 @@ export default function UsersPage() {
                           </label>
                         ))}
                       </div>
-                      {association.strataId > 0 && !association.strataPosition && (
-                        <span className="error-text">Please select a strata role</span>
-                      )}
                     </div>
                   </FormRow>
                 )}

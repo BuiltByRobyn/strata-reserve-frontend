@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuestions } from '../../shared/hooks/useQuestions';
 import { useLookups } from '../../shared/hooks/useLookups';
 import { Modal } from '../../shared/components/Modal';
@@ -24,13 +24,26 @@ const initialFormData: QuestionFormData = {
   informationText: '', serviceId: undefined, propertyTypeIds: [], multipleChoiceOptions: [],
 };
 
-export function CreateQuestionModal({ isOpen, onClose, parentQuestionId }: CreateQuestionModalProps) {
+export function CreateQuestionModal({ isOpen, onClose, parentQuestionId, onCreated, parentQuestion }: CreateQuestionModalProps) {
   const { createQuestion } = useQuestions();
   const { questionTypes, services, propertyTypes } = useLookups();
 
   const [formData, setFormData] = useState<QuestionFormData>(initialFormData);
   const [formError, setFormError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const isSubQuestion = !!parentQuestionId;
+
+  useEffect(() => {
+    if (parentQuestion) {
+      setFormData(prev => ({
+        ...prev,
+        questionCategory: parentQuestion.questionCategory,
+        propertyTypeIds: parentQuestion.questionPropertyTypes.map(qpt => qpt.propertyTypeId),
+        serviceId: parentQuestion.questionServices[0]?.serviceId ?? undefined,
+      }));
+    }
+  }, [parentQuestion]);
 
   const showMcOptions = () => {
     if (!formData.questionTypeId) return false;
@@ -62,9 +75,8 @@ export function CreateQuestionModal({ isOpen, onClose, parentQuestionId }: Creat
 
   const isFormValid =
     !!formData.questionText.trim() &&
-    !!formData.questionCategory &&
     !!formData.questionTypeId &&
-    !!formData.serviceId;
+    (isSubQuestion || (!!formData.questionCategory && !!formData.serviceId));
 
   const handleSubmit = async (e?: React.FormEvent) => {
     e?.preventDefault();
@@ -77,12 +89,12 @@ export function CreateQuestionModal({ isOpen, onClose, parentQuestionId }: Creat
         questionTypeId: formData.questionTypeId!,
         isRequired: formData.isRequired,
         informationText: formData.informationText.trim() || null,
-        serviceIds: [{ serviceId: formData.serviceId!, sortOrder: 1 }],
+        serviceIds: formData.serviceId ? [{ serviceId: formData.serviceId, sortOrder: 1 }] : [],
         propertyTypeIds: formData.propertyTypeIds,
         multipleChoiceOptions: showMcOptions() ? formData.multipleChoiceOptions.filter(o => o.optionText.trim()) : [],
-        parentQuestionId: parentQuestionId ?? null,
       };
-      await createQuestion(input);
+      const created = await createQuestion(input);
+      if (created && onCreated) onCreated(created.questionId);
       handleClose();
     } catch (err) {
       setFormError(err instanceof Error ? err.message : 'An error occurred');
@@ -95,7 +107,7 @@ export function CreateQuestionModal({ isOpen, onClose, parentQuestionId }: Creat
     <Modal
       isOpen={isOpen}
       onClose={handleClose}
-      title={parentQuestionId ? 'Create Sub-question' : 'Create New Question'}
+      title={isSubQuestion ? 'Create Sub-question' : 'Create New Question'}
       size="large"
       footer={
         <>
@@ -111,21 +123,30 @@ export function CreateQuestionModal({ isOpen, onClose, parentQuestionId }: Creat
 
         <TextareaField label="Question Text" required value={formData.questionText} onChange={(e) => setFormData(prev => ({ ...prev, questionText: e.target.value }))} placeholder="Enter the question text" rows={3} />
 
-        <FormRow>
-          <SingleSelectDropdown label="Category" required value={formData.questionCategory} onChange={(val) => setFormData(prev => ({ ...prev, questionCategory: val }))} options={CATEGORIES.map(c => ({ value: c, label: c }))} placeholder="Select category" />
+        {isSubQuestion ? (
           <SingleSelectDropdown label="Question Type" required value={formData.questionTypeId?.toString() || ''} onChange={(val) => setFormData(prev => ({ ...prev, questionTypeId: val ? parseInt(val) : undefined }))} options={questionTypes.map(qt => ({ value: qt.questionTypeId, label: formatTypeName(qt.questionTypeName) }))} placeholder="Select type" />
-        </FormRow>
+        ) : (
+          <FormRow>
+            <SingleSelectDropdown label="Category" required value={formData.questionCategory} onChange={(val) => setFormData(prev => ({ ...prev, questionCategory: val }))} options={CATEGORIES.map(c => ({ value: c, label: c }))} placeholder="Select category" />
+            <SingleSelectDropdown label="Question Type" required value={formData.questionTypeId?.toString() || ''} onChange={(val) => setFormData(prev => ({ ...prev, questionTypeId: val ? parseInt(val) : undefined }))} options={questionTypes.map(qt => ({ value: qt.questionTypeId, label: formatTypeName(qt.questionTypeName) }))} placeholder="Select type" />
+          </FormRow>
+        )}
 
-        <div className="checkbox-field">
-          <input type="checkbox" id="isRequired" checked={formData.isRequired} onChange={(e) => setFormData(prev => ({ ...prev, isRequired: e.target.checked }))} />
-          <label htmlFor="isRequired">Required</label>
-        </div>
+        {!isSubQuestion && (
+          <div className="checkbox-field">
+            <input type="checkbox" id="isRequired" checked={formData.isRequired} onChange={(e) => setFormData(prev => ({ ...prev, isRequired: e.target.checked }))} />
+            <label htmlFor="isRequired">Required</label>
+          </div>
+        )}
 
         <TextareaField label="Information Text" value={formData.informationText} onChange={(e) => setFormData(prev => ({ ...prev, informationText: e.target.value }))} placeholder="Optional help text for this question" rows={2} />
 
-        <MultiSelectDropdown label="Property Types" options={propertyTypes.map(pt => ({ value: pt.propertyTypeId, label: pt.propertyTypeName })).sort((a, b) => a.label.localeCompare(b.label))} selectedValues={formData.propertyTypeIds} onChange={(values) => setFormData(prev => ({ ...prev, propertyTypeIds: values }))} placeholder="All property types" helpText="Which property types should this question be shown to? Leave empty to show to all." />
-
-        <SingleSelectDropdown label="Service" required value={formData.serviceId?.toString() || ''} onChange={(val) => setFormData(prev => ({ ...prev, serviceId: val ? parseInt(val) : undefined }))} options={services.map(s => ({ value: s.serviceId, label: s.serviceName })).sort((a, b) => a.label.localeCompare(b.label))} placeholder="Select service" />
+        {!isSubQuestion && (
+          <>
+            <MultiSelectDropdown label="Property Types" options={propertyTypes.map(pt => ({ value: pt.propertyTypeId, label: pt.propertyTypeName })).sort((a, b) => a.label.localeCompare(b.label))} selectedValues={formData.propertyTypeIds} onChange={(values) => setFormData(prev => ({ ...prev, propertyTypeIds: values }))} placeholder="All property types" helpText="Which property types should this question be shown to? Leave empty to show to all." />
+            <SingleSelectDropdown label="Service" required value={formData.serviceId?.toString() || ''} onChange={(val) => setFormData(prev => ({ ...prev, serviceId: val ? parseInt(val) : undefined }))} options={services.map(s => ({ value: s.serviceId, label: s.serviceName })).sort((a, b) => a.label.localeCompare(b.label))} placeholder="Select service" />
+          </>
+        )}
 
         {showMcOptions() && (
           <div className="form-field">

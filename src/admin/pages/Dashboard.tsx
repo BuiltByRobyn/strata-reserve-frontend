@@ -8,6 +8,7 @@ import { usePropertyTypeRequests } from '../../shared/hooks/usePropertyTypeReque
 import { useActivationRequests } from '../../shared/hooks/useActivationRequests';
 import { useStrata } from '../../shared/hooks/useStrata';
 import { useInspectorAvailability } from '../../shared/hooks/useInspectorAvailability';
+import { useProfileActivities } from '../../shared/hooks/useProfileActivities';
 import { LoadingSpinner } from '../../shared/components/LoadingSpinner';
 import { Modal } from '../../shared/components/Modal';
 import { Tabs } from '../../shared/components/Tabs';
@@ -39,6 +40,14 @@ const formatShortDate = (value: string | null | undefined) => {
 const getStrataLabel = (strata?: { complexName?: string | null; strataPlan?: string | null } | null) => {
   if (!strata) return 'Unknown strata';
   return strata.complexName || strata.strataPlan || 'Unknown strata';
+};
+
+const FIELD_LABELS: Record<string, string> = {
+  firstName: 'First Name',
+  lastName: 'Last Name',
+  phoneNumber: 'Phone Number',
+  companyName: 'Company Name',
+  strataPosition: 'Strata Position',
 };
 
 const TIME_WINDOWS = [
@@ -105,6 +114,7 @@ export const Dashboard = () => {
   const { createAvailableDate } = useInspectorAvailability();
 
   const [activityWindow, setActivityWindow] = useState('24');
+  const { activities: profileActivities, loading: profileActivitiesLoading } = useProfileActivities(windowHours(activityWindow));
   const [appointmentsWindow, setAppointmentsWindow] = useState('24');
   const [targetDatesWindow, setTargetDatesWindow] = useState('24');
 
@@ -239,19 +249,35 @@ export const Dashboard = () => {
         };
       });
 
-    return [...propertyTypeCards, ...activationCards, ...appointmentCards, ...rebookingCards]
+    const finalizedCards: UrgentCard[] = activeRequests
+      .filter((request) => !!request.submittedForReviewDate && !request.appointmentOfferedAt)
+      .map((request) => {
+        const urgency = getUrgencyMeta(request.submittedForReviewDate);
+        return {
+          id: `finalized-${request.fileId}`,
+          kind: 'finalized' as const,
+          tone: urgency.tone,
+          badge: 'REVIEW',
+          priority: urgency.priority + 5,
+          createdAt: request.submittedForReviewDate!,
+          title: getStrataLabel(request.strata),
+          description: `Application finalized. Submitted ${formatRelativeTime(request.submittedForReviewDate)}. Offer an inspection appointment.`,
+          strataId: request.strata?.strataId ?? request.strataId,
+        };
+      });
+
+    return [...propertyTypeCards, ...activationCards, ...appointmentCards, ...rebookingCards, ...finalizedCards]
       .sort((left, right) => {
         if (right.priority !== left.priority) return right.priority - left.priority;
         const leftTime = parseTimestamp(left.createdAt)?.getTime() || 0;
         const rightTime = parseTimestamp(right.createdAt)?.getTime() || 0;
         return rightTime - leftTime;
-      })
-      .slice(0, 3);
+      });
   }, [activeRequests, activationRequests, appointmentRequests, propertyRequests, propertyTypes]);
 
   const activityCards: ActivityCard[] = useMemo(() => {
     const hours = windowHours(activityWindow);
-    return activeRequests
+    const surveyCards: ActivityCard[] = activeRequests
       .filter((r) => isWithinPastHours(r.submittedForReviewDate, hours))
       .map((r) => ({
         id: `finalized-${r.fileId}`,
@@ -261,9 +287,33 @@ export const Dashboard = () => {
         timestamp: r.submittedForReviewDate!,
         actionLabel: 'Open Strata',
         actionPath: r.strataId ? `/admin/strata/${r.strataId}` : '/admin/strata',
-      }))
+      }));
+
+    const profileCards: ActivityCard[] = profileActivities.map((a) => {
+      const clientName = getUserDisplayName(a.strataProfile?.profile, 'Unknown client');
+      const strataId = a.strataProfile?.strata?.strataId;
+      const changeDescriptions = Object.entries(a.changedFields).map(([field, value]) => {
+        const label = FIELD_LABELS[field] ?? field;
+        const change = value as { from: unknown; to: unknown };
+        if (change && typeof change === 'object' && 'from' in change && 'to' in change) {
+          return `${label} from ${change.from ?? 'none'} to ${change.to ?? 'none'}`;
+        }
+        return label;
+      });
+      return {
+        id: `profile-activity-${a.activityLogId}`,
+        kind: 'profile' as const,
+        title: `${getStrataLabel(a.strataProfile?.strata)} — client profile updated`,
+        description: `${clientName} changed ${changeDescriptions.join(', ')}.`,
+        timestamp: a.changedAt,
+        actionLabel: 'Open Strata',
+        actionPath: strataId ? `/admin/strata/${strataId}` : '/admin/strata',
+      };
+    });
+
+    return [...surveyCards, ...profileCards]
       .sort((a, b) => (parseTimestamp(b.timestamp)?.getTime() ?? 0) - (parseTimestamp(a.timestamp)?.getTime() ?? 0));
-  }, [activeRequests, activityWindow]);
+  }, [activeRequests, activityWindow, profileActivities]);
 
   const upcomingTargetDates = useMemo(() => {
     const hours = windowHours(targetDatesWindow);
@@ -278,7 +328,8 @@ export const Dashboard = () => {
     || appointmentsLoading
     || appointmentRequestsLoading
     || fileNumbersLoading
-    || activationRequestsLoading;
+    || activationRequestsLoading
+    || profileActivitiesLoading;
 
   const handleApprove = async (request: PropertyTypeRequest) => {
     setIsSubmitting(true);
@@ -418,6 +469,13 @@ export const Dashboard = () => {
                           View Timelines
                         </button>
                       </>
+                    ) : card.kind === 'finalized' ? (
+                      <button
+                        className="btn-action btn-action--primary"
+                        onClick={() => navigate(`/admin/strata/${card.strataId}`, { state: { promptOfferAppointment: true } })}
+                      >
+                        Review
+                      </button>
                     ) : (
                       <>
                         <button

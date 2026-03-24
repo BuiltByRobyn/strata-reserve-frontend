@@ -59,6 +59,24 @@
   }
 }
 
+.doc-na-preview {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  padding: $spacing-xl;
+  text-align: center;
+
+  p {
+    color: $color-text-secondary;
+    font-size: $font-size-lg;
+
+    strong {
+      color: $color-text-dark;
+    }
+  }
+}
+
 .modal-footer-actions {
   display: flex;
   gap: $spacing-md;

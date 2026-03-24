@@ -5,37 +5,19 @@
   background: $color-white;
   border: 1px solid $color-border-light;
   border-radius: $border-radius-lg;
-  padding: $spacing-xl $spacing-lg;
+  padding: $spacing-lg;
 }
 
 .strata-info__section-title {
-  margin: 0 0 $spacing-lg;
+  margin: 0 0 $spacing-sm;
   font-size: 1.125rem;
   font-weight: 700;
   color: $color-text-dark;
-}
+  padding-bottom: $spacing-sm;
+  border-bottom: 1px solid $color-border-light;
 
-.strata-info__row {
-  padding: $spacing-sm 0;
-
-  &--2col {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: $spacing-lg;
-
-    @include respond-below(sm) {
-      grid-template-columns: 1fr;
-    }
-  }
-
-  &--3col {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: $spacing-lg;
-
-    @include respond-below(sm) {
-      grid-template-columns: 1fr;
-    }
+  &--spaced {
+    margin-top: $spacing-xl;
   }
 }
 
@@ -43,6 +25,12 @@
   display: flex;
   flex-direction: column;
   gap: $spacing-xs;
+  padding: $spacing-md 0;
+  border-bottom: 1px solid $color-border-light;
+
+  &--last {
+    border-bottom: none;
+  }
 }
 
 .strata-info__label {
@@ -55,9 +43,4 @@
   font-size: 1rem;
   color: $color-text-dark;
   font-weight: 400;
-}
-
-.strata-info__divider {
-  border-top: 1px solid $color-border-light;
-  margin: $spacing-md 0;
 }

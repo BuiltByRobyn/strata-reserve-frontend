@@ -1,11 +1,6 @@
 import { useState, useCallback } from 'react';
 import { useApiClient } from '../../shared/hooks/useApiClient';
-import type { SRDocRequirement, DocumentReviewResult, BatchDocumentReviewInput } from '../../shared/types/document.types';
-
-interface DocumentReviewResponse {
-  requirements: SRDocRequirement[];
-  review: DocumentReviewResult | null;
-}
+import type { SRDocRequirement, DocumentReviewResult, DocumentReviewResponse, BatchDocumentReviewInput } from '../../shared/types/document.types';
 
 export const useDocumentReview = () => {
   const api = useApiClient();
