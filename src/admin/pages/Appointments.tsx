@@ -65,8 +65,16 @@ export default function AppointmentsPage() {
   const [rescheduleApt, setRescheduleApt] = useState<AppointmentWithDetails | null>(null);
   const [cancelApt, setCancelApt] = useState<AppointmentWithDetails | null>(null);
 
+  useEffect(() => {
+    if (!selectedItem || selectedItem.type !== 'appointment') return;
+    const updated = appointments.find(a => a.appointmentId === selectedItem.data.appointmentId);
+    if (updated) setSelectedItem({ type: 'appointment', data: updated });
+  }, [appointments]);
+
   // Review state
   const [inspectorId, setInspectorId] = useState('');
+  const [addSecondInspectorReview, setAddSecondInspectorReview] = useState(false);
+  const [secondInspectorIdReview, setSecondInspectorIdReview] = useState('');
   const [rejectionReason, setRejectionReason] = useState('');
   const [comments, setComments] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -211,8 +219,13 @@ export default function AppointmentsPage() {
     if (selectedItem?.type === 'request') {
       const sr = selectedItem.data.fileNumber;
       const offerInspector = sr?.appointmentOfferInspector;
+      const offerSecondInspector = sr?.appointmentOfferSecondInspector;
       if (offerInspector?.id) {
         setInspectorId(offerInspector.id);
+      }
+      if (offerSecondInspector?.id) {
+        setAddSecondInspectorReview(true);
+        setSecondInspectorIdReview(offerSecondInspector.id);
       }
     }
   }, [selectedItem]);
@@ -419,7 +432,7 @@ export default function AppointmentsPage() {
               onClick={(e) => e.stopPropagation()}
               onChange={(e) => handleStatusChange(r, e.target.value)}
             >
-              <option value={r.status}>{r.status}</option>
+              <option value={r.status}>{r.status === 'Rescheduled' ? 'Scheduled' : r.status}</option>
               <option value="Completed">Completed</option>
             </select>
           );
@@ -464,6 +477,7 @@ export default function AppointmentsPage() {
       approved: true,
       approvedDateChoice: choiceNum,
       inspectorProfileId: inspectorId,
+      secondInspectorProfileId: addSecondInspectorReview && secondInspectorIdReview ? secondInspectorIdReview : undefined,
       comments: comments.trim() || undefined,
     });
     setSubmitting(false);
@@ -525,6 +539,8 @@ export default function AppointmentsPage() {
   const resetDetail = () => {
     setSelectedItem(null);
     setInspectorId('');
+    setAddSecondInspectorReview(false);
+    setSecondInspectorIdReview('');
     setRejectionReason('');
     setComments('');
     setReviewError(null);
@@ -737,14 +753,41 @@ export default function AppointmentsPage() {
           )}
 
           <div className="appointments-detail__inspector">
-            <SingleSelectDropdown
-              label="Assign Inspector"
-              required
-              options={inspectorOptions}
-              value={inspectorId}
-              onChange={handleInspectorChange}
-              placeholder="Select an inspector..."
-            />
+            <div className="appointments-detail__inspector-row">
+              <SingleSelectDropdown
+                label="Assign Inspector"
+                required
+                options={inspectorOptions}
+                value={inspectorId}
+                onChange={(val) => {
+                  handleInspectorChange(val);
+                  if (val === secondInspectorIdReview) setSecondInspectorIdReview('');
+                }}
+                placeholder="Select an inspector..."
+              />
+              {addSecondInspectorReview && (
+                <SingleSelectDropdown
+                  label="Additional Inspector"
+                  options={inspectorOptions.filter(o => o.value !== inspectorId)}
+                  value={secondInspectorIdReview}
+                  onChange={setSecondInspectorIdReview}
+                  placeholder="Select additional inspector..."
+                />
+              )}
+            </div>
+            <div className="offer-modal__field">
+              <label className="offer-modal__checkbox-label">
+                <input
+                  type="checkbox"
+                  checked={addSecondInspectorReview}
+                  onChange={(e) => {
+                    setAddSecondInspectorReview(e.target.checked);
+                    if (!e.target.checked) setSecondInspectorIdReview('');
+                  }}
+                />
+                Add additional inspector
+              </label>
+            </div>
           </div>
 
           <div className="appointments-detail__comments">

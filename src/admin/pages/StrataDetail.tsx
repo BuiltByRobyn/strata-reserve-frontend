@@ -1349,21 +1349,34 @@ export default function StrataDetailPage() {
                                             </button>
                                             {(() => {
                                               const reviewItem = docReview?.items?.find(i => i.fnDocRequirementId === r.fnDocRequirementId);
-                                              return reviewItem ? (
+                                              const isDenied = reviewItem && (
+                                                reviewItem.reviewStatus.statusName.toLowerCase().includes('deny') ||
+                                                reviewItem.reviewStatus.statusName.toLowerCase().includes('reject')
+                                              );
+                                              const reuploadedAfterReview = isDenied &&
+                                                docReview?.reviewedAt &&
+                                                new Date(latestDoc.uploadedAt) > new Date(docReview.reviewedAt);
+                                              if (!reviewItem || reuploadedAfterReview) {
+                                                return <span className="status-badge pending">Pending Review</span>;
+                                              }
+                                              return (
                                                 <span className={`status-badge ${reviewItem.reviewStatus.statusName.toLowerCase().replace(/\s+/g, '-')}`}>
                                                   {reviewItem.reviewStatus.statusName}
                                                 </span>
-                                              ) : (
-                                                <span className="status-badge pending">Pending Review</span>
                                               );
                                             })()}
                                           </div>
-                                        ) : naStatus ? (
-                                          <span className="status-badge na-status">
-                                            {formatNaStatus(naStatus)}
-                                          </span>
                                         ) : (
-                                          <span className="status-badge not-received">Not Received</span>
+                                          <div className="doc-req-item-header">
+                                            <span />
+                                            {naStatus ? (
+                                              <span className="status-badge na-status">
+                                                {formatNaStatus(naStatus)}
+                                              </span>
+                                            ) : (
+                                              <span className="status-badge not-received">Not Received</span>
+                                            )}
+                                          </div>
                                         )}
                                       </div>
                                     );
@@ -1938,7 +1951,38 @@ export default function StrataDetailPage() {
         fileId={activeRequest?.fileId ?? null}
         docRequirements={reviewRequirements}
         reviewStatuses={reviewStatuses}
-        review={docReview}
+        review={(() => {
+          const hasPending = reviewRequirements.some(r => {
+            const latestDoc = r.fileNumberDocuments[0];
+            if (!latestDoc && !r.naStatus) return false;
+            const reviewItem = docReview?.items?.find(i => i.fnDocRequirementId === r.fnDocRequirementId);
+            if (!reviewItem) return true;
+            const isDenied =
+              reviewItem.reviewStatus.statusName.toLowerCase().includes('deny') ||
+              reviewItem.reviewStatus.statusName.toLowerCase().includes('reject');
+            return isDenied && !!latestDoc && !!docReview?.reviewedAt &&
+              new Date(latestDoc.uploadedAt) > new Date(docReview.reviewedAt);
+          });
+          return hasPending ? null : docReview;
+        })()}
+        initialSelections={(() => {
+          if (!docReview) return {};
+          const result: Record<number, number> = {};
+          for (const item of docReview.items ?? []) {
+            const req = reviewRequirements.find(r => r.fnDocRequirementId === item.fnDocRequirementId);
+            if (!req) continue;
+            const latestDoc = req.fileNumberDocuments[0];
+            const isDenied =
+              item.reviewStatus.statusName.toLowerCase().includes('deny') ||
+              item.reviewStatus.statusName.toLowerCase().includes('reject');
+            const reuploadedAfterReview = isDenied && latestDoc && docReview.reviewedAt &&
+              new Date(latestDoc.uploadedAt) > new Date(docReview.reviewedAt);
+            if (!reuploadedAfterReview) {
+              result[item.fnDocRequirementId] = item.reviewStatus.reviewStatusId;
+            }
+          }
+          return result;
+        })()}
         loading={reviewLoading}
         token={session?.access_token || ''}
         onSubmit={async (fileId, input) => {
@@ -1949,7 +1993,11 @@ export default function StrataDetailPage() {
               fetchDocRequirements(activeRequest.fileId);
               fetchReview(activeRequest.fileId);
             }
-            setOfferModalOpen(true);
+            const approveStatus = reviewStatuses.find(rs => rs.statusName.toLowerCase().includes('approv'));
+            const allApproved = approveStatus && input.items.every(item => item.reviewStatusId === approveStatus.reviewStatusId);
+            if (allApproved) {
+              setOfferModalOpen(true);
+            }
           }
         }}
       />

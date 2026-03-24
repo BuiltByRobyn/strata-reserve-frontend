@@ -65,6 +65,10 @@ export interface RequiredDocumentChecklist {
     uploadedAt: string;
     fnDocRequirementId: number | null;
   } | null;
+  reviewId: number | null;
+  reviewedAt: string | null;
+  reviewStatus: { reviewStatusId: number; statusName: string } | null;
+  denialNote: string | null;
 }
 
 export interface DocumentPreviewData {

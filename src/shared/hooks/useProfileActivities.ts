@@ -1,16 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useApiClient } from './useApiClient';
+import type { ProfileActivity } from '../types/entities.types';
 
-export interface ProfileActivity {
-  activityLogId: number;
-  strataProfileId: number;
-  changedFields: Record<string, unknown>;
-  changedAt: string;
-  strataProfile: {
-    strata: { strataId: number; strataPlan: string | null; complexName: string | null } | null;
-    profile: { firstName: string | null; lastName: string | null; displayName: string | null } | null;
-  };
-}
+export type { ProfileActivity };
 
 export const useProfileActivities = (hours: number) => {
   const api = useApiClient();

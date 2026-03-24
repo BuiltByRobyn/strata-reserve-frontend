@@ -12,6 +12,7 @@ import { usePropertyTypeRequest } from '../../shared/hooks/usePropertyTypeReques
 import { useSurvey } from '../../shared/hooks/useSurvey';
 import { useTimelines } from '../../shared/hooks/useTimelines';
 import { parseLocalDate, parseTimestamp } from '../../shared/utils/dateUtils';
+import { formatTime12h } from '../../shared/utils/formatters';
 import type { ActiveAppointmentResponse, AppointmentNotification } from '../../shared/types/appointment.types';
 import { SURVEY_SECTIONS } from '../../shared/types/survey.types';
 
@@ -33,17 +34,20 @@ export const Dashboard = () => {
     loading: documentsLoading,
     fetchRequiredDocuments,
   } = useClientDocuments();
-  const { getActiveAppointment, getNotifications } = useClientAppointments();
+  const { getActiveAppointment, getNotifications, checkDraftMeetingEligibility } = useClientAppointments();
 
   const location = useLocation();
   const { request: activationRequest } = useActivationRequest();
   const [showDocsModal, setShowDocsModal] = useState(false);
   const [showActivationModal, setShowActivationModal] = useState(false);
   const [showSectionChangeModal, setShowSectionChangeModal] = useState(false);
+  const [showDraftAvailableModal, setShowDraftAvailableModal] = useState(false);
+  const [showDocReviewModal, setShowDocReviewModal] = useState(false);
   const [activeAppointment, setActiveAppointment] = useState<ActiveAppointmentResponse>(null);
   const [appointmentLoading, setAppointmentLoading] = useState(true);
   const [notifications, setNotifications] = useState<AppointmentNotification[]>([]);
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
+  const [draftMeetingEligible, setDraftMeetingEligible] = useState(false);
 
   useEffect(() => {
     if (!fileId) {
@@ -58,10 +62,12 @@ export const Dashboard = () => {
     Promise.all([
       getActiveAppointment(),
       getNotifications(),
-    ]).then(([appointment, notifs]) => {
+      checkDraftMeetingEligibility(fileId),
+    ]).then(([appointment, notifs, draftResult]) => {
       if (ignore) return;
       setActiveAppointment(appointment);
       setNotifications(notifs);
+      setDraftMeetingEligible(draftResult.eligible);
     }).finally(() => {
       if (!ignore) setAppointmentLoading(false);
     });
@@ -92,6 +98,17 @@ export const Dashboard = () => {
     }
   }, [activationRequest?.activationRequestId, activationRequest?.status]);
 
+  useEffect(() => {
+    if (draftMeetingEligible && fileId && !localStorage.getItem(`draft_meeting_available_seen_${fileId}`)) {
+      setShowDraftAvailableModal(true);
+    }
+  }, [draftMeetingEligible, fileId]);
+
+  const handleDismissDraftAvailable = () => {
+    if (fileId) localStorage.setItem(`draft_meeting_available_seen_${fileId}`, '1');
+    setShowDraftAvailableModal(false);
+  };
+
   const handleDismissActivation = () => {
     if (activationRequest) {
       localStorage.setItem(`activation_approval_seen_${activationRequest.activationRequestId}`, '1');
@@ -119,6 +136,30 @@ export const Dashboard = () => {
   };
 
   const docsFinalized = fileId ? !!localStorage.getItem(`docs_finalized_${fileId}`) : false;
+
+  const deniedDocuments = useMemo(
+    () => requiredDocuments.filter(d => {
+      const s = d.reviewStatus?.statusName?.toLowerCase() ?? '';
+      return s.includes('deny') || s.includes('reject');
+    }),
+    [requiredDocuments]
+  );
+  const latestReviewId = requiredDocuments[0]?.reviewId ?? null;
+
+  useEffect(() => {
+    if (!fileId || !latestReviewId || deniedDocuments.length === 0) return;
+    const key = `doc_review_denied_seen_${fileId}_${latestReviewId}`;
+    if (!localStorage.getItem(key)) {
+      setShowDocReviewModal(true);
+    }
+  }, [fileId, latestReviewId, deniedDocuments.length]);
+
+  const handleDismissDocReview = () => {
+    if (fileId && latestReviewId) {
+      localStorage.setItem(`doc_review_denied_seen_${fileId}_${latestReviewId}`, '1');
+    }
+    setShowDocReviewModal(false);
+  };
 
   const welcomeName = user?.role === 'client' ? user.firstName || 'there' : 'there';
   const dashboardTitle = activeRequest?.strata?.complexName || activeRequest?.strata?.strataPlan || 'Your Strata Reserve Planning - Data Collection Portal';
@@ -150,6 +191,16 @@ export const Dashboard = () => {
   );
 
   const missingRequiredDocumentCount = Math.max(requiredDocumentCount - uploadedRequiredDocumentCount, 0);
+
+  const filteredDeniedDocuments = useMemo(
+    () => filteredRequiredDocuments.filter(d => {
+      const s = d.reviewStatus?.statusName?.toLowerCase() ?? '';
+      if (!s.includes('deny') && !s.includes('reject')) return false;
+      if (!d.uploadedDocument || !d.reviewedAt) return true;
+      return new Date(d.uploadedDocument.uploadedAt) <= new Date(d.reviewedAt);
+    }),
+    [filteredRequiredDocuments]
+  );
 
   const sectionProgress = useMemo(() => {
     const answeredQuestionIds = new Set(responses.map((r) => r.questionId));
@@ -194,14 +245,14 @@ export const Dashboard = () => {
   const surveyCompleted = !!activeRequest?.submittedForReviewDate;
   const documentsCompleted = requiredDocumentCount > 0 && missingRequiredDocumentCount === 0;
 
+  const bookingActionNeeded = !!(
+    activeAppointment?.type !== 'completed_draft' &&
+    (activeRequest?.rebookingRequestedAt || (activeRequest?.appointmentOfferedAt && !activeAppointment))
+  );
+
   const tasks = useMemo(() => {
     const incompleteSectionKey = sectionProgress.find((s) => !s.complete)?.key;
     const surveyPath = incompleteSectionKey ? `/client/survey/${incompleteSectionKey}` : '/client/survey';
-
-    const bookingActionNeeded = !!(
-      activeAppointment?.type !== 'completed_draft' &&
-      (activeRequest?.rebookingRequestedAt || (activeRequest?.appointmentOfferedAt && !activeAppointment))
-    );
 
     const surveyTask = {
       id: 'survey',
@@ -214,25 +265,31 @@ export const Dashboard = () => {
       finalized: surveyCompleted,
     };
 
+    const hasPendingDenials = filteredDeniedDocuments.length > 0;
     const documentsTask = {
       id: 'documents',
       title: 'Upload Documents',
-      description: docsFinalized
-        ? 'View submitted documents'
-        : missingRequiredDocumentCount > 0
-          ? `${missingRequiredDocumentCount} required document${missingRequiredDocumentCount === 1 ? '' : 's'} still to upload`
-          : 'Submit requested documents',
-      buttonLabel: missingRequiredDocumentCount > 0 ? 'Upload Documents' : 'View Documents',
+      description: hasPendingDenials
+        ? `${filteredDeniedDocuments.length} document${filteredDeniedDocuments.length === 1 ? '' : 's'} denied — re-upload required`
+        : docsFinalized
+          ? 'View submitted documents'
+          : missingRequiredDocumentCount > 0
+            ? `${missingRequiredDocumentCount} required document${missingRequiredDocumentCount === 1 ? '' : 's'} still to upload`
+            : 'Submit requested documents',
+      buttonLabel: hasPendingDenials || missingRequiredDocumentCount > 0 ? 'Upload Documents' : 'View Documents',
       path: '/client/documents',
       navState: undefined as Record<string, unknown> | undefined,
-      completed: documentsCompleted,
-      finalized: docsFinalized,
+      completed: !hasPendingDenials && documentsCompleted,
+      finalized: !hasPendingDenials && docsFinalized,
+      denied: hasPendingDenials,
     };
 
     if (bookingActionNeeded) {
-      const inspectionTitle = activeRequest?.rebookingRequestedAt ? 'Rebook Your Inspection' : 'Book Your Inspection';
+      const isDraft = draftMeetingEligible && !activeRequest?.rebookingRequestedAt;
+      const inspectionTitle = activeRequest?.rebookingRequestedAt ? 'Rebook Your Inspection' : isDraft ? 'Book Your Draft Meeting' : 'Book Your Inspection';
       const inspectionDesc = activeRequest?.rebookingRequestedAt
         ? 'Your previous appointment was cancelled. Please choose new preferred dates.'
+        : isDraft ? 'Your inspection is complete. Select your preferred dates for the draft meeting.'
         : 'Appointment booking is open. Select your preferred dates to continue.';
       const inspectionLabel = activeRequest?.rebookingRequestedAt ? 'Book Inspection Date' : 'Select Dates';
 
@@ -259,7 +316,7 @@ export const Dashboard = () => {
         finalized: timelineTargetDate != null,
       },
     ];
-  }, [activeAppointment, activeRequest, documentsCompleted, docsFinalized, missingRequiredDocumentCount, sectionProgress, surveyCompleted, timelineTargetDate]);
+  }, [activeAppointment, activeRequest, bookingActionNeeded, draftMeetingEligible, documentsCompleted, docsFinalized, filteredDeniedDocuments, missingRequiredDocumentCount, sectionProgress, surveyCompleted, timelineTargetDate]);
 
   const dashboardLoading = requestLoading || propertyTypeLoading || surveyLoading || documentsLoading || timelinesLoading || appointmentLoading;
 
@@ -311,43 +368,81 @@ export const Dashboard = () => {
 
       <h2 className="client-tasks-heading">Priority Tasks</h2>
       <div className="priority-tasks-grid">
-        {tasks.map((task) => (
-          <div
-            key={task.id}
-            className={`priority-task-card${task.completed ? ' priority-task-card--active' : ''}${'finalized' in task && task.finalized ? ' priority-task-card--finalized' : ''}`}
-          >
-            <h3 className="priority-task-card__title">{task.title}</h3>
-            <p className="priority-task-card__desc">{task.description}</p>
-            <button
-              className={'finalized' in task && task.finalized ? 'btn-primary' : 'btn-action btn-action--secondary'}
-              onClick={() => navigate(task.path, { state: task.navState })}
+        {tasks.map((task) => {
+          if (task.id === 'timelines' && activeAppointment?.type === 'pending_request') {
+            return (
+              <div key="pending" className="appointment-status-card appointment-status-card--pending">
+                <p className="appointment-status-card__label">Appointment Pending</p>
+                <p className="appointment-status-card__text">Your inspection request is awaiting confirmation from our team.</p>
+                <button className="btn-action btn-action--warning" onClick={() => navigate('/client/inspection-date')}>View Request</button>
+              </div>
+            );
+          }
+          if (task.id === 'timelines' && activeAppointment?.type === 'scheduled') {
+            const aptId = activeAppointment.data.appointmentId;
+            const aptDate = typeof activeAppointment.data.appointmentDate === 'string'
+              ? activeAppointment.data.appointmentDate.split('T')[0]
+              : new Date(activeAppointment.data.appointmentDate).toISOString().split('T')[0];
+            const ackKey = `rescheduled_acknowledged_${aptId}_${aptDate}`;
+            const acknowledged = !!localStorage.getItem(ackKey);
+            const isRescheduled = activeAppointment.data.status === 'Rescheduled' && !acknowledged;
+            const rescheduledNotif = isRescheduled
+              ? notifications.find(n => n.type === 'appointment_rescheduled')
+              : undefined;
+            const rescheduleText = isRescheduled
+              ? rescheduledNotif?.previousDate && rescheduledNotif?.previousSlotTime
+                ? `Your appointment has been rescheduled from ${formatShortDate(rescheduledNotif.previousDate)} at ${formatTime12h(rescheduledNotif.previousSlotTime)} to ${formatShortDate(activeAppointment.data.appointmentDate)} at ${formatTime12h(activeAppointment.data.timeSlot.slotTime)}.`
+                : `Your appointment has been rescheduled to ${formatShortDate(activeAppointment.data.appointmentDate)} at ${formatTime12h(activeAppointment.data.timeSlot.slotTime)}.`
+              : `Your ${activeAppointment.data.appointmentType.typeName} on ${formatShortDate(activeAppointment.data.appointmentDate)} at ${formatTime12h(activeAppointment.data.timeSlot.slotTime)} has been confirmed.`;
+            return (
+              <div key="scheduled" className={`appointment-status-card appointment-status-card--${isRescheduled ? 'rescheduled' : 'scheduled'}`}>
+                <p className="appointment-status-card__label">{isRescheduled ? 'Appointment Rescheduled' : 'Appointment Confirmed'}</p>
+                <p className="appointment-status-card__text">{rescheduleText}</p>
+                {isRescheduled ? (
+                  <button className="btn-action btn-action--warning" onClick={() => {
+                    localStorage.setItem(ackKey, '1');
+                    setActiveAppointment({ ...activeAppointment });
+                  }}>Acknowledge</button>
+                ) : (
+                  <button className="btn-action btn-action--primary" onClick={() => navigate('/client/inspection-date')}>View Appointment</button>
+                )}
+              </div>
+            );
+          }
+          const rejectionNotification = task.id === 'timelines'
+            ? notifications.find(n => n.type === 'request_rejected' && !dismissed.has(`${n.type}__${n.date}`))
+            : undefined;
+          if (rejectionNotification) {
+            return (
+              <div key="rejected" className="appointment-status-card appointment-status-card--rejected">
+                <p className="appointment-status-card__label">Appointment Rejected</p>
+                <p className="appointment-status-card__text">{rejectionNotification.reason || rejectionNotification.message}</p>
+                <button className="btn-action btn-action--danger" onClick={() => navigate('/client/inspection-date')}>View Details</button>
+              </div>
+            );
+          }
+          return (
+            <div
+              key={task.id}
+              className={`priority-task-card${task.completed ? ' priority-task-card--active' : ''}${'finalized' in task && task.finalized ? ' priority-task-card--finalized' : ''}${'denied' in task && task.denied ? ' priority-task-card--denied' : ''}`}
             >
-              {task.buttonLabel}
-            </button>
-          </div>
-        ))}
+              <h3 className="priority-task-card__title">{task.title}</h3>
+              <p className="priority-task-card__desc">{task.description}</p>
+              <button
+                className={'finalized' in task && task.finalized ? 'btn-primary' : 'denied' in task && task.denied ? 'btn-action btn-action--danger' : 'btn-action btn-action--secondary'}
+                onClick={() => navigate(task.path, { state: task.navState })}
+              >
+                {task.buttonLabel}
+              </button>
+            </div>
+          );
+        })}
       </div>
 
-      {activeAppointment?.type === 'pending_request' && (
-        <div className="appointment-status-card appointment-status-card--pending">
-          <p className="appointment-status-card__label">PENDING REVIEW</p>
-          <p className="appointment-status-card__text">Your inspection request is awaiting confirmation from our team.</p>
-        </div>
-      )}
-
-      {activeAppointment?.type === 'scheduled' && (
-        <div className="appointment-status-card appointment-status-card--scheduled">
-          <p className="appointment-status-card__label">CONFIRMED</p>
-          <p className="appointment-status-card__text">
-            Your {activeAppointment.data.appointmentType.typeName} on {formatShortDate(activeAppointment.data.appointmentDate)} at {activeAppointment.data.timeSlot.slotName} has been approved.
-          </p>
-        </div>
-      )}
-
-      {notifications.some((n) => !dismissed.has(`${n.type}__${n.date}`) && !(n.type === 'request_approved' && activeAppointment?.type === 'scheduled')) && (
+      {notifications.some((n) => !dismissed.has(`${n.type}__${n.date}`) && !(n.type === 'request_approved' && (activeAppointment !== null || bookingActionNeeded)) && !(n.type === 'appointment_rescheduled' && activeAppointment?.type === 'scheduled' && activeAppointment.data.status === 'Rescheduled')) && (
         <div className="client-notifications">
           {notifications
-            .filter((n) => !dismissed.has(`${n.type}__${n.date}`) && !(n.type === 'request_approved' && activeAppointment?.type === 'scheduled'))
+            .filter((n) => !dismissed.has(`${n.type}__${n.date}`) && !(n.type === 'request_approved' && (activeAppointment !== null || bookingActionNeeded)) && !(n.type === 'appointment_rescheduled' && activeAppointment?.type === 'scheduled' && activeAppointment.data.status === 'Rescheduled'))
             .map((n) => {
               const key = `${n.type}__${n.date}`;
               const toneMap = {
@@ -401,6 +496,22 @@ export const Dashboard = () => {
       </Modal>
 
       <Modal
+        isOpen={showDraftAvailableModal}
+        onClose={handleDismissDraftAvailable}
+        title="Draft Meeting Available"
+        size="medium"
+        footer={
+          <button className="btn-primary" onClick={() => { handleDismissDraftAvailable(); navigate('/client/inspection-date'); }}>
+            Book Now
+          </button>
+        }
+      >
+        <div className="thank-you-content">
+          <p>Your inspection is complete. You can now book your draft meeting — select your preferred dates to get started.</p>
+        </div>
+      </Modal>
+
+      <Modal
         isOpen={showActivationModal}
         onClose={handleDismissActivation}
         title="Account Activated"
@@ -440,6 +551,35 @@ export const Dashboard = () => {
               )}
             </>
           )}
+        </div>
+      </Modal>
+      <Modal
+        isOpen={showDocReviewModal}
+        onClose={handleDismissDocReview}
+        title="Documents Require Attention"
+        size="medium"
+        footer={
+          <button className="btn-primary" onClick={handleDismissDocReview}>
+            Got it
+          </button>
+        }
+      >
+        <div className="doc-review-notification">
+          <p className="doc-review-notification__intro">
+            One or more of your submitted documents could not be accepted. Please re-upload the documents listed below.
+          </p>
+          <ul className="doc-review-notification__list">
+            {deniedDocuments.map(d => (
+              <li key={d.fnDocRequirementId} className="doc-review-notification__item">
+                <span className="doc-review-notification__doc-name">
+                  {d.documentType.typeName}{d.versionLabel && d.versionLabel !== 'Default' ? ` — ${d.versionLabel}` : ''}
+                </span>
+                {d.denialNote && (
+                  <span className="doc-review-notification__note">{d.denialNote}</span>
+                )}
+              </li>
+            ))}
+          </ul>
         </div>
       </Modal>
     </div>

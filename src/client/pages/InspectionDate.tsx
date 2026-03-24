@@ -507,6 +507,9 @@ const loadActiveAppointment = useCallback(async () => {
                 <span className="inspection-date__detail-label">Inspector</span>
                 <span className="inspection-date__detail-value">
                   {getUserDisplayName(scheduledApt.inspector)}
+                  {scheduledApt.fileNumber?.appointmentOfferSecondInspector && (
+                    <>, {getUserDisplayName(scheduledApt.fileNumber.appointmentOfferSecondInspector)}</>
+                  )}
                 </span>
               </div>
             )}

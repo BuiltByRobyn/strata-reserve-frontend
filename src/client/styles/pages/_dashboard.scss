@@ -100,54 +100,82 @@
 }
 
 .appointment-status-card {
-  margin-top: $spacing-md;
   border-radius: $border-radius-xl;
-  padding: $spacing-md $spacing-lg;
+  padding: $spacing-lg;
   display: flex;
-  align-items: center;
-  gap: $spacing-md;
-  width: 100%;
+  flex-direction: column;
+  gap: $spacing-sm;
+  box-shadow: $shadow-sm;
 
   &--pending {
-    background: $color-warning-light;
-    border: 2px solid $color-warning-border;
-
-    .appointment-status-card__label {
-      color: $color-warning-text-dark;
-    }
-
-    .appointment-status-card__text {
-      color: $color-warning-text;
-    }
+    background: $color-white;
+    border: 3px solid $color-warning-border;
   }
 
   &--scheduled {
-    background: $color-primary-lightest;
-    border: 2px solid $color-primary;
+    background: $color-white;
+    border: 3px solid $color-primary-dark;
+  }
+
+  &--rescheduled {
+    background: $color-white;
+    border: 3px solid $color-warning-border;
+  }
+
+  &--rejected {
+    background: $color-error-bg;
+    border: 3px solid $color-error-border;
 
     .appointment-status-card__label {
-      color: $color-primary-darker;
+      color: $color-error-text;
     }
 
     .appointment-status-card__text {
-      color: $color-primary-dark;
+      color: $color-error-text;
     }
   }
 
   &__label {
     margin: 0;
-    font-size: 0.7rem;
+    font-size: 1.1rem;
     font-weight: $font-weight-bold;
-    letter-spacing: 0.08em;
-    white-space: nowrap;
-    text-transform: uppercase;
+    color: $color-text-dark;
   }
 
   &__text {
     margin: 0;
-    font-size: 0.85rem;
+    font-size: 0.9rem;
+    color: $color-text-secondary;
     line-height: $line-height-base;
     flex: 1;
+  }
+
+  .btn-action {
+    width: 100%;
+    text-align: center;
+    margin-top: auto;
+
+    &--warning {
+      background: $color-warning-border;
+      color: $color-white;
+      border-color: $color-warning-border;
+
+      &:hover {
+        background: $color-warning-text;
+        border-color: $color-warning-text;
+      }
+    }
+
+    &--danger {
+      background: $color-error-light;
+      color: $color-white;
+      border-color: $color-error-light;
+
+      &:hover {
+        background: $color-error-dark;
+        border-color: $color-error-dark;
+      }
+    }
   }
 }
 
@@ -203,6 +231,21 @@
     border: 3px solid $color-primary-dark;
   }
 
+  &--denied {
+    border: 1px solid $color-error-light;
+
+    .btn-action--danger {
+      background: $color-error-light;
+      border-color: $color-error-light;
+      color: $color-white;
+
+      &:hover {
+        background: $color-error-dark;
+        border-color: $color-error-dark;
+      }
+    }
+  }
+
   &__title {
     margin: 0;
     font-size: 1.1rem;
@@ -224,3 +267,41 @@
     margin-top: auto;
   }
 }
+
+.doc-review-notification {
+  &__intro {
+    margin: 0 0 $spacing-md;
+    color: $color-text-secondary;
+  }
+
+  &__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-sm;
+  }
+
+  &__item {
+    padding: $spacing-sm $spacing-md;
+    border: 1px solid $color-error-border;
+    border-radius: $border-radius-sm;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  &__doc-name {
+    font-weight: $font-weight-medium;
+    color: $color-error-text;
+    font-size: $font-size-sm;
+  }
+
+  &__note {
+    font-size: $font-size-sm;
+    color: $color-text-secondary;
+    font-style: italic;
+  }
+}
+

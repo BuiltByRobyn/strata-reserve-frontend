@@ -250,6 +250,7 @@ export interface DocumentReviewModalProps {
   docRequirements: SRDocRequirement[];
   reviewStatuses: ReviewStatus[];
   review: DocumentReviewResult | null;
+  initialSelections?: Record<number, number>;
   loading: boolean;
   token: string;
   onSubmit: (fileId: number, input: BatchDocumentReviewInput) => Promise<void>;
@@ -261,4 +262,5 @@ export interface VersionDocumentRowProps {
   onUpload: (req: RequiredDocumentChecklist, isReplace: boolean) => void;
   onSetNaStatus: (req: RequiredDocumentChecklist, status: NaStatusValue) => void;
   onPreview: (req: RequiredDocumentChecklist) => void;
+  readOnly?: boolean;
 }

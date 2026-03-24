@@ -6,6 +6,7 @@ import { useAuth } from '../../shared/contexts/AuthContext';
 import { LoadingSpinner } from '../../shared/components/LoadingSpinner';
 import { NoFileNumberState } from '../../shared/components/NoFileNumberState';
 import { DocumentPreviewModal } from '../../shared/components/DocumentPreviewModal';
+import { Modal } from '../../shared/components/Modal';
 import { PropertyTypeSelector } from '../components/PropertyTypeSelector';
 import { VersionDocumentRow } from '../components/VersionDocumentRow';
 import { validateFileType, validateFileSize } from '../../shared/utils/validation';
@@ -34,6 +35,8 @@ export default function ClientDocumentsPage() {
   const [previewDocId, setPreviewDocId] = useState<number | null>(null);
   const [previewDocName, setPreviewDocName] = useState('');
 
+  const [showDenialModal, setShowDenialModal] = useState(false);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const strataPlan = activeRequest?.strata?.strataPlan || '';
 
@@ -53,8 +56,37 @@ export default function ClientDocumentsPage() {
 
   const allAnswered = useMemo(
     () => filteredRequirements.length > 0 &&
-      filteredRequirements.every(d => !!d.uploadedDocument || !!d.naStatus),
+      filteredRequirements.every(d => {
+        const isDenied = (() => {
+          const s = d.reviewStatus?.statusName?.toLowerCase() ?? '';
+          return s.includes('deny') || s.includes('reject');
+        })();
+        if (isDenied) {
+          if (!d.uploadedDocument || !d.reviewedAt) return false;
+          return new Date(d.uploadedDocument.uploadedAt) > new Date(d.reviewedAt);
+        }
+        return !!d.uploadedDocument || !!d.naStatus;
+      }),
     [filteredRequirements]
+  );
+
+  const deniedRequirements = useMemo(
+    () => filteredRequirements.filter(r => {
+      const s = r.reviewStatus?.statusName?.toLowerCase() ?? '';
+      return s.includes('deny') || s.includes('reject');
+    }),
+    [filteredRequirements]
+  );
+
+  const hasReview = useMemo(
+    () => filteredRequirements.some(r => r.reviewId !== null),
+    [filteredRequirements]
+  );
+
+  const allApproved = useMemo(
+    () => hasReview && filteredRequirements.length > 0 &&
+      filteredRequirements.every(r => r.reviewStatus?.statusName?.toLowerCase().includes('approv')),
+    [hasReview, filteredRequirements]
   );
 
   const groupedByPropertyType = useMemo(() => {
@@ -72,6 +104,29 @@ export default function ClientDocumentsPage() {
     setRequiredDocsReady(false);
     fetchRequiredDocuments(fileId).then(() => setRequiredDocsReady(true));
   }, [fileId, fetchRequiredDocuments]);
+
+  useEffect(() => {
+    if (!requiredDocsReady || !fileId) return;
+
+    const deniedKeys = new Set<string>();
+    for (const req of deniedRequirements) {
+      const groupName = req.propertyType?.propertyTypeName || 'General';
+      deniedKeys.add(`${groupName}__${req.documentType.typeName}`);
+    }
+    if (deniedKeys.size > 0) {
+      setExpandedDocTypes(prev => new Set([...prev, ...deniedKeys]));
+      // Clear finalized flag so client can re-submit after addressing denials
+      localStorage.removeItem(`docs_finalized_${fileId}`);
+    }
+
+    if (deniedRequirements.length > 0) {
+      const reviewId = deniedRequirements[0].reviewId;
+      const seenKey = reviewId ? `denial_notified_${fileId}_${reviewId}` : null;
+      if (seenKey && !localStorage.getItem(seenKey)) {
+        setShowDenialModal(true);
+      }
+    }
+  }, [requiredDocsReady]);
 
   const handleUploadClick = (req: RequiredDocumentChecklist, isReplace: boolean) => {
     setPendingUpload({ req, isReplace });
@@ -113,6 +168,14 @@ export default function ClientDocumentsPage() {
     if (req.naStatus === status) return;
     await setNaStatus(fileId, req.fnDocRequirementId, status);
   }, [fileId, setNaStatus]);
+
+  const handleDismissDenialModal = () => {
+    if (fileId && deniedRequirements.length > 0) {
+      const reviewId = deniedRequirements[0].reviewId;
+      if (reviewId) localStorage.setItem(`denial_notified_${fileId}_${reviewId}`, 'true');
+    }
+    setShowDenialModal(false);
+  };
 
   const handlePreview = (req: RequiredDocumentChecklist) => {
     if (!req.uploadedDocument) return;
@@ -205,16 +268,23 @@ export default function ClientDocumentsPage() {
                         </button>
                         {isExpanded && (
                           <div className="version-list">
-                            {versions.map(req => (
-                              <VersionDocumentRow
-                                key={req.fnDocRequirementId}
-                                requirement={req}
-                                uploading={uploading && pendingUpload?.req.fnDocRequirementId === req.fnDocRequirementId}
-                                onUpload={handleUploadClick}
-                                onSetNaStatus={handleSetNaStatus}
-                                onPreview={handlePreview}
-                              />
-                            ))}
+                            {versions.map(req => {
+                              const isDenied = (() => {
+                                const s = req.reviewStatus?.statusName?.toLowerCase() ?? '';
+                                return s.includes('deny') || s.includes('reject');
+                              })();
+                              return (
+                                <VersionDocumentRow
+                                  key={req.fnDocRequirementId}
+                                  requirement={req}
+                                  uploading={uploading && pendingUpload?.req.fnDocRequirementId === req.fnDocRequirementId}
+                                  onUpload={handleUploadClick}
+                                  onSetNaStatus={handleSetNaStatus}
+                                  onPreview={handlePreview}
+                                  readOnly={hasReview && !isDenied}
+                                />
+                              );
+                            })}
                           </div>
                         )}
                       </div>
@@ -225,7 +295,11 @@ export default function ClientDocumentsPage() {
             })}
           </div>
 
-          {allAnswered && (
+          {allApproved ? (
+            <div className="all-answered-banner">
+              <p>All documents have been approved.</p>
+            </div>
+          ) : allAnswered && (
             <div className="all-answered-banner">
               <p>{docsFinalized ? 'Your documents will be reviewed shortly.' : 'All documents have been addressed. You can now finalize and submit.'}</p>
             </div>
@@ -250,6 +324,38 @@ export default function ClientDocumentsPage() {
         documentName={previewDocName}
         token={session?.access_token || ''}
       />
+
+      <Modal
+        isOpen={showDenialModal}
+        onClose={handleDismissDenialModal}
+        title="Documents Require Your Attention"
+        size="medium"
+        footer={
+          <button className="btn-primary" onClick={handleDismissDenialModal}>
+            Got It
+          </button>
+        }
+      >
+        <div className="denial-notification">
+          <p className="denial-notification__intro">
+            One or more of your documents have been denied. Please review the feedback below and re-upload the corrected documents.
+          </p>
+          <ul className="denial-notification__list">
+            {deniedRequirements.map(req => (
+              <li key={req.fnDocRequirementId} className="denial-notification__item">
+                <p className="denial-notification__doc-name">
+                  {req.documentType.typeName}
+                  {req.versionLabel && req.versionLabel !== 'Default' && ` — ${req.versionLabel}`}
+                  {req.propertyType && ` (${req.propertyType.propertyTypeName})`}
+                </p>
+                {req.denialNote && (
+                  <p className="denial-notification__note">{req.denialNote}</p>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
+      </Modal>
     </div>
   );
 }

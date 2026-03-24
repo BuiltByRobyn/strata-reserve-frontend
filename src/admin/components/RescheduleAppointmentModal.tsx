@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Modal } from '../../shared/components/Modal';
 import { SingleSelectDropdown } from '../../shared/components/SingleSelectDropdown';
 import { AppointmentInfoDisplay } from './AppointmentInfoDisplay';
@@ -16,12 +16,22 @@ const RescheduleAppointmentModal = ({
 }: RescheduleAppointmentModalProps) => {
   const [newDate, setNewDate] = useState(appointment?.appointmentDate?.split('T')[0] || '');
   const [newTimeSlotId, setNewTimeSlotId] = useState<number | null>(appointment?.timeSlot?.timeSlotId ?? null);
-  const [inspectorId, setInspectorId] = useState('');
-  const [addSecondInspector, setAddSecondInspector] = useState(false);
-  const [secondInspectorId, setSecondInspectorId] = useState('');
+  const [inspectorId, setInspectorId] = useState(appointment?.inspectorProfileId || '');
+  const [addSecondInspector, setAddSecondInspector] = useState(!!appointment?.fileNumber?.appointmentOfferSecondInspector);
+  const [secondInspectorId, setSecondInspectorId] = useState(appointment?.fileNumber?.appointmentOfferSecondInspector?.id || '');
   const [reason, setReason] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (isOpen && appointment) {
+      setNewDate(appointment.appointmentDate?.split('T')[0] || '');
+      setNewTimeSlotId(appointment.timeSlot?.timeSlotId ?? null);
+      setInspectorId(appointment.inspectorProfileId || '');
+      setAddSecondInspector(!!appointment.fileNumber?.appointmentOfferSecondInspector);
+      setSecondInspectorId(appointment.fileNumber?.appointmentOfferSecondInspector?.id || '');
+    }
+  }, [isOpen, appointment]);
 
   if (!appointment) return null;
 
@@ -34,7 +44,12 @@ const RescheduleAppointmentModal = ({
 
   const inspectorOptions = getInspectorOptions(inspectors);
   const effectivePrimaryId = inspectorId || appointment.inspectorProfileId || '';
-  const secondInspectorOptions = inspectorOptions.filter(o => o.value !== effectivePrimaryId);
+  const primaryInspectorOptions = inspectorOptions.filter(
+    o => o.value !== secondInspectorId
+  );
+  const secondInspectorOptions = inspectorOptions.filter(
+    o => o.value !== effectivePrimaryId
+  );
 
   const isFormValid = !!newDate && !!newTimeSlotId && !!inspectorId;
 
@@ -43,7 +58,7 @@ const RescheduleAppointmentModal = ({
     setError(null);
     try {
       const secondId = hasExistingSecondInspector
-        ? (secondInspectorId || existingSecondInspector.id)
+        ? (addSecondInspector ? (secondInspectorId || null) : null)
         : (addSecondInspector && secondInspectorId ? secondInspectorId : undefined);
       await onReschedule(appointment.appointmentId, newDate, newTimeSlotId!, {
         inspectorProfileId: inspectorId,
@@ -89,7 +104,7 @@ const RescheduleAppointmentModal = ({
 
         <div className="reschedule-modal__form">
           <div className="form-field">
-            <label htmlFor="reschedule-date">New Date *</label>
+            <label htmlFor="reschedule-date">New Date <span className="required">*</span></label>
             <input
               id="reschedule-date"
               type="date"
@@ -100,7 +115,7 @@ const RescheduleAppointmentModal = ({
           </div>
 
           <div className="form-field">
-            <label>Time Slot *</label>
+            <label>New Time Slot <span className="required">*</span></label>
             <div className="reschedule-modal__slot-buttons">
               {timeSlots.map(s => (
                 <button
@@ -117,51 +132,42 @@ const RescheduleAppointmentModal = ({
           </div>
 
           <SingleSelectDropdown
-            label="Inspector"
+            label="Reassign Inspector"
             required
-            options={inspectorOptions}
+            className="reschedule-modal__primary-inspector"
+            options={primaryInspectorOptions}
             value={inspectorId}
             onChange={(val) => {
               setInspectorId(val);
               if (val === secondInspectorId) setSecondInspectorId('');
             }}
-            placeholder={currentInspector}
+            placeholder="Select inspector..."
           />
 
-          {hasExistingSecondInspector ? (
-            <SingleSelectDropdown
-              label="Reassign Additional Inspector (optional)"
-              options={secondInspectorOptions}
-              value={secondInspectorId}
-              onChange={setSecondInspectorId}
-              placeholder={`${getUserDisplayName(existingSecondInspector)} (current)`}
-            />
-          ) : (
-            <>
-              {addSecondInspector && (
-                <SingleSelectDropdown
-                  label="Additional Inspector"
-                  options={secondInspectorOptions}
-                  value={secondInspectorId}
-                  onChange={setSecondInspectorId}
-                  placeholder="Select additional inspector..."
+          <>
+            <div className="offer-modal__field">
+              <label className="offer-modal__checkbox-label">
+                <input
+                  type="checkbox"
+                  checked={addSecondInspector}
+                  onChange={(e) => {
+                    setAddSecondInspector(e.target.checked);
+                    if (!e.target.checked) setSecondInspectorId('');
+                  }}
                 />
-              )}
-              <div className="offer-modal__field">
-                <label className="offer-modal__checkbox-label">
-                  <input
-                    type="checkbox"
-                    checked={addSecondInspector}
-                    onChange={(e) => {
-                      setAddSecondInspector(e.target.checked);
-                      if (!e.target.checked) setSecondInspectorId('');
-                    }}
-                  />
-                  Add additional inspector
-                </label>
-              </div>
-            </>
-          )}
+                {hasExistingSecondInspector ? 'Include additional inspector' : 'Add additional inspector'}
+              </label>
+            </div>
+            {addSecondInspector && (
+              <SingleSelectDropdown
+                label={hasExistingSecondInspector ? 'Reassign Additional Inspector (optional)' : 'Additional Inspector'}
+                options={secondInspectorOptions}
+                value={secondInspectorId}
+                onChange={setSecondInspectorId}
+                placeholder="Select inspector..."
+              />
+            )}
+          </>
 
           <div className="form-field">
             <label htmlFor="reschedule-reason">Reason for Rescheduling (optional)</label>

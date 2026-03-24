@@ -170,6 +170,7 @@
       background: rgba($color-success, 0.03);
     }
 
+
     &__label {
       font-size: $font-size-sm;
       color: $color-text-light;
@@ -179,7 +180,37 @@
     &__status {
       display: flex;
       align-items: center;
+      flex-wrap: wrap;
       gap: $spacing-xs;
+    }
+
+    &__denied-badge {
+      font-size: $font-size-xs;
+      font-weight: $font-weight-medium;
+      color: $color-error-text;
+      background: $color-error-bg;
+      border: 1px solid $color-error-border;
+      border-radius: $border-radius-sm;
+      padding: 1px $spacing-xs;
+      white-space: nowrap;
+    }
+
+    &__replaced-badge {
+      font-size: $font-size-xs;
+      font-weight: $font-weight-medium;
+      color: $color-primary;
+      border: 1px solid $color-primary;
+      border-radius: $border-radius-sm;
+      padding: 1px $spacing-xs;
+      margin-left: $spacing-sm;
+      white-space: nowrap;
+    }
+
+    &__denial-note {
+      font-size: $font-size-xs;
+      color: $color-error-text;
+      font-style: italic;
+      flex-basis: 100%;
     }
 
     &__actions {
@@ -350,6 +381,41 @@
       color: $color-text-light;
       margin: 0 0 $spacing-xs;
       line-height: 1.5;
+    }
+  }
+
+  .denial-notification {
+    &__intro {
+      color: $color-text-light;
+      margin: 0 0 $spacing-md;
+    }
+
+    &__list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      gap: $spacing-sm;
+    }
+
+    &__item {
+      padding: $spacing-sm $spacing-md;
+      border: 1px solid $color-error-border;
+      border-radius: $border-radius-sm;
+    }
+
+    &__doc-name {
+      font-weight: $font-weight-medium;
+      color: $color-error-text;
+      margin: 0 0 $spacing-xs;
+    }
+
+    &__note {
+      font-size: $font-size-sm;
+      color: $color-text-light;
+      margin: 0;
+      font-style: italic;
     }
   }
 

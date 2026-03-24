@@ -37,6 +37,7 @@ export interface ActiveAppointmentScheduled {
     appointmentType: AppointmentType;
     timeSlot: AppointmentTimeSlot;
     inspector: ProfileBasic | null;
+    fileNumber: { appointmentOfferSecondInspector: ProfileBasic | null } | null;
   };
 }
 
@@ -125,4 +126,7 @@ export interface AppointmentNotification {
   message: string;
   reason: string | null;
   date: string;
+  previousDate?: string;
+  previousSlotTime?: string;
+  previousSlotName?: string;
 }
