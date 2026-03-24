@@ -632,10 +632,13 @@ export default function QuestionsPage() {
                       .filter(q => q.questionId !== editingQuestion.questionId && (!q.isSubQuestion || localSubIds.includes(q.questionId)))
                       .map(q => ({ value: q.questionId, label: q.questionText }))
                       .sort((a, b) => {
-                        const aSelected = localSubIds.includes(a.value);
-                        const bSelected = localSubIds.includes(b.value);
+                        const aIdx = localSubIds.indexOf(a.value);
+                        const bIdx = localSubIds.indexOf(b.value);
+                        const aSelected = aIdx !== -1;
+                        const bSelected = bIdx !== -1;
                         if (aSelected && !bSelected) return -1;
                         if (!aSelected && bSelected) return 1;
+                        if (aSelected && bSelected) return aIdx - bIdx;
                         return 0;
                       })}
                     selectedValues={localSubIds}
