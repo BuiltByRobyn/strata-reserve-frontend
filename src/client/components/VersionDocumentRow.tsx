@@ -16,7 +16,7 @@ export function VersionDocumentRow({
       <span className="version-row__label">{versionLabel || 'Default'}</span>
 
       <div className="version-row__status">
-        {isUploaded && <span className="uploaded-badge">Uploaded</span>}
+        {isUploaded && <span className="uploaded-file-name">{uploadedDocument!.fileName}</span>}
         {!isUploaded && naStatus && (
           <span className="na-status-indicator">
             {formatNaStatus(naStatus)}

@@ -106,6 +106,7 @@
   display: flex;
   align-items: center;
   gap: $spacing-md;
+  width: 100%;
 
   &--pending {
     background: $color-warning-light;
@@ -146,6 +147,7 @@
     margin: 0;
     font-size: 0.85rem;
     line-height: $line-height-base;
+    flex: 1;
   }
 }
 

@@ -82,7 +82,7 @@ export function CreateUserModal({ isOpen, onClose }: BaseModalProps) {
     !!formData.userTypeId &&
     (!isClientType || (
       validAssociations.length > 0 &&
-      validAssociations.every(sa => sa.propertyTypeIds && sa.propertyTypeIds.length > 0)
+      validAssociations.every(sa => sa.propertyTypeIds && sa.propertyTypeIds.length > 0 && !!sa.strataPosition)
     ));
 
   const handleSubmit = async (e?: React.FormEvent) => {
@@ -210,18 +210,41 @@ export function CreateUserModal({ isOpen, onClose }: BaseModalProps) {
                 <InputField label={`Associated Strata${index === 0 ? '' : ` ${index + 1}`}`} required value={selectedStrata?.complexName || ''} disabled placeholder="Strata name" />
               </FormRow>
               {isClientType && (
-                <MultiSelectDropdown
-                  label={`Property Types${index === 0 ? '' : ` ${index + 1}`}`}
-                  required
-                  options={
-                    (selectedStrata?.strataPropertyTypes ?? [])
-                      .map(spt => ({ value: spt.propertyType.propertyTypeId, label: spt.propertyType.propertyTypeName }))
-                      .sort((a, b) => a.label.localeCompare(b.label))
-                  }
-                  selectedValues={association.propertyTypeIds || []}
-                  onChange={(values) => updateStrataAssociationPropertyTypes(index, values)}
-                  placeholder="Select property types"
-                />
+                <FormRow>
+                  <MultiSelectDropdown
+                    label={`Property Types${index === 0 ? '' : ` ${index + 1}`}`}
+                    required
+                    options={
+                      (selectedStrata?.strataPropertyTypes ?? [])
+                        .map(spt => ({ value: spt.propertyType.propertyTypeId, label: spt.propertyType.propertyTypeName }))
+                        .sort((a, b) => a.label.localeCompare(b.label))
+                    }
+                    selectedValues={association.propertyTypeIds || []}
+                    onChange={(values) => updateStrataAssociationPropertyTypes(index, values)}
+                    placeholder="Select property types"
+                  />
+                  <div className="strata-role-field">
+                    <div className="strata-role-field__header">
+                      <label className="field-label">Strata Role <span className="required">*</span></label>
+                      {association.strataId > 0 && !association.strataPosition && (
+                        <span className="error-text">Please select a strata role</span>
+                      )}
+                    </div>
+                    <div className="role-options">
+                      {['Property Manager', 'Councillor'].map((r) => (
+                        <label key={r} className="role-option">
+                          <input
+                            type="radio"
+                            name={`role-${index}`}
+                            checked={association.strataPosition === r}
+                            onChange={() => updateStrataAssociation(index, 'strataPosition', r)}
+                          />
+                          {r}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                </FormRow>
               )}
             </div>
           );

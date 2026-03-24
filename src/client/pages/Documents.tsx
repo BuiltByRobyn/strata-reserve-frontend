@@ -26,6 +26,7 @@ export default function ClientDocumentsPage() {
     uploading,
   } = useClientDocuments();
 
+  const [requiredDocsReady, setRequiredDocsReady] = useState(false);
   const [expandedDocTypes, setExpandedDocTypes] = useState<Set<string>>(new Set());
   const [pendingUpload, setPendingUpload] = useState<{ req: RequiredDocumentChecklist; isReplace: boolean } | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -67,7 +68,9 @@ export default function ClientDocumentsPage() {
   }, [filteredRequirements]);
 
   useEffect(() => {
-    if (fileId) fetchRequiredDocuments(fileId);
+    if (!fileId) return;
+    setRequiredDocsReady(false);
+    fetchRequiredDocuments(fileId).then(() => setRequiredDocsReady(true));
   }, [fileId, fetchRequiredDocuments]);
 
   const handleUploadClick = (req: RequiredDocumentChecklist, isReplace: boolean) => {
@@ -125,7 +128,7 @@ export default function ClientDocumentsPage() {
     navigate('/client/dashboard', { state: { justFinalizedDocs: true } });
   };
 
-  if (srLoading || loading) return <LoadingSpinner />;
+  if (srLoading || (fileId !== null && !requiredDocsReady)) return <LoadingSpinner />;
 
   if (!fileId) {
     return (
@@ -171,7 +174,7 @@ export default function ClientDocumentsPage() {
         onChange={handleFileSelected}
       />
 
-      {filteredRequirements.length === 0 ? (
+      {!loading && filteredRequirements.length === 0 ? (
         <div className="empty-state">
           <p>No documents have been requested for this file number yet.</p>
         </div>

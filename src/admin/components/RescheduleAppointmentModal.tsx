@@ -14,9 +14,9 @@ const RescheduleAppointmentModal = ({
   inspectors,
   onReschedule,
 }: RescheduleAppointmentModalProps) => {
-  const [newDate, setNewDate] = useState('');
-  const [newTimeSlotId, setNewTimeSlotId] = useState<number | null>(null);
-  const [inspectorId, setInspectorId] = useState(appointment?.inspectorProfileId || '');
+  const [newDate, setNewDate] = useState(appointment?.appointmentDate?.split('T')[0] || '');
+  const [newTimeSlotId, setNewTimeSlotId] = useState<number | null>(appointment?.timeSlot?.timeSlotId ?? null);
+  const [inspectorId, setInspectorId] = useState('');
   const [addSecondInspector, setAddSecondInspector] = useState(false);
   const [secondInspectorId, setSecondInspectorId] = useState('');
   const [reason, setReason] = useState('');
@@ -117,7 +117,7 @@ const RescheduleAppointmentModal = ({
           </div>
 
           <SingleSelectDropdown
-            label="Inspector *"
+            label="Inspector"
             required
             options={inspectorOptions}
             value={inspectorId}

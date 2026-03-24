@@ -7,6 +7,8 @@ export interface SurveyQuestion {
   subLabel: string | null;
   questionText: string;
   isRequired: boolean;
+  allowNa: boolean;
+  allowUnavailable: boolean;
   informationText: string | null;
   questionCategory: string;
   questionType: string;
@@ -80,7 +82,7 @@ export const SURVEY_SECTIONS: SurveySection[] = [
 
 export interface AdminQuestion {
   questionId: number;
-  parentQuestionId: number | null;
+  isSubQuestion: boolean;
   subLabel: string | null;
   questionText: string;
   isRequired: boolean;
@@ -108,7 +110,6 @@ export interface CreateQuestionInput {
   serviceIds: { serviceId: number; sortOrder: number }[];
   propertyTypeIds: number[];
   multipleChoiceOptions?: { optionText: string; sortOrder: number }[];
-  parentQuestionId?: number | null;
 }
 
 export interface UpdateQuestionInput extends Partial<CreateQuestionInput> {}
@@ -124,5 +125,4 @@ export interface QuestionFormData {
   serviceId: number | undefined;
   propertyTypeIds: number[];
   multipleChoiceOptions: { optionText: string; sortOrder: number }[];
-  parentQuestionId?: number | null;
 }

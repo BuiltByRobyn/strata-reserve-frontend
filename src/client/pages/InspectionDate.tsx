@@ -5,7 +5,6 @@ import { useClientAppointments } from '../../shared/hooks/useClientAppointments'
 import { useTimelines } from '../../shared/hooks/useTimelines';
 import { useLookups } from '../../shared/hooks/useLookups';
 import { LoadingSpinner } from '../../shared/components/LoadingSpinner';
-import { Modal } from '../../shared/components/Modal';
 import { formatDateLong, formatTime12h, getUserDisplayName } from '../../shared/utils/formatters';
 import BookingCalendar from '../../shared/components/BookingCalendar';
 import AvailableMeetingDates from '../components/AvailableMeetingDates';
@@ -80,7 +79,6 @@ const InspectionDate = () => {
   const [draftMeetingEligible, setDraftMeetingEligible] = useState(false);
   const [bookingDraftMeeting, setBookingDraftMeeting] = useState(false);
   const [lastInspectionDate, setLastInspectionDate] = useState<string | null>(null);
-  const [showWelcomeModal, setShowWelcomeModal] = useState(false);
 
   const isOffered = !!activeRequest?.appointmentOfferedAt;
 
@@ -89,17 +87,7 @@ const InspectionDate = () => {
   const prevAppointmentTypeRef = useRef<string | null>(null);
   const meetingDatesRef = useRef<HTMLDivElement>(null);
 
-  // Welcome modal: show once per file number (persists across sessions)
-  useEffect(() => {
-    if (!fileId || !isOffered) return;
-    const key = `welcome-modal-shown-${fileId}`;
-    if (!localStorage.getItem(key)) {
-      setShowWelcomeModal(true);
-      localStorage.setItem(key, '1');
-    }
-  }, [fileId, isOffered]);
-
-  const loadActiveAppointment = useCallback(async () => {
+const loadActiveAppointment = useCallback(async () => {
     const data = await getActiveAppointment();
     setActiveAppointment(data);
   }, [getActiveAppointment]);
@@ -192,7 +180,7 @@ const InspectionDate = () => {
     // "File Opened" milestone on the date the appointment was offered
     if (activeRequest?.appointmentOfferedAt) {
       const offeredDate = formatYMD(new Date(activeRequest.appointmentOfferedAt));
-      result.push({ date: offeredDate, label: 'File Opened' });
+      result.push({ date: offeredDate, label: 'Submission Approved' });
     }
 
     // "Inspection Date" milestone shown only when booking a draft meeting
@@ -632,28 +620,6 @@ const InspectionDate = () => {
         );
       })()}
 
-      <Modal
-        isOpen={showWelcomeModal}
-        onClose={() => setShowWelcomeModal(false)}
-        title="Please book an inspection date"
-        size="medium"
-        footer={
-          <button className="btn btn-primary" onClick={() => setShowWelcomeModal(false)}>
-            Close
-          </button>
-        }
-      >
-        <p>
-          Your submission has been approved and you can now book an inspection date.
-          Please select your preferred dates and times from the available slots below.
-        </p>
-        <p>
-          If you have any questions, please contact us at{' '}
-          <a href="mailto:clientcare@stratareserveplanning.com">
-            clientcare@stratareserveplanning.com
-          </a>
-        </p>
-      </Modal>
     </div>
   );
 };

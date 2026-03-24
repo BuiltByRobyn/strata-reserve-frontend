@@ -148,6 +148,17 @@ const Timelines = () => {
       newErrors.lastDepreciationReport =
         'Please select the year of the last depreciation report or check "No report to date".';
     }
+    if (targetDate.trim()) {
+      const targetDateObj = new Date(targetDate + 'T00:00:00');
+      const minTarget = addDays(today, 30);
+      if (targetDateObj < today) {
+        newErrors.targetDate = 'Target date cannot be in the past.';
+      } else if (targetDateObj < minTarget) {
+        newErrors.targetDate = 'Target date must be at least 30 days from today.';
+      } else if (maxTargetDate && targetDateObj > maxTargetDate) {
+        newErrors.targetDate = 'Target date cannot exceed 395 days after the fiscal year start date.';
+      }
+    }
     setErrors(newErrors);
     if (Object.keys(newErrors).length > 0) return;
 
@@ -171,6 +182,7 @@ const Timelines = () => {
   const mostRecentFiscalYearStart = fiscalYearStartDate ? getMostRecentAnniversary(fiscalYearStartDate, today) : null;
   const currentYear = today.getFullYear();
   const fiscalYearStartYear = fiscalYearStartDate?.getFullYear() ?? null;
+  const minTargetDate = addDays(today, 30);
   const maxTargetDate =
     fiscalYearStartDate !== null &&
     fiscalYearStartYear !== null &&
@@ -300,6 +312,7 @@ const Timelines = () => {
                 }}
                 error={errors.targetDate}
                 disabled={isLocked || (daysIntoFiscalYear !== null && daysIntoFiscalYear > 395)}
+                min={minTargetDate.toISOString().split('T')[0]}
                 max={maxTargetDate ? maxTargetDate.toISOString().split('T')[0] : undefined}
               />
             </div>

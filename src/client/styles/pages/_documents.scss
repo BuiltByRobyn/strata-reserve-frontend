@@ -189,15 +189,13 @@
     }
   }
 
-  .uploaded-badge {
-    padding: 2px 8px;
-    border-radius: 4px;
-    font-size: 0.6875rem;
-    font-weight: $font-weight-bold;
-    text-transform: uppercase;
-    background: rgba($color-success, 0.1);
+  .uploaded-file-name {
+    font-size: $font-size-xs;
     color: $color-success;
+    overflow: hidden;
+    text-overflow: ellipsis;
     white-space: nowrap;
+    max-width: 200px;
   }
 
   .na-status-indicator {

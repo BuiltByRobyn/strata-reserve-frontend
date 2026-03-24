@@ -1,5 +1,5 @@
 import type { ReactNode, InputHTMLAttributes, SelectHTMLAttributes, TextareaHTMLAttributes } from 'react';
-import type { SurveySection } from './survey.types';
+import type { SurveySection, AdminQuestion } from './survey.types';
 import type { StrataPropertyType, InspectorAvailableDate, CreateInspectorAvailableDateInput, UpdateInspectorAvailableDateInput, AppointmentRequest, AppointmentWithDetails, AppointmentTimeSlot, Profile, ReviewStatus } from './entities.types';
 import type { SRDocRequirement } from './document.types';
 import type { BatchDocumentReviewInput, DocumentReviewResult, RequiredDocumentChecklist, NaStatusValue } from './document.types';
@@ -234,6 +234,8 @@ export interface BaseModalProps {
 
 export interface CreateQuestionModalProps extends BaseModalProps {
   parentQuestionId?: number | null;
+  onCreated?: (questionId: number) => void;
+  parentQuestion?: AdminQuestion | null;
 }
 
 export interface ToastProps {

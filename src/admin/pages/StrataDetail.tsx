@@ -165,6 +165,7 @@ export default function StrataDetailPage() {
 
   const [docRequirements, setDocRequirements] = useState<SRDocRequirement[]>([]);
   const [docReqModalOpen, setDocReqModalOpen] = useState(false);
+  const [savingDocConfig, setSavingDocConfig] = useState(false);
   const [docReviewModalOpen, setDocReviewModalOpen] = useState(false);
   const [configStep, setConfigStep] = useState<'select' | number>('select');
   const [wizardSelectedDocTypes, setWizardSelectedDocTypes] = useState<Record<number, number[]>>({});
@@ -501,12 +502,14 @@ export default function StrataDetailPage() {
         }
       }
     }
+    setSavingDocConfig(true);
     await authFetch(`${API_BASE}/admin/file-numbers/${activeRequest.fileId}/document-requirements`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ requirements }),
     });
     await fetchDocRequirements(activeRequest.fileId);
+    setSavingDocConfig(false);
     setDocReqModalOpen(false);
   };
 
@@ -535,7 +538,7 @@ export default function StrataDetailPage() {
             .map(q => q.questionId);
         }
       } else {
-        const defaultQs = allQuestions.filter(q => q.parentQuestionId == null && (q.questionPropertyTypes.length === 0 || q.questionPropertyTypes.some(qpt => qpt.propertyTypeId === ptId)));
+        const defaultQs = allQuestions.filter(q => !q.isSubQuestion && (q.questionPropertyTypes.length === 0 || q.questionPropertyTypes.some(qpt => qpt.propertyTypeId === ptId)));
         formData[ptId] = defaultQs.map(q => q.questionId);
         const categories = [...new Set(defaultQs.map(q => q.questionCategory))];
         for (const cat of categories) {
@@ -633,8 +636,14 @@ export default function StrataDetailPage() {
   const handleSaveSurveyRequirements = async () => {
     if (!activeRequest) return;
     setSurveyReqSaving(true);
-    const availableQuestions = allQuestions.filter(q => q.parentQuestionId == null);
-    const allCategories = [...new Set(availableQuestions.map(q => q.questionCategory))].sort();
+    const availableQuestions = allQuestions.filter(q => !q.isSubQuestion);
+    const sectionOrder = SURVEY_SECTIONS.map(s => s.label);
+    const allCategories = [...new Set(availableQuestions.map(q => q.questionCategory))]
+      .sort((a, b) => {
+        const ai = sectionOrder.indexOf(a);
+        const bi = sectionOrder.indexOf(b);
+        return (ai === -1 ? Infinity : ai) - (bi === -1 ? Infinity : bi);
+      });
     try {
       const selections = Object.entries(surveyReqFormData)
         .filter(([, questionIds]) => questionIds.length > 0)
@@ -760,6 +769,8 @@ export default function StrataDetailPage() {
     if (typeName === "date") {
       return resp.responseDate ? (parseLocalDate(resp.responseDate)?.toLocaleDateString("en-GB", { day: "2-digit", month: "long", year: "numeric" }) ?? "No answer") : "No answer";
     }
+    if (resp.responseText === 'NOT_APPLICABLE') return 'Not Applicable';
+    if (resp.responseText === 'UNKNOWN') return 'Unknown';
     return resp.responseText || "No answer";
   };
 
@@ -813,6 +824,9 @@ export default function StrataDetailPage() {
         ? <span className="answer-value">{parseLocalDate(resp.responseDate)?.toLocaleDateString("en-GB", { day: "2-digit", month: "long", year: "numeric" })}</span>
         : <span className="answer-empty">No answer</span>;
     }
+
+    if (resp.responseText === 'NOT_APPLICABLE') return <span className="answer-value">Not Applicable</span>;
+    if (resp.responseText === 'UNKNOWN') return <span className="answer-value">Unknown</span>;
 
     if (resp.responseText) {
       return <span className="answer-value">{resp.responseText}</span>;
@@ -1821,7 +1835,7 @@ export default function StrataDetailPage() {
                 <button className="btn-secondary" onClick={() => setDocReqModalOpen(false)}>Cancel</button>
                 <button className="btn-secondary" onClick={() => { setWizardStepError(null); setConfigStep((configStep as number) === 0 ? 'select' : (configStep as number) - 1); }}>Back</button>
                 {isLast ? (
-                  <button className="btn-primary" onClick={handleSave}>Save</button>
+                  <button className="btn-primary" onClick={handleSave} disabled={savingDocConfig}>{savingDocConfig ? 'Saving...' : 'Save'}</button>
                 ) : (
                   <button className="btn-primary" onClick={handleNext}>Next</button>
                 )}
@@ -1974,7 +1988,7 @@ export default function StrataDetailPage() {
               <p className="doc-req-wizard__subtitle">Select which questions to include for each property type.</p>
               {(strata?.strataPropertyTypes ?? []).map(spt => {
                 const ptId = spt.propertyType.propertyTypeId;
-                const availableQuestions = allQuestions.filter(q => q.parentQuestionId == null);
+                const availableQuestions = allQuestions.filter(q => !q.isSubQuestion);
                 const allCategories = [...new Set(availableQuestions.map(q => q.questionCategory))];
                 const selectedIds = surveyReqFormData[ptId] ?? [];
 
@@ -2002,7 +2016,7 @@ export default function StrataDetailPage() {
                         <button className="btn-text-primary" onClick={() => handleChange([])}>Deselect All</button>
                         <button className="btn-text-primary" onClick={() => handleChange(
                           allQuestions
-                            .filter(q => q.parentQuestionId == null && (q.questionPropertyTypes.length === 0 || q.questionPropertyTypes.some(qpt => qpt.propertyTypeId === ptId)))
+                            .filter(q => !q.isSubQuestion && (q.questionPropertyTypes.length === 0 || q.questionPropertyTypes.some(qpt => qpt.propertyTypeId === ptId)))
                             .map(q => q.questionId)
                         )}>Revert to Initial</button>
                       </div>
@@ -2010,14 +2024,20 @@ export default function StrataDetailPage() {
                     <MultiSelectDropdown
                       label=""
                       searchable
-                      options={availableQuestions.map(q => ({
-                        value: q.questionId,
-                        label: `[${q.questionCategory}] ${q.questionText}`,
-                        isTemplate: q.questionPropertyTypes.some(qpt => qpt.propertyTypeId === ptId),
-                      })).sort((a, b) => {
-                        if (a.isTemplate !== b.isTemplate) return a.isTemplate ? -1 : 1;
-                        return a.label.localeCompare(b.label);
-                      }).map(({ value, label }) => ({ value, label }))}
+                      options={(() => {
+                        const sectionOrder = SURVEY_SECTIONS.map(s => s.label);
+                        return availableQuestions
+                          .map(q => ({ value: q.questionId, label: `[${q.questionCategory}] ${q.questionText}`, category: q.questionCategory }))
+                          .sort((a, b) => {
+                            const aSelected = selectedIds.includes(a.value) ? 0 : 1;
+                            const bSelected = selectedIds.includes(b.value) ? 0 : 1;
+                            if (aSelected !== bSelected) return aSelected - bSelected;
+                            const ai = sectionOrder.indexOf(a.category);
+                            const bi = sectionOrder.indexOf(b.category);
+                            return (ai === -1 ? Infinity : ai) - (bi === -1 ? Infinity : bi);
+                          })
+                          .map(({ value, label }) => ({ value, label }));
+                      })()}
                       selectedValues={selectedIds}
                       onChange={handleChange}
                       placeholder="Select questions for this property type"
@@ -2030,10 +2050,16 @@ export default function StrataDetailPage() {
             const spt = (strata?.strataPropertyTypes ?? [])[surveyConfigStep as number];
             if (!spt) return null;
             const ptId = spt.propertyType.propertyTypeId;
-            const availableQuestions = allQuestions.filter(q => q.parentQuestionId == null);
+            const availableQuestions = allQuestions.filter(q => !q.isSubQuestion);
             const selectedIds = surveyReqFormData[ptId] ?? [];
             const selectedQuestions = availableQuestions.filter(q => selectedIds.includes(q.questionId));
-            const categories = [...new Set(selectedQuestions.map(q => q.questionCategory))].sort();
+            const sectionOrder = SURVEY_SECTIONS.map(s => s.label);
+            const categories = [...new Set(selectedQuestions.map(q => q.questionCategory))]
+              .sort((a, b) => {
+                const ai = sectionOrder.indexOf(a);
+                const bi = sectionOrder.indexOf(b);
+                return (ai === -1 ? Infinity : ai) - (bi === -1 ? Infinity : bi);
+              });
 
             return (
               <div>

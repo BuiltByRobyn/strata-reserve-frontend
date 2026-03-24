@@ -137,7 +137,7 @@ const AppointmentRequestReviewModal = ({
         )}
 
         <SingleSelectDropdown
-          label="Assign Inspector"
+          label="Reassign Inspector"
           required
           options={inspectorOptions}
           value={inspectorId}

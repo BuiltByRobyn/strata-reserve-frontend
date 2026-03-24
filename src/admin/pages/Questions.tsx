@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
+import toast from 'react-hot-toast';
 import { CreateQuestionModal } from '../components/CreateQuestionModal';
 import { useLocation } from 'react-router-dom';
 import { useQuestions } from '../../shared/hooks/useQuestions';
@@ -26,7 +27,6 @@ const initialFormData: QuestionFormData = {
   serviceId: undefined,
   propertyTypeIds: [],
   multipleChoiceOptions: [],
-  parentQuestionId: null,
 };
 
 const CATEGORIES = [
@@ -41,14 +41,13 @@ const FRIENDLY_TYPE_NAMES: Record<string, string> = {
   number: 'Number',
   checkbox: 'Checkboxes',
   multiple_choice: 'Multiple Choice',
-  none_or_explain: 'N/A or Provide Details',
 };
 
 const formatTypeName = (name: string) =>
   FRIENDLY_TYPE_NAMES[name.toLowerCase()] || name.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 
 export default function QuestionsPage() {
-  const { questions, loading, error, createQuestion, updateQuestion, deleteQuestion, refetch } = useQuestions();
+  const { questions, loading, error, deleteQuestion, refetch } = useQuestions();
   const api = useApiClient();
   const { questionTypes, services, propertyTypes } = useLookups();
   const isDesktop = useMediaQuery('(min-width: 1000px)');
@@ -62,7 +61,6 @@ export default function QuestionsPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [step, setStep] = useState(1);
   const [pendingSubQuestionIds, setPendingSubQuestionIds] = useState<number[]>([]);
-  const [subProgress, setSubProgress] = useState<{ done: number; total: number } | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState('');
   const [filterPropertyType, setFilterPropertyType] = useState<number | ''>('');
@@ -70,6 +68,14 @@ export default function QuestionsPage() {
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [page, setPage] = useState(0);
   const [createSubQuestionParentId, setCreateSubQuestionParentId] = useState<number | null>(null);
+  const [showSubQuestions, setShowSubQuestions] = useState(false);
+  const [localSubIds, setLocalSubIds] = useState<number[]>([]);
+  const [subQuestionReturnParentId, setSubQuestionReturnParentId] = useState<number | null>(null);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [questionToDelete, setQuestionToDelete] = useState<AdminQuestion | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const isEditingSubQuestion = !!editingQuestion?.isSubQuestion;
 
   useEffect(() => {
     if (editingQuestion && questions.length > 0) {
@@ -80,7 +86,7 @@ export default function QuestionsPage() {
 
   const filteredQuestions = useMemo(() => {
     return questions.filter(q => {
-      if (q.parentQuestionId) return false;
+      if (showSubQuestions ? !q.isSubQuestion : q.isSubQuestion) return false;
       if (searchTerm) {
         const search = searchTerm.toLowerCase();
         if (!q.questionText.toLowerCase().includes(search)) return false;
@@ -89,24 +95,31 @@ export default function QuestionsPage() {
       if (filterPropertyType && !q.questionPropertyTypes.some(qpt => qpt.propertyTypeId === filterPropertyType)) return false;
       return true;
     });
-  }, [questions, searchTerm, filterCategory, filterPropertyType]);
+  }, [questions, searchTerm, filterCategory, filterPropertyType, showSubQuestions]);
 
   const totalPages = Math.ceil(filteredQuestions.length / QUESTIONS_PER_PAGE);
   const pageQuestions = filteredQuestions.slice(page * QUESTIONS_PER_PAGE, (page + 1) * QUESTIONS_PER_PAGE);
 
-  const columns: Column<AdminQuestion>[] = [
-    {
-      key: 'questionText', header: 'Question', width: '33.33%',
-      render: (q) => q.questionText.length > 80 ? q.questionText.slice(0, 80) + '...' : q.questionText,
-    },
-    {
-      key: 'questionPropertyTypes', header: 'Property Type', width: '33.33%',
-      render: (q) => q.questionPropertyTypes.length === 0
-        ? 'All'
-        : q.questionPropertyTypes.map(qpt => qpt.propertyType.propertyTypeName).join(', '),
-    },
-    { key: 'questionCategory', header: 'Category', render: (q) => q.questionCategory },
-  ];
+  const columns: Column<AdminQuestion>[] = showSubQuestions
+    ? [
+        {
+          key: 'questionText', header: 'Question',
+          render: (q) => q.questionText.length > 120 ? q.questionText.slice(0, 120) + '...' : q.questionText,
+        },
+      ]
+    : [
+        {
+          key: 'questionText', header: 'Question', width: '33.33%',
+          render: (q) => q.questionText.length > 80 ? q.questionText.slice(0, 80) + '...' : q.questionText,
+        },
+        {
+          key: 'questionPropertyTypes', header: 'Property Type', width: '33.33%',
+          render: (q) => q.questionPropertyTypes.length === 0
+            ? 'All'
+            : q.questionPropertyTypes.map(qpt => qpt.propertyType.propertyTypeName).join(', '),
+        },
+        { key: 'questionCategory', header: 'Category', render: (q) => q.questionCategory },
+      ];
 
   const showMcOptions = () => {
     if (!formData.questionTypeId) return false;
@@ -162,7 +175,7 @@ export default function QuestionsPage() {
       if (!formData.questionText.trim()) { setFormError('Question text is required'); return false; }
       if (!formData.questionTypeId) { setFormError('Question type is required'); return false; }
     }
-    if (currentStep === 2) {
+    if (currentStep === 2 && !editingQuestion?.isSubQuestion) {
       if (!formData.questionCategory) { setFormError('Category is required'); return false; }
       if (!formData.serviceId) { setFormError('Service is required'); return false; }
     }
@@ -191,6 +204,7 @@ export default function QuestionsPage() {
     setEditingQuestion(q);
     setStep(1);
     setPendingSubQuestionIds([]);
+    setLocalSubIds((q.subQuestions ?? []).map(sq => sq.questionId));
     setFormData({
       questionText: q.questionText,
       questionCategory: q.questionCategory,
@@ -205,17 +219,48 @@ export default function QuestionsPage() {
         optionText: o.optionText,
         sortOrder: o.sortOrder,
       })),
-      parentQuestionId: q.parentQuestionId ?? null,
     });
     setFormError(null);
     setIsModalOpen(true);
+  };
+
+  const handleAddSubQuestionOnCreate = async () => {
+    setIsSubmitting(true);
+    setFormError(null);
+    try {
+      const input: CreateQuestionInput = {
+        questionText: formData.questionText.trim(),
+        questionCategory: formData.questionCategory,
+        questionTypeId: formData.questionTypeId!,
+        isRequired: false,
+        allowNa: formData.allowNa,
+        allowUnavailable: formData.allowUnavailable,
+        informationText: formData.informationText.trim() || null,
+        serviceIds: formData.serviceId ? [{ serviceId: formData.serviceId, sortOrder: 1 }] : [],
+        propertyTypeIds: formData.propertyTypeIds,
+        multipleChoiceOptions: showMcOptions()
+          ? formData.multipleChoiceOptions.filter(o => o.optionText.trim()).map((o, i) => ({ optionText: o.optionText, sortOrder: i + 1 }))
+          : [],
+      };
+      const created = await api.post<AdminQuestion>('/admin/questions', input);
+      if (created) {
+        await refetch();
+        setLocalSubIds(pendingSubQuestionIds);
+        setPendingSubQuestionIds([]);
+        setEditingQuestion(created);
+        setCreateSubQuestionParentId(created.questionId);
+      }
+    } catch (err) {
+      setFormError(err instanceof Error ? err.message : 'An error occurred');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleSubmit = async (e: React.SyntheticEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
     setFormError(null);
-    setSubProgress(null);
 
     try {
       const input: CreateQuestionInput = {
@@ -231,52 +276,56 @@ export default function QuestionsPage() {
         multipleChoiceOptions: showMcOptions()
           ? formData.multipleChoiceOptions.filter(o => o.optionText.trim()).map((o, i) => ({ optionText: o.optionText, sortOrder: i + 1 }))
           : [],
-        parentQuestionId: formData.parentQuestionId ?? null,
       };
 
       if (editingQuestion) {
-        await updateQuestion(editingQuestion.questionId, input);
+        await api.put(`/admin/questions/${editingQuestion.questionId}`, input);
+        if (!isEditingSubQuestion) {
+          await api.put(`/admin/questions/${editingQuestion.questionId}/sub-questions`, { subQuestionIds: localSubIds });
+        }
       } else {
-        const created = await createQuestion(input);
+        const created = await api.post<AdminQuestion>('/admin/questions', input);
         if (created && pendingSubQuestionIds.length > 0) {
-          setSubProgress({ done: 0, total: pendingSubQuestionIds.length });
-          for (let i = 0; i < pendingSubQuestionIds.length; i++) {
-            await api.put(`/admin/questions/${pendingSubQuestionIds[i]}`, { parentQuestionId: created.questionId });
-            setSubProgress({ done: i + 1, total: pendingSubQuestionIds.length });
-          }
-          await refetch();
+          await api.put(`/admin/questions/${created.questionId}/sub-questions`, { subQuestionIds: pendingSubQuestionIds });
         }
       }
+      await refetch();
       setIsModalOpen(false);
+      setSubQuestionReturnParentId(null);
+      toast.success(editingQuestion ? 'Question saved' : 'Question created');
     } catch (err) {
       setFormError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
       setIsSubmitting(false);
-      setSubProgress(null);
     }
   };
 
-  const handleDelete = async (q: AdminQuestion): Promise<boolean> => {
-    if (!window.confirm('Are you sure you want to delete this question? This cannot be undone.')) return false;
+  const openDeleteConfirm = (q: AdminQuestion) => {
+    setQuestionToDelete(q);
+    setDeleteConfirmOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!questionToDelete) return;
+    setIsDeleting(true);
     try {
-      await deleteQuestion(q.questionId);
-      return true;
+      await deleteQuestion(questionToDelete.questionId);
+      setDeleteConfirmOpen(false);
+      setQuestionToDelete(null);
+      toast.success('Question deleted');
+      if (subQuestionReturnParentId) {
+        const parent = questions.find(q => q.questionId === subQuestionReturnParentId);
+        setSubQuestionReturnParentId(null);
+        if (parent) { openEditModal(parent); setStep(3); } else setIsModalOpen(false);
+      } else {
+        setIsModalOpen(false);
+        setIsViewModalOpen(false);
+        setViewingQuestion(null);
+      }
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to delete question');
-      return false;
-    }
-  };
-
-  const handleSubQuestionsChange = async (newIds: number[]) => {
-    if (!editingQuestion) return;
-    const currentIds = (editingQuestion.subQuestions ?? []).map(sq => sq.questionId);
-    const toAdd = newIds.filter(id => !currentIds.includes(id));
-    const toRemove = currentIds.filter(id => !newIds.includes(id));
-    for (const id of toAdd) {
-      await updateQuestion(id, { parentQuestionId: editingQuestion.questionId });
-    }
-    for (const id of toRemove) {
-      await updateQuestion(id, { parentQuestionId: null });
+      toast.error(err instanceof Error ? err.message : 'Failed to delete question');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -339,6 +388,16 @@ export default function QuestionsPage() {
             options={propertyTypes.map(pt => ({ value: pt.propertyTypeId, label: pt.propertyTypeName })).sort((a, b) => a.label.localeCompare(b.label))}
             placeholder="All Property Types"
           />
+          <div className="form-field archived-toggle">
+            <label>
+              <input
+                type="checkbox"
+                checked={showSubQuestions}
+                onChange={() => { setShowSubQuestions(prev => !prev); setPage(0); }}
+              />
+              Show Sub-questions
+            </label>
+          </div>
         </div>
       </div>
 
@@ -426,33 +485,43 @@ export default function QuestionsPage() {
 
       <Modal
         isOpen={isModalOpen}
-        onClose={() => { setIsModalOpen(false); setStep(1); }}
-        title={`${editingQuestion ? 'Edit' : 'Create'} Question — Step ${step} of 3`}
+        onClose={() => { setIsModalOpen(false); setStep(1); setSubQuestionReturnParentId(null); }}
+        title={isEditingSubQuestion ? 'Edit Sub-question' : `${editingQuestion ? 'Edit' : 'Create'} Question — Step ${step} of 3`}
         size="large"
         footer={
-          <>
-            {step === 1
-              ? <button className="btn-secondary" onClick={() => setIsModalOpen(false)}>Cancel</button>
-              : <button className="btn-secondary" onClick={handleBack}>Back</button>
-            }
-            {editingQuestion && step === 3 && (
-              <button className="btn-delete" onClick={async () => { const deleted = await handleDelete(editingQuestion!); if (deleted) setIsModalOpen(false); }} disabled={isSubmitting}>Delete</button>
-            )}
-            {step < 3
-              ? <button className="btn-primary" onClick={handleNext}>Next</button>
-              : <button className="btn-primary" onClick={handleSubmit} disabled={isSubmitting}>{isSubmitting ? 'Saving...' : 'Save'}</button>
-            }
-          </>
+          isEditingSubQuestion ? (
+            <>
+              {subQuestionReturnParentId ? (
+                <button className="btn-secondary" onClick={() => {
+                  const parent = questions.find(q => q.questionId === subQuestionReturnParentId);
+                  setSubQuestionReturnParentId(null);
+                  if (parent) { openEditModal(parent); setStep(3); } else setIsModalOpen(false);
+                }}>Back</button>
+              ) : (
+                <button className="btn-secondary" onClick={() => setIsModalOpen(false)}>Cancel</button>
+              )}
+              <button className="btn-delete" onClick={() => openDeleteConfirm(editingQuestion!)} disabled={isSubmitting}>Delete</button>
+              <button className="btn-primary" onClick={handleSubmit} disabled={isSubmitting}>{isSubmitting ? 'Saving...' : 'Save'}</button>
+            </>
+          ) : (
+            <>
+              {step === 1
+                ? <button className="btn-secondary" onClick={() => setIsModalOpen(false)}>Cancel</button>
+                : <button className="btn-secondary" onClick={handleBack}>Back</button>
+              }
+              {editingQuestion && (
+                <button className="btn-delete" onClick={() => openDeleteConfirm(editingQuestion)} disabled={isSubmitting}>Delete</button>
+              )}
+              {step < 3
+                ? <button className="btn-primary" onClick={handleNext}>Next</button>
+                : <button className="btn-primary" onClick={handleSubmit} disabled={isSubmitting}>{isSubmitting ? 'Saving...' : 'Save'}</button>
+              }
+            </>
+          )
         }
       >
         <form onSubmit={handleSubmit}>
           {formError && <div className="form-error">{formError}</div>}
-
-          {isSubmitting && subProgress && (
-            <p className="sub-progress-note">
-              Linking sub-questions... {subProgress.done}/{subProgress.total} ({Math.round((subProgress.done / subProgress.total) * 100)}%)
-            </p>
-          )}
 
           {step === 1 && (
             <>
@@ -472,16 +541,18 @@ export default function QuestionsPage() {
                 options={questionTypes.filter(qt => qt.questionTypeName.toLowerCase() !== 'none_or_explain').map(qt => ({ value: qt.questionTypeId, label: formatTypeName(qt.questionTypeName) }))}
                 placeholder="Select type"
               />
-              <div className="checkbox-row">
-                <div className="checkbox-field">
-                  <input type="checkbox" id="allowNa" checked={formData.allowNa} onChange={(e) => setFormData(prev => ({ ...prev, allowNa: e.target.checked }))} />
-                  <label htmlFor="allowNa">Allow N/A</label>
+              {!isEditingSubQuestion && (
+                <div className="checkbox-row">
+                  <div className="checkbox-field">
+                    <input type="checkbox" id="allowNa" checked={formData.allowNa} onChange={(e) => setFormData(prev => ({ ...prev, allowNa: e.target.checked }))} />
+                    <label htmlFor="allowNa">Allow N/A</label>
+                  </div>
+                  <div className="checkbox-field">
+                    <input type="checkbox" id="allowUnavailable" checked={formData.allowUnavailable} onChange={(e) => setFormData(prev => ({ ...prev, allowUnavailable: e.target.checked }))} />
+                    <label htmlFor="allowUnavailable">Allow Unavailable</label>
+                  </div>
                 </div>
-                <div className="checkbox-field">
-                  <input type="checkbox" id="allowUnavailable" checked={formData.allowUnavailable} onChange={(e) => setFormData(prev => ({ ...prev, allowUnavailable: e.target.checked }))} />
-                  <label htmlFor="allowUnavailable">Allow Unavailable</label>
-                </div>
-              </div>
+              )}
               <TextareaField
                 label="Information Text (if applicable)"
                 value={formData.informationText}
@@ -507,40 +578,44 @@ export default function QuestionsPage() {
           )}
 
           {step === 2 && (
-            <>
-              <SingleSelectDropdown
-                label="Category"
-                required
-                value={formData.questionCategory}
-                onChange={(val) => setFormData(prev => ({ ...prev, questionCategory: val }))}
-                options={CATEGORIES.map(c => ({ value: c, label: c }))}
-                placeholder="Select category"
-              />
-              <div className="property-types-section">
-                <div className="property-types-header">
-                  <span className="property-types-label">Property Types</span>
-                  <div className="property-types-actions">
-                    <button type="button" className="btn-text-primary" onClick={() => setFormData(prev => ({ ...prev, propertyTypeIds: propertyTypes.map(pt => pt.propertyTypeId) }))}>Select All</button>
-                    <button type="button" className="btn-text-primary" onClick={() => setFormData(prev => ({ ...prev, propertyTypeIds: [] }))}>Deselect All</button>
-                  </div>
-                </div>
-                <MultiSelectDropdown
-                  label=""
-                  options={propertyTypes.map(pt => ({ value: pt.propertyTypeId, label: pt.propertyTypeName })).sort((a, b) => a.label.localeCompare(b.label))}
-                  selectedValues={formData.propertyTypeIds}
-                  onChange={(values) => setFormData(prev => ({ ...prev, propertyTypeIds: values }))}
-                  placeholder="All property types"
+            editingQuestion?.isSubQuestion ? (
+              <p className="question-info">Category, property type, and service are inherited from the parent question.</p>
+            ) : (
+              <>
+                <SingleSelectDropdown
+                  label="Category"
+                  required
+                  value={formData.questionCategory}
+                  onChange={(val) => setFormData(prev => ({ ...prev, questionCategory: val }))}
+                  options={CATEGORIES.map(c => ({ value: c, label: c }))}
+                  placeholder="Select category"
                 />
-              </div>
-              <SingleSelectDropdown
-                label="Service"
-                required
-                value={formData.serviceId?.toString() || ''}
-                onChange={(val) => setFormData(prev => ({ ...prev, serviceId: val ? parseInt(val) : undefined }))}
-                options={services.map(s => ({ value: s.serviceId, label: s.serviceName })).sort((a, b) => a.label.localeCompare(b.label))}
-                placeholder="Select service"
-              />
-            </>
+                <div className="property-types-section">
+                  <div className="property-types-header">
+                    <span className="property-types-label">Property Types</span>
+                    <div className="property-types-actions">
+                      <button type="button" className="btn-text-primary" onClick={() => setFormData(prev => ({ ...prev, propertyTypeIds: propertyTypes.map(pt => pt.propertyTypeId) }))}>Select All</button>
+                      <button type="button" className="btn-text-primary" onClick={() => setFormData(prev => ({ ...prev, propertyTypeIds: [] }))}>Deselect All</button>
+                    </div>
+                  </div>
+                  <MultiSelectDropdown
+                    label=""
+                    options={propertyTypes.map(pt => ({ value: pt.propertyTypeId, label: pt.propertyTypeName })).sort((a, b) => a.label.localeCompare(b.label))}
+                    selectedValues={formData.propertyTypeIds}
+                    onChange={(values) => setFormData(prev => ({ ...prev, propertyTypeIds: values }))}
+                    placeholder="All property types"
+                  />
+                </div>
+                <SingleSelectDropdown
+                  label="Service"
+                  required
+                  value={formData.serviceId?.toString() || ''}
+                  onChange={(val) => setFormData(prev => ({ ...prev, serviceId: val ? parseInt(val) : undefined }))}
+                  options={services.map(s => ({ value: s.serviceId, label: s.serviceName })).sort((a, b) => a.label.localeCompare(b.label))}
+                  placeholder="Select service"
+                />
+              </>
+            )
           )}
 
           {step === 3 && (
@@ -549,26 +624,33 @@ export default function QuestionsPage() {
                 <>
                   <div className="sub-questions-header">
                     <label>Sub-questions</label>
-                    <button type="button" className="btn-text-primary" onClick={() => setCreateSubQuestionParentId(editingQuestion.questionId)}>+ Add sub-question</button>
+                    <button type="button" className="btn-text-primary" onClick={() => setCreateSubQuestionParentId(editingQuestion.questionId)}>+ Add new sub-question</button>
                   </div>
                   <MultiSelectDropdown
                     label=""
                     options={questions
-                      .filter(q => q.questionId !== editingQuestion.questionId && (!q.parentQuestionId || (editingQuestion.subQuestions ?? []).some(sq => sq.questionId === q.questionId)))
-                      .map(q => ({ value: q.questionId, label: q.questionText }))}
-                    selectedValues={(editingQuestion.subQuestions ?? []).map(sq => sq.questionId)}
-                    onChange={handleSubQuestionsChange}
+                      .filter(q => q.questionId !== editingQuestion.questionId && (!q.isSubQuestion || localSubIds.includes(q.questionId)))
+                      .map(q => ({ value: q.questionId, label: q.questionText }))
+                      .sort((a, b) => {
+                        const aSelected = localSubIds.includes(a.value);
+                        const bSelected = localSubIds.includes(b.value);
+                        if (aSelected && !bSelected) return -1;
+                        if (!aSelected && bSelected) return 1;
+                        return 0;
+                      })}
+                    selectedValues={localSubIds}
+                    onChange={setLocalSubIds}
                     placeholder="Select sub-questions..."
                     searchable
                   />
-                  {(editingQuestion.subQuestions ?? []).length > 0 && (
+                  {localSubIds.length > 0 && (
                     <div className="sub-questions-list">
-                      {(editingQuestion.subQuestions ?? []).map(sq => {
-                        const fullSq = questions.find(q => q.questionId === sq.questionId);
+                      {localSubIds.map(id => {
+                        const fullSq = questions.find(q => q.questionId === id);
                         return fullSq ? (
-                          <div key={sq.questionId} className="sub-question-row">
-                            <span className="sub-question-text">{sq.questionText.length > 80 ? sq.questionText.slice(0, 80) + '...' : sq.questionText}</span>
-                            <button type="button" className="btn-edit" onClick={() => { setIsModalOpen(false); openEditModal(fullSq); }}>Edit</button>
+                          <div key={id} className="sub-question-row">
+                            <span className="sub-question-text">{fullSq.questionText.length > 80 ? fullSq.questionText.slice(0, 80) + '...' : fullSq.questionText}</span>
+                            <button type="button" className="btn-edit" onClick={() => { setSubQuestionReturnParentId(editingQuestion!.questionId); setIsModalOpen(false); openEditModal(fullSq); }}>Edit</button>
                           </div>
                         ) : null;
                       })}
@@ -579,10 +661,11 @@ export default function QuestionsPage() {
                 <>
                   <div className="sub-questions-header">
                     <label>Sub-questions</label>
+                    <button type="button" className="btn-text-primary" onClick={handleAddSubQuestionOnCreate} disabled={isSubmitting}>+ Add sub-question</button>
                   </div>
                   <MultiSelectDropdown
                     label=""
-                    options={questions.filter(q => !q.parentQuestionId).map(q => ({ value: q.questionId, label: q.questionText }))}
+                    options={questions.filter(q => !q.isSubQuestion).map(q => ({ value: q.questionId, label: q.questionText }))}
                     selectedValues={pendingSubQuestionIds}
                     onChange={setPendingSubQuestionIds}
                     placeholder="Select sub-questions..."
@@ -618,13 +701,7 @@ export default function QuestionsPage() {
               <>
                 <button
                   className="btn-delete"
-                  onClick={async () => {
-                    const deleted = await handleDelete(viewingQuestion);
-                    if (deleted) {
-                      setIsViewModalOpen(false);
-                      setViewingQuestion(null);
-                    }
-                  }}
+                  onClick={() => openDeleteConfirm(viewingQuestion)}
                 >
                   Delete
                 </button>
@@ -660,8 +737,28 @@ export default function QuestionsPage() {
       <CreateQuestionModal
         isOpen={createSubQuestionParentId !== null}
         onClose={() => setCreateSubQuestionParentId(null)}
+        onCreated={(newId) => { setLocalSubIds(prev => [...prev, newId]); refetch(); }}
         parentQuestionId={createSubQuestionParentId}
+        parentQuestion={questions.find(q => q.questionId === createSubQuestionParentId) ?? null}
       />
+
+      <Modal
+        isOpen={deleteConfirmOpen}
+        onClose={() => { setDeleteConfirmOpen(false); setQuestionToDelete(null); }}
+        title="Delete Question"
+        size="small"
+        footer={
+          <>
+            <button className="btn-secondary" onClick={() => { setDeleteConfirmOpen(false); setQuestionToDelete(null); }}>Cancel</button>
+            <button className="btn-delete" onClick={confirmDelete} disabled={isDeleting}>{isDeleting ? 'Deleting...' : 'Delete Question'}</button>
+          </>
+        }
+      >
+        <div className="delete-confirmation">
+          <p>Are you sure you want to delete "{questionToDelete?.questionText}"?</p>
+          <p className="delete-warning">This cannot be undone.</p>
+        </div>
+      </Modal>
     </div>
   );
 }

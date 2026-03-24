@@ -34,7 +34,7 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState(location.state?.tab || 'holidays');
+  const [activeTab, setActiveTab] = useState(() => sessionStorage.getItem('system-settings-tab') || location.state?.tab || 'holidays');
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
   const [phoneError, setPhoneError] = useState<string | null>(null);
   const isDesktop = useMediaQuery('(min-width: 750px)');
@@ -194,19 +194,19 @@ export default function ProfilePage() {
         <div className="profile-tabs">
           <button
             className={`tab ${activeTab === 'holidays' ? 'active' : ''}`}
-            onClick={() => setActiveTab('holidays')}
+            onClick={() => { setActiveTab('holidays'); sessionStorage.setItem('system-settings-tab', 'holidays'); }}
           >
             Company Holidays
           </button>
           <button
             className={`tab ${activeTab === 'availability' ? 'active' : ''}`}
-            onClick={() => setActiveTab('availability')}
+            onClick={() => { setActiveTab('availability'); sessionStorage.setItem('system-settings-tab', 'availability'); }}
           >
             Inspector Availability
           </button>
           <button
             className={`tab ${activeTab === 'profile' ? 'active' : ''}`}
-            onClick={() => setActiveTab('profile')}
+            onClick={() => { setActiveTab('profile'); sessionStorage.setItem('system-settings-tab', 'profile'); }}
           >
             Profile
           </button>
@@ -220,7 +220,7 @@ export default function ProfilePage() {
             { key: 'availability', label: 'Inspector Availability' },
             { key: 'profile', label: 'Profile' },
           ]}
-          onChange={setActiveTab}
+          onChange={(tab) => { setActiveTab(tab); sessionStorage.setItem('system-settings-tab', tab); }}
         />
       )}
 

@@ -4,6 +4,7 @@ import { Modal } from '../../shared/components/Modal';
 import { LoadingSpinner } from '../../shared/components/LoadingSpinner';
 import { NoFileNumberState } from '../../shared/components/NoFileNumberState';
 import { useAuth } from '../../shared/contexts/AuthContext';
+import { useActivationRequest } from '../../shared/hooks/useActivationRequest';
 import { useClientAppointments } from '../../shared/hooks/useClientAppointments';
 import { useClientDocuments } from '../../shared/hooks/useClientDocuments';
 import { useClientFileNumber } from '../../shared/hooks/useClientFileNumber';
@@ -24,7 +25,7 @@ export const Dashboard = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { activeRequest, fileId, loading: requestLoading } = useClientFileNumber();
-  const { loading: propertyTypeLoading } = usePropertyTypeRequest();
+  const { request: sectionChangeRequest, loading: propertyTypeLoading } = usePropertyTypeRequest();
   const { timelines, loading: timelinesLoading } = useTimelines(fileId);
   const { questions, responses, loading: surveyLoading, fetchQuestions, fetchResponses } = useSurvey();
   const {
@@ -35,7 +36,10 @@ export const Dashboard = () => {
   const { getActiveAppointment, getNotifications } = useClientAppointments();
 
   const location = useLocation();
+  const { request: activationRequest } = useActivationRequest();
   const [showDocsModal, setShowDocsModal] = useState(false);
+  const [showActivationModal, setShowActivationModal] = useState(false);
+  const [showSectionChangeModal, setShowSectionChangeModal] = useState(false);
   const [activeAppointment, setActiveAppointment] = useState<ActiveAppointmentResponse>(null);
   const [appointmentLoading, setAppointmentLoading] = useState(true);
   const [notifications, setNotifications] = useState<AppointmentNotification[]>([]);
@@ -78,6 +82,41 @@ export const Dashboard = () => {
       navigate(location.pathname, { replace: true, state: {} });
     }
   }, []);
+
+  useEffect(() => {
+    if (
+      activationRequest?.status === 'Approved' &&
+      !localStorage.getItem(`activation_approval_seen_${activationRequest.activationRequestId}`)
+    ) {
+      setShowActivationModal(true);
+    }
+  }, [activationRequest?.activationRequestId, activationRequest?.status]);
+
+  const handleDismissActivation = () => {
+    if (activationRequest) {
+      localStorage.setItem(`activation_approval_seen_${activationRequest.activationRequestId}`, '1');
+    }
+    setShowActivationModal(false);
+  };
+
+  useEffect(() => {
+    const id = sectionChangeRequest?.propertyTypeRequestId;
+    const status = sectionChangeRequest?.status;
+    if (
+      id &&
+      (status === 'Approved' || status === 'Rejected') &&
+      !localStorage.getItem(`section_change_seen_${id}`)
+    ) {
+      setShowSectionChangeModal(true);
+    }
+  }, [sectionChangeRequest?.propertyTypeRequestId, sectionChangeRequest?.status]);
+
+  const handleDismissSectionChange = () => {
+    if (sectionChangeRequest) {
+      localStorage.setItem(`section_change_seen_${sectionChangeRequest.propertyTypeRequestId}`, '1');
+    }
+    setShowSectionChangeModal(false);
+  };
 
   const docsFinalized = fileId ? !!localStorage.getItem(`docs_finalized_${fileId}`) : false;
 
@@ -305,10 +344,10 @@ export const Dashboard = () => {
         </div>
       )}
 
-      {notifications.some((n) => !dismissed.has(`${n.type}__${n.date}`)) && (
+      {notifications.some((n) => !dismissed.has(`${n.type}__${n.date}`) && !(n.type === 'request_approved' && activeAppointment?.type === 'scheduled')) && (
         <div className="client-notifications">
           {notifications
-            .filter((n) => !dismissed.has(`${n.type}__${n.date}`))
+            .filter((n) => !dismissed.has(`${n.type}__${n.date}`) && !(n.type === 'request_approved' && activeAppointment?.type === 'scheduled'))
             .map((n) => {
               const key = `${n.type}__${n.date}`;
               const toneMap = {
@@ -347,7 +386,7 @@ export const Dashboard = () => {
         isOpen={showDocsModal}
         onClose={() => setShowDocsModal(false)}
         title="Documents Submitted"
-        size="small"
+        size="medium"
         footer={
           <button className="btn-primary" onClick={() => setShowDocsModal(false)}>
             Got it
@@ -355,10 +394,53 @@ export const Dashboard = () => {
         }
       >
         <p>
-          Thank you for finalizing your document submission. Once your survey answers are also
-          finalized, a strata reserve planning team member will review your submissions within
-          3–5 business days.
+          {clientPropertyTypeIds.length < (activeRequest?.strata?.strataPropertyTypes?.length ?? 0)
+            ? 'Thank you for finalizing your document submission. Your portion has been submitted and a strata reserve planning team member will review your accessible sections.'
+            : 'Thank you for finalizing your document submission. Once your survey answers are also finalized, a strata reserve planning team member will review your submissions within 3–5 business days.'}
         </p>
+      </Modal>
+
+      <Modal
+        isOpen={showActivationModal}
+        onClose={handleDismissActivation}
+        title="Account Activated"
+        size="medium"
+        footer={
+          <button className="btn-primary" onClick={handleDismissActivation}>
+            Close
+          </button>
+        }
+      >
+        <div className="thank-you-content">
+          <p>
+            Your activation request has been approved. Your account is now active and your file number has been assigned.
+          </p>
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={showSectionChangeModal}
+        onClose={handleDismissSectionChange}
+        title={sectionChangeRequest?.status === 'Approved' ? 'Section Change Approved' : 'Section Change Rejected'}
+        size="medium"
+        footer={
+          <button className="btn-primary" onClick={handleDismissSectionChange}>
+            Close
+          </button>
+        }
+      >
+        <div className="thank-you-content">
+          {sectionChangeRequest?.status === 'Approved' ? (
+            <p>Your section change request has been approved.</p>
+          ) : (
+            <>
+              <p>Your section change request has been rejected.</p>
+              {sectionChangeRequest?.rejectionReason && (
+                <p>{sectionChangeRequest.rejectionReason}</p>
+              )}
+            </>
+          )}
+        </div>
       </Modal>
     </div>
   );

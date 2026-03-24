@@ -155,3 +155,8 @@ export interface DocumentReviewResult {
   reviewedBy: { id: string; firstName: string | null; lastName: string | null };
   items: DocumentReviewResultItem[];
 }
+
+export interface DocumentReviewResponse {
+  requirements: SRDocRequirement[];
+  review: DocumentReviewResult | null;
+}

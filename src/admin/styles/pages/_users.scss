@@ -97,12 +97,34 @@
     }
 
     .strata-role-field {
+      margin-bottom: $spacing-md;
+
+      .field-label {
+        display: block;
+        margin-bottom: $spacing-xs;
+        font-weight: 500;
+        font-size: 0.875rem;
+        color: $color-text-dark;
+      }
+
+      .strata-role-field__header {
+        display: flex;
+        align-items: center;
+        gap: $spacing-xl;
+        margin-bottom: $spacing-xs;
+
+        .error-text {
+          margin-top: 0;
+          font-size: 0.8125rem;
+          color: $color-error;
+        }
+      }
+
       .role-options {
         display: flex;
         flex-direction: row;
         align-items: center;
         gap: $spacing-lg;
-        flex: 1;
       }
 
       .role-option {
@@ -113,6 +135,7 @@
         cursor: pointer;
         font-size: 0.875rem;
         white-space: nowrap;
+        margin-bottom: 0;
 
         input[type="radio"] {
           margin: 0;

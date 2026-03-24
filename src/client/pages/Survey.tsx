@@ -46,10 +46,7 @@ export default function SurveyPage() {
     if (q.questionType === 'boolean') {
       return response.responseBoolean === true ? 'Yes' : response.responseBoolean === false ? 'No' : '—';
     }
-    if (q.questionType === 'none_or_explain') {
-      return response.responseText === 'NONE' ? 'None' : response.responseText || '—';
-    }
-    if (q.questionType === 'multiple_choice') {
+if (q.questionType === 'multiple_choice') {
       const opt = q.multipleChoiceOptions.find(o => o.optionId === response.multipleChoiceOptionId);
       return opt?.optionText || '—';
     }
@@ -255,7 +252,9 @@ export default function SurveyPage() {
       >
         <div className="thank-you-content">
           <p>
-            Thank you for submitting your survey answers. Once your documents are also finalized, a strata reserve planning team member will review your submissions within 3–5 business days.
+            {(activeRequest?.clientPropertyTypes?.length ?? 0) < (activeRequest?.strata?.strataPropertyTypes?.length ?? 0)
+              ? 'Thank you for submitting your survey answers. Once all sections of your property have finalized their submissions, a strata reserve planning team member will review your file.'
+              : 'Thank you for submitting your survey answers. Once your documents are also finalized, a strata reserve planning team member will review your submissions within 3–5 business days.'}
           </p>
         </div>
       </Modal>

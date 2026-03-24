@@ -38,11 +38,13 @@ export function DocumentReviewModal({
   const [loadingPreview, setLoadingPreview] = useState(false);
   const [previewError, setPreviewError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [docResultMap, setDocResultMap] = useState<Record<number, 'success' | 'error'>>({});
 
   useEffect(() => {
     if (isOpen) {
       setCurrentIndex(0);
       setStatusSelections({});
+      setDocResultMap({});
     }
   }, [isOpen]);
 
@@ -129,8 +131,14 @@ export function DocumentReviewModal({
       reviewStatusId: statusSelections[req.fnDocRequirementId],
       notes: undefined,
     }));
-    await onSubmit(fileId, { items: submitItems });
-    setSubmitting(false);
+    try {
+      await onSubmit(fileId, { items: submitItems });
+      setDocResultMap(Object.fromEntries(items.map(({ req }) => [req.fnDocRequirementId, 'success'])));
+    } catch {
+      setDocResultMap(Object.fromEntries(items.map(({ req }) => [req.fnDocRequirementId, 'error'])));
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const allReviewed = items.length > 0 && items.every(({ req }) => !!statusSelections[req.fnDocRequirementId]);
@@ -178,7 +186,11 @@ export function DocumentReviewModal({
         >
           Back
         </button>
-        <span className="doc-review-nav-badge">{currentIndex + 1} / {items.length}</span>
+        <span className="doc-review-nav-badge">
+          {currentIndex + 1} / {items.length}
+          {docResultMap[currentReqId!] === 'success' && <span className="doc-result doc-result--success">Saved</span>}
+          {docResultMap[currentReqId!] === 'error' && <span className="doc-result doc-result--error">Failed</span>}
+        </span>
         {currentIndex < items.length - 1 ? (
           <button className="btn-secondary" onClick={() => setCurrentIndex(i => i + 1)}>
             Next
