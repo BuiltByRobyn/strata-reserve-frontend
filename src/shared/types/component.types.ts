@@ -222,7 +222,7 @@ export interface RescheduleAppointmentModalProps {
   inspectors: Profile[];
   onReschedule: (appointmentId: number, newDate: string, newTimeSlotId: number, options: {
     inspectorProfileId?: string;
-    secondInspectorProfileId?: string;
+    secondInspectorProfileId?: string | null;
     reason?: string;
   }) => Promise<any>;
 }
