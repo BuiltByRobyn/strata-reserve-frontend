@@ -64,20 +64,28 @@ export const useSurvey = (routePrefix: 'client' | 'admin' = 'client') => {
         `/${routePrefix}/file-numbers/${fileId}/survey/responses`,
         { responses: payloads }
       );
-      if (data) {
-        setResponses(prev => {
-          const updated = [...prev];
+      setResponses(prev => {
+        const updated = [...prev];
+        if (data) {
           for (const newResp of data) {
-            const idx = updated.findIndex(r => r.questionId === newResp.questionId && r.propertyTypeId === newResp.propertyTypeId);
+            const idx = updated.findIndex(r => r.questionId === newResp.questionId && r.propertyTypeId === newResp.propertyTypeId && r.parentQuestionId === newResp.parentQuestionId);
             if (idx >= 0) {
               updated[idx] = newResp;
             } else {
               updated.push(newResp);
             }
           }
-          return updated;
-        });
-      }
+        }
+        // Remove responses that were cleared (all-null payloads the backend archived without returning)
+        const clearedKeys = new Set(
+          payloads
+            .filter(p => p.responseText == null && p.responseNumber == null && p.responseBoolean == null && p.responseDate == null && p.multipleChoiceOptionId == null)
+            .map(p => `${p.parentQuestionId ?? ''}-${p.questionId}-${p.propertyTypeId}`)
+        );
+        return clearedKeys.size > 0
+          ? updated.filter(r => !clearedKeys.has(`${r.parentQuestionId ?? ''}-${r.questionId}-${r.propertyTypeId}`))
+          : updated;
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save responses');
     } finally {
@@ -85,8 +93,12 @@ export const useSurvey = (routePrefix: 'client' | 'admin' = 'client') => {
     }
   }, [api, routePrefix]);
 
-  const getResponseForQuestion = useCallback((questionId: number, propertyTypeId: number): SurveyResponse | undefined => {
-    return responses.find(r => r.questionId === questionId && r.propertyTypeId === propertyTypeId);
+  const getResponseForQuestion = useCallback((questionId: number, propertyTypeId: number, parentQuestionId?: number | null): SurveyResponse | undefined => {
+    return responses.find(r =>
+      r.questionId === questionId &&
+      r.propertyTypeId === propertyTypeId &&
+      (parentQuestionId !== undefined ? r.parentQuestionId === parentQuestionId : true)
+    );
   }, [responses]);
 
   const clearState = useCallback(() => {

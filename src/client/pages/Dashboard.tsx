@@ -370,10 +370,12 @@ export const Dashboard = () => {
       <div className="priority-tasks-grid">
         {tasks.map((task) => {
           if (task.id === 'timelines' && activeAppointment?.type === 'pending_request') {
+            const pendingTypeName = activeAppointment.data.appointmentType?.typeName ?? '';
+            const pendingLabel = pendingTypeName.toLowerCase().includes('draft') ? 'Draft Meeting' : 'Inspection';
             return (
               <div key="pending" className="appointment-status-card appointment-status-card--pending">
-                <p className="appointment-status-card__label">Appointment Pending</p>
-                <p className="appointment-status-card__text">Your inspection request is awaiting confirmation from our team.</p>
+                <p className="appointment-status-card__label">{pendingLabel} Pending</p>
+                <p className="appointment-status-card__text">Your {pendingLabel.toLowerCase()} request is awaiting confirmation from our team.</p>
                 <button className="btn-action btn-action--warning" onClick={() => navigate('/client/inspection-date')}>View Request</button>
               </div>
             );
@@ -409,14 +411,19 @@ export const Dashboard = () => {
               </div>
             );
           }
-          const rejectionNotification = task.id === 'timelines'
+          const rejectionNotification = (task.id === 'timelines' || task.id === 'inspection')
             ? notifications.find(n => n.type === 'request_rejected' && !dismissed.has(`${n.type}__${n.date}`))
             : undefined;
           if (rejectionNotification) {
+            const rejTypeLabel = draftMeetingEligible ? 'draft meeting' : 'inspection';
+            const rejCardLabel = draftMeetingEligible ? 'Draft Meeting Not Accepted' : 'Inspection Not Accepted';
+            const rejText = rejectionNotification.message
+              .replace('appointment request', `${rejTypeLabel} request`)
+              .replace('was rejected', 'was not accepted');
             return (
               <div key="rejected" className="appointment-status-card appointment-status-card--rejected">
-                <p className="appointment-status-card__label">Appointment Rejected</p>
-                <p className="appointment-status-card__text">{rejectionNotification.reason || rejectionNotification.message}</p>
+                <p className="appointment-status-card__label">{rejCardLabel}</p>
+                <p className="appointment-status-card__text">{rejectionNotification.reason || rejText}</p>
                 <button className="btn-action btn-action--danger" onClick={() => navigate('/client/inspection-date')}>View Details</button>
               </div>
             );
@@ -439,10 +446,10 @@ export const Dashboard = () => {
         })}
       </div>
 
-      {notifications.some((n) => !dismissed.has(`${n.type}__${n.date}`) && !(n.type === 'request_approved' && (activeAppointment !== null || bookingActionNeeded)) && !(n.type === 'appointment_rescheduled' && activeAppointment?.type === 'scheduled' && activeAppointment.data.status === 'Rescheduled')) && (
+      {notifications.some((n) => !dismissed.has(`${n.type}__${n.date}`) && !(n.type === 'request_rejected') && !(n.type === 'request_approved' && (activeAppointment !== null || bookingActionNeeded)) && !(n.type === 'appointment_rescheduled' && activeAppointment?.type === 'scheduled' && activeAppointment.data.status === 'Rescheduled')) && (
         <div className="client-notifications">
           {notifications
-            .filter((n) => !dismissed.has(`${n.type}__${n.date}`) && !(n.type === 'request_approved' && (activeAppointment !== null || bookingActionNeeded)) && !(n.type === 'appointment_rescheduled' && activeAppointment?.type === 'scheduled' && activeAppointment.data.status === 'Rescheduled'))
+            .filter((n) => !dismissed.has(`${n.type}__${n.date}`) && !(n.type === 'request_rejected') && !(n.type === 'request_approved' && (activeAppointment !== null || bookingActionNeeded)) && !(n.type === 'appointment_rescheduled' && activeAppointment?.type === 'scheduled' && activeAppointment.data.status === 'Rescheduled'))
             .map((n) => {
               const key = `${n.type}__${n.date}`;
               const toneMap = {

@@ -35,6 +35,7 @@ export default function SurveySectionPage() {
 
   const [page, setPage] = useState(0);
   const [localAnswers, setLocalAnswers] = useState<Record<string, SaveResponsePayload>>({});
+  const [numberErrors, setNumberErrors] = useState<Set<string>>(new Set());
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [downloadingPdf, setDownloadingPdf] = useState(false);
@@ -84,19 +85,39 @@ export default function SurveySectionPage() {
     allQuestions.filter(q => q.parentQuestionId == null).map(q => `${q.questionId}-${q.propertyTypeId}`)
   );
   const totalQuestions = parentQuestionKeys.size;
-  const totalAnswered = responses.filter(r => parentQuestionKeys.has(`${r.questionId}-${r.propertyTypeId}`)).length;
+  const isResponseAnswered = (r: { responseText?: string | null; responseNumber?: number | null; responseBoolean?: boolean | null; responseDate?: string | null; multipleChoiceOptionId?: number | null }) =>
+    (r.responseText != null && r.responseText.trim() !== '') ||
+    r.responseNumber != null ||
+    r.responseBoolean != null ||
+    (r.responseDate != null && r.responseDate.trim() !== '') ||
+    r.multipleChoiceOptionId != null;
+
+  const totalAnswered = responses.filter(r => isResponseAnswered(r) && parentQuestionKeys.has(`${r.questionId}-${r.propertyTypeId}`)).length;
 
   const buildPendingPayloads = useCallback(() => {
-    return Object.values(localAnswers).filter(a => {
-      return (
-        (a.responseText != null && a.responseText.trim() !== '') ||
-        (a.responseNumber !== undefined && a.responseNumber !== null) ||
-        (a.responseBoolean !== undefined && a.responseBoolean !== null) ||
-        (a.responseDate != null && a.responseDate.trim() !== '') ||
-        (a.multipleChoiceOptionId !== undefined && a.multipleChoiceOptionId !== null)
-      );
-    });
-  }, [localAnswers]);
+    const valid: SaveResponsePayload[] = [];
+    const clearances: SaveResponsePayload[] = [];
+    for (const a of Object.values(localAnswers)) {
+      if (isResponseAnswered(a)) {
+        valid.push(a);
+      } else {
+        const saved = getResponseForQuestion(a.questionId, a.propertyTypeId, a.parentQuestionId);
+        if (saved) {
+          clearances.push({
+            questionId: a.questionId,
+            propertyTypeId: a.propertyTypeId,
+            parentQuestionId: a.parentQuestionId,
+            responseText: null,
+            responseNumber: null,
+            responseBoolean: null,
+            responseDate: null,
+            multipleChoiceOptionId: null,
+          });
+        }
+      }
+    }
+    return [...valid, ...clearances];
+  }, [localAnswers, getResponseForQuestion]);
 
   const saveCurrent = useCallback(async () => {
     if (!fileId) return;
@@ -191,28 +212,33 @@ export default function SurveySectionPage() {
   };
 
 
-  const updateAnswer = (questionId: number, propertyTypeId: number, field: keyof SaveResponsePayload, value: unknown) => {
-    const key = `${questionId}-${propertyTypeId}`;
+  const answerKey = (questionId: number, propertyTypeId: number, parentQuestionId?: number | null) =>
+    parentQuestionId != null ? `${parentQuestionId}-${questionId}-${propertyTypeId}` : `${questionId}-${propertyTypeId}`;
+
+  const updateAnswer = (questionId: number, propertyTypeId: number, field: keyof SaveResponsePayload, value: unknown, parentQuestionId?: number | null) => {
+    const key = answerKey(questionId, propertyTypeId, parentQuestionId);
     setLocalAnswers(prev => ({
       ...prev,
       [key]: {
         ...prev[key],
         questionId,
         propertyTypeId,
+        parentQuestionId: parentQuestionId ?? null,
         [field]: value,
       },
     }));
   };
 
-  const getAnswer = (questionId: number, propertyTypeId: number): SaveResponsePayload => {
-    const key = `${questionId}-${propertyTypeId}`;
+  const getAnswer = (questionId: number, propertyTypeId: number, parentQuestionId?: number | null): SaveResponsePayload => {
+    const key = answerKey(questionId, propertyTypeId, parentQuestionId);
     if (localAnswers[key]) return localAnswers[key];
 
-    const existing = getResponseForQuestion(questionId, propertyTypeId);
+    const existing = getResponseForQuestion(questionId, propertyTypeId, parentQuestionId);
     if (existing) {
       return {
         questionId,
         propertyTypeId,
+        parentQuestionId: existing.parentQuestionId,
         responseText: existing.responseText,
         responseDate: existing.responseDate,
         responseNumber: existing.responseNumber,
@@ -226,12 +252,35 @@ export default function SurveySectionPage() {
   const completionMap: Record<string, boolean> = {};
   for (const s of SURVEY_SECTIONS) {
     const sq = allQuestions.filter(q => q.questionCategory === s.label);
-    const answeredIds = new Set(responses.map(resp => resp.questionId));
+    const answeredIds = new Set(responses.filter(isResponseAnswered).map(resp => resp.questionId));
     completionMap[s.key] = sq.length > 0 && sq.every(q => answeredIds.has(q.questionId));
   }
 
+  const handleNumberKeyDown = (errorKey: string) => (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (['e', 'E', '+', '.', '-'].includes(e.key)) {
+      e.preventDefault();
+      setNumberErrors(prev => new Set([...prev, errorKey]));
+    }
+  };
+
+  const handleNumberChange = (
+    e: React.ChangeEvent<HTMLInputElement>,
+    questionId: number,
+    propertyTypeId: number,
+    parentQuestionId?: number | null
+  ) => {
+    const raw = e.target.value;
+    const key = answerKey(questionId, propertyTypeId, parentQuestionId);
+    if (raw === '' || /^\d+$/.test(raw)) {
+      setNumberErrors(prev => { const s = new Set(prev); s.delete(key); return s; });
+      updateAnswer(questionId, propertyTypeId, 'responseNumber', raw ? parseInt(raw, 10) : null, parentQuestionId);
+    } else {
+      setNumberErrors(prev => new Set([...prev, key]));
+    }
+  };
+
   const renderSubQuestion = (q: SurveyQuestion, index: number) => {
-    const answer = getAnswer(q.questionId, q.propertyTypeId);
+    const answer = getAnswer(q.questionId, q.propertyTypeId, q.parentQuestionId);
     return (
       <div key={q.fnSurveyQuestionId} className="survey-sub-question">
         <label className="question-label">
@@ -241,7 +290,7 @@ export default function SurveySectionPage() {
           <textarea
             className="question-input question-textarea"
             value={answer.responseText || ''}
-            onChange={(e) => updateAnswer(q.questionId, q.propertyTypeId, 'responseText', e.target.value)}
+            onChange={(e) => updateAnswer(q.questionId, q.propertyTypeId, 'responseText', e.target.value, q.parentQuestionId)}
             placeholder="Enter your answer..."
             rows={2}
             readOnly={isReadOnly}
@@ -252,20 +301,26 @@ export default function SurveySectionPage() {
             type="text"
             className="question-input"
             value={answer.responseText || ''}
-            onChange={(e) => updateAnswer(q.questionId, q.propertyTypeId, 'responseText', e.target.value)}
+            onChange={(e) => updateAnswer(q.questionId, q.propertyTypeId, 'responseText', e.target.value, q.parentQuestionId)}
             placeholder="Enter your answer..."
             readOnly={isReadOnly}
           />
         )}
         {q.questionType === 'number' && (
-          <input
-            type="number"
-            className="question-input"
-            value={answer.responseNumber ?? ''}
-            onChange={(e) => updateAnswer(q.questionId, q.propertyTypeId, 'responseNumber', e.target.value ? parseInt(e.target.value) : null)}
-            placeholder="Enter number..."
-            readOnly={isReadOnly}
-          />
+          <>
+            <input
+              type="number"
+              className={`question-input${numberErrors.has(answerKey(q.questionId, q.propertyTypeId, q.parentQuestionId)) ? ' question-input--error' : ''}`}
+              value={answer.responseNumber ?? ''}
+              onChange={(e) => handleNumberChange(e, q.questionId, q.propertyTypeId, q.parentQuestionId)}
+              onKeyDown={handleNumberKeyDown(answerKey(q.questionId, q.propertyTypeId, q.parentQuestionId))}
+              placeholder="Enter number..."
+              readOnly={isReadOnly}
+            />
+            {numberErrors.has(answerKey(q.questionId, q.propertyTypeId, q.parentQuestionId)) && (
+              <span className="error-text">Please enter a whole number</span>
+            )}
+          </>
         )}
         {q.questionType === 'boolean' && (
           <div className="question-boolean">
@@ -274,7 +329,7 @@ export default function SurveySectionPage() {
                 type="radio"
                 name={`sq-${q.fnSurveyQuestionId}`}
                 checked={answer.responseBoolean === true}
-                onChange={() => updateAnswer(q.questionId, q.propertyTypeId, 'responseBoolean', true)}
+                onChange={() => updateAnswer(q.questionId, q.propertyTypeId, 'responseBoolean', true, q.parentQuestionId)}
                 disabled={isReadOnly}
               />
               Yes
@@ -284,7 +339,7 @@ export default function SurveySectionPage() {
                 type="radio"
                 name={`sq-${q.fnSurveyQuestionId}`}
                 checked={answer.responseBoolean === false}
-                onChange={() => updateAnswer(q.questionId, q.propertyTypeId, 'responseBoolean', false)}
+                onChange={() => updateAnswer(q.questionId, q.propertyTypeId, 'responseBoolean', false, q.parentQuestionId)}
                 disabled={isReadOnly}
               />
               No
@@ -296,7 +351,7 @@ export default function SurveySectionPage() {
             type="date"
             className="question-input"
             value={answer.responseDate || ''}
-            onChange={(e) => updateAnswer(q.questionId, q.propertyTypeId, 'responseDate', e.target.value)}
+            onChange={(e) => updateAnswer(q.questionId, q.propertyTypeId, 'responseDate', e.target.value, q.parentQuestionId)}
             readOnly={isReadOnly}
           />
         )}
@@ -308,7 +363,7 @@ export default function SurveySectionPage() {
                   type="radio"
                   name={`sq-${q.fnSurveyQuestionId}`}
                   checked={answer.multipleChoiceOptionId === opt.optionId}
-                  onChange={() => updateAnswer(q.questionId, q.propertyTypeId, 'multipleChoiceOptionId', opt.optionId)}
+                  onChange={() => updateAnswer(q.questionId, q.propertyTypeId, 'multipleChoiceOptionId', opt.optionId, q.parentQuestionId)}
                   disabled={isReadOnly}
                 />
                 {opt.optionText}
@@ -329,7 +384,7 @@ export default function SurveySectionPage() {
                     const updated = e.target.checked
                       ? [...current, id]
                       : current.filter(v => v !== id);
-                    updateAnswer(q.questionId, q.propertyTypeId, 'responseText', updated.join(','));
+                    updateAnswer(q.questionId, q.propertyTypeId, 'responseText', updated.join(','), q.parentQuestionId);
                   }}
                   disabled={isReadOnly}
                 />
@@ -419,14 +474,20 @@ export default function SurveySectionPage() {
         )}
 
         {!isFlagged && q.questionType === 'number' && (
-          <input
-            type="number"
-            className="question-input"
-            value={answer.responseNumber ?? ''}
-            onChange={(e) => updateAnswer(q.questionId, q.propertyTypeId, 'responseNumber', e.target.value ? parseInt(e.target.value) : null)}
-            placeholder="Enter number..."
-            readOnly={isReadOnly}
-          />
+          <>
+            <input
+              type="number"
+              className={`question-input${numberErrors.has(answerKey(q.questionId, q.propertyTypeId)) ? ' question-input--error' : ''}`}
+              value={answer.responseNumber ?? ''}
+              onChange={(e) => handleNumberChange(e, q.questionId, q.propertyTypeId)}
+              onKeyDown={handleNumberKeyDown(answerKey(q.questionId, q.propertyTypeId))}
+              placeholder="Enter number..."
+              readOnly={isReadOnly}
+            />
+            {numberErrors.has(answerKey(q.questionId, q.propertyTypeId)) && (
+              <span className="error-text">Please enter a whole number</span>
+            )}
+          </>
         )}
 
         {!isFlagged && q.questionType === 'boolean' && (

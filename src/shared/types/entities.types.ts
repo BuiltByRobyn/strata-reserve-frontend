@@ -329,6 +329,8 @@ export interface FileNumber {
   requestedBy?: ProfileBasic;
   clientPropertyTypes?: Array<{ propertyTypeId: number }>;
   latestDocumentFinalizedDate?: string | null;
+  latestDocumentReviewDate?: string | null;
+  docsReadyForReview?: boolean;
   latestSurveyAnswerDate?: string | null;
   appointments?: Array<{
     appointmentId: number;

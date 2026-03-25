@@ -123,16 +123,8 @@
   }
 
   &--rejected {
-    background: $color-error-bg;
-    border: 3px solid $color-error-border;
-
-    .appointment-status-card__label {
-      color: $color-error-text;
-    }
-
-    .appointment-status-card__text {
-      color: $color-error-text;
-    }
+    background: $color-white;
+    border: 3px solid $color-error-light;
   }
 
   &__label {

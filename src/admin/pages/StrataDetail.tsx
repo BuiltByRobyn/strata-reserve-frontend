@@ -182,6 +182,7 @@ export default function StrataDetailPage() {
   const [surveyReqSortOrders, setSurveyReqSortOrders] = useState<Record<string, number[]>>({});
   const [surveyConfigStep, setSurveyConfigStep] = useState<'select' | number>('select');
   const [surveyReorderOpen, setSurveyReorderOpen] = useState<Record<string, boolean>>({});
+  const [postCreateFlow, setPostCreateFlow] = useState(false);
 
   const [downloadingDocs, setDownloadingDocs] = useState(false);
   const [downloadingSurveyPdf, setDownloadingSurveyPdf] = useState(false);
@@ -301,6 +302,8 @@ export default function StrataDetailPage() {
       setActiveRequest(result);
       resetCreateModal();
       setCreateModalOpen(false);
+      setPostCreateFlow(true);
+      openDocReqModal();
     } catch (err) {
       setSrFormError(err instanceof Error ? err.message : "Failed to create file number");
     } finally {
@@ -511,6 +514,10 @@ export default function StrataDetailPage() {
     await fetchDocRequirements(activeRequest.fileId);
     setSavingDocConfig(false);
     setDocReqModalOpen(false);
+    if (postCreateFlow) {
+      setPostCreateFlow(false);
+      openSurveyReqModal();
+    }
   };
 
   const openDocReviewModal = () => {

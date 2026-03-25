@@ -38,6 +38,7 @@ export default function ClientDocumentsPage() {
   const [showDenialModal, setShowDenialModal] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const denialShownRef = useRef<Set<string>>(new Set());
   const strataPlan = activeRequest?.strata?.strataPlan || '';
 
   const clientPropertyTypeIds = useMemo(
@@ -103,7 +104,7 @@ export default function ClientDocumentsPage() {
     if (!fileId) return;
     setRequiredDocsReady(false);
     fetchRequiredDocuments(fileId).then(() => setRequiredDocsReady(true));
-  }, [fileId, fetchRequiredDocuments]);
+  }, [fileId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!requiredDocsReady || !fileId) return;
@@ -115,14 +116,14 @@ export default function ClientDocumentsPage() {
     }
     if (deniedKeys.size > 0) {
       setExpandedDocTypes(prev => new Set([...prev, ...deniedKeys]));
-      // Clear finalized flag so client can re-submit after addressing denials
-      localStorage.removeItem(`docs_finalized_${fileId}`);
     }
 
     if (deniedRequirements.length > 0) {
       const reviewId = deniedRequirements[0].reviewId;
       const seenKey = reviewId ? `denial_notified_${fileId}_${reviewId}` : null;
-      if (seenKey && !localStorage.getItem(seenKey)) {
+      if (seenKey && !localStorage.getItem(seenKey) && !denialShownRef.current.has(seenKey)) {
+        denialShownRef.current.add(seenKey);
+        localStorage.setItem(seenKey, 'true');
         setShowDenialModal(true);
       }
     }
@@ -170,10 +171,6 @@ export default function ClientDocumentsPage() {
   }, [fileId, setNaStatus]);
 
   const handleDismissDenialModal = () => {
-    if (fileId && deniedRequirements.length > 0) {
-      const reviewId = deniedRequirements[0].reviewId;
-      if (reviewId) localStorage.setItem(`denial_notified_${fileId}_${reviewId}`, 'true');
-    }
     setShowDenialModal(false);
   };
 
@@ -184,10 +181,13 @@ export default function ClientDocumentsPage() {
     setPreviewOpen(true);
   };
 
-  const docsFinalized = fileId ? !!localStorage.getItem(`docs_finalized_${fileId}`) : false;
+  const currentReviewId = deniedRequirements.length > 0 ? (deniedRequirements[0].reviewId ?? 0) : 0;
+  const docsFinalized = fileId
+    ? localStorage.getItem(`docs_finalized_${fileId}`) === String(currentReviewId)
+    : false;
 
   const handleFinalize = () => {
-    if (fileId) localStorage.setItem(`docs_finalized_${fileId}`, 'true');
+    if (fileId) localStorage.setItem(`docs_finalized_${fileId}`, String(currentReviewId));
     navigate('/client/dashboard', { state: { justFinalizedDocs: true } });
   };
 
@@ -281,7 +281,7 @@ export default function ClientDocumentsPage() {
                                   onUpload={handleUploadClick}
                                   onSetNaStatus={handleSetNaStatus}
                                   onPreview={handlePreview}
-                                  readOnly={hasReview && !isDenied}
+                                  readOnly={(hasReview && !isDenied) || docsFinalized}
                                 />
                               );
                             })}
