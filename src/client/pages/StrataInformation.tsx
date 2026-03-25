@@ -92,7 +92,7 @@ const StrataInformation = () => {
           <span className="strata-info__label">Complex Name</span>
           <span className="strata-info__value">{strata.complexName || 'N/A'}</span>
         </div>
-        <div className="strata-info__field">
+        <div className="strata-info__field strata-info__field--full">
           <span className="strata-info__label">Address</span>
           <span className="strata-info__value">{strata.streetName || 'N/A'}</span>
         </div>

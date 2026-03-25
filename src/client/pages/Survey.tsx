@@ -83,6 +83,13 @@ if (q.questionType === 'multiple_choice') {
     }
   }, [fileId, fetchQuestions, fetchResponses]);
 
+  const isResponseAnswered = (r: SurveyResponse) =>
+    (r.responseText != null && r.responseText.trim() !== '') ||
+    r.responseNumber != null ||
+    r.responseBoolean != null ||
+    (r.responseDate != null && r.responseDate.trim() !== '') ||
+    r.multipleChoiceOptionId != null;
+
   const getSectionQuestionCount = (sectionKey: string) => {
     const sectionConfig = SURVEY_SECTIONS.find(s => s.key === sectionKey);
     if (!sectionConfig) return { total: 0, answered: 0 };
@@ -91,7 +98,7 @@ if (q.questionType === 'multiple_choice') {
     const sectionQuestions = questions.filter(
       q => q.questionCategory === sectionConfig.label && q.parentQuestionId == null
     );
-    const answeredIds = new Set(responses.map(r => r.questionId));
+    const answeredIds = new Set(responses.filter(isResponseAnswered).map(r => r.questionId));
     const answered = sectionQuestions.filter(q => answeredIds.has(q.questionId)).length;
 
     return { total: sectionQuestions.length, answered };
@@ -101,7 +108,7 @@ if (q.questionType === 'multiple_choice') {
     questions.filter(q => q.parentQuestionId == null).map(q => `${q.questionId}-${q.propertyTypeId}`)
   );
   const totalQuestions = parentQuestionKeys.size;
-  const totalAnswered = responses.filter(r => parentQuestionKeys.has(`${r.questionId}-${r.propertyTypeId}`)).length;
+  const totalAnswered = responses.filter(r => isResponseAnswered(r) && parentQuestionKeys.has(`${r.questionId}-${r.propertyTypeId}`)).length;
 
   const isSectionComplete = (sectionKey: string) => {
     const { total, answered } = getSectionQuestionCount(sectionKey);

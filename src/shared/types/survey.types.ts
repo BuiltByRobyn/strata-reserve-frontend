@@ -30,6 +30,7 @@ export interface SurveyResponse {
   responseBoolean: boolean | null;
   questionId: number;
   propertyTypeId: number;
+  parentQuestionId: number | null;
   multipleChoiceOptionId: number | null;
   fileId: number;
   answeredByProfileId: string;
@@ -55,6 +56,7 @@ export interface ArchivedSurveyResponse extends SurveyResponse {
 export interface SaveResponsePayload {
   questionId: number;
   propertyTypeId: number;
+  parentQuestionId?: number | null;
   responseText?: string | null;
   responseDate?: string | null;
   responseNumber?: number | null;

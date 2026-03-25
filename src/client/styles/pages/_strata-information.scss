@@ -6,6 +6,16 @@
   border: 1px solid $color-border-light;
   border-radius: $border-radius-lg;
   padding: $spacing-lg;
+
+  @media (min-width: $breakpoint-md) {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    column-gap: $spacing-xl;
+  }
+
+  @media (min-width: $breakpoint-lg) {
+    grid-template-columns: repeat(3, 1fr);
+  }
 }
 
 .strata-info__section-title {
@@ -15,6 +25,10 @@
   color: $color-text-dark;
   padding-bottom: $spacing-sm;
   border-bottom: 1px solid $color-border-light;
+
+  @media (min-width: $breakpoint-md) {
+    grid-column: 1 / -1;
+  }
 
   &--spaced {
     margin-top: $spacing-xl;
@@ -30,6 +44,12 @@
 
   &--last {
     border-bottom: none;
+  }
+
+  &--full {
+    @media (min-width: $breakpoint-md) {
+      grid-column: 1 / -1;
+    }
   }
 }
 
