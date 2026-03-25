@@ -105,6 +105,10 @@
         font-weight: 500;
         font-size: 0.875rem;
         color: $color-text-dark;
+
+        .required {
+          color: $color-error;
+        }
       }
 
       .strata-role-field__header {

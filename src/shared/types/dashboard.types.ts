@@ -57,6 +57,18 @@ export type UrgentCard =
       title: string;
       description: string;
       strataId: number;
+    }
+  | {
+      id: string;
+      kind: 'doc-resubmit';
+      tone: 'overdue' | 'due-today' | 'upcoming';
+      badge: string;
+      priority: number;
+      createdAt: string;
+      title: string;
+      description: string;
+      notificationId: number;
+      strataId: number;
     };
 
 export interface ActivityCard {

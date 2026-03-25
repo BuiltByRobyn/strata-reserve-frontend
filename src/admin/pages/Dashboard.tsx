@@ -8,6 +8,7 @@ import { usePropertyTypeRequests } from '../../shared/hooks/usePropertyTypeReque
 import { useActivationRequests } from '../../shared/hooks/useActivationRequests';
 import { useStrata } from '../../shared/hooks/useStrata';
 import { useInspectorAvailability } from '../../shared/hooks/useInspectorAvailability';
+import { useNotifications } from '../../shared/hooks/useNotifications';
 import { useProfileActivities } from '../../shared/hooks/useProfileActivities';
 import { LoadingSpinner } from '../../shared/components/LoadingSpinner';
 import { Modal } from '../../shared/components/Modal';
@@ -112,6 +113,7 @@ export const Dashboard = () => {
   } = useAppointments();
   const { fileNumbers, loading: fileNumbersLoading, refetch: fetchFileNumbers } = useFileNumbers();
   const { createAvailableDate } = useInspectorAvailability();
+  const { notifications, loading: notificationsLoading, markRead } = useNotifications();
 
   const [activityWindow, setActivityWindow] = useState('24');
   const { activities: profileActivities, loading: profileActivitiesLoading } = useProfileActivities(windowHours(activityWindow));
@@ -250,7 +252,15 @@ export const Dashboard = () => {
       });
 
     const finalizedCards: UrgentCard[] = activeRequests
-      .filter((request) => !!request.submittedForReviewDate && !request.appointmentOfferedAt)
+      .filter((request) =>
+        !!request.submittedForReviewDate &&
+        !request.appointmentOfferedAt &&
+        (
+          (!request.latestDocumentReviewDate && !!request.docsReadyForReview) ||
+          (!!request.latestDocumentFinalizedDate &&
+            request.latestDocumentFinalizedDate >= (request.latestDocumentReviewDate ?? ''))
+        )
+      )
       .map((request) => {
         const urgency = getUrgencyMeta(request.submittedForReviewDate);
         return {
@@ -266,14 +276,32 @@ export const Dashboard = () => {
         };
       });
 
-    return [...propertyTypeCards, ...activationCards, ...appointmentCards, ...rebookingCards, ...finalizedCards]
+    const docResubmitCards: UrgentCard[] = notifications
+      .filter((n) => n.type === 'doc_resubmitted_after_rejection' && !n.isRead && n.referenceId != null)
+      .map((n) => {
+        const urgency = getUrgencyMeta(n.createdAt);
+        return {
+          id: `doc-resubmit-${n.notificationId}`,
+          kind: 'doc-resubmit' as const,
+          tone: urgency.tone,
+          badge: 'REVIEW DOCS',
+          priority: urgency.priority + 25,
+          createdAt: n.createdAt,
+          title: 'Document Re-submission',
+          description: n.message,
+          notificationId: n.notificationId,
+          strataId: n.referenceId!,
+        };
+      });
+
+    return [...propertyTypeCards, ...activationCards, ...appointmentCards, ...rebookingCards, ...finalizedCards, ...docResubmitCards]
       .sort((left, right) => {
         if (right.priority !== left.priority) return right.priority - left.priority;
         const leftTime = parseTimestamp(left.createdAt)?.getTime() || 0;
         const rightTime = parseTimestamp(right.createdAt)?.getTime() || 0;
         return rightTime - leftTime;
       });
-  }, [activeRequests, activationRequests, appointmentRequests, propertyRequests, propertyTypes]);
+  }, [activeRequests, activationRequests, appointmentRequests, propertyRequests, propertyTypes, notifications]);
 
   const activityCards: ActivityCard[] = useMemo(() => {
     const hours = windowHours(activityWindow);
@@ -329,7 +357,8 @@ export const Dashboard = () => {
     || appointmentRequestsLoading
     || fileNumbersLoading
     || activationRequestsLoading
-    || profileActivitiesLoading;
+    || profileActivitiesLoading
+    || notificationsLoading;
 
   const handleApprove = async (request: PropertyTypeRequest) => {
     setIsSubmitting(true);
@@ -475,6 +504,16 @@ export const Dashboard = () => {
                         onClick={() => navigate(`/admin/strata/${card.strataId}`, { state: { promptOfferAppointment: true } })}
                       >
                         Review
+                      </button>
+                    ) : card.kind === 'doc-resubmit' ? (
+                      <button
+                        className="btn-action btn-action--primary"
+                        onClick={() => {
+                          markRead(card.notificationId);
+                          navigate(`/admin/strata/${card.strataId}`);
+                        }}
+                      >
+                        Review Documents
                       </button>
                     ) : (
                       <>
