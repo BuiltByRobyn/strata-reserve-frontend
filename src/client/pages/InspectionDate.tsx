@@ -54,7 +54,6 @@ const InspectionDate = () => {
     createRequest,
     cancelRequest,
     cancelAppointment,
-    checkDraftMeetingEligibility,
   } = useClientAppointments();
   const { appointmentTypes } = useLookups();
 
@@ -76,11 +75,17 @@ const InspectionDate = () => {
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [cancellingRequest, setCancellingRequest] = useState(false);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
-  const [draftMeetingEligible, setDraftMeetingEligible] = useState(false);
-  const [bookingDraftMeeting, setBookingDraftMeeting] = useState(false);
-  const [lastInspectionDate, setLastInspectionDate] = useState<string | null>(null);
 
   const isOffered = !!activeRequest?.appointmentOfferedAt;
+  const offeredAppointmentType = useMemo(
+    () => appointmentTypes.find(t => t.appointmentTypeId === activeRequest?.appointmentOfferTypeId) || null,
+    [appointmentTypes, activeRequest?.appointmentOfferTypeId]
+  );
+  const bookingDraftMeeting = offeredAppointmentType?.isDraftMeeting
+    ?? activeRequest?.appointmentOfferType?.isDraftMeeting
+    ?? false;
+  const offeredIsFullDay = !bookingDraftMeeting
+    && (offeredAppointmentType?.durationType || '').toLowerCase() === 'full day';
 
   const hasFetchedAppointment = useRef(false);
   const hasFetchedAvailability = useRef(false);
@@ -140,17 +145,8 @@ const loadActiveAppointment = useCallback(async () => {
       return;
     }
     hasFetchedAvailability.current = true;
-    checkDraftMeetingEligibility(fileId).then(result => {
-      setDraftMeetingEligible(result.eligible);
-      setLastInspectionDate(result.lastInspectionDate);
-      if (result.eligible) {
-        setBookingDraftMeeting(true);
-        loadAvailability(true);
-      } else {
-        loadAvailability(bookingDraftMeeting);
-      }
-    });
-  }, [isOffered, activeAppointment, fileId, pageLoading, loadAvailability, bookingDraftMeeting, checkDraftMeetingEligibility]);
+    loadAvailability(bookingDraftMeeting);
+  }, [isOffered, activeAppointment, fileId, pageLoading, loadAvailability, bookingDraftMeeting]);
 
   // Re-fetch availability when user returns to the tab (handles inspector changes by admin)
   useEffect(() => {
@@ -165,9 +161,17 @@ const loadActiveAppointment = useCallback(async () => {
 
   const filteredAvailability = useMemo(() =>
     availability
-      .map(day => ({ ...day, slots: day.slots.filter(slot => !isWithin48Hours(day.date, slot.slotTime)) }))
+      .map(day => ({
+        ...day,
+        slots: day.slots.filter(slot => {
+          if (isWithin48Hours(day.date, slot.slotTime)) return false;
+          if (bookingDraftMeeting) return slot.slotTime === '19:00';
+          if (offeredIsFullDay) return slot.slotTime === '10:00';
+          return slot.slotTime === '10:00' || slot.slotTime === '14:00';
+        })
+      }))
       .filter(day => day.slots.length > 0),
-    [availability]
+    [availability, bookingDraftMeeting, offeredIsFullDay]
   );
 
   // Compute timeline milestones for the calendar
@@ -181,11 +185,6 @@ const loadActiveAppointment = useCallback(async () => {
     if (activeRequest?.appointmentOfferedAt) {
       const offeredDate = formatYMD(new Date(activeRequest.appointmentOfferedAt));
       result.push({ date: offeredDate, label: 'Submission Approved' });
-    }
-
-    // "Inspection Date" milestone shown only when booking a draft meeting
-    if (bookingDraftMeeting && lastInspectionDate) {
-      result.push({ date: lastInspectionDate, label: 'Inspection Date' });
     }
 
     if (!timelines) return result;
@@ -249,7 +248,7 @@ const loadActiveAppointment = useCallback(async () => {
     }
 
     return result;
-  }, [timelines, activeRequest?.appointmentOfferedAt, bookingDraftMeeting, lastInspectionDate]);
+  }, [timelines, activeRequest?.appointmentOfferedAt]);
 
   const handleDateSelect = (date: string) => {
     setSelectedDate(date);
@@ -284,13 +283,6 @@ const loadActiveAppointment = useCallback(async () => {
     setSelectedDate(null);
   };
 
-  const handleStartDraftMeetingBooking = () => {
-    setBookingDraftMeeting(true);
-    hasFetchedAvailability.current = false;
-    resetBooking();
-    setSuccessMsg(null);
-  };
-
   const handleSubmit = async () => {
     if (!firstChoice || !fileId) return;
 
@@ -299,11 +291,9 @@ const loadActiveAppointment = useCallback(async () => {
       return;
     }
 
-    const selectedType = bookingDraftMeeting
-      ? appointmentTypes.find(t => t.isDraftMeeting) || appointmentTypes[0]
-      : appointmentTypes[0];
+    const selectedType = offeredAppointmentType;
     if (!selectedType) {
-      setErrorMsg('No appointment type available');
+      setErrorMsg('No offered appointment type available');
       return;
     }
 
@@ -332,7 +322,7 @@ const loadActiveAppointment = useCallback(async () => {
       if (msg.includes('no longer available') || msg.includes('Please choose a different')) {
         setToastMsg(msg);
         resetBooking();
-        loadAvailability(bookingDraftMeeting);
+        loadAvailability(selectedType.isDraftMeeting);
       } else {
         setErrorMsg(msg);
       }
@@ -541,16 +531,6 @@ const loadActiveAppointment = useCallback(async () => {
         );
       })()}
 
-      {draftMeetingEligible && !bookingDraftMeeting && !hasScheduledAppointment && (
-        <div className="inspection-date__card inspection-date__card--info">
-          <h3>Draft Meeting Available</h3>
-          <p>Your inspection has been completed. You can now schedule a draft meeting.</p>
-          <button type="button" className="btn btn-primary" onClick={handleStartDraftMeetingBooking}>
-            Schedule Draft Meeting
-          </button>
-        </div>
-      )}
-
       {activeRequest?.rebookingRequestedAt && (
         <div className="inspection-date__card inspection-date__card--info" style={{ marginBottom: '1rem' }}>
           <p>Your previous appointment was cancelled. Please select a new inspection date below.</p>
@@ -561,7 +541,7 @@ const loadActiveAppointment = useCallback(async () => {
       {successMsg && <div className="inspection-date__success">{successMsg}</div>}
 
       {(() => {
-        const canBook = !hasScheduledAppointment && !isPending && (!draftMeetingEligible || bookingDraftMeeting);
+        const canBook = !hasScheduledAppointment && !isPending;
         const bookedDateStr = scheduledApt
           ? (typeof scheduledApt.appointmentDate === 'string'
               ? scheduledApt.appointmentDate.split('T')[0]

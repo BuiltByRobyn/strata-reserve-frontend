@@ -173,14 +173,12 @@ export interface OfferAppointmentModalProps {
   initialSecondInspectorId: string | null;
   locations: import('./entities.types').Location[];
   initialLocationId: number | null;
-  strataId: number;
   onSubmit: (fileId: number, data: {
     appointmentTypeId?: number;
     inspectorProfileId?: string;
     secondInspectorProfileId?: string;
   }) => Promise<void>;
   onAddNote?: (message: string) => Promise<void>;
-  onUpdateLocation: (strataId: number, locationId: number) => Promise<void>;
 }
 
 export interface AppointmentRequestReviewModalProps {

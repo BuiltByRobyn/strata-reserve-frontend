@@ -19,10 +19,8 @@ export const OfferAppointmentModal = ({
   initialSecondInspectorId,
   locations,
   initialLocationId,
-  strataId,
   onSubmit,
   onAddNote,
-  onUpdateLocation,
 }: OfferAppointmentModalProps) => {
   const [selectedTypeId, setSelectedTypeId] = useState<number | null>(null);
   const [inspectorId, setInspectorId] = useState('');
@@ -75,15 +73,15 @@ export const OfferAppointmentModal = ({
   );
 
   const isValid = selectedTypeId != null && locationId != null && !!inspectorId;
+  const selectedLocationLabel = useMemo(
+    () => locationOptions.find(o => o.value === locationId)?.label || 'Unknown',
+    [locationOptions, locationId]
+  );
 
   const handleSubmit = async () => {
     setSaving(true);
     setError(null);
     try {
-      // Update strata location if changed
-      if (locationId !== initialLocationId) {
-        await onUpdateLocation(strataId, locationId!);
-      }
       if (notes.trim() && onAddNote) {
         await onAddNote(notes.trim());
       }
@@ -118,13 +116,7 @@ export const OfferAppointmentModal = ({
           </div>
           <div className="offer-modal__field offer-modal__field--inline">
             <span className="offer-modal__label">Location <span className="offer-modal__required">*</span></span>
-            <SingleSelectDropdown
-              label=""
-              options={locationOptions}
-              value={locationId ?? ''}
-              onChange={(val) => setLocationId(val ? Number(val) : null)}
-              placeholder="Select location..."
-            />
+            <span className="offer-modal__value">{selectedLocationLabel}</span>
           </div>
         </div>
 

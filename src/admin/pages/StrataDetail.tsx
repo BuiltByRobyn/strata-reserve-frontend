@@ -2203,7 +2203,6 @@ export default function StrataDetailPage() {
           initialSecondInspectorId={activeRequest.appointmentOfferSecondInspectorId ?? null}
           locations={locations}
           initialLocationId={strata?.locationId ?? null}
-          strataId={strata?.strataId ?? 0}
           onSubmit={async (srId, data) => {
             await offerAppointment(srId, data);
             await loadData();
@@ -2215,11 +2214,6 @@ export default function StrataDetailPage() {
               createdByProfileId: user?.id,
             });
             const updated = await getStrataById(strataId);
-            if (updated) setStrata(updated);
-          }}
-          onUpdateLocation={async (sId, locId) => {
-            await updateStrata(sId, { locationId: locId });
-            const updated = await getStrataById(sId);
             if (updated) setStrata(updated);
           }}
         />

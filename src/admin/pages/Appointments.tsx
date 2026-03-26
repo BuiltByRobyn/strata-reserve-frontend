@@ -20,6 +20,7 @@ import type { CalendarMilestone } from '../../shared/types/appointment.types';
 import { formatDateShort, formatTime12h, getUserDisplayName } from '../../shared/utils/formatters';
 import { getInspectorOptions } from '../../shared/utils/userUtils';
 import { getSlotTimeRange } from '../../shared/utils/dateUtils';
+import { getAppointmentTypeTimeSlotViolationMessage } from '../../shared/utils/appointmentRules';
 import { LOCATION_DISPLAY_ORDER } from '../../shared/utils/constants';
 import { formatYMD } from '../../shared/utils/timelineUtils';
 
@@ -130,6 +131,24 @@ export default function AppointmentsPage() {
     return missing;
   }, [createForm]);
 
+  const createSelectedAppointmentType = useMemo(
+    () => allAppointmentTypes.find((t: any) => String(t.appointmentTypeId) === createForm.appointmentTypeId),
+    [allAppointmentTypes, createForm.appointmentTypeId]
+  );
+  const createSelectedTimeSlot = useMemo(
+    () => allTimeSlots.find((s: any) => String(s.timeSlotId) === createForm.timeSlotId),
+    [allTimeSlots, createForm.timeSlotId]
+  );
+  const createTypeSlotViolationMessage = useMemo(
+    () =>
+      getAppointmentTypeTimeSlotViolationMessage(
+        createSelectedAppointmentType,
+        createSelectedTimeSlot,
+        !!createForm.timeSlotId
+      ),
+    [createSelectedAppointmentType, createSelectedTimeSlot, createForm.timeSlotId]
+  );
+
   const submitAppointment = useCallback(async () => {
     setCreateSubmitting(true);
     setCreateError(null);
@@ -158,6 +177,10 @@ export default function AppointmentsPage() {
       setCreateError(`Please select: ${missing.join(', ')}`);
       return;
     }
+    if (createTypeSlotViolationMessage) {
+      setCreateError(createTypeSlotViolationMessage);
+      return;
+    }
     setCreateSubmitting(true);
     setCreateError(null);
     try {
@@ -172,7 +195,7 @@ export default function AppointmentsPage() {
       setCreateError(err instanceof Error ? err.message : 'Failed to create appointment');
       setCreateSubmitting(false);
     }
-  }, [validateCreateForm, checkInspectorAvailability, createForm, submitAppointment]);
+  }, [validateCreateForm, createTypeSlotViolationMessage, checkInspectorAvailability, createForm, submitAppointment]);
 
   const handleConfirmUnavailable = useCallback(async () => {
     setCreateSubmitting(true);
@@ -1195,7 +1218,11 @@ export default function AppointmentsPage() {
             <button className="btn btn-secondary" onClick={() => setShowCreateModal(false)} disabled={createSubmitting}>
               Cancel
             </button>
-            <button className="btn btn-primary" onClick={handleCreateAppointment} disabled={createSubmitting || !createForm.inspectorProfileId}>
+            <button
+              className="btn btn-primary"
+              onClick={handleCreateAppointment}
+              disabled={createSubmitting || !createForm.inspectorProfileId || !!createTypeSlotViolationMessage}
+            >
               {createSubmitting ? 'Checking...' : 'Add Appointment'}
             </button>
           </>
@@ -1273,6 +1300,11 @@ export default function AppointmentsPage() {
                 onChange={(val) => setCreateForm(prev => ({ ...prev, timeSlotId: val }))}
                 placeholder="Select a time slot..."
               />
+              {createTypeSlotViolationMessage && (
+                <div className="offer-modal__error" role="alert">
+                  {createTypeSlotViolationMessage}
+                </div>
+              )}
 
               <SingleSelectDropdown
                 label="Inspector"

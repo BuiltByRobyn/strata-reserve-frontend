@@ -1,21 +1,44 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useClientFileNumber } from '../../shared/hooks/useClientFileNumber';
+import { useClientAppointments } from '../../shared/hooks/useClientAppointments';
 import { LoadingSpinner } from '../../shared/components/LoadingSpinner';
 import { ClientNavbar } from './ClientNavbar';
 import { Modal } from '../../shared/components/Modal';
 
 export const ClientLayout = ({ children }: { children: React.ReactNode }) => {
+  const navigate = useNavigate();
   const { activeRequest, fileId, loading } = useClientFileNumber();
+  const { getActiveAppointment } = useClientAppointments();
   const [showWelcomeModal, setShowWelcomeModal] = useState(false);
+  const offeredAt = activeRequest?.appointmentOfferedAt ?? null;
+  const isDraftOffer = activeRequest?.appointmentOfferType?.isDraftMeeting === true;
 
   useEffect(() => {
-    if (!fileId || !activeRequest?.appointmentOfferedAt) return;
-    const key = `welcome-modal-shown-${fileId}`;
-    if (!localStorage.getItem(key)) {
-      setShowWelcomeModal(true);
-      localStorage.setItem(key, '1');
-    }
-  }, [fileId, activeRequest?.appointmentOfferedAt]);
+    if (!fileId || !offeredAt) return;
+    let cancelled = false;
+
+    const checkAndShow = async () => {
+      const activeAppointment = await getActiveAppointment();
+      if (cancelled) return;
+      // For non-draft offers, suppress modal once a confirmed appointment exists.
+      // For draft offers, always show on each new offer timestamp.
+      if (!isDraftOffer && activeAppointment?.type === 'scheduled') {
+        setShowWelcomeModal(false);
+        return;
+      }
+
+      const key = `welcome-modal-last-offer-${fileId}`;
+      const lastSeenOfferAt = localStorage.getItem(key);
+      if (lastSeenOfferAt !== offeredAt) {
+        setShowWelcomeModal(true);
+        localStorage.setItem(key, offeredAt);
+      }
+    };
+
+    checkAndShow();
+    return () => { cancelled = true; };
+  }, [fileId, offeredAt, isDraftOffer, getActiveAppointment]);
 
   if (loading) return <LoadingSpinner />;
 
@@ -26,24 +49,44 @@ export const ClientLayout = ({ children }: { children: React.ReactNode }) => {
       <Modal
         isOpen={showWelcomeModal}
         onClose={() => setShowWelcomeModal(false)}
-        title="Please book an inspection date"
+        title={isDraftOffer ? 'Draft Meeting Available' : 'Please book an inspection date'}
         size="medium"
         footer={
-          <button className="btn btn-primary" onClick={() => setShowWelcomeModal(false)}>
-            Close
-          </button>
+          isDraftOffer ? (
+            <button
+              className="btn btn-primary"
+              onClick={() => {
+                setShowWelcomeModal(false);
+                navigate('/client/inspection-date');
+              }}
+            >
+              Book Now
+            </button>
+          ) : (
+            <button className="btn btn-primary" onClick={() => setShowWelcomeModal(false)}>
+              Close
+            </button>
+          )
         }
       >
-        <p>
-          Your submission has been approved and you can now book an inspection date.
-          Please select your preferred dates and times from the available slots below.
-        </p>
-        <p>
-          If you have any questions, please contact us at{' '}
-          <a href="mailto:clientcare@stratareserveplanning.com">
-            clientcare@stratareserveplanning.com
-          </a>
-        </p>
+        {isDraftOffer ? (
+          <div className="thank-you-content">
+            <p>Your inspection is complete. You can now book your draft meeting — select your preferred dates to get started.</p>
+          </div>
+        ) : (
+          <>
+            <p>
+              Your submission has been approved and you can now book an inspection date.
+              Please select your preferred dates and times from the available slots below.
+            </p>
+            <p>
+              If you have any questions, please contact us at{' '}
+              <a href="mailto:clientcare@stratareserveplanning.com">
+                clientcare@stratareserveplanning.com
+              </a>
+            </p>
+          </>
+        )}
       </Modal>
     </div>
   );

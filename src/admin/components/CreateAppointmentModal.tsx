@@ -6,6 +6,7 @@ import { useFileNumbers } from '../../shared/hooks/useFileNumbers';
 import { Modal } from '../../shared/components/Modal';
 import { SingleSelectDropdown } from '../../shared/components/SingleSelectDropdown';
 import { formatTime12h } from '../../shared/utils/formatters';
+import { getAppointmentTypeTimeSlotViolationMessage } from '../../shared/utils/appointmentRules';
 import { getInspectorOptions } from '../../shared/utils/userUtils';
 import type { BaseModalProps } from '../../shared/types/component.types';
 
@@ -24,6 +25,24 @@ export function CreateAppointmentModal({ isOpen, onClose }: BaseModalProps) {
   const [allAppointmentTypes, setAllAppointmentTypes] = useState<any[]>([]);
 
   const inspectorOptions = useMemo(() => getInspectorOptions(users), [users]);
+
+  const selectedAppointmentType = useMemo(
+    () => allAppointmentTypes.find((t: any) => String(t.appointmentTypeId) === createForm.appointmentTypeId),
+    [allAppointmentTypes, createForm.appointmentTypeId]
+  );
+  const selectedTimeSlot = useMemo(
+    () => allTimeSlots.find((s: any) => String(s.timeSlotId) === createForm.timeSlotId),
+    [allTimeSlots, createForm.timeSlotId]
+  );
+  const typeSlotViolationMessage = useMemo(
+    () =>
+      getAppointmentTypeTimeSlotViolationMessage(
+        selectedAppointmentType,
+        selectedTimeSlot,
+        !!createForm.timeSlotId
+      ),
+    [selectedAppointmentType, selectedTimeSlot, createForm.timeSlotId]
+  );
 
   useEffect(() => {
     if (!isOpen) return;
@@ -45,7 +64,8 @@ export function CreateAppointmentModal({ isOpen, onClose }: BaseModalProps) {
     createForm.appointmentTypeId &&
     createForm.appointmentDate &&
     createForm.timeSlotId &&
-    createForm.inspectorProfileId
+    createForm.inspectorProfileId &&
+    !typeSlotViolationMessage
   );
 
   const submitAppointment = useCallback(async () => {
@@ -70,6 +90,10 @@ export function CreateAppointmentModal({ isOpen, onClose }: BaseModalProps) {
   }, [createForm, createAppointment, addSecondInspector, secondInspectorId, onClose]);
 
   const handleCreateAppointment = useCallback(async () => {
+    if (typeSlotViolationMessage) {
+      setCreateError(typeSlotViolationMessage);
+      return;
+    }
     setCreateSubmitting(true);
     setCreateError(null);
     try {
@@ -170,6 +194,11 @@ export function CreateAppointmentModal({ isOpen, onClose }: BaseModalProps) {
               onChange={(val) => setCreateForm(prev => ({ ...prev, timeSlotId: val }))}
               placeholder="Select a time slot..."
             />
+            {typeSlotViolationMessage && (
+              <div className="offer-modal__error" role="alert">
+                {typeSlotViolationMessage}
+              </div>
+            )}
 
             <SingleSelectDropdown
               label="Inspector"
