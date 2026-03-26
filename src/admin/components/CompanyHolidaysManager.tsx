@@ -9,7 +9,7 @@ import { formatDateShort } from '../../shared/utils/formatters';
 import { parseLocalDate } from '../../shared/utils/dateUtils';
 import { CompanyHolidayModal } from './CompanyHolidayModal';
 import type { CompanyHoliday } from '../../shared/types/entities.types';
-import type { DisplayHoliday } from './CompanyHolidaysManager.type';
+import type { DisplayHoliday } from './company-holidays-manager.type';
 
 // TODO: Add Holiday start time, end time in database and UI
 export const CompanyHolidaysManager = () => {

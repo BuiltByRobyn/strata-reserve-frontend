@@ -1,5 +1,5 @@
 import { formatDateMedium, formatTime12h } from '../../shared/utils/formatters';
-import type { AppointmentInfoDisplayProps } from './AppointmentInfoDisplay.type';
+import type { AppointmentInfoDisplayProps } from './appointment-info-display.type';
 
 export const AppointmentInfoDisplay = ({
   date,
