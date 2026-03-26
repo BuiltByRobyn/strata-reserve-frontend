@@ -415,7 +415,7 @@ export default function SurveySectionPage() {
       <div key={q.fnSurveyQuestionId} className="survey-question">
         <label className="question-label">
           {questionNumber}. {q.questionText}
-          {q.isRequired && <span className="required-mark">*</span>}
+          <span className="required-mark">*</span>
         </label>
 
         {q.informationText && (

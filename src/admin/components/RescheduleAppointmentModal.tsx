@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Modal } from '../../shared/components/Modal';
 import { SingleSelectDropdown } from '../../shared/components/SingleSelectDropdown';
 import { AppointmentInfoDisplay } from './AppointmentInfoDisplay';
 import { formatTime12h, getUserDisplayName } from '../../shared/utils/formatters';
 import { getInspectorOptions } from '../../shared/utils/userUtils';
 import type { RescheduleAppointmentModalProps } from '../../shared/types/component.types';
+import { getAppointmentTypeTimeSlotViolationMessage } from '../../shared/utils/appointmentRules';
 
 const RescheduleAppointmentModal = ({
   isOpen,
@@ -51,9 +52,27 @@ const RescheduleAppointmentModal = ({
     o => o.value !== effectivePrimaryId
   );
 
-  const isFormValid = !!newDate && !!newTimeSlotId && !!inspectorId;
+  const selectedRescheduleSlot = useMemo(
+    () => timeSlots.find(s => s.timeSlotId === newTimeSlotId),
+    [timeSlots, newTimeSlotId]
+  );
+  const typeSlotViolationMessage = useMemo(
+    () =>
+      getAppointmentTypeTimeSlotViolationMessage(
+        appointment.appointmentType,
+        selectedRescheduleSlot,
+        !!newTimeSlotId
+      ),
+    [appointment.appointmentType, selectedRescheduleSlot, newTimeSlotId]
+  );
+
+  const isFormValid = !!newDate && !!newTimeSlotId && !!inspectorId && !typeSlotViolationMessage;
 
   const handleSubmit = async () => {
+    if (typeSlotViolationMessage) {
+      setError(typeSlotViolationMessage);
+      return;
+    }
     setSubmitting(true);
     setError(null);
     try {
@@ -129,6 +148,11 @@ const RescheduleAppointmentModal = ({
                 </button>
               ))}
             </div>
+            {typeSlotViolationMessage && (
+              <div className="reschedule-modal__error" role="alert">
+                {typeSlotViolationMessage}
+              </div>
+            )}
           </div>
 
           <SingleSelectDropdown
