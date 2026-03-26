@@ -82,7 +82,7 @@ export default function StrataDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const location = useLocation();
-  const { getStrataById, updateStrata, addNote, deleteNote } = useStrata();
+  const { getStrataById, addNote, deleteNote } = useStrata();
   const {
     getActiveByStrata,
     createFileNumber,
