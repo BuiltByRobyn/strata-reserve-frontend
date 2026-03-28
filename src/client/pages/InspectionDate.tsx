@@ -77,19 +77,80 @@ const InspectionDate = () => {
   const [toastMsg, setToastMsg] = useState<string | null>(null);
 
   const isOffered = !!activeRequest?.appointmentOfferedAt;
+  const needsOfferCalendar = isOffered || !!activeRequest?.rebookingRequestedAt;
   const offeredAppointmentType = useMemo(
     () => appointmentTypes.find(t => t.appointmentTypeId === activeRequest?.appointmentOfferTypeId) || null,
     [appointmentTypes, activeRequest?.appointmentOfferTypeId]
   );
-  const bookingDraftMeeting = offeredAppointmentType?.isDraftMeeting
-    ?? activeRequest?.appointmentOfferType?.isDraftMeeting
-    ?? false;
-  const offeredIsFullDay = !bookingDraftMeeting
-    && (offeredAppointmentType?.durationType || '').toLowerCase() === 'full day';
+
+  const effectiveAppointmentType = useMemo(() => {
+    if (activeAppointment?.type === 'scheduled') return activeAppointment.data.appointmentType;
+    if (activeAppointment?.type === 'pending_request') return activeAppointment.data.appointmentType;
+    return null;
+  }, [activeAppointment]);
+
+  const hasCompletedNonDraftInspection = useMemo(
+    () =>
+      activeRequest?.appointments?.some(
+        (a) => a.status === 'Completed' && a.appointmentType?.isDraftMeeting === false
+      ) ?? false,
+    [activeRequest?.appointments]
+  );
+  const hasCompletedDraftMeeting = useMemo(
+    () =>
+      activeRequest?.appointments?.some(
+        (a) => a.status === 'Completed' && a.appointmentType?.isDraftMeeting === true
+      ) ?? false,
+    [activeRequest?.appointments]
+  );
+
+  const draftTypeFromLookups = useMemo(
+    () => appointmentTypes.find((t) => t.isDraftMeeting) ?? null,
+    [appointmentTypes]
+  );
+
+  const bookingDraftMeeting = useMemo(() => {
+    if (offeredAppointmentType?.isDraftMeeting) return true;
+    if (activeRequest?.appointmentOfferType?.isDraftMeeting) return true;
+    if (effectiveAppointmentType?.isDraftMeeting) return true;
+    if (hasCompletedNonDraftInspection && !hasCompletedDraftMeeting) return true;
+    return false;
+  }, [
+    offeredAppointmentType,
+    activeRequest?.appointmentOfferType,
+    effectiveAppointmentType,
+    hasCompletedNonDraftInspection,
+    hasCompletedDraftMeeting,
+  ]);
+
+  const resolvedTypeForBookingRequest = useMemo(() => {
+    if (!bookingDraftMeeting) return offeredAppointmentType;
+    if (offeredAppointmentType?.isDraftMeeting) return offeredAppointmentType;
+    if (activeRequest?.appointmentOfferType?.isDraftMeeting && offeredAppointmentType) {
+      return offeredAppointmentType;
+    }
+    return draftTypeFromLookups ?? offeredAppointmentType;
+  }, [
+    bookingDraftMeeting,
+    offeredAppointmentType,
+    activeRequest?.appointmentOfferType,
+    draftTypeFromLookups,
+  ]);
+
+  const offeredIsFullDay = useMemo(() => {
+    if (bookingDraftMeeting) return false;
+    const duration = (
+      offeredAppointmentType?.durationType
+      || effectiveAppointmentType?.durationType
+      || ''
+    ).toLowerCase();
+    return duration === 'full day';
+  }, [bookingDraftMeeting, offeredAppointmentType, effectiveAppointmentType]);
 
   const hasFetchedAppointment = useRef(false);
   const hasFetchedAvailability = useRef(false);
   const prevAppointmentTypeRef = useRef<string | null>(null);
+  const prevBookingDraftMeetingRef = useRef<boolean | null>(null);
   const meetingDatesRef = useRef<HTMLDivElement>(null);
 
 const loadActiveAppointment = useCallback(async () => {
@@ -108,7 +169,8 @@ const loadActiveAppointment = useCallback(async () => {
     if (hasFetchedAppointment.current) return;
     hasFetchedAppointment.current = true;
     loadActiveAppointment().then(() => {
-      if (!activeRequest.appointmentOfferedAt) {
+      const needsCalendar = !!activeRequest.appointmentOfferedAt || !!activeRequest.rebookingRequestedAt;
+      if (!needsCalendar) {
         setCalendarLoading(false);
       }
     }).finally(() => setPageLoading(false));
@@ -139,25 +201,38 @@ const loadActiveAppointment = useCallback(async () => {
   }, [activeAppointment]);
 
   useEffect(() => {
-    if (!isOffered || !fileId || pageLoading || hasFetchedAvailability.current) return;
+    if (!needsOfferCalendar || !fileId || pageLoading || hasFetchedAvailability.current) return;
     if (activeAppointment?.type === 'completed_draft') {
       setCalendarLoading(false);
       return;
     }
     hasFetchedAvailability.current = true;
     loadAvailability(bookingDraftMeeting);
-  }, [isOffered, activeAppointment, fileId, pageLoading, loadAvailability, bookingDraftMeeting]);
+  }, [needsOfferCalendar, activeAppointment, fileId, pageLoading, loadAvailability, bookingDraftMeeting]);
+
+  // When draft mode flips (e.g. inspection marked completed), refetch 7pm slots instead of half-day slots
+  useEffect(() => {
+    if (prevBookingDraftMeetingRef.current === null) {
+      prevBookingDraftMeetingRef.current = bookingDraftMeeting;
+      return;
+    }
+    if (prevBookingDraftMeetingRef.current === bookingDraftMeeting) return;
+    prevBookingDraftMeetingRef.current = bookingDraftMeeting;
+    if (!needsOfferCalendar || !fileId || pageLoading) return;
+    if (activeAppointment?.type === 'completed_draft') return;
+    loadAvailability(bookingDraftMeeting);
+  }, [bookingDraftMeeting, needsOfferCalendar, fileId, pageLoading, activeAppointment?.type, loadAvailability]);
 
   // Re-fetch availability when user returns to the tab (handles inspector changes by admin)
   useEffect(() => {
     const handleFocus = () => {
-      if (isOffered && fileId && activeAppointment?.type !== 'pending_request') {
+      if (needsOfferCalendar && fileId && activeAppointment?.type !== 'pending_request') {
         loadAvailability(bookingDraftMeeting);
       }
     };
     window.addEventListener('focus', handleFocus);
     return () => window.removeEventListener('focus', handleFocus);
-  }, [isOffered, activeAppointment, fileId, loadAvailability, bookingDraftMeeting]);
+  }, [needsOfferCalendar, activeAppointment, fileId, loadAvailability, bookingDraftMeeting]);
 
   const filteredAvailability = useMemo(() =>
     availability
@@ -291,7 +366,7 @@ const loadActiveAppointment = useCallback(async () => {
       return;
     }
 
-    const selectedType = offeredAppointmentType;
+    const selectedType = resolvedTypeForBookingRequest;
     if (!selectedType) {
       setErrorMsg('No offered appointment type available');
       return;
@@ -339,7 +414,7 @@ const loadActiveAppointment = useCallback(async () => {
       setSuccessMsg('Your appointment request has been cancelled.');
       await loadActiveAppointment();
       hasFetchedAvailability.current = false;
-      loadAvailability();
+      loadAvailability(bookingDraftMeeting);
     } else {
       setErrorMsg(result.error || 'Failed to cancel request');
     }
@@ -379,7 +454,13 @@ const loadActiveAppointment = useCallback(async () => {
     );
   }
 
-  if (!isOffered) {
+  const canAccessInspectionDatePage =
+    isOffered
+    || activeAppointment?.type === 'scheduled'
+    || activeAppointment?.type === 'pending_request'
+    || !!activeRequest?.rebookingRequestedAt;
+
+  if (!canAccessInspectionDatePage) {
     return <Navigate to="/client/dashboard" replace />;
   }
 
@@ -392,11 +473,15 @@ const loadActiveAppointment = useCallback(async () => {
   const hasScheduledAppointment = activeAppointment?.type === 'scheduled';
   const scheduledApt = hasScheduledAppointment ? activeAppointment.data : null;
 
-  const bookingTitle = hasScheduledAppointment
-    ? 'Inspection Date'
+  const pageTitleForScheduledOrPending = hasScheduledAppointment
+    ? (bookingDraftMeeting ? 'Draft Meeting' : 'Inspection Date')
     : isPending
-      ? 'Inspection Date'
-      : bookingDraftMeeting ? 'Schedule Draft Meeting' : 'Pick a date for your inspection';
+      ? (pendingReq?.appointmentType?.isDraftMeeting ? 'Draft Meeting' : 'Inspection Date')
+      : null;
+
+  const bookingTitle = pageTitleForScheduledOrPending != null
+    ? pageTitleForScheduledOrPending
+    : bookingDraftMeeting ? 'Schedule Draft Meeting' : 'Pick a date for your inspection';
   const bookingSubtitle = hasScheduledAppointment || isPending
     ? null
     : bookingDraftMeeting
@@ -469,7 +554,7 @@ const loadActiveAppointment = useCallback(async () => {
 
         return (
         <div className="inspection-date__card inspection-date__card--scheduled">
-          <h3>Appointment Scheduled</h3>
+          <h3>{bookingDraftMeeting ? 'Draft Meeting Scheduled' : 'Appointment Scheduled'}</h3>
 
           <div className="inspection-date__details">
             <div className="inspection-date__detail-row">

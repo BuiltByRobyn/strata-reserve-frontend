@@ -115,7 +115,7 @@ export const OfferAppointmentModal = ({
             </span>
           </div>
           <div className="offer-modal__field offer-modal__field--inline">
-            <span className="offer-modal__label">Location <span className="offer-modal__required">*</span></span>
+            <span className="offer-modal__label">Location</span>
             <span className="offer-modal__value">{selectedLocationLabel}</span>
           </div>
         </div>
