@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { Modal } from './Modal';
 import { useAuth } from '../contexts/AuthContext';
+import { useApiClient } from '../hooks/useApiClient';
 import { PasswordToggleButton } from './PasswordToggleButton';
 import type { BaseModalProps } from '../types/component.types';
 
@@ -19,6 +20,7 @@ export const ChangePasswordModal = ({ isOpen, onClose }: BaseModalProps) => {
   
   const navigate = useNavigate();
   const { updatePassword, signIn, signOut, user } = useAuth();
+  const api = useApiClient();
 
   const handleClose = () => {
     setCurrentPassword('');
@@ -71,7 +73,9 @@ export const ChangePasswordModal = ({ isOpen, onClose }: BaseModalProps) => {
       if (authError) {
         throw authError; // Supabase errors typically have a .message property
       }
-      
+
+      api.post('/profile/password-updated').catch(() => {});
+
       handleClose();
       toast.success('Password changed successfully! You will be signed out shortly.', { duration: 3000 });
       setTimeout(async () => {
