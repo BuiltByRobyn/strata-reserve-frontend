@@ -34,6 +34,22 @@ const RescheduleAppointmentModal = ({
     }
   }, [isOpen, appointment]);
 
+  const selectedRescheduleSlot = useMemo(
+    () => timeSlots.find(s => s.timeSlotId === newTimeSlotId),
+    [timeSlots, newTimeSlotId]
+  );
+  const typeSlotViolationMessage = useMemo(
+    () =>
+      appointment
+        ? getAppointmentTypeTimeSlotViolationMessage(
+            appointment.appointmentType,
+            selectedRescheduleSlot,
+            !!newTimeSlotId
+          )
+        : null,
+    [appointment, selectedRescheduleSlot, newTimeSlotId]
+  );
+
   if (!appointment) return null;
 
   const currentInspector = appointment.inspector
@@ -50,20 +66,6 @@ const RescheduleAppointmentModal = ({
   );
   const secondInspectorOptions = inspectorOptions.filter(
     o => o.value !== effectivePrimaryId
-  );
-
-  const selectedRescheduleSlot = useMemo(
-    () => timeSlots.find(s => s.timeSlotId === newTimeSlotId),
-    [timeSlots, newTimeSlotId]
-  );
-  const typeSlotViolationMessage = useMemo(
-    () =>
-      getAppointmentTypeTimeSlotViolationMessage(
-        appointment.appointmentType,
-        selectedRescheduleSlot,
-        !!newTimeSlotId
-      ),
-    [appointment.appointmentType, selectedRescheduleSlot, newTimeSlotId]
   );
 
   const isFormValid = !!newDate && !!newTimeSlotId && !!inspectorId && !typeSlotViolationMessage;

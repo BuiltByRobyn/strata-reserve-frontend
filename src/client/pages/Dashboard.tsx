@@ -446,10 +446,10 @@ export const Dashboard = () => {
         })}
       </div>
 
-      {notifications.some((n) => !dismissed.has(`${n.type}__${n.date}`) && !(n.type === 'request_rejected') && !(n.type === 'request_approved' && (activeAppointment !== null || bookingActionNeeded)) && !(n.type === 'appointment_rescheduled' && activeAppointment?.type === 'scheduled' && activeAppointment.data.status === 'Rescheduled')) && (
+      {notifications.some((n) => !dismissed.has(`${n.type}__${n.date}`) && n.type !== 'appointment_cancelled' && !(n.type === 'request_rejected') && !(n.type === 'request_approved' && (activeAppointment !== null || bookingActionNeeded)) && !(n.type === 'appointment_rescheduled' && activeAppointment?.type === 'scheduled' && activeAppointment.data.status === 'Rescheduled')) && (
         <div className="client-notifications">
           {notifications
-            .filter((n) => !dismissed.has(`${n.type}__${n.date}`) && !(n.type === 'request_rejected') && !(n.type === 'request_approved' && (activeAppointment !== null || bookingActionNeeded)) && !(n.type === 'appointment_rescheduled' && activeAppointment?.type === 'scheduled' && activeAppointment.data.status === 'Rescheduled'))
+            .filter((n) => !dismissed.has(`${n.type}__${n.date}`) && n.type !== 'appointment_cancelled' && !(n.type === 'request_rejected') && !(n.type === 'request_approved' && (activeAppointment !== null || bookingActionNeeded)) && !(n.type === 'appointment_rescheduled' && activeAppointment?.type === 'scheduled' && activeAppointment.data.status === 'Rescheduled'))
             .map((n) => {
               const key = `${n.type}__${n.date}`;
               const toneMap = {
