@@ -24,6 +24,14 @@ export interface QuestionType {
   questionTypeName: string;
 }
 
+export interface QuestionCategory {
+  questionCategoryId: number;
+  key: string;
+  label: string;
+  description: string | null;
+  sortOrder: number;
+}
+
 export interface Service {
   serviceId: number;
   serviceName: string;
@@ -412,6 +420,8 @@ export interface Appointment {
   status: string; // Scheduled, Completed, Cancelled, Rescheduled
   completionNote: string | null;
   completedAt: string | null;
+  cancellationReason: string | null;
+  cancelledAt: string | null;
   appointmentRequestId: number;
   fileId: number;
   appointmentTypeId: number;

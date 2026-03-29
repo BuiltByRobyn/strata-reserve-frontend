@@ -10,6 +10,7 @@ import BookingCalendar from '../../shared/components/BookingCalendar';
 import AvailableMeetingDates from '../components/AvailableMeetingDates';
 import BookingConfirmation from '../components/BookingConfirmation';
 import { Toast } from '../../shared/components/Toast';
+import CancelAppointmentModal from '../components/CancelAppointmentModal';
 import type { AvailableDay, AvailableSlot, BookingChoice, BookingStep, ActiveAppointmentResponse, CalendarMilestone } from '../../shared/types/appointment.types';
 import { isWithin48Hours } from '../../shared/utils/availabilityUtils';
 
@@ -75,6 +76,9 @@ const InspectionDate = () => {
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [cancellingRequest, setCancellingRequest] = useState(false);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [cancelTargetId, setCancelTargetId] = useState<number | null>(null);
+  const [cancellingAppointment, setCancellingAppointment] = useState(false);
 
   const isOffered = !!activeRequest?.appointmentOfferedAt;
   const needsOfferCalendar = isOffered || !!activeRequest?.rebookingRequestedAt;
@@ -177,7 +181,6 @@ const loadActiveAppointment = useCallback(async () => {
   }, [srLoading, activeRequest, loadActiveAppointment]);
 
   const loadAvailability = useCallback(async (isDraft = false) => {
-    if (!fileId) return;
     setCalendarLoading(true);
     const today = new Date();
     const start = new Date(today);
@@ -187,10 +190,10 @@ const loadActiveAppointment = useCallback(async () => {
 
     const startStr = start.toISOString().split('T')[0];
     const endStr = end.toISOString().split('T')[0];
-    const data = await getAvailability(startStr, endStr, fileId, isDraft);
+    const data = await getAvailability(startStr, endStr, isDraft);
     setAvailability(data);
     setCalendarLoading(false);
-  }, [fileId, getAvailability]);
+  }, [getAvailability]);
 
   useEffect(() => {
     const currentType = activeAppointment?.type ?? null;
@@ -420,12 +423,19 @@ const loadActiveAppointment = useCallback(async () => {
     }
   };
 
-  const handleCancelAppointment = async (appointmentId: number) => {
+  const handleCancelAppointment = async (reason?: string) => {
+    if (!cancelTargetId) return;
+    setCancellingAppointment(true);
     setErrorMsg(null);
-    const result = await cancelAppointment(appointmentId);
+    const result = await cancelAppointment(cancelTargetId, reason);
+    setCancellingAppointment(false);
+    setShowCancelModal(false);
+    setCancelTargetId(null);
     if (result.success) {
       setSuccessMsg('Your appointment has been cancelled.');
       await loadActiveAppointment();
+      hasFetchedAvailability.current = false;
+      loadAvailability(bookingDraftMeeting);
     } else {
       setErrorMsg(result.error || 'Failed to cancel appointment');
     }
@@ -601,7 +611,7 @@ const loadActiveAppointment = useCallback(async () => {
               <button
                 type="button"
                 className="btn btn-secondary"
-                onClick={() => handleCancelAppointment(scheduledApt.appointmentId)}
+                onClick={() => { setCancelTargetId(scheduledApt.appointmentId); setShowCancelModal(true); }}
               >
                 Cancel Appointment
               </button>
@@ -688,6 +698,13 @@ const loadActiveAppointment = useCallback(async () => {
         );
       })()}
 
+      {showCancelModal && (
+        <CancelAppointmentModal
+          onConfirm={handleCancelAppointment}
+          onClose={() => { setShowCancelModal(false); setCancelTargetId(null); }}
+          loading={cancellingAppointment}
+        />
+      )}
     </div>
   );
 };

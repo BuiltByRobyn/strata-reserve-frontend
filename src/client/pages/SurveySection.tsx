@@ -1,16 +1,14 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { useSurvey } from '../../shared/hooks/useSurvey';
 import { useClientFileNumber } from '../../shared/hooks/useClientFileNumber';
+import { useLookups } from '../../shared/hooks/useLookups';
 import { useApiClient } from '../../shared/hooks/useApiClient';
 import { SurveyProgressBar } from '../../shared/components/SurveyProgressBar';
 import { SurveyCategoryNav } from '../../shared/components/SurveyCategoryNav';
 import { LoadingSpinner } from '../../shared/components/LoadingSpinner';
 import { getFilenameFromDisposition, triggerBlobDownload } from '../../shared/utils/fileUtils';
-import {
-  SURVEY_SECTIONS,
-} from '../../shared/types/survey.types';
 import type { SurveyQuestion, SaveResponsePayload } from '../../shared/types/survey.types';
 
 const QUESTIONS_PER_PAGE = 5;
@@ -29,7 +27,13 @@ export default function SurveySectionPage() {
     saveResponses,
     getResponseForQuestion,
   } = useSurvey();
+  const { questionCategories } = useLookups();
   const api = useApiClient();
+
+  const surveySections = useMemo(() =>
+    questionCategories.map(qc => ({ key: qc.key, label: qc.label, description: qc.description ?? '' })),
+    [questionCategories]
+  );
 
   const isReadOnly = !!activeRequest?.submittedForReviewDate;
 
@@ -47,7 +51,7 @@ export default function SurveySectionPage() {
     }
   }, [fileId, fetchQuestions, fetchResponses]);
 
-  const sectionConfig = SURVEY_SECTIONS.find(s => s.key === section);
+  const sectionConfig = surveySections.find(s => s.key === section);
 
   // Separate parent questions from sub-questions
   const allSectionQuestions = sectionConfig
@@ -67,7 +71,7 @@ export default function SurveySectionPage() {
     }
   }
 
-  const requiredSections = SURVEY_SECTIONS.filter(s =>
+  const requiredSections = surveySections.filter(s =>
     allQuestions.some(q => q.questionCategory === s.label && q.parentQuestionId == null)
   );
 
@@ -250,7 +254,7 @@ export default function SurveySectionPage() {
   };
 
   const completionMap: Record<string, boolean> = {};
-  for (const s of SURVEY_SECTIONS) {
+  for (const s of surveySections) {
     const sq = allQuestions.filter(q => q.questionCategory === s.label);
     const answeredIds = new Set(responses.filter(isResponseAnswered).map(resp => resp.questionId));
     completionMap[s.key] = sq.length > 0 && sq.every(q => answeredIds.has(q.questionId));

@@ -73,7 +73,7 @@ export type UrgentCard =
 
 export interface ActivityCard {
   id: string;
-  kind: 'survey' | 'profile';
+  kind: 'survey' | 'profile' | 'cancellation';
   title: string;
   description: string;
   timestamp: string;

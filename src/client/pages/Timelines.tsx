@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { InputField, FormRow } from '../../shared/components/FormField';
-import { SingleSelectDropdown } from '../../shared/components/SingleSelectDropdown';
 import { useClientFileNumber } from '../../shared/hooks/useClientFileNumber';
 import { useTimelines } from '../../shared/hooks/useTimelines';
 import { LoadingSpinner } from '../../shared/components/LoadingSpinner';
@@ -102,7 +101,7 @@ const Timelines = () => {
     setFiscalYearStart(toDateInputValue(timelines.fiscalYearEnd));
     setLastAGM(toDateInputValue(timelines.lastAgmDate));
     setNoAGMToDate(timelines.noAgmToDate);
-    setLastDepreciationReport(timelines.lastDepreciationReportDate ? timelines.lastDepreciationReportDate.substring(0, 4) : '');
+    setLastDepreciationReport(toDateInputValue(timelines.lastDepreciationReportDate));
     setNoReportToDate(timelines.noReportToDate);
     setTargetDate(toDateInputValue(timelines.targetDate));
     const hasRequiredFields =
@@ -124,7 +123,7 @@ const Timelines = () => {
     fiscalYearEnd: fiscalYearStart || null,
     lastAgmDate: lastAGM || null,
     noAgmToDate: noAGMToDate,
-    lastDepreciationReportDate: lastDepreciationReport ? `${lastDepreciationReport}-01-01` : null,
+    lastDepreciationReportDate: lastDepreciationReport || null,
     noReportToDate: noReportToDate,
     targetDate: targetDate.trim()
       ? targetDate
@@ -146,7 +145,7 @@ const Timelines = () => {
     }
     if (!noReportToDate && !lastDepreciationReport.trim()) {
       newErrors.lastDepreciationReport =
-        'Please select the year of the last depreciation report or check "No report to date".';
+        'Please select the date of the last depreciation report or check "No report to date".';
     }
     if (targetDate.trim()) {
       const targetDateObj = new Date(targetDate + 'T00:00:00');
@@ -276,15 +275,15 @@ const Timelines = () => {
 
           <FormRow>
             <div>
-              <SingleSelectDropdown
-                label="Year of Last Depreciation Report"
+              <InputField
+                label="Date of Last Depreciation Report"
+                type="date"
                 required={!noReportToDate}
                 value={lastDepreciationReport}
-                onChange={(val) => setLastDepreciationReport(val ?? '')}
-                options={Array.from({ length: 41 }, (_, i) => new Date().getFullYear() - i).map(y => ({ value: String(y), label: String(y) }))}
-                placeholder="Select year"
+                onChange={(e) => setLastDepreciationReport(e.target.value)}
                 disabled={noReportToDate || isLocked}
                 error={errors.lastDepreciationReport}
+                max={maxDateToday}
               />
               <div className="timelines-checkbox">
                 <input

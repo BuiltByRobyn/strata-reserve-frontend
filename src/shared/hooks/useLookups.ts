@@ -7,6 +7,7 @@ import type {
   Service,
   Section,
   QuestionType,
+  QuestionCategory,
   Location,
   AppointmentType,
 } from '../types/entities.types';
@@ -24,6 +25,7 @@ export const useLookups = () => {
     reviewStatuses: [],
     sections: [],
     questionTypes: [],
+    questionCategories: [],
     locations: [],
     appointmentTypes: [],
     loading: true,
@@ -43,6 +45,7 @@ export const useLookups = () => {
         reviewStatuses,
         sections,
         questionTypes,
+        questionCategories,
         locations,
         appointmentTypes,
       ] = await Promise.all([
@@ -54,6 +57,7 @@ export const useLookups = () => {
         api.get<ReviewStatus[]>('/api/lookups/review-statuses'),
         api.get<Section[]>('/api/lookups/sections'),
         api.get<QuestionType[]>('/api/lookups/question-types'),
+        api.get<QuestionCategory[]>('/api/lookups/question-categories'),
         api.get<Location[]>('/api/lookups/locations'),
         api.get<AppointmentType[]>('/api/lookups/appointment-types'),
       ]);
@@ -67,6 +71,7 @@ export const useLookups = () => {
         reviewStatuses: reviewStatuses || [],
         sections: sections || [],
         questionTypes: questionTypes || [],
+        questionCategories: questionCategories || [],
         locations: locations || [],
         appointmentTypes: appointmentTypes || [],
         loading: false,

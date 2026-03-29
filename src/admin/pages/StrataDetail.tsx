@@ -29,9 +29,6 @@ import {
   TextareaField,
 } from "../../shared/components/FormField";
 import { SingleSelectDropdown } from "../../shared/components/SingleSelectDropdown";
-import {
-  SURVEY_SECTIONS,
-} from "../../shared/types/survey.types";
 import type { SurveyQuestion, ArchivedSurveyResponse } from "../../shared/types/survey.types";
 import type {
   StrataWithDetails,
@@ -95,7 +92,12 @@ export default function StrataDetailPage() {
 
   const activeSurvey = useSurvey("admin");
   const { questions: allQuestions } = useQuestions();
-  const { services, documentTypes, reviewStatuses, locations } = useLookups();
+  const { services, documentTypes, reviewStatuses, locations, questionCategories } = useLookups();
+
+  const surveySections = useMemo(() =>
+    questionCategories.map(qc => ({ key: qc.key, label: qc.label, description: qc.description ?? '' })),
+    [questionCategories]
+  );
   const { users: allUsers } = useUsers();
   const api = useApiClient();
   const { requests: activationRequests, rejectRequest: rejectActivationRequest } = useActivationRequests();
@@ -644,7 +646,7 @@ export default function StrataDetailPage() {
     if (!activeRequest) return;
     setSurveyReqSaving(true);
     const availableQuestions = allQuestions.filter(q => !q.isSubQuestion);
-    const sectionOrder = SURVEY_SECTIONS.map(s => s.label);
+    const sectionOrder = surveySections.map(s => s.label);
     const allCategories = [...new Set(availableQuestions.map(q => q.questionCategory))]
       .sort((a, b) => {
         const ai = sectionOrder.indexOf(a);
@@ -710,7 +712,7 @@ export default function StrataDetailPage() {
   };
 
   const getFilteredQuestions = (questions: SurveyQuestion[], sectionKey: string) => {
-    const sectionConfig = SURVEY_SECTIONS.find(s => s.key === sectionKey);
+    const sectionConfig = surveySections.find(s => s.key === sectionKey);
     if (!sectionConfig) return [];
 
     // Only parent questions at the top level
@@ -726,7 +728,7 @@ export default function StrataDetailPage() {
   };
 
   const getSubQuestionsMap = (questions: SurveyQuestion[], sectionKey: string): Map<string, SurveyQuestion[]> => {
-    const sectionConfig = SURVEY_SECTIONS.find(s => s.key === sectionKey);
+    const sectionConfig = surveySections.find(s => s.key === sectionKey);
     const map = new Map<string, SurveyQuestion[]>();
     if (!sectionConfig) return map;
     for (const q of questions) {
@@ -742,7 +744,7 @@ export default function StrataDetailPage() {
 
   const buildCompletionMap = (questions: SurveyQuestion[], responseIds: Set<number>) => {
     const map: Record<string, boolean> = {};
-    for (const s of SURVEY_SECTIONS) {
+    for (const s of surveySections) {
       // Only count parent questions for completion
       const sq = questions.filter(q => q.questionCategory === s.label && q.parentQuestionId == null);
       map[s.key] = sq.length > 0 && sq.every(q => responseIds.has(q.questionId));
@@ -942,7 +944,7 @@ export default function StrataDetailPage() {
     }
     if (activeTab === "archived") {
       const map: Record<string, boolean> = {};
-      for (const s of SURVEY_SECTIONS) {
+      for (const s of surveySections) {
         const hasResponses = activeSurvey.archivedResponses.some(r => r.question?.questionCategory === s.label);
         map[s.key] = hasResponses;
       }
@@ -982,7 +984,7 @@ export default function StrataDetailPage() {
       }
     }
 
-    return SURVEY_SECTIONS.filter(s => availableSectionLabels.has(s.label));
+    return surveySections.filter(s => availableSectionLabels.has(s.label));
   }, [
     activeTab, 
     activeRequest, 
@@ -1208,7 +1210,7 @@ export default function StrataDetailPage() {
         )}
 
         {activeTab === "archived" && (() => {
-          const sectionConfig = SURVEY_SECTIONS.find(s => s.key === archivedSurveySection);
+          const sectionConfig = surveySections.find(s => s.key === archivedSurveySection);
           const validPropertyTypes = (strata?.strataPropertyTypes ?? []).filter(spt => {
             const ptId = spt.propertyType.propertyTypeId;
             if (!surveyRequirements.some(req => req.propertyTypeId === ptId)) return false;
@@ -2080,7 +2082,7 @@ export default function StrataDetailPage() {
                       label=""
                       searchable
                       options={(() => {
-                        const sectionOrder = SURVEY_SECTIONS.map(s => s.label);
+                        const sectionOrder = surveySections.map(s => s.label);
                         return availableQuestions
                           .map(q => ({ value: q.questionId, label: `[${q.questionCategory}] ${q.questionText}`, category: q.questionCategory }))
                           .sort((a, b) => {
@@ -2108,7 +2110,7 @@ export default function StrataDetailPage() {
             const availableQuestions = allQuestions.filter(q => !q.isSubQuestion);
             const selectedIds = surveyReqFormData[ptId] ?? [];
             const selectedQuestions = availableQuestions.filter(q => selectedIds.includes(q.questionId));
-            const sectionOrder = SURVEY_SECTIONS.map(s => s.label);
+            const sectionOrder = surveySections.map(s => s.label);
             const categories = [...new Set(selectedQuestions.map(q => q.questionCategory))]
               .sort((a, b) => {
                 const ai = sectionOrder.indexOf(a);

@@ -91,6 +91,7 @@ export interface AdminQuestion {
   allowNa: boolean;
   allowUnavailable: boolean;
   informationText: string | null;
+  questionCategoryId: number;
   questionCategory: string;
   questionTypeId: number;
   questionType: { questionTypeId: number; questionTypeName: string };
@@ -107,7 +108,7 @@ export interface CreateQuestionInput {
   allowNa?: boolean;
   allowUnavailable?: boolean;
   informationText?: string | null;
-  questionCategory: string;
+  questionCategoryId: number;
   questionTypeId: number;
   serviceIds: { serviceId: number; sortOrder: number }[];
   propertyTypeIds: number[];
@@ -118,7 +119,7 @@ export interface UpdateQuestionInput extends Partial<CreateQuestionInput> {}
 
 export interface QuestionFormData {
   questionText: string;
-  questionCategory: string;
+  questionCategoryId: number | undefined;
   questionTypeId: number | undefined;
   isRequired: boolean;
   allowNa: boolean;

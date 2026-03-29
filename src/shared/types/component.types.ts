@@ -262,3 +262,9 @@ export interface VersionDocumentRowProps {
   onPreview: (req: RequiredDocumentChecklist) => void;
   readOnly?: boolean;
 }
+
+export interface CancelAppointmentModalProps {
+  onConfirm: (reason?: string) => void;
+  onClose: () => void;
+  loading: boolean;
+}

@@ -14,7 +14,7 @@ import { useTimelines } from '../../shared/hooks/useTimelines';
 import { parseLocalDate, parseTimestamp } from '../../shared/utils/dateUtils';
 import { formatTime12h } from '../../shared/utils/formatters';
 import type { ActiveAppointmentResponse, AppointmentNotification } from '../../shared/types/appointment.types';
-import { SURVEY_SECTIONS } from '../../shared/types/survey.types';
+import { useLookups } from '../../shared/hooks/useLookups';
 
 const formatShortDate = (value: string | null | undefined) => {
   const date = parseLocalDate(value) || parseTimestamp(value);
@@ -29,6 +29,12 @@ export const Dashboard = () => {
   const { request: sectionChangeRequest, loading: propertyTypeLoading } = usePropertyTypeRequest();
   const { timelines, loading: timelinesLoading } = useTimelines(fileId);
   const { questions, responses, loading: surveyLoading, fetchQuestions, fetchResponses } = useSurvey();
+  const { questionCategories } = useLookups();
+
+  const surveySections = useMemo(() =>
+    questionCategories.map(qc => ({ key: qc.key, label: qc.label, description: qc.description ?? '' })),
+    [questionCategories]
+  );
   const {
     requiredDocuments,
     loading: documentsLoading,
@@ -62,7 +68,7 @@ export const Dashboard = () => {
     Promise.all([
       getActiveAppointment(),
       getNotifications(),
-      checkDraftMeetingEligibility(fileId),
+      checkDraftMeetingEligibility(),
     ]).then(([appointment, notifs, draftResult]) => {
       if (ignore) return;
       setActiveAppointment(appointment);
@@ -204,7 +210,7 @@ export const Dashboard = () => {
 
   const sectionProgress = useMemo(() => {
     const answeredQuestionIds = new Set(responses.map((r) => r.questionId));
-    return SURVEY_SECTIONS
+    return surveySections
       .map((section) => {
         const parentQuestions = questions.filter(
           (q) => q.questionCategory === section.label && q.parentQuestionId == null,

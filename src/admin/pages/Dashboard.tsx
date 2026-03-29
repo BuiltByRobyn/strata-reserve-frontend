@@ -339,9 +339,23 @@ export const Dashboard = () => {
       };
     });
 
-    return [...surveyCards, ...profileCards]
+    const cancellationCards: ActivityCard[] = appointments
+      .filter((a) => a.status === 'Cancelled' && a.cancelledAt && isWithinPastHours(a.cancelledAt, hours))
+      .map((a) => ({
+        id: `cancellation-${a.appointmentId}`,
+        kind: 'cancellation' as const,
+        title: `${getStrataLabel(a.fileNumber?.strata)} — appointment cancelled`,
+        description: a.cancellationReason
+          ? `${a.appointmentType.typeName} on ${formatShortDate(a.appointmentDate)} was cancelled. Reason: ${a.cancellationReason}`
+          : `${a.appointmentType.typeName} on ${formatShortDate(a.appointmentDate)} was cancelled. No reason provided.`,
+        timestamp: a.cancelledAt!,
+        actionLabel: 'View Appointments',
+        actionPath: '/admin/appointments',
+      }));
+
+    return [...surveyCards, ...profileCards, ...cancellationCards]
       .sort((a, b) => (parseTimestamp(b.timestamp)?.getTime() ?? 0) - (parseTimestamp(a.timestamp)?.getTime() ?? 0));
-  }, [activeRequests, activityWindow, profileActivities]);
+  }, [activeRequests, activityWindow, profileActivities, appointments]);
 
   const upcomingTargetDates = useMemo(() => {
     const hours = windowHours(targetDatesWindow);
