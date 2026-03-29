@@ -8,7 +8,6 @@ import { MultiSelectDropdown } from '../../shared/components/MultiSelectDropdown
 import type { CreateQuestionInput, QuestionFormData } from '../../shared/types/survey.types';
 import type { CreateQuestionModalProps } from '../../shared/types/component.types';
 
-const CATEGORIES = ['Exterior', 'Interior', 'Services', 'Clubhouse', 'Amenity Room', 'Legal', 'Council Concerns', 'Septic Fields'];
 
 const FRIENDLY_TYPE_NAMES: Record<string, string> = {
   text: 'Text', number: 'Number', date: 'Date', boolean: 'Yes/No',
@@ -19,14 +18,14 @@ const formatTypeName = (name: string) =>
   FRIENDLY_TYPE_NAMES[name.toLowerCase()] || name.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 
 const initialFormData: QuestionFormData = {
-  questionText: '', questionCategory: '', questionTypeId: undefined, isRequired: false,
+  questionText: '', questionCategoryId: undefined, questionTypeId: undefined, isRequired: false,
   allowNa: false, allowUnavailable: false,
   informationText: '', serviceId: undefined, propertyTypeIds: [], multipleChoiceOptions: [],
 };
 
 export function CreateQuestionModal({ isOpen, onClose, parentQuestionId, onCreated, parentQuestion }: CreateQuestionModalProps) {
   const { createQuestion } = useQuestions();
-  const { questionTypes, services, propertyTypes } = useLookups();
+  const { questionTypes, services, propertyTypes, questionCategories } = useLookups();
 
   const [formData, setFormData] = useState<QuestionFormData>(initialFormData);
   const [formError, setFormError] = useState<string | null>(null);
@@ -38,7 +37,7 @@ export function CreateQuestionModal({ isOpen, onClose, parentQuestionId, onCreat
     if (parentQuestion) {
       setFormData(prev => ({
         ...prev,
-        questionCategory: parentQuestion.questionCategory,
+        questionCategoryId: parentQuestion.questionCategoryId,
         propertyTypeIds: parentQuestion.questionPropertyTypes.map(qpt => qpt.propertyTypeId),
         serviceId: parentQuestion.questionServices[0]?.serviceId ?? undefined,
       }));
@@ -76,7 +75,7 @@ export function CreateQuestionModal({ isOpen, onClose, parentQuestionId, onCreat
   const isFormValid =
     !!formData.questionText.trim() &&
     !!formData.questionTypeId &&
-    (isSubQuestion || (!!formData.questionCategory && !!formData.serviceId));
+    (isSubQuestion || (!!formData.questionCategoryId && !!formData.serviceId));
 
   const handleSubmit = async (e?: React.FormEvent) => {
     e?.preventDefault();
@@ -85,7 +84,7 @@ export function CreateQuestionModal({ isOpen, onClose, parentQuestionId, onCreat
     try {
       const input: CreateQuestionInput = {
         questionText: formData.questionText.trim(),
-        questionCategory: formData.questionCategory,
+        questionCategoryId: formData.questionCategoryId!,
         questionTypeId: formData.questionTypeId!,
         isRequired: formData.isRequired,
         informationText: formData.informationText.trim() || null,
@@ -127,7 +126,7 @@ export function CreateQuestionModal({ isOpen, onClose, parentQuestionId, onCreat
           <SingleSelectDropdown label="Question Type" required value={formData.questionTypeId?.toString() || ''} onChange={(val) => setFormData(prev => ({ ...prev, questionTypeId: val ? parseInt(val) : undefined }))} options={questionTypes.map(qt => ({ value: qt.questionTypeId, label: formatTypeName(qt.questionTypeName) }))} placeholder="Select type" />
         ) : (
           <FormRow>
-            <SingleSelectDropdown label="Category" required value={formData.questionCategory} onChange={(val) => setFormData(prev => ({ ...prev, questionCategory: val }))} options={CATEGORIES.map(c => ({ value: c, label: c }))} placeholder="Select category" />
+            <SingleSelectDropdown label="Category" required value={formData.questionCategoryId?.toString() || ''} onChange={(val) => setFormData(prev => ({ ...prev, questionCategoryId: val ? Number(val) : undefined }))} options={questionCategories.map(c => ({ value: c.questionCategoryId, label: c.label }))} placeholder="Select category" />
             <SingleSelectDropdown label="Question Type" required value={formData.questionTypeId?.toString() || ''} onChange={(val) => setFormData(prev => ({ ...prev, questionTypeId: val ? parseInt(val) : undefined }))} options={questionTypes.map(qt => ({ value: qt.questionTypeId, label: formatTypeName(qt.questionTypeName) }))} placeholder="Select type" />
           </FormRow>
         )}

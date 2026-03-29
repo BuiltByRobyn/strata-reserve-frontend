@@ -1,17 +1,15 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { useSurvey } from '../../shared/hooks/useSurvey';
 import { useClientFileNumber } from '../../shared/hooks/useClientFileNumber';
+import { useLookups } from '../../shared/hooks/useLookups';
 import { useApiClient } from '../../shared/hooks/useApiClient';
 import { SurveyProgressBar } from '../../shared/components/SurveyProgressBar';
 import { LoadingSpinner } from '../../shared/components/LoadingSpinner';
 import { Modal } from '../../shared/components/Modal';
 import { NoFileNumberState } from '../../shared/components/NoFileNumberState';
 import { getFilenameFromDisposition, triggerBlobDownload } from '../../shared/utils/fileUtils';
-import {
-  SURVEY_SECTIONS,
-} from '../../shared/types/survey.types';
 import type { SurveyQuestion, SurveyResponse } from '../../shared/types/survey.types';
 
 export default function SurveyPage() {
@@ -19,7 +17,13 @@ export default function SurveyPage() {
   const location = useLocation();
   const { activeRequest, fileId, loading: srLoading } = useClientFileNumber();
   const { questions, responses, loading, fetchQuestions, fetchResponses } = useSurvey();
+  const { questionCategories } = useLookups();
   const api = useApiClient();
+
+  const surveySections = useMemo(() =>
+    questionCategories.map(qc => ({ key: qc.key, label: qc.label, description: qc.description ?? '' })),
+    [questionCategories]
+  );
 
   const [showThankYou, setShowThankYou] = useState(false);
   const [showTimelinesMessage, setShowTimelinesMessage] = useState(false);
@@ -91,7 +95,7 @@ if (q.questionType === 'multiple_choice') {
     r.multipleChoiceOptionId != null;
 
   const getSectionQuestionCount = (sectionKey: string) => {
-    const sectionConfig = SURVEY_SECTIONS.find(s => s.key === sectionKey);
+    const sectionConfig = surveySections.find(s => s.key === sectionKey);
     if (!sectionConfig) return { total: 0, answered: 0 };
 
     // Only count parent questions (not sub-questions) for completion
@@ -192,7 +196,7 @@ if (q.questionType === 'multiple_choice') {
       <SurveyProgressBar answered={totalAnswered} total={totalQuestions} />
 
       <div className="survey-section-list">
-        {SURVEY_SECTIONS.filter(section => {
+        {surveySections.filter(section => {
           const { total } = getSectionQuestionCount(section.key);
           return total > 0;
         }).map((section) => {
@@ -212,10 +216,12 @@ if (q.questionType === 'multiple_choice') {
                 onKeyDown={(e) => e.key === 'Enter' && handleSectionClick(section.key)}
               >
                 <div className="section-info">
-                  {isSubmitted && (
-                    <span className={`survey-section-arrow${isExpanded ? ' expanded' : ''}`}>▶</span>
-                  )}
-                  <span className="section-label">{section.label}</span>
+                  <span className="section-label">
+                    {isSubmitted && (
+                      <span className={`survey-section-arrow${isExpanded ? ' expanded' : ''}`}>▶</span>
+                    )}
+                    {section.label}
+                  </span>
                   <span className="section-description">{section.description}</span>
                 </div>
                 <span className={`section-status ${complete ? 'complete' : 'incomplete'}`}>

@@ -18,7 +18,7 @@ const QUESTIONS_PER_PAGE = 10;
 
 const initialFormData: QuestionFormData = {
   questionText: '',
-  questionCategory: '',
+  questionCategoryId: undefined,
   questionTypeId: undefined,
   isRequired: false,
   allowNa: false,
@@ -29,10 +29,6 @@ const initialFormData: QuestionFormData = {
   multipleChoiceOptions: [],
 };
 
-const CATEGORIES = [
-  'Exterior', 'Interior', 'Services', 'Clubhouse',
-  'Amenity Room', 'Legal', 'Council Concerns', 'Septic Fields',
-];
 
 const FRIENDLY_TYPE_NAMES: Record<string, string> = {
   textarea: 'Long Text',
@@ -49,7 +45,7 @@ const formatTypeName = (name: string) =>
 export default function QuestionsPage() {
   const { questions, loading, error, deleteQuestion, refetch } = useQuestions();
   const api = useApiClient();
-  const { questionTypes, services, propertyTypes } = useLookups();
+  const { questionTypes, services, propertyTypes, questionCategories } = useLookups();
   const isDesktop = useMediaQuery('(min-width: 1000px)');
   const location = useLocation();
   const autoOpenedRef = useRef(false);
@@ -176,7 +172,7 @@ export default function QuestionsPage() {
       if (!formData.questionTypeId) { setFormError('Question type is required'); return false; }
     }
     if (currentStep === 2 && !editingQuestion?.isSubQuestion) {
-      if (!formData.questionCategory) { setFormError('Category is required'); return false; }
+      if (!formData.questionCategoryId) { setFormError('Category is required'); return false; }
       if (!formData.serviceId) { setFormError('Service is required'); return false; }
     }
     setFormError(null);
@@ -207,7 +203,7 @@ export default function QuestionsPage() {
     setLocalSubIds((q.subQuestions ?? []).map(sq => sq.questionId));
     setFormData({
       questionText: q.questionText,
-      questionCategory: q.questionCategory,
+      questionCategoryId: q.questionCategoryId,
       questionTypeId: q.questionTypeId,
       isRequired: q.isRequired,
       allowNa: q.allowNa ?? false,
@@ -230,7 +226,7 @@ export default function QuestionsPage() {
     try {
       const input: CreateQuestionInput = {
         questionText: formData.questionText.trim(),
-        questionCategory: formData.questionCategory,
+        questionCategoryId: formData.questionCategoryId!,
         questionTypeId: formData.questionTypeId!,
         isRequired: false,
         allowNa: formData.allowNa,
@@ -265,7 +261,7 @@ export default function QuestionsPage() {
     try {
       const input: CreateQuestionInput = {
         questionText: formData.questionText.trim(),
-        questionCategory: formData.questionCategory,
+        questionCategoryId: formData.questionCategoryId!,
         questionTypeId: formData.questionTypeId!,
         isRequired: false,
         allowNa: formData.allowNa,
@@ -378,7 +374,7 @@ export default function QuestionsPage() {
             label="Category"
             value={filterCategory}
             onChange={(val) => { setFilterCategory(val); setPage(0); }}
-            options={CATEGORIES.map(c => ({ value: c, label: c }))}
+            options={questionCategories.map(c => ({ value: c.label, label: c.label }))}
             placeholder="All Categories"
           />
           <SingleSelectDropdown
@@ -585,9 +581,9 @@ export default function QuestionsPage() {
                 <SingleSelectDropdown
                   label="Category"
                   required
-                  value={formData.questionCategory}
-                  onChange={(val) => setFormData(prev => ({ ...prev, questionCategory: val }))}
-                  options={CATEGORIES.map(c => ({ value: c, label: c }))}
+                  value={formData.questionCategoryId?.toString() || ''}
+                  onChange={(val) => setFormData(prev => ({ ...prev, questionCategoryId: val ? Number(val) : undefined }))}
+                  options={questionCategories.map(c => ({ value: c.questionCategoryId, label: c.label }))}
                   placeholder="Select category"
                 />
                 <div className="property-types-section">

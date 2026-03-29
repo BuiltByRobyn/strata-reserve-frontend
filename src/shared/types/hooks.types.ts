@@ -13,7 +13,8 @@ import type {
   PropertyType,
   Service,
   Section,
-  QuestionType
+  QuestionType,
+  QuestionCategory,
 } from './entities.types';
 import type { DocumentWithDetails, DocumentType, ReviewStatus } from './document.types';
 import type { AdminQuestion } from './survey.types';
@@ -57,6 +58,7 @@ export interface LookupState {
   reviewStatuses: ReviewStatus[];
   sections: Section[];
   questionTypes: QuestionType[];
+  questionCategories: QuestionCategory[];
   locations: Location[];
   appointmentTypes: AppointmentType[];
   loading: boolean;

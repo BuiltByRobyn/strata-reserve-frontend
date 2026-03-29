@@ -8,12 +8,11 @@ export const useClientAppointments = () => {
   const getAvailability = useCallback(async (
     startDate: string,
     endDate: string,
-    fileId: number,
     isDraftMeeting = false
   ): Promise<AvailableDay[]> => {
     try {
       const data = await api.get<AvailableDay[]>('/client/appointments/availability', {
-        params: { startDate, endDate, fileId, isDraftMeeting }
+        params: { startDate, endDate, isDraftMeeting }
       });
       return data || [];
     } catch {
@@ -55,9 +54,9 @@ export const useClientAppointments = () => {
     }
   }, [api]);
 
-  const cancelAppointment = useCallback(async (id: number): Promise<{ success: boolean; error?: string }> => {
+  const cancelAppointment = useCallback(async (id: number, reason?: string): Promise<{ success: boolean; error?: string }> => {
     try {
-      await api.put(`/client/appointments/${id}/cancel`, {});
+      await api.put(`/client/appointments/${id}/cancel`, { reason });
       return { success: true };
     } catch (err) {
       return { success: false, error: err instanceof Error ? err.message : 'Failed to cancel appointment' };
@@ -77,11 +76,9 @@ export const useClientAppointments = () => {
     }
   }, [api]);
 
-  const checkDraftMeetingEligibility = useCallback(async (fileId: number): Promise<{ eligible: boolean; lastInspectionDate: string | null }> => {
+  const checkDraftMeetingEligibility = useCallback(async (): Promise<{ eligible: boolean; lastInspectionDate: string | null }> => {
     try {
-      const result = await api.get<{ eligible: boolean; lastInspectionDate: string | null }>('/client/appointments/draft-meeting-eligibility', {
-        params: { fileId }
-      });
+      const result = await api.get<{ eligible: boolean; lastInspectionDate: string | null }>('/client/appointments/draft-meeting-eligibility');
       return { eligible: result?.eligible ?? false, lastInspectionDate: result?.lastInspectionDate ?? null };
     } catch {
       return { eligible: false, lastInspectionDate: null };

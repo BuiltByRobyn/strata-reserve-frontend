@@ -133,6 +133,12 @@ export default function TimelinesPage() {
       if (surveySubmitted) {
         rows.push({ id: `${srId}-survey-submitted`, date: surveySubmitted, deadlineType: 'Survey Answers Finalized', strataPlan, complexName, strataId, fileNumber: sr });
       }
+
+      // Last Depreciation Report Date
+      const lastDeprec = parseLocalDate(sr.lastDepreciationReportDate);
+      if (lastDeprec) {
+        rows.push({ id: `${srId}-last-depreciation`, date: lastDeprec, deadlineType: 'Last Depreciation Report Date', strataPlan, complexName, strataId, fileNumber: sr });
+      }
     }
 
     rows.sort((a, b) => a.date.getTime() - b.date.getTime());
@@ -172,7 +178,7 @@ export default function TimelinesPage() {
     }
 
     // Tab filters
-    const pastFirst = ['fiscalYear', 'fileOpened', 'surveySubmitted', 'documentUpload'].includes(filterDeadlineType);
+    const pastFirst = ['fiscalYear', 'fileOpened', 'surveySubmitted', 'documentUpload', 'depreciation'].includes(filterDeadlineType);
     if (activeTab === 'overdue') {
       rows = rows.filter(r => r.date < today);
     } else if (activeTab === 'next7') {
@@ -585,7 +591,7 @@ export default function TimelinesPage() {
           value={filterDeadlineType}
           onChange={(val) => {
             setFilterDeadlineType(val);
-            if (['fiscalYear', 'fileOpened', 'surveySubmitted', 'documentUpload'].includes(val)) {
+            if (['fiscalYear', 'fileOpened', 'surveySubmitted', 'documentUpload', 'depreciation'].includes(val)) {
               setShowPastDates(true);
             } else {
               setShowPastDates(false);
@@ -594,6 +600,7 @@ export default function TimelinesPage() {
           options={[
             { value: 'fiscalYear', label: 'Fiscal Year Start' },
             { value: 'agm', label: 'AGM' },
+            { value: 'depreciation', label: 'Depreciation Report' },
             { value: 'target', label: 'Target Date' },
             { value: 'fileOpened', label: 'File Opened' },
             { value: 'documentUpload', label: 'Documents Finalized' },
@@ -809,14 +816,14 @@ export default function TimelinesPage() {
                 />
                 <label htmlFor="create-no-agm">No AGM to date</label>
               </div>
-              <SingleSelectDropdown
-                label="Year of last depreciation report"
+              <InputField
+                label="Date of last depreciation report"
+                type="date"
                 required={!formData.noReportToDate}
-                value={formData.lastDepreciationReportDate ? formData.lastDepreciationReportDate.substring(0, 4) : ''}
-                onChange={(year) => setFormData(prev => ({ ...prev, lastDepreciationReportDate: year ? `${year}-01-01` : '' }))}
-                options={Array.from({ length: 41 }, (_, i) => new Date().getFullYear() - i).map(y => ({ value: y, label: String(y) }))}
-                placeholder="Select year"
+                value={formData.lastDepreciationReportDate}
+                onChange={(e) => setFormData(prev => ({ ...prev, lastDepreciationReportDate: e.target.value }))}
                 disabled={formData.noReportToDate}
+                max={maxDateToday}
               />
               <div className="timelines-checkbox">
                 <input
@@ -870,14 +877,14 @@ export default function TimelinesPage() {
 
           {!isCreating && isDepreciationType && (
             <>
-              <SingleSelectDropdown
-                label="Year of last depreciation report"
+              <InputField
+                label="Date of last depreciation report"
+                type="date"
                 required={!formData.noReportToDate}
-                value={formData.lastDepreciationReportDate ? formData.lastDepreciationReportDate.substring(0, 4) : ''}
-                onChange={(year) => setFormData(prev => ({ ...prev, lastDepreciationReportDate: year ? `${year}-01-01` : '' }))}
-                options={Array.from({ length: 41 }, (_, i) => new Date().getFullYear() - i).map(y => ({ value: y, label: String(y) }))}
-                placeholder="Select year"
+                value={formData.lastDepreciationReportDate}
+                onChange={(e) => setFormData(prev => ({ ...prev, lastDepreciationReportDate: e.target.value }))}
                 disabled={formData.noReportToDate}
+                max={maxDateToday}
               />
               <div className="timelines-checkbox">
                 <input

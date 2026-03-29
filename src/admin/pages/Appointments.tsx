@@ -668,11 +668,21 @@ export default function AppointmentsPage() {
         )}
 
         {status === 'cancelled' && (
-          <div className="appointments-detail__actions appointments-detail__actions--centered">
-            <button className="btn btn-primary" onClick={() => handleRequestRebooking(apt)}>
-              Request Rebooking
-            </button>
-          </div>
+          <>
+            {apt.cancellationReason && (
+              <div className="appointments-detail__section">
+                <div className="appointments-detail__kv">
+                  <span className="appointments-detail__kv-label">Cancellation Reason</span>
+                  <span className="appointments-detail__kv-value">{apt.cancellationReason}</span>
+                </div>
+              </div>
+            )}
+            <div className="appointments-detail__actions appointments-detail__actions--centered">
+              <button className="btn btn-primary" onClick={() => handleRequestRebooking(apt)}>
+                Request Rebooking
+              </button>
+            </div>
+          </>
         )}
       </div>
     );

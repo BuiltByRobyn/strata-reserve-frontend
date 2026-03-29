@@ -21,18 +21,19 @@
 
 .survey-category-nav {
   display: grid;
-  grid-template-columns: repeat(8, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: $spacing-xs;
   margin-bottom: $spacing-xl;
   width: 100%;
 
-  @include respond-below(lg) {
-    grid-template-columns: repeat(4, 1fr);
+  @media (min-width: 1250px) {
+    grid-template-columns: repeat(8, 1fr);
   }
 
   .category-btn {
     padding: $spacing-sm $spacing-xs;
     width: 100%;
+    min-height: 3.5rem;
     background: $color-white;
     border: 1px solid $color-border-light;
     border-radius: $border-radius-sm;
@@ -43,6 +44,9 @@
     transition: all 0.2s ease;
     text-align: center;
     line-height: 1.2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 
     &:hover {
       border-color: $color-primary;
@@ -154,7 +158,11 @@
     font-size: 0.6rem;
     color: $color-text-muted;
     transition: transform 0.2s ease;
-    margin-right: $spacing-xs;
+    margin-right: $spacing-md;
+
+    @include respond-below(sm) {
+      margin-right: $spacing-sm;
+    }
     flex-shrink: 0;
 
     &.expanded {
@@ -207,13 +215,13 @@
 
     .section-info {
       display: flex;
-      flex-direction: column;
+      flex-wrap: wrap;
+      align-items: baseline;
       gap: $spacing-xs;
       min-width: 0;
-      overflow: hidden;
 
       @media (min-width: 1150px) {
-        flex-direction: row;
+        flex-wrap: nowrap;
         align-items: center;
         gap: $spacing-xl;
       }
@@ -222,12 +230,22 @@
     .section-label {
       font-weight: $font-weight-bold;
       color: $color-text-dark;
-      min-width: 140px;
+
+      @media (min-width: 1150px) {
+        min-width: 320px;
+        flex-shrink: 0;
+      }
     }
 
     .section-description {
       font-size: $font-size-sm;
       color: $color-text-muted;
+      flex-basis: 100%;
+
+      @media (min-width: 1150px) {
+        flex-basis: auto;
+        flex: 1;
+      }
     }
 
     .section-status {
