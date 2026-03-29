@@ -263,7 +263,7 @@ export interface VersionDocumentRowProps {
   readOnly?: boolean;
 }
 
-export interface CancelAppointmentModalProps {
+export interface ClientCancelAppointmentModalProps {
   onConfirm: (reason?: string) => void;
   onClose: () => void;
   loading: boolean;

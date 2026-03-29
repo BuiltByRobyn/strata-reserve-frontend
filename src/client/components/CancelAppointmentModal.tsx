@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { Modal } from '../../shared/components/Modal';
-import type { CancelAppointmentModalProps } from '../../shared/types/component.types';
+import type { ClientCancelAppointmentModalProps } from '../../shared/types/component.types';
 
-const CancelAppointmentModal = ({ onConfirm, onClose, loading }: CancelAppointmentModalProps) => {
+const CancelAppointmentModal = ({ onConfirm, onClose, loading }: ClientCancelAppointmentModalProps) => {
   const [reason, setReason] = useState('');
 
   return (
