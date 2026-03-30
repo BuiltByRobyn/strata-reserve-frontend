@@ -8,14 +8,17 @@ export const useDocumentReview = () => {
   const [requirements, setRequirements] = useState<SRDocRequirement[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const fetchReview = useCallback(async (fileId: number) => {
+  const fetchReview = useCallback(async (fileId: number): Promise<DocumentReviewResult | null> => {
     setLoading(true);
     try {
       const data = await api.get<DocumentReviewResponse>(`/admin/file-numbers/${fileId}/document-review`);
-      setReview(data.review ?? null);
+      const result = data.review ?? null;
+      setReview(result);
       setRequirements(data.requirements ?? []);
+      return result;
     } catch (err) {
       console.error('Error fetching document review:', err);
+      return null;
     } finally {
       setLoading(false);
     }

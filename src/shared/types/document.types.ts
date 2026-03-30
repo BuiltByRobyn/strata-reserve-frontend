@@ -58,6 +58,7 @@ export interface RequiredDocumentChecklist {
   documentType: { documentTypeId: number; typeName: string };
   propertyType: { propertyTypeId: number; propertyTypeName: string } | null;
   naStatus: NaStatusValue | null;
+  naStatusSetAt: string | null;
   uploadedDocument: {
     fileNumberDocumentId: number;
     fileName: string;
@@ -97,7 +98,7 @@ export interface SRDocRequirement {
   notes: string | null;
   documentType: { documentTypeId: number; typeName: string };
   propertyType: { propertyTypeId: number; propertyTypeName: string } | null;
-  naStatus: { status: NaStatusValue } | null;
+  naStatus: { status: NaStatusValue; setAt: string } | null;
   fileNumberDocuments: Array<{
     fileNumberDocumentId: number;
     fileName: string;

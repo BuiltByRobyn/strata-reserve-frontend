@@ -393,17 +393,19 @@ const StrataMembers = () => {
 
           <div className="update-details-login-section">
             <h3>Login Details</h3>
-            <div className="update-details-login-email">
-              <div className="update-details-login-email__label">Email</div>
-              <div className="update-details-login-email__value">{currentUser?.email || user?.email}</div>
+            <div className="update-details-login-row">
+              <div className="update-details-login-email">
+                <div className="update-details-login-email__label">Email</div>
+                <div className="update-details-login-email__value">{currentUser?.email || user?.email}</div>
+              </div>
+              <button
+                type="button"
+                className="update-details-change-password"
+                onClick={() => setIsPasswordModalOpen(true)}
+              >
+                Change Password
+              </button>
             </div>
-            <button
-              type="button"
-              className="update-details-change-password"
-              onClick={() => setIsPasswordModalOpen(true)}
-            >
-              Change Password
-            </button>
           </div>
         </div>
       </Modal>

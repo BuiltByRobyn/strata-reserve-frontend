@@ -47,7 +47,7 @@ export interface ArchivedSurveyResponse extends SurveyResponse {
     questionText: string;
     isRequired: boolean;
     informationText: string | null;
-    questionCategory: string;
+    questionCategory: { key: string; label: string };
     questionType: { questionTypeName: string };
     multipleChoiceOptions: { multipleChoiceOptionId: number; optionText: string; sortOrder: number }[];
   };

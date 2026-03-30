@@ -35,7 +35,17 @@ export default function SurveySectionPage() {
     [questionCategories]
   );
 
-  const isReadOnly = !!activeRequest?.submittedForReviewDate;
+  const isSubmitted = !!activeRequest?.submittedForReviewDate;
+  const isAllFinalized = !!activeRequest?.userSectionsFinalized;
+  const isReadOnly = isSubmitted || isAllFinalized;
+
+  const finalizationMap = useMemo(() => {
+    const map = new Map<number, { finalizedByName: string | null }>();
+    for (const f of activeRequest?.propertyTypeFinalizations ?? []) {
+      if (f.finalizedAt) map.set(f.propertyTypeId, { finalizedByName: f.finalizedByName });
+    }
+    return map;
+  }, [activeRequest?.propertyTypeFinalizations]);
 
   const [page, setPage] = useState(0);
   const [localAnswers, setLocalAnswers] = useState<Record<string, SaveResponsePayload>>({});
@@ -170,7 +180,7 @@ export default function SurveySectionPage() {
     }
   };
 
-  const handleToggleFlag = useCallback((questionId: number, propertyTypeId: number, flag: 'NOT_APPLICABLE' | 'UNKNOWN') => {
+  const handleToggleFlag = useCallback((questionId: number, propertyTypeId: number, flag: 'NOT_APPLICABLE' | 'NOT_AVAILABLE') => {
     const key = `${questionId}-${propertyTypeId}`;
     setLocalAnswers(prev => {
       const current = prev[key]?.responseText;
@@ -283,130 +293,119 @@ export default function SurveySectionPage() {
     }
   };
 
-  const renderSubQuestion = (q: SurveyQuestion, index: number) => {
+  const formatAnswerDisplay = (q: SurveyQuestion, answer: SaveResponsePayload): string => {
+    if (answer.responseText === 'NOT_APPLICABLE') return 'Not Applicable';
+    if (answer.responseText === 'NOT_AVAILABLE') return 'Not Available';
+    if (q.questionType === 'boolean') {
+      return answer.responseBoolean === true ? 'Yes' : answer.responseBoolean === false ? 'No' : 'No answer';
+    }
+    if (q.questionType === 'multiple_choice') {
+      const opt = q.multipleChoiceOptions.find(o => o.optionId === answer.multipleChoiceOptionId);
+      return opt?.optionText || 'No answer';
+    }
+    if (q.questionType === 'checkbox') {
+      const ids = (answer.responseText || '').split(',').map(Number).filter(Boolean);
+      return ids.map(id => q.multipleChoiceOptions.find(o => o.optionId === id)?.optionText).filter(Boolean).join(', ') || 'No answer';
+    }
+    if (q.questionType === 'date') return answer.responseDate || 'No answer';
+    if (q.questionType === 'number') return answer.responseNumber != null ? String(answer.responseNumber) : 'No answer';
+    return answer.responseText || 'No answer';
+  };
+
+  const renderSubQuestion = (q: SurveyQuestion, index: number, readOnly = isReadOnly) => {
     const answer = getAnswer(q.questionId, q.propertyTypeId, q.parentQuestionId);
     return (
       <div key={q.fnSurveyQuestionId} className="survey-sub-question">
         <label className="question-label">
           <span className="sub-label-badge">{String.fromCharCode(97 + index)}.</span> {q.questionText}
         </label>
-        {q.questionType === 'textarea' && (
-          <textarea
-            className="question-input question-textarea"
-            value={answer.responseText || ''}
-            onChange={(e) => updateAnswer(q.questionId, q.propertyTypeId, 'responseText', e.target.value, q.parentQuestionId)}
-            placeholder="Enter your answer..."
-            rows={2}
-            readOnly={isReadOnly}
-          />
-        )}
-        {q.questionType === 'text' && (
-          <input
-            type="text"
-            className="question-input"
-            value={answer.responseText || ''}
-            onChange={(e) => updateAnswer(q.questionId, q.propertyTypeId, 'responseText', e.target.value, q.parentQuestionId)}
-            placeholder="Enter your answer..."
-            readOnly={isReadOnly}
-          />
-        )}
-        {q.questionType === 'number' && (
+        {readOnly ? (
+          <p className="question-answer-text">{formatAnswerDisplay(q, answer)}</p>
+        ) : (
           <>
-            <input
-              type="number"
-              className={`question-input${numberErrors.has(answerKey(q.questionId, q.propertyTypeId, q.parentQuestionId)) ? ' question-input--error' : ''}`}
-              value={answer.responseNumber ?? ''}
-              onChange={(e) => handleNumberChange(e, q.questionId, q.propertyTypeId, q.parentQuestionId)}
-              onKeyDown={handleNumberKeyDown(answerKey(q.questionId, q.propertyTypeId, q.parentQuestionId))}
-              placeholder="Enter number..."
-              readOnly={isReadOnly}
-            />
-            {numberErrors.has(answerKey(q.questionId, q.propertyTypeId, q.parentQuestionId)) && (
-              <span className="error-text">Please enter a whole number</span>
+            {q.questionType === 'textarea' && (
+              <textarea
+                className="question-input question-textarea"
+                value={answer.responseText || ''}
+                onChange={(e) => updateAnswer(q.questionId, q.propertyTypeId, 'responseText', e.target.value, q.parentQuestionId)}
+                placeholder="Enter your answer..."
+                rows={2}
+              />
+            )}
+            {q.questionType === 'text' && (
+              <input
+                type="text"
+                className="question-input"
+                value={answer.responseText || ''}
+                onChange={(e) => updateAnswer(q.questionId, q.propertyTypeId, 'responseText', e.target.value, q.parentQuestionId)}
+                placeholder="Enter your answer..."
+              />
+            )}
+            {q.questionType === 'number' && (
+              <>
+                <input
+                  type="number"
+                  className={`question-input${numberErrors.has(answerKey(q.questionId, q.propertyTypeId, q.parentQuestionId)) ? ' question-input--error' : ''}`}
+                  value={answer.responseNumber ?? ''}
+                  onChange={(e) => handleNumberChange(e, q.questionId, q.propertyTypeId, q.parentQuestionId)}
+                  onKeyDown={handleNumberKeyDown(answerKey(q.questionId, q.propertyTypeId, q.parentQuestionId))}
+                  placeholder="Enter number..."
+                />
+                {numberErrors.has(answerKey(q.questionId, q.propertyTypeId, q.parentQuestionId)) && (
+                  <span className="error-text">Please enter a whole number</span>
+                )}
+              </>
+            )}
+            {q.questionType === 'boolean' && (
+              <div className="question-boolean">
+                <label><input type="radio" name={`sq-${q.fnSurveyQuestionId}`} checked={answer.responseBoolean === true} onChange={() => updateAnswer(q.questionId, q.propertyTypeId, 'responseBoolean', true, q.parentQuestionId)} /> Yes</label>
+                <label><input type="radio" name={`sq-${q.fnSurveyQuestionId}`} checked={answer.responseBoolean === false} onChange={() => updateAnswer(q.questionId, q.propertyTypeId, 'responseBoolean', false, q.parentQuestionId)} /> No</label>
+              </div>
+            )}
+            {q.questionType === 'date' && (
+              <input type="date" className="question-input" value={answer.responseDate || ''} onChange={(e) => updateAnswer(q.questionId, q.propertyTypeId, 'responseDate', e.target.value, q.parentQuestionId)} />
+            )}
+            {q.questionType === 'multiple_choice' && (
+              <div className="question-choices">
+                {q.multipleChoiceOptions.map((opt) => (
+                  <label key={opt.optionId} className="choice-option">
+                    <input type="radio" name={`sq-${q.fnSurveyQuestionId}`} checked={answer.multipleChoiceOptionId === opt.optionId} onChange={() => updateAnswer(q.questionId, q.propertyTypeId, 'multipleChoiceOptionId', opt.optionId, q.parentQuestionId)} />
+                    {opt.optionText}
+                  </label>
+                ))}
+              </div>
+            )}
+            {q.questionType === 'checkbox' && (
+              <div className="question-choices question-checkboxes">
+                {q.multipleChoiceOptions.map((opt) => (
+                  <label key={opt.optionId} className="choice-option">
+                    <input
+                      type="checkbox"
+                      checked={answer.responseText?.split(',').includes(String(opt.optionId)) || false}
+                      onChange={(e) => {
+                        const current = answer.responseText?.split(',').filter(Boolean) || [];
+                        const id = String(opt.optionId);
+                        const updated = e.target.checked ? [...current, id] : current.filter(v => v !== id);
+                        updateAnswer(q.questionId, q.propertyTypeId, 'responseText', updated.join(','), q.parentQuestionId);
+                      }}
+                    />
+                    {opt.optionText}
+                  </label>
+                ))}
+              </div>
             )}
           </>
-        )}
-        {q.questionType === 'boolean' && (
-          <div className="question-boolean">
-            <label>
-              <input
-                type="radio"
-                name={`sq-${q.fnSurveyQuestionId}`}
-                checked={answer.responseBoolean === true}
-                onChange={() => updateAnswer(q.questionId, q.propertyTypeId, 'responseBoolean', true, q.parentQuestionId)}
-                disabled={isReadOnly}
-              />
-              Yes
-            </label>
-            <label>
-              <input
-                type="radio"
-                name={`sq-${q.fnSurveyQuestionId}`}
-                checked={answer.responseBoolean === false}
-                onChange={() => updateAnswer(q.questionId, q.propertyTypeId, 'responseBoolean', false, q.parentQuestionId)}
-                disabled={isReadOnly}
-              />
-              No
-            </label>
-          </div>
-        )}
-        {q.questionType === 'date' && (
-          <input
-            type="date"
-            className="question-input"
-            value={answer.responseDate || ''}
-            onChange={(e) => updateAnswer(q.questionId, q.propertyTypeId, 'responseDate', e.target.value, q.parentQuestionId)}
-            readOnly={isReadOnly}
-          />
-        )}
-        {q.questionType === 'multiple_choice' && (
-          <div className="question-choices">
-            {q.multipleChoiceOptions.map((opt) => (
-              <label key={opt.optionId} className="choice-option">
-                <input
-                  type="radio"
-                  name={`sq-${q.fnSurveyQuestionId}`}
-                  checked={answer.multipleChoiceOptionId === opt.optionId}
-                  onChange={() => updateAnswer(q.questionId, q.propertyTypeId, 'multipleChoiceOptionId', opt.optionId, q.parentQuestionId)}
-                  disabled={isReadOnly}
-                />
-                {opt.optionText}
-              </label>
-            ))}
-          </div>
-        )}
-        {q.questionType === 'checkbox' && (
-          <div className="question-choices question-checkboxes">
-            {q.multipleChoiceOptions.map((opt) => (
-              <label key={opt.optionId} className="choice-option">
-                <input
-                  type="checkbox"
-                  checked={answer.responseText?.split(',').includes(String(opt.optionId)) || false}
-                  onChange={(e) => {
-                    const current = answer.responseText?.split(',').filter(Boolean) || [];
-                    const id = String(opt.optionId);
-                    const updated = e.target.checked
-                      ? [...current, id]
-                      : current.filter(v => v !== id);
-                    updateAnswer(q.questionId, q.propertyTypeId, 'responseText', updated.join(','), q.parentQuestionId);
-                  }}
-                  disabled={isReadOnly}
-                />
-                {opt.optionText}
-              </label>
-            ))}
-          </div>
         )}
       </div>
     );
   };
 
-  const renderQuestion = (q: SurveyQuestion, index: number) => {
+  const renderQuestion = (q: SurveyQuestion, index: number, readOnly = isReadOnly) => {
     const answer = getAnswer(q.questionId, q.propertyTypeId);
     const questionNumber = page * QUESTIONS_PER_PAGE + index + 1;
     const subQuestions = subQuestionsMap.get(`${q.questionId}-${q.propertyTypeId}`) ?? [];
 
-    const isFlagged = answer.responseText === 'NOT_APPLICABLE' || answer.responseText === 'UNKNOWN';
+    const isFlagged = answer.responseText === 'NOT_APPLICABLE' || answer.responseText === 'NOT_AVAILABLE';
     const hasAnswer = !isFlagged && (
       (answer.responseText != null && answer.responseText.trim() !== '') ||
       answer.responseNumber != null ||
@@ -426,15 +425,15 @@ export default function SurveySectionPage() {
           <p className="question-info">{q.informationText}</p>
         )}
 
-        {!isReadOnly && (q.allowUnavailable || q.allowNa) && (
+        {!readOnly && (q.allowUnavailable || q.allowNa) && (
           <div className="question-flag-buttons">
             {q.allowUnavailable && (
               <button
                 type="button"
-                className={`btn-flag${answer.responseText === 'UNKNOWN' ? ' btn-flag--active' : ''}`}
-                onClick={() => handleToggleFlag(q.questionId, q.propertyTypeId, 'UNKNOWN')}
+                className={`btn-flag${answer.responseText === 'NOT_AVAILABLE' ? ' btn-flag--active' : ''}`}
+                onClick={() => handleToggleFlag(q.questionId, q.propertyTypeId, 'NOT_AVAILABLE')}
               >
-                Unknown
+                Not Available
               </button>
             )}
             {q.allowNa && (
@@ -451,33 +450,35 @@ export default function SurveySectionPage() {
 
         {isFlagged && (
           <p className="question-flag-label">
-            {answer.responseText === 'NOT_APPLICABLE' ? 'Not Applicable' : 'Unknown'}
+            {answer.responseText === 'NOT_APPLICABLE' ? 'Not Applicable' : 'Not Available'}
           </p>
         )}
 
-        {!isFlagged && q.questionType === 'textarea' && (
+        {!isFlagged && readOnly && (
+          <p className="question-answer-text">{formatAnswerDisplay(q, answer)}</p>
+        )}
+
+        {!isFlagged && !readOnly && q.questionType === 'textarea' && (
           <textarea
             className="question-input question-textarea"
             value={answer.responseText || ''}
             onChange={(e) => updateAnswer(q.questionId, q.propertyTypeId, 'responseText', e.target.value)}
             placeholder="Enter your answer..."
             rows={3}
-            readOnly={isReadOnly}
           />
         )}
 
-        {!isFlagged && q.questionType === 'text' && (
+        {!isFlagged && !readOnly && q.questionType === 'text' && (
           <input
             type="text"
             className="question-input"
             value={answer.responseText || ''}
             onChange={(e) => updateAnswer(q.questionId, q.propertyTypeId, 'responseText', e.target.value)}
             placeholder="Enter your answer..."
-            readOnly={isReadOnly}
           />
         )}
 
-        {!isFlagged && q.questionType === 'number' && (
+        {!isFlagged && !readOnly && q.questionType === 'number' && (
           <>
             <input
               type="number"
@@ -486,7 +487,6 @@ export default function SurveySectionPage() {
               onChange={(e) => handleNumberChange(e, q.questionId, q.propertyTypeId)}
               onKeyDown={handleNumberKeyDown(answerKey(q.questionId, q.propertyTypeId))}
               placeholder="Enter number..."
-              readOnly={isReadOnly}
             />
             {numberErrors.has(answerKey(q.questionId, q.propertyTypeId)) && (
               <span className="error-text">Please enter a whole number</span>
@@ -494,59 +494,34 @@ export default function SurveySectionPage() {
           </>
         )}
 
-        {!isFlagged && q.questionType === 'boolean' && (
+        {!isFlagged && !readOnly && q.questionType === 'boolean' && (
           <div className="question-boolean">
-            <label>
-              <input
-                type="radio"
-                name={`q-${q.fnSurveyQuestionId}`}
-                checked={answer.responseBoolean === true}
-                onChange={() => updateAnswer(q.questionId, q.propertyTypeId, 'responseBoolean', true)}
-                disabled={isReadOnly}
-              />
-              Yes
-            </label>
-            <label>
-              <input
-                type="radio"
-                name={`q-${q.fnSurveyQuestionId}`}
-                checked={answer.responseBoolean === false}
-                onChange={() => updateAnswer(q.questionId, q.propertyTypeId, 'responseBoolean', false)}
-                disabled={isReadOnly}
-              />
-              No
-            </label>
+            <label><input type="radio" name={`q-${q.fnSurveyQuestionId}`} checked={answer.responseBoolean === true} onChange={() => updateAnswer(q.questionId, q.propertyTypeId, 'responseBoolean', true)} /> Yes</label>
+            <label><input type="radio" name={`q-${q.fnSurveyQuestionId}`} checked={answer.responseBoolean === false} onChange={() => updateAnswer(q.questionId, q.propertyTypeId, 'responseBoolean', false)} /> No</label>
           </div>
         )}
 
-        {!isFlagged && q.questionType === 'date' && (
+        {!isFlagged && !readOnly && q.questionType === 'date' && (
           <input
             type="date"
             className="question-input"
             value={answer.responseDate || ''}
             onChange={(e) => updateAnswer(q.questionId, q.propertyTypeId, 'responseDate', e.target.value)}
-            readOnly={isReadOnly}
           />
         )}
 
-        {!isFlagged && q.questionType === 'multiple_choice' && (
+        {!isFlagged && !readOnly && q.questionType === 'multiple_choice' && (
           <div className="question-choices">
             {q.multipleChoiceOptions.map((opt) => (
               <label key={opt.optionId} className="choice-option">
-                <input
-                  type="radio"
-                  name={`q-${q.fnSurveyQuestionId}`}
-                  checked={answer.multipleChoiceOptionId === opt.optionId}
-                  onChange={() => updateAnswer(q.questionId, q.propertyTypeId, 'multipleChoiceOptionId', opt.optionId)}
-                  disabled={isReadOnly}
-                />
+                <input type="radio" name={`q-${q.fnSurveyQuestionId}`} checked={answer.multipleChoiceOptionId === opt.optionId} onChange={() => updateAnswer(q.questionId, q.propertyTypeId, 'multipleChoiceOptionId', opt.optionId)} />
                 {opt.optionText}
               </label>
             ))}
           </div>
         )}
 
-        {!isFlagged && q.questionType === 'checkbox' && (
+        {!isFlagged && !readOnly && q.questionType === 'checkbox' && (
           <div className="question-choices question-checkboxes">
             {q.multipleChoiceOptions.map((opt) => (
               <label key={opt.optionId} className="choice-option">
@@ -556,12 +531,9 @@ export default function SurveySectionPage() {
                   onChange={(e) => {
                     const current = answer.responseText?.split(',').filter(Boolean) || [];
                     const id = String(opt.optionId);
-                    const updated = e.target.checked
-                      ? [...current, id]
-                      : current.filter(v => v !== id);
+                    const updated = e.target.checked ? [...current, id] : current.filter(v => v !== id);
                     updateAnswer(q.questionId, q.propertyTypeId, 'responseText', updated.join(','));
                   }}
-                  disabled={isReadOnly}
                 />
                 {opt.optionText}
               </label>
@@ -569,10 +541,9 @@ export default function SurveySectionPage() {
           </div>
         )}
 
-
         {subQuestions.length > 0 && hasAnswer && (
           <div className="survey-sub-questions">
-            {subQuestions.map((sq, i) => renderSubQuestion(sq, i))}
+            {subQuestions.map((sq, i) => renderSubQuestion(sq, i, readOnly))}
           </div>
         )}
       </div>
@@ -613,15 +584,33 @@ export default function SurveySectionPage() {
           </div>
         ) : (() => {
           const clientTypeIds = activeRequest?.clientPropertyTypes ?? [];
-          if (clientTypeIds.length <= 1) {
-            return pageQuestions.map((q, i) => renderQuestion(q, i));
-          }
           const propertyTypeNameMap = new Map<number, string>();
           for (const spt of activeRequest?.strata?.strataPropertyTypes ?? []) {
             if (spt.propertyType) {
               propertyTypeNameMap.set(spt.propertyType.propertyTypeId, spt.propertyType.propertyTypeName);
             }
           }
+
+          if (clientTypeIds.length <= 1) {
+            const typeId = pageQuestions[0]?.propertyTypeId;
+            const typeFinalized = typeId != null ? finalizationMap.get(typeId) : undefined;
+            if (typeFinalized && !isSubmitted) {
+              return (
+                <details className="survey-finalized-group">
+                  <summary className="survey-finalized-summary">
+                    {typeFinalized.finalizedByName
+                      ? `${typeFinalized.finalizedByName} has already finalized these questions`
+                      : 'These questions have been finalized'}
+                  </summary>
+                  <div className="survey-finalized-questions">
+                    {pageQuestions.map((q, i) => renderQuestion(q, i, true))}
+                  </div>
+                </details>
+              );
+            }
+            return pageQuestions.map((q, i) => renderQuestion(q, i));
+          }
+
           const groups: { propertyTypeId: number; questions: SurveyQuestion[] }[] = [];
           for (const q of pageQuestions) {
             const last = groups[groups.length - 1];
@@ -632,18 +621,41 @@ export default function SurveySectionPage() {
             }
           }
           let globalIndex = page * QUESTIONS_PER_PAGE;
-          return groups.map(group => (
-            <div key={group.propertyTypeId} className="survey-property-type-group">
-              <h3 className="survey-property-type-heading">
-                {propertyTypeNameMap.get(group.propertyTypeId) ?? `Property Type ${group.propertyTypeId}`}
-              </h3>
-              {group.questions.map((q) => {
-                const el = renderQuestion(q, globalIndex - page * QUESTIONS_PER_PAGE);
+          return groups.map(group => {
+            const typeName = propertyTypeNameMap.get(group.propertyTypeId) ?? `Property Type ${group.propertyTypeId}`;
+            const typeFinalized = finalizationMap.get(group.propertyTypeId);
+
+            if (typeFinalized && !isSubmitted) {
+              const elements = group.questions.map((q) => {
+                const el = renderQuestion(q, globalIndex - page * QUESTIONS_PER_PAGE, true);
                 globalIndex++;
                 return el;
-              })}
-            </div>
-          ));
+              });
+              return (
+                <details key={group.propertyTypeId} className="survey-finalized-group">
+                  <summary className="survey-finalized-summary">
+                    <strong>{typeName}</strong>
+                    {' \u2014 '}
+                    {typeFinalized.finalizedByName
+                      ? `${typeFinalized.finalizedByName} has already finalized these questions`
+                      : 'These questions have been finalized'}
+                  </summary>
+                  <div className="survey-finalized-questions">{elements}</div>
+                </details>
+              );
+            }
+
+            return (
+              <div key={group.propertyTypeId} className="survey-property-type-group">
+                <h3 className="survey-property-type-heading">{typeName}</h3>
+                {group.questions.map((q) => {
+                  const el = renderQuestion(q, globalIndex - page * QUESTIONS_PER_PAGE);
+                  globalIndex++;
+                  return el;
+                })}
+              </div>
+            );
+          });
         })()}
       </div>
 

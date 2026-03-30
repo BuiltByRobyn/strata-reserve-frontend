@@ -193,7 +193,7 @@ export const Dashboard = () => {
         priority: urgency.priority,
         createdAt: request.createdAt,
         title: getStrataLabel(request.strataProfile?.strata),
-        description: `${clientName} requested access to ${getPropertyTypeNames(request.requestedPropertyTypeIds)}. Submitted ${formatRelativeTime(request.createdAt)}.`,
+        description: `${clientName} requested access to ${getPropertyTypeNames(request.requestedPropertyTypeIds)}.`,
         request,
       };
     });
@@ -210,7 +210,7 @@ export const Dashboard = () => {
         priority: urgency.priority + 15,
         createdAt: request.createdAt,
         title: getStrataLabel(request.strataProfile?.strata),
-        description: `${clientName} requested account activation. Submitted ${formatRelativeTime(request.createdAt)}.`,
+        description: `${clientName} requested account activation.`,
         request,
       };
     });
@@ -246,7 +246,7 @@ export const Dashboard = () => {
           priority: urgency.priority + 20,
           createdAt: request.rebookingRequestedAt || request.requestDate,
           title: getStrataLabel(request.strata),
-          description: `The client needs a new inspection date after a cancelled appointment. Requested ${formatRelativeTime(request.rebookingRequestedAt)}.`,
+          description: `The client needs a new inspection date after a cancelled appointment.`,
           request,
         };
       });
@@ -271,7 +271,7 @@ export const Dashboard = () => {
           priority: urgency.priority + 5,
           createdAt: request.submittedForReviewDate!,
           title: getStrataLabel(request.strata),
-          description: `Application finalized. Submitted ${formatRelativeTime(request.submittedForReviewDate)}. Offer an inspection appointment.`,
+          description: `Application finalized. Offer an inspection appointment.`,
           strataId: request.strata?.strataId ?? request.strataId,
         };
       });
@@ -294,14 +294,42 @@ export const Dashboard = () => {
         };
       });
 
-    return [...propertyTypeCards, ...activationCards, ...appointmentCards, ...rebookingCards, ...finalizedCards, ...docResubmitCards]
+    // Files that already have action taken (rebooking requested, new request pending, or new appointment scheduled)
+    const handledFileIds = new Set([
+      ...rebookingCards.map((c) => (c as { request: { fileId: number } }).request.fileId),
+      ...appointmentRequests.map((r) => r.fileNumber?.fileId).filter(Boolean),
+      ...appointments.filter((a) => a.status === 'Scheduled' || a.status === 'Rescheduled').map((a) => a.fileNumber?.fileId).filter(Boolean),
+    ]);
+    const cancelledCards: UrgentCard[] = appointments
+      .filter((a) =>
+        a.status === 'Cancelled' &&
+        a.cancelledAt &&
+        isWithinPastHours(a.cancelledAt, 168) &&
+        !handledFileIds.has(a.fileNumber?.fileId ?? -1)
+      )
+      .map((a) => {
+        const urgency = getUrgencyMeta(a.cancelledAt);
+        return {
+          id: `cancelled-${a.appointmentId}`,
+          kind: 'appointment-cancelled' as const,
+          tone: urgency.tone,
+          badge: 'CANCELLED',
+          priority: urgency.priority + 18,
+          createdAt: a.cancelledAt!,
+          title: getStrataLabel(a.fileNumber?.strata),
+          description: `${a.appointmentType.typeName} on ${formatShortDate(a.appointmentDate)} was cancelled${a.cancellationReason ? `: ${a.cancellationReason}` : ''}. Action needed.`,
+          appointment: a,
+        };
+      });
+
+    return [...propertyTypeCards, ...activationCards, ...appointmentCards, ...rebookingCards, ...cancelledCards, ...finalizedCards, ...docResubmitCards]
       .sort((left, right) => {
         if (right.priority !== left.priority) return right.priority - left.priority;
         const leftTime = parseTimestamp(left.createdAt)?.getTime() || 0;
         const rightTime = parseTimestamp(right.createdAt)?.getTime() || 0;
         return rightTime - leftTime;
       });
-  }, [activeRequests, activationRequests, appointmentRequests, propertyRequests, propertyTypes, notifications]);
+  }, [activeRequests, activationRequests, appointmentRequests, appointments, propertyRequests, propertyTypes, notifications]);
 
   const activityCards: ActivityCard[] = useMemo(() => {
     const hours = windowHours(activityWindow);
@@ -528,6 +556,13 @@ export const Dashboard = () => {
                         }}
                       >
                         Review Documents
+                      </button>
+                    ) : card.kind === 'appointment-cancelled' ? (
+                      <button
+                        className="btn-action btn-action--primary"
+                        onClick={() => navigate('/admin/appointments')}
+                      >
+                        Review
                       </button>
                     ) : (
                       <>

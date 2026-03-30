@@ -1363,11 +1363,10 @@
   }
 
   @include respond-below(lg) {
-    flex-direction: column;
+    flex-wrap: wrap;
 
     &__nav {
-      width: 100%;
-      justify-content: space-between;
+      flex: 1;
     }
 
     &__decisions {

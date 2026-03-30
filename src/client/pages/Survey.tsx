@@ -4,6 +4,7 @@ import toast from 'react-hot-toast';
 import { useSurvey } from '../../shared/hooks/useSurvey';
 import { useClientFileNumber } from '../../shared/hooks/useClientFileNumber';
 import { useLookups } from '../../shared/hooks/useLookups';
+import { surveyQuestionKey } from '../../shared/utils/surveyUtils';
 import { useApiClient } from '../../shared/hooks/useApiClient';
 import { SurveyProgressBar } from '../../shared/components/SurveyProgressBar';
 import { LoadingSpinner } from '../../shared/components/LoadingSpinner';
@@ -30,9 +31,23 @@ export default function SurveyPage() {
   const [downloadingPdf, setDownloadingPdf] = useState(false);
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
   const isSubmitted = !!activeRequest?.submittedForReviewDate;
+  const isLockedPartial = !isSubmitted && !!activeRequest?.userSectionsFinalized;
+  const isReadOnly = isSubmitted || isLockedPartial;
+
+  const finalizerPrefix = useMemo(() => {
+    const names = [
+      ...new Set(
+        (activeRequest?.propertyTypeFinalizations ?? [])
+          .filter(f => f.finalizedAt && f.finalizedByName)
+          .map(f => f.finalizedByName as string)
+      ),
+    ];
+    if (names.length === 0) return null;
+    return `${names.join(' & ')} finalized these answers. `;
+  }, [activeRequest?.propertyTypeFinalizations]);
 
   const handleSectionClick = (sectionKey: string) => {
-    if (isSubmitted) {
+    if (isReadOnly) {
       setExpandedSections(prev => {
         const next = new Set(prev);
         if (next.has(sectionKey)) next.delete(sectionKey); else next.add(sectionKey);
@@ -46,7 +61,7 @@ export default function SurveyPage() {
   const formatAnswer = (q: SurveyQuestion, response: SurveyResponse | undefined): string => {
     if (!response) return '—';
     if (response.responseText === 'NOT_APPLICABLE') return 'Not Applicable';
-    if (response.responseText === 'UNKNOWN') return 'Unknown';
+    if (response.responseText === 'NOT_AVAILABLE') return 'Not Available';
     if (q.questionType === 'boolean') {
       return response.responseBoolean === true ? 'Yes' : response.responseBoolean === false ? 'No' : '—';
     }
@@ -64,14 +79,14 @@ if (q.questionType === 'multiple_choice') {
   };
 
   useEffect(() => {
-    if (isSubmitted && fileId) {
-      const key = `survey_thanked_${fileId}`;
+    if (isReadOnly && fileId) {
+      const key = isLockedPartial ? `survey_partial_thanked_${fileId}` : `survey_thanked_${fileId}`;
       if (!localStorage.getItem(key)) {
         setShowThankYou(true);
         localStorage.setItem(key, 'true');
       }
     }
-  }, [isSubmitted, fileId]);
+  }, [isReadOnly, isLockedPartial, fileId]);
 
   useEffect(() => {
     if (location.state?.fromTimelines) {
@@ -102,8 +117,8 @@ if (q.questionType === 'multiple_choice') {
     const sectionQuestions = questions.filter(
       q => q.questionCategory === sectionConfig.label && q.parentQuestionId == null
     );
-    const answeredIds = new Set(responses.filter(isResponseAnswered).map(r => r.questionId));
-    const answered = sectionQuestions.filter(q => answeredIds.has(q.questionId)).length;
+    const answeredKeys = new Set(responses.filter(isResponseAnswered).map(r => surveyQuestionKey(r.questionId, r.propertyTypeId)));
+    const answered = sectionQuestions.filter(q => answeredKeys.has(surveyQuestionKey(q.questionId, q.propertyTypeId))).length;
 
     return { total: sectionQuestions.length, answered };
   };
@@ -123,7 +138,7 @@ if (q.questionType === 'multiple_choice') {
     if (!fileId) return;
     setDownloadingPdf(true);
     try {
-      const url = isSubmitted
+      const url = isReadOnly
         ? '/client/file-numbers/active/survey/pdf'
         : '/client/file-numbers/active/survey/pdf?blank=true';
       const res = await api.rawFetch(url);
@@ -172,7 +187,7 @@ if (q.questionType === 'multiple_choice') {
             onClick={handleDownloadPdf}
             disabled={!fileId || downloadingPdf}
           >
-            {downloadingPdf ? 'Downloading...' : isSubmitted ? 'Download Submitted Answers' : 'Download Survey'}
+            {downloadingPdf ? 'Downloading...' : isReadOnly ? 'Download Submitted Answers' : 'Download Survey'}
           </button>
         )}
       </div>
@@ -202,7 +217,7 @@ if (q.questionType === 'multiple_choice') {
         }).map((section) => {
           const complete = isSectionComplete(section.key);
           const isExpanded = expandedSections.has(section.key);
-          const sectionQs = isSubmitted
+          const sectionQs = isReadOnly
             ? questions.filter(q => q.questionCategory === section.label && q.parentQuestionId == null)
             : [];
 
@@ -217,7 +232,7 @@ if (q.questionType === 'multiple_choice') {
               >
                 <div className="section-info">
                   <span className="section-label">
-                    {isSubmitted && (
+                    {isReadOnly && (
                       <span className={`survey-section-arrow${isExpanded ? ' expanded' : ''}`}>▶</span>
                     )}
                     {section.label}
@@ -228,7 +243,7 @@ if (q.questionType === 'multiple_choice') {
                   {complete ? 'Complete' : 'Incomplete'}
                 </span>
               </div>
-              {isSubmitted && isExpanded && (
+              {isReadOnly && isExpanded && (
                 <div className="survey-section-answers">
                   {sectionQs.map((q, i) => {
                     const response = responses.find(r => r.questionId === q.questionId);
@@ -246,9 +261,12 @@ if (q.questionType === 'multiple_choice') {
         })}
       </div>
 
-      {isSubmitted && (
+      {isReadOnly && (
         <p className="survey-change-note">
-          If you need to change your answers, please email clientcare@stratareserveplanning.com
+          {finalizerPrefix}
+          {isLockedPartial
+            ? 'All required survey answers have been submitted for your property sections. Your submissions will be reviewed once all strata sections have been finalized.'
+            : 'If you need to change your answers, please email clientcare@stratareserveplanning.com'}
         </p>
       )}
 
@@ -265,9 +283,11 @@ if (q.questionType === 'multiple_choice') {
       >
         <div className="thank-you-content">
           <p>
-            {(activeRequest?.clientPropertyTypes?.length ?? 0) < (activeRequest?.strata?.strataPropertyTypes?.length ?? 0)
-              ? 'Thank you for submitting your survey answers. Once all sections of your property have finalized their submissions, a strata reserve planning team member will review your file.'
-              : 'Thank you for submitting your survey answers. Once your documents are also finalized, a strata reserve planning team member will review your submissions within 3–5 business days.'}
+            {isLockedPartial
+              ? 'Thank you for submitting your survey answers. Your submissions will be reviewed once all strata sections have been finalized.'
+              : (activeRequest?.clientPropertyTypes?.length ?? 0) < (activeRequest?.strata?.strataPropertyTypes?.length ?? 0)
+                ? 'Thank you for submitting your survey answers. Once all sections of your property have finalized their submissions, a strata reserve planning team member will review your file.'
+                : 'Thank you for submitting your survey answers. Once your documents are also finalized, a strata reserve planning team member will review your submissions within 3–5 business days.'}
           </p>
         </div>
       </Modal>

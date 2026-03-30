@@ -94,6 +94,7 @@
     color: $color-text-dark;
     min-width: 160px;
     flex-shrink: 0;
+    margin-right: $spacing-sm;
   }
 
   &__detail-value {
@@ -301,6 +302,15 @@
     line-height: 1;
   }
 
+  &__cell-label-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1px;
+    width: 100%;
+    overflow: hidden;
+  }
+
   &__cell-label {
     font-size: 0.45rem;
     font-weight: 600;
@@ -311,6 +321,14 @@
     text-overflow: ellipsis;
     line-height: 1;
     margin-top: 1px;
+
+    @include respond-below(sm) {
+      white-space: normal;
+      word-break: break-word;
+      text-align: center;
+      font-size: 0.35rem;
+      line-height: 1.1;
+    }
 
     .booking-calendar__cell--selected & {
       color: $color-white;
