@@ -105,6 +105,8 @@ export interface SRDocRequirement {
     filePath: string;
     uploadedAt: string;
     fnDocRequirementId: number | null;
+    reviewStatus?: { reviewStatusId: number; statusName: string } | null;
+    uploadedBy?: { userTypeId: number } | null;
   }>;
 }
 

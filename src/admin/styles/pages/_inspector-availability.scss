@@ -85,6 +85,16 @@
         align-items: center;
         flex-wrap: wrap;
         gap: $spacing-sm $spacing-xl;
+
+        @include respond-below(md) {
+            .locations-label {
+                width: 100%;
+            }
+
+            .location-option {
+                width: calc(100% / 3 - $spacing-xl);
+            }
+        }
     }
 
     .locations-label {

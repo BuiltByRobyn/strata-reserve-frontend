@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useStrata } from "../../shared/hooks/useStrata";
+import { usePermissions } from "../../shared/hooks/usePermissions";
 import { useLookups } from "../../shared/hooks/useLookups";
 import { useMediaQuery } from "../../shared/hooks/useMediaQuery";
 import {
@@ -26,6 +27,7 @@ import { LOCATION_DISPLAY_ORDER } from "../../shared/utils/constants";
 export default function StrataPage() {
   const { stratas, loading, error, createStrata, updateStrata, deleteStrata } =
     useStrata();
+  const { canDelete } = usePermissions();
   const { legalTypes, propertyTypes, locations } = useLookups();
   const navigate = useNavigate();
   const location = useLocation();
@@ -334,7 +336,7 @@ export default function StrataPage() {
             >
               Cancel
             </button>
-            {editingStrata && (
+            {canDelete && editingStrata && (
               <button
                 className="btn-delete"
                 onClick={() => {

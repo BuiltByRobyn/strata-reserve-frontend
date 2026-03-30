@@ -1,4 +1,67 @@
-import type { RequiredDocumentChecklist } from '../types/document.types';
+import type { RequiredDocumentChecklist, NaStatusValue } from '../types/document.types';
+
+export interface DocStatusInput {
+  latestDoc?: {
+    uploadedAt: string;
+    reviewStatus?: { reviewStatusId: number; statusName: string } | null;
+    uploadedBy?: { userTypeId: number } | null;
+  } | null;
+  naStatus?: { status: NaStatusValue; setAt: string } | null;
+  reviewItem?: { reviewStatus: { reviewStatusId: number; statusName: string } } | null;
+  reviewedAt?: string | null;
+}
+
+export interface DocStatusResult {
+  statusName: string;
+  badgeClass: string;
+  type: 'na' | 'document' | 'review' | 'default';
+}
+
+export function resolveDocumentStatus(input: DocStatusInput): DocStatusResult {
+  const { latestDoc, naStatus, reviewItem, reviewedAt } = input;
+  const naSetAfterReview = naStatus?.setAt && reviewedAt
+    && new Date(naStatus.setAt) > new Date(reviewedAt);
+  const docUploadedAfterNa = latestDoc && naStatus?.setAt
+    && new Date(latestDoc.uploadedAt) > new Date(naStatus.setAt);
+  const uploadedByStaff = latestDoc?.uploadedBy && [1, 2, 4].includes(latestDoc.uploadedBy.userTypeId);
+
+  // Staff uploads always override N/A
+  // Client uploads override N/A only if uploaded after N/A was set
+  if (naStatus && !docUploadedAfterNa && !uploadedByStaff && (!reviewItem || naSetAfterReview)) {
+    const label = naStatus.status === 'not_available' ? 'Not Available' : 'Not Applicable';
+    return { statusName: label, badgeClass: 'status-badge na-status', type: 'na' };
+  }
+
+  // Document exists
+  if (latestDoc) {
+    const uploadedAfterReview = reviewedAt && new Date(latestDoc.uploadedAt) > new Date(reviewedAt);
+    if (!reviewItem || uploadedAfterReview) {
+      if (latestDoc.reviewStatus) {
+        return {
+          statusName: latestDoc.reviewStatus.statusName,
+          badgeClass: `status-badge ${latestDoc.reviewStatus.statusName.toLowerCase().replace(/\s+/g, '-')}`,
+          type: 'document',
+        };
+      }
+      return { statusName: 'Pending', badgeClass: 'status-badge pending', type: 'default' };
+    }
+    return {
+      statusName: reviewItem.reviewStatus.statusName,
+      badgeClass: `status-badge ${reviewItem.reviewStatus.statusName.toLowerCase().replace(/\s+/g, '-')}`,
+      type: 'review',
+    };
+  }
+
+  // No document
+  if (reviewItem) {
+    return {
+      statusName: reviewItem.reviewStatus.statusName,
+      badgeClass: `status-badge ${reviewItem.reviewStatus.statusName.toLowerCase().replace(/\s+/g, '-')}`,
+      type: 'review',
+    };
+  }
+  return { statusName: 'Not Received', badgeClass: 'status-badge not-received', type: 'default' };
+}
 
 export function groupByDocumentType<T extends { documentType: { typeName: string } }>(
   items: T[]

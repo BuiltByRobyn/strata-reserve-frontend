@@ -6,6 +6,7 @@ import type { DragEndEvent } from '@dnd-kit/core';
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import toast from "react-hot-toast";
 import { useStrata } from "../../shared/hooks/useStrata";
+import { usePermissions } from "../../shared/hooks/usePermissions";
 import { useAuthFetch } from "../../shared/hooks/useAuthFetch";
 import { useFileNumbers } from "../../shared/hooks/useFileNumbers";
 import { useLookups } from "../../shared/hooks/useLookups";
@@ -41,8 +42,8 @@ import { useDocumentReview } from "../hooks/useDocumentReview";
 import type { SRDocRequirement } from "../../shared/types/document.types";
 import { API_BASE } from "../../shared/lib/api";
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from "../../shared/utils/constants";
-import { formatTypeName, formatNaStatus, getUserDisplayName } from "../../shared/utils/formatters";
-import { groupByDocumentType } from "../../shared/utils/documentUtils";
+import { formatTypeName, getUserDisplayName } from "../../shared/utils/formatters";
+import { groupByDocumentType, resolveDocumentStatus } from "../../shared/utils/documentUtils";
 import { parseLocalDate, formatDateShort } from "../../shared/utils/dateUtils";
 import { getFilenameFromDisposition, triggerBlobDownload } from "../../shared/utils/fileUtils";
 import { formatFileNumberInput, validateFileNumber } from "../../shared/utils/fileNumberUtils";
@@ -80,6 +81,7 @@ export default function StrataDetailPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const { getStrataById, addNote, deleteNote } = useStrata();
+  const { canDelete } = usePermissions();
   const {
     getActiveByStrata,
     createFileNumber,
@@ -168,6 +170,7 @@ export default function StrataDetailPage() {
   const [viewNoteModal, setViewNoteModal] = useState<{ date: Date; userName: string; source: string; message: string; deleteType: 'strata' | 'doc'; deleteId: number } | null>(null);
 
   const [docRequirements, setDocRequirements] = useState<SRDocRequirement[]>([]);
+  const [allFileDocuments, setAllFileDocuments] = useState<Array<{ fileNumberDocumentId: number; fileName: string; filePath: string; uploadedAt: string; documentTypeId: number; propertyTypeId: number | null; reviewStatus?: { reviewStatusId: number; statusName: string } | null; uploadedBy?: { userTypeId: number } | null }>>([]);
   const [docReqModalOpen, setDocReqModalOpen] = useState(false);
   const [savingDocConfig, setSavingDocConfig] = useState(false);
   const [docReviewModalOpen, setDocReviewModalOpen] = useState(false);
@@ -232,11 +235,14 @@ export default function StrataDetailPage() {
 
   const fetchDocRequirements = useCallback(async (fileId: number) => {
     try {
-      const res = await authFetch(`${API_BASE}/admin/file-numbers/${fileId}/document-requirements`);
-      const data = await res.json();
-      if (data.success && data.data) {
-        setDocRequirements(data.data);
-      }
+      const [reqRes, docsRes] = await Promise.all([
+        authFetch(`${API_BASE}/admin/file-numbers/${fileId}/document-requirements`),
+        authFetch(`${API_BASE}/admin/file-numbers/${fileId}/documents`),
+      ]);
+      const reqData = await reqRes.json();
+      const docsData = await docsRes.json();
+      if (reqData.success && reqData.data) setDocRequirements(reqData.data);
+      if (docsData.success && docsData.data) setAllFileDocuments(docsData.data);
     } catch {
       // silently fail
     }
@@ -1344,29 +1350,26 @@ export default function StrataDetailPage() {
                                 <span className="doc-req-type-name">{formatTypeName(typeName)}</span>
                                 <div className="doc-req-versions">
                                   {versions.map(r => {
-                                    const latestDoc = r.fileNumberDocuments[0];
-                                    const naStatus = r.naStatus?.status;
+                                    // Use linked doc, or fallback to unlinked doc matching by type
+                                    const linkedDoc = r.fileNumberDocuments[0];
+                                    const fallbackDoc = !linkedDoc
+                                      ? allFileDocuments.find(d => d.documentTypeId === r.documentTypeId && d.propertyTypeId === r.propertyTypeId)
+                                      : null;
+                                    const latestDoc = linkedDoc || fallbackDoc || null;
                                     return (
                                       <div key={r.fnDocRequirementId} className="doc-req-item">
                                         <span className="doc-req-version-label">{r.versionLabel || 'Default'}</span>
                                         {(() => {
                                           const reviewItem = docReview?.items?.find(i => i.fnDocRequirementId === r.fnDocRequirementId);
-                                          const reviewedAt = docReview?.reviewedAt;
-                                          const naSetAfterReview = naStatus && r.naStatus?.setAt && reviewedAt
-                                            && new Date(r.naStatus.setAt) > new Date(reviewedAt);
-                                          if (naStatus && (!reviewItem || naSetAfterReview)) {
-                                            return (
-                                              <div className="doc-req-item-header">
-                                                <span />
-                                                <span className="status-badge na-status">{formatNaStatus(naStatus)}</span>
-                                              </div>
-                                            );
-                                          }
-                                          if (latestDoc) {
-                                            const uploadedAfterReview = reviewedAt &&
-                                              new Date(latestDoc.uploadedAt) > new Date(reviewedAt);
-                                            return (
-                                              <div className="doc-req-item-header">
+                                          const status = resolveDocumentStatus({
+                                            latestDoc,
+                                            naStatus: r.naStatus,
+                                            reviewItem: reviewItem || null,
+                                            reviewedAt: docReview?.reviewedAt || null,
+                                          });
+                                          return (
+                                            <div className="doc-req-item-header">
+                                              {latestDoc && status.type !== 'na' ? (
                                                 <button
                                                   className="btn-link doc-file-link"
                                                   onClick={() => handleDocPreview(latestDoc)}
@@ -1374,20 +1377,8 @@ export default function StrataDetailPage() {
                                                 >
                                                   {latestDoc.fileName}
                                                 </button>
-                                                {(!reviewItem || uploadedAfterReview)
-                                                  ? <span className="status-badge pending">Pending Review</span>
-                                                  : <span className={`status-badge ${reviewItem.reviewStatus.statusName.toLowerCase().replace(/\s+/g, '-')}`}>{reviewItem.reviewStatus.statusName}</span>
-                                                }
-                                              </div>
-                                            );
-                                          }
-                                          return (
-                                            <div className="doc-req-item-header">
-                                              <span />
-                                              {reviewItem
-                                                ? <span className={`status-badge ${reviewItem.reviewStatus.statusName.toLowerCase().replace(/\s+/g, '-')}`}>{reviewItem.reviewStatus.statusName}</span>
-                                                : <span className="status-badge not-received">Not Received</span>
-                                              }
+                                              ) : <span />}
+                                              <span className={status.badgeClass}>{status.statusName}</span>
                                             </div>
                                           );
                                         })()}
@@ -1470,7 +1461,7 @@ export default function StrataDetailPage() {
                           <th>User</th>
                           <th>Source</th>
                           <th>Message</th>
-                          <th>Actions</th>
+                          {canDelete && <th>Actions</th>}
                         </tr>
                       </thead>
                       <tbody>
@@ -1484,14 +1475,16 @@ export default function StrataDetailPage() {
                               <td>{row.userName}</td>
                               <td>{row.source}</td>
                               <td className="note-message-cell">{row.message}</td>
-                              <td className="note-actions-cell">
-                                <button
-                                  className="btn-delete-link"
-                                  onClick={() => setDeleteNoteModal({ type: row.deleteType, id: row.deleteId, message: row.message })}
-                                >
-                                  Delete
-                                </button>
-                              </td>
+                              {canDelete && (
+                                <td className="note-actions-cell">
+                                  <button
+                                    className="btn-delete-link"
+                                    onClick={() => setDeleteNoteModal({ type: row.deleteType, id: row.deleteId, message: row.message })}
+                                  >
+                                    Delete
+                                  </button>
+                                </td>
+                              )}
                             </tr>
                           );
                         })}
@@ -1544,7 +1537,7 @@ export default function StrataDetailPage() {
         })()}
       </div>
 
-      {activeRequest && activeTab !== "notes" && (
+      {canDelete && activeRequest && activeTab !== "notes" && (
         <div className="survey-actions-bottom" style={{ display: 'flex', justifyContent: 'flex-end' }}>
           <button
             className="btn-delete btn-delete-survey"
@@ -1679,59 +1672,63 @@ export default function StrataDetailPage() {
         </form>
       </Modal>
 
-      <Modal
-        isOpen={deleteModalOpen}
-        onClose={() => setDeleteModalOpen(false)}
-        title={`Delete Survey: ${strata.complexName || strata.strataPlan || ""}`}
-        size="small"
-        footer={
-          <>
-            <button className="btn-secondary" onClick={() => setDeleteModalOpen(false)}>
-              Cancel
-            </button>
-            <button
-              className="btn-delete"
-              onClick={handleDeleteFileNumber}
-              disabled={deleteSubmitting}
-            >
-              {deleteSubmitting ? "Deleting..." : "Delete Responses"}
-            </button>
-          </>
-        }
-      >
-        <div className="delete-confirmation">
-          <p>Are you sure that you would like to delete these survey responses?</p>
-          <p className="delete-warning">This action cannot be undone.</p>
-        </div>
-      </Modal>
+      {canDelete && (
+        <Modal
+          isOpen={deleteModalOpen}
+          onClose={() => setDeleteModalOpen(false)}
+          title={`Delete Survey: ${strata.complexName || strata.strataPlan || ""}`}
+          size="small"
+          footer={
+            <>
+              <button className="btn-secondary" onClick={() => setDeleteModalOpen(false)}>
+                Cancel
+              </button>
+              <button
+                className="btn-delete"
+                onClick={handleDeleteFileNumber}
+                disabled={deleteSubmitting}
+              >
+                {deleteSubmitting ? "Deleting..." : "Delete Responses"}
+              </button>
+            </>
+          }
+        >
+          <div className="delete-confirmation">
+            <p>Are you sure that you would like to delete these survey responses?</p>
+            <p className="delete-warning">This action cannot be undone.</p>
+          </div>
+        </Modal>
+      )}
 
-      <Modal
-        isOpen={!!deleteNoteModal}
-        onClose={() => setDeleteNoteModal(null)}
-        title={`Delete Note: ${strata.complexName || strata.strataPlan || ""}`}
-        size="medium"
-        footer={
-          <>
-            <button className="btn-secondary" onClick={() => setDeleteNoteModal(null)}>
-              Cancel
-            </button>
-            <button
-              className="btn-delete"
-              onClick={handleConfirmDeleteNote}
-              disabled={deleteNoteSubmitting}
-            >
-              {deleteNoteSubmitting ? "Deleting..." : "Delete Note"}
-            </button>
-          </>
-        }
-      >
-        <div className="delete-confirmation">
-          <p className="delete-note-label">Message:</p>
-          <p className="delete-note-message">{deleteNoteModal?.message}</p>
-          <p>Are you sure that you would like to delete this note?</p>
-          <p className="delete-warning">This action cannot be undone.</p>
-        </div>
-      </Modal>
+      {canDelete && (
+        <Modal
+          isOpen={!!deleteNoteModal}
+          onClose={() => setDeleteNoteModal(null)}
+          title={`Delete Note: ${strata.complexName || strata.strataPlan || ""}`}
+          size="medium"
+          footer={
+            <>
+              <button className="btn-secondary" onClick={() => setDeleteNoteModal(null)}>
+                Cancel
+              </button>
+              <button
+                className="btn-delete"
+                onClick={handleConfirmDeleteNote}
+                disabled={deleteNoteSubmitting}
+              >
+                {deleteNoteSubmitting ? "Deleting..." : "Delete Note"}
+              </button>
+            </>
+          }
+        >
+          <div className="delete-confirmation">
+            <p className="delete-note-label">Message:</p>
+            <p className="delete-note-message">{deleteNoteModal?.message}</p>
+            <p>Are you sure that you would like to delete this note?</p>
+            <p className="delete-warning">This action cannot be undone.</p>
+          </div>
+        </Modal>
+      )}
 
       <Modal
         isOpen={addNoteModalOpen}
@@ -1776,17 +1773,19 @@ export default function StrataDetailPage() {
             <button className="btn-secondary" onClick={() => setViewNoteModal(null)}>
               Cancel
             </button>
-            <button
-              className="btn-delete"
-              onClick={() => {
-                if (viewNoteModal) {
-                  setDeleteNoteModal({ type: viewNoteModal.deleteType, id: viewNoteModal.deleteId, message: viewNoteModal.message });
-                  setViewNoteModal(null);
-                }
-              }}
-            >
-              Delete Note
-            </button>
+            {canDelete && (
+              <button
+                className="btn-delete"
+                onClick={() => {
+                  if (viewNoteModal) {
+                    setDeleteNoteModal({ type: viewNoteModal.deleteType, id: viewNoteModal.deleteId, message: viewNoteModal.message });
+                    setViewNoteModal(null);
+                  }
+                }}
+              >
+                Delete Note
+              </button>
+            )}
           </>
         }
       >
@@ -1962,12 +1961,17 @@ export default function StrataDetailPage() {
         isOpen={docReviewModalOpen}
         onClose={() => setDocReviewModalOpen(false)}
         fileId={activeRequest?.fileId ?? null}
-        docRequirements={reviewRequirements}
+        docRequirements={reviewRequirements.map(r => {
+          if (r.fileNumberDocuments.length > 0) return r;
+          const fallback = allFileDocuments.find(d => d.documentTypeId === r.documentTypeId && d.propertyTypeId === r.propertyTypeId);
+          if (!fallback) return r;
+          return { ...r, fileNumberDocuments: [{ fileNumberDocumentId: fallback.fileNumberDocumentId, fileName: fallback.fileName, filePath: fallback.filePath, uploadedAt: fallback.uploadedAt, fnDocRequirementId: null, reviewStatus: fallback.reviewStatus, uploadedBy: fallback.uploadedBy }] };
+        })}
         reviewStatuses={reviewStatuses}
         review={(() => {
           const hasPending = reviewRequirements.some(r => {
-            const latestDoc = r.fileNumberDocuments[0];
-            // Not received = still pending (no doc uploaded, no N/A status)
+            const latestDoc = r.fileNumberDocuments[0]
+              || allFileDocuments.find(d => d.documentTypeId === r.documentTypeId && d.propertyTypeId === r.propertyTypeId);
             if (!latestDoc && !r.naStatus) return true;
             const reviewItem = docReview?.items?.find(i => i.fnDocRequirementId === r.fnDocRequirementId);
             if (!reviewItem) return true;
@@ -1982,21 +1986,34 @@ export default function StrataDetailPage() {
           return hasPending ? null : docReview;
         })()}
         initialSelections={(() => {
-          if (!docReview) return {};
+          const approvedId = reviewStatuses.find(rs => rs.statusName.toLowerCase().includes('approv'))?.reviewStatusId;
           const result: Record<number, number> = {};
-          for (const item of docReview.items ?? []) {
-            const req = reviewRequirements.find(r => r.fnDocRequirementId === item.fnDocRequirementId);
-            if (!req) continue;
-            const latestDoc = req.fileNumberDocuments[0];
-            const isDenied =
-              item.reviewStatus.statusName.toLowerCase().includes('deny') ||
-              item.reviewStatus.statusName.toLowerCase().includes('reject');
-            const respondedAfterDenial = isDenied && (
-              !!req?.naStatus ||
-              (latestDoc && docReview.reviewedAt && new Date(latestDoc.uploadedAt) > new Date(docReview.reviewedAt))
-            );
-            if (!respondedAfterDenial) {
-              result[item.fnDocRequirementId] = item.reviewStatus.reviewStatusId;
+          // Default any uploaded document to Approved
+          if (approvedId) {
+            for (const req of reviewRequirements) {
+              const latestDoc = req.fileNumberDocuments[0]
+                || allFileDocuments.find(d => d.documentTypeId === req.documentTypeId && d.propertyTypeId === req.propertyTypeId);
+              if (latestDoc) {
+                result[req.fnDocRequirementId] = latestDoc.reviewStatus?.reviewStatusId ?? approvedId;
+              }
+            }
+          }
+          // Overlay from batch review (takes precedence)
+          if (docReview) {
+            for (const item of docReview.items ?? []) {
+              const req = reviewRequirements.find(r => r.fnDocRequirementId === item.fnDocRequirementId);
+              if (!req) continue;
+              const latestDoc = req.fileNumberDocuments[0];
+              const isDenied =
+                item.reviewStatus.statusName.toLowerCase().includes('deny') ||
+                item.reviewStatus.statusName.toLowerCase().includes('reject');
+              const respondedAfterDenial = isDenied && (
+                !!req?.naStatus ||
+                (latestDoc && docReview.reviewedAt && new Date(latestDoc.uploadedAt) > new Date(docReview.reviewedAt))
+              );
+              if (!respondedAfterDenial) {
+                result[item.fnDocRequirementId] = item.reviewStatus.reviewStatusId;
+              }
             }
           }
           return result;
@@ -2200,7 +2217,7 @@ export default function StrataDetailPage() {
         documentId={previewDocId}
         documentName={previewDocName}
         token={session?.access_token || ''}
-        onDelete={previewDocId ? () => { handleDeleteDoc(previewDocId); handleClosePreview(); } : undefined}
+        onDelete={canDelete && previewDocId ? () => { handleDeleteDoc(previewDocId); handleClosePreview(); } : undefined}
       />
 
 

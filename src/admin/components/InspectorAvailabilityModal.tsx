@@ -157,7 +157,7 @@ export const InspectorAvailabilityModal = ({
     const footer = (holidayWarning || saveProgress) ? null : (
         <>
             <button className="btn-secondary" onClick={onClose} disabled={saving}>Cancel</button>
-            {initialData && (
+            {initialData && onDeleteClick && (
                 <button className="btn-delete" onClick={onDeleteClick}>
                     Remove Availability
                 </button>

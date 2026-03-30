@@ -5,7 +5,6 @@ import { useAuth } from '../../shared/contexts/AuthContext';
 import { LoadingSpinner } from '../../shared/components/LoadingSpinner';
 import { useAuthFetch } from '../../shared/hooks/useAuthFetch';
 import { useMediaQuery } from '../../shared/hooks/useMediaQuery';
-import type { AdminUser } from '../../shared/types/auth.types';
 import type { AdminProfileFormData as ProfileData } from '../../shared/types/entities.types';
 import { API_BASE } from '../../shared/lib/api';
 import { formatPhoneNumber, validatePhoneNumber } from '../../shared/utils/strataUtils';
@@ -16,7 +15,7 @@ import { ChangePasswordModal } from '../../shared/components/ChangePasswordModal
 import '../../admin/styles/pages/_profile.scss';
 
 export default function ProfilePage() {
-  const { user } = useAuth();
+  const { user, isAdmin, isAssistant, isInspector } = useAuth();
   const authFetch = useAuthFetch();
   const location = useLocation();
 
@@ -25,8 +24,8 @@ export default function ProfilePage() {
     companyName: 'Strata Reserve Planning',
     contactName: '',
     phoneNumber: '',
-    role: 'Administrator',
-    email: 'admin@admin.com'
+    role: '',
+    email: ''
   });
 
   // UI state
@@ -38,6 +37,7 @@ export default function ProfilePage() {
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
   const [phoneError, setPhoneError] = useState<string | null>(null);
   const isDesktop = useMediaQuery('(min-width: 750px)');
+  const fallbackRole = isAdmin ? 'Administrator' : isAssistant ? 'Assistant' : isInspector ? 'Inspector' : '';
 
   // Fetch profile on mount
   useEffect(() => {
@@ -59,23 +59,24 @@ export default function ProfilePage() {
 
       if (data.success) {
         const profile = data.data;
-        const userName = user && user.role === 'admin' ? (user as AdminUser).fullName : '';
         setProfileData(prev => ({
           ...prev,
-          contactName: profile.fullName || userName || '',
-          email: profile.email || user?.email || ''
+          contactName: profile.fullName || '',
+          email: profile.email || user?.email || '',
+          phoneNumber: profile.phoneNumber || '',
+          role: profile.role || fallbackRole,
+          companyName: profile.companyName || prev.companyName,
         }));
       } else {
         throw new Error(data.error || 'Failed to fetch profile');
       }
     } catch (err) {
       console.error('Error fetching profile:', err);
-      // Use auth context data as fallback
-      const userName = user && user.role === 'admin' ? (user as AdminUser).fullName : '';
       setProfileData(prev => ({
         ...prev,
-        contactName: userName || '',
-        email: user?.email || ''
+        contactName: '',
+        email: user?.email || '',
+        role: fallbackRole,
       }));
     } finally {
       setLoading(false);
@@ -181,7 +182,7 @@ export default function ProfilePage() {
         <h1>{!isDesktop ? 'System Settings'
           : activeTab === 'holidays' ? 'Company Holidays'
           : activeTab === 'availability' ? 'Inspector Availability'
-          : 'Administration User Details'}</h1>
+          : 'User Details'}</h1>
         <p className="profile-subtitle">
           {activeTab === 'holidays' ? 'Manage company holiday schedules'
           : activeTab === 'availability' ? 'Manage inspector availability schedules'
@@ -271,7 +272,7 @@ export default function ProfilePage() {
           )}
 
           <section className="profile-section">
-            <h2>Administrator Profile</h2>
+            <h2>{profileData.role ? `${profileData.role} Profile` : 'Profile'}</h2>
 
             <div className="profile-grid three-columns">
               <ProfileField
