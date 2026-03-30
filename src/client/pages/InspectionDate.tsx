@@ -79,6 +79,7 @@ const InspectionDate = () => {
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [cancelTargetId, setCancelTargetId] = useState<number | null>(null);
   const [cancellingAppointment, setCancellingAppointment] = useState(false);
+  const [rebookingDismissed, setRebookingDismissed] = useState(false);
 
   const isOffered = !!activeRequest?.appointmentOfferedAt;
   const needsOfferCalendar = isOffered || !!activeRequest?.rebookingRequestedAt;
@@ -265,6 +266,18 @@ const loadActiveAppointment = useCallback(async () => {
       result.push({ date: offeredDate, label: 'Submission Approved' });
     }
 
+    if (bookingDraftMeeting && activeRequest?.appointments) {
+      const completedInspection = activeRequest.appointments.find(
+        a => a.status === 'Completed' && a.appointmentType?.isDraftMeeting === false
+      );
+      if (completedInspection) {
+        const inspectionDate = completedInspection.appointmentDate.split('T')[0];
+        if (!result.some(m => m.date === inspectionDate)) {
+          result.push({ date: inspectionDate, label: 'Inspection Date' });
+        }
+      }
+    }
+
     if (!timelines) return result;
 
     // Determine the effective target date
@@ -325,18 +338,8 @@ const loadActiveAppointment = useCallback(async () => {
       }
     }
 
-    // Scheduled appointment date as milestone
-    if (activeAppointment?.type === 'scheduled') {
-      const aptDate = typeof activeAppointment.data.appointmentDate === 'string'
-        ? activeAppointment.data.appointmentDate.split('T')[0]
-        : formatYMD(new Date(activeAppointment.data.appointmentDate));
-      if (!result.some(m => m.date === aptDate)) {
-        result.push({ date: aptDate, label: bookingDraftMeeting ? 'Draft Meeting' : 'Inspection Date' });
-      }
-    }
-
     return result;
-  }, [timelines, activeRequest?.appointmentOfferedAt, activeAppointment, bookingDraftMeeting]);
+  }, [timelines, activeRequest?.appointmentOfferedAt, activeRequest?.appointments, activeAppointment, bookingDraftMeeting]);
 
   const handleDateSelect = (date: string) => {
     setSelectedDate(date);
@@ -636,8 +639,16 @@ const loadActiveAppointment = useCallback(async () => {
         );
       })()}
 
-      {activeRequest?.rebookingRequestedAt && (
-        <div className="inspection-date__card inspection-date__card--info" style={{ marginBottom: '1rem' }}>
+      {activeRequest?.rebookingRequestedAt && !hasScheduledAppointment && !isPending && !rebookingDismissed && !bookingDraftMeeting && (
+        <div className="inspection-date__card inspection-date__card--info">
+          <button
+            className="inspection-date__card-dismiss"
+            type="button"
+            onClick={() => setRebookingDismissed(true)}
+            aria-label="Dismiss"
+          >
+            &times;
+          </button>
           <p>Your previous appointment was cancelled. Please select a new inspection date below.</p>
         </div>
       )}

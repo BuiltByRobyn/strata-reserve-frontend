@@ -32,9 +32,32 @@
   gap: $spacing-sm;
 }
 
+.action-card-header-right {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+}
+
 .action-card-meta {
   color: $color-text-light;
   font-size: 0.85rem;
+}
+
+.action-card-dismiss {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1.25rem;
+  line-height: 1;
+  color: $color-text-light;
+  padding: $spacing-xs;
+  border-radius: $border-radius-sm;
+  transition: color 0.15s, background 0.15s;
+
+  &:hover {
+    color: $color-text-dark;
+    background: rgba(0, 0, 0, 0.06);
+  }
 }
 
 .action-card-title {

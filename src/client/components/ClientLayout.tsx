@@ -12,17 +12,23 @@ export const ClientLayout = ({ children }: { children: React.ReactNode }) => {
   const { getActiveAppointment } = useClientAppointments();
   const [showWelcomeModal, setShowWelcomeModal] = useState(false);
   const offeredAt = activeRequest?.appointmentOfferedAt ?? null;
-  const isDraftOffer = activeRequest?.appointmentOfferType?.isDraftMeeting === true;
+  const hasCompletedInspection = activeRequest?.appointments?.some(
+    a => a.status === 'Completed' && a.appointmentType?.isDraftMeeting === false
+  ) ?? false;
+  const hasCompletedDraft = activeRequest?.appointments?.some(
+    a => a.status === 'Completed' && a.appointmentType?.isDraftMeeting === true
+  ) ?? false;
+  const isDraftOffer = activeRequest?.appointmentOfferType?.isDraftMeeting === true
+    || (hasCompletedInspection && !hasCompletedDraft);
 
   useEffect(() => {
     if (!fileId || !offeredAt) return;
+    if (hasCompletedDraft) return;
     let cancelled = false;
 
     const checkAndShow = async () => {
       const activeAppointment = await getActiveAppointment();
       if (cancelled) return;
-      // For non-draft offers, suppress modal once a confirmed appointment exists.
-      // For draft offers, always show on each new offer timestamp.
       if (!isDraftOffer && activeAppointment?.type === 'scheduled') {
         setShowWelcomeModal(false);
         return;
@@ -38,7 +44,7 @@ export const ClientLayout = ({ children }: { children: React.ReactNode }) => {
 
     checkAndShow();
     return () => { cancelled = true; };
-  }, [fileId, offeredAt, isDraftOffer, getActiveAppointment]);
+  }, [fileId, offeredAt, isDraftOffer, hasCompletedDraft, getActiveAppointment]);
 
   if (loading) return <LoadingSpinner />;
 

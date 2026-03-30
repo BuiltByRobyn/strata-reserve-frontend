@@ -51,6 +51,8 @@ export const Dashboard = () => {
   const [showSectionChangeModal, setShowSectionChangeModal] = useState(false);
   const [showDraftAvailableModal, setShowDraftAvailableModal] = useState(false);
   const [showDocReviewModal, setShowDocReviewModal] = useState(false);
+  const [showAppointmentReviewModal, setShowAppointmentReviewModal] = useState(false);
+  const [showCancellationModal, setShowCancellationModal] = useState(false);
   const [activeAppointment, setActiveAppointment] = useState<ActiveAppointmentResponse>(null);
   const [appointmentLoading, setAppointmentLoading] = useState(true);
   const [notifications, setNotifications] = useState<AppointmentNotification[]>([]);
@@ -147,6 +149,7 @@ export const Dashboard = () => {
 
   const docsFinalized = fileId ? !!localStorage.getItem(`docs_finalized_${fileId}`) : false;
   const dashboardTitle = activeRequest?.strata?.complexName || activeRequest?.strata?.strataPlan || 'Your Strata Reserve Planning - Data Collection Portal';
+  const strataLabel = activeRequest?.strata?.complexName || activeRequest?.strata?.strataPlan || 'Your';
 
   const clientPropertyTypeIds = useMemo(
     () => activeRequest?.clientPropertyTypes?.map((pt) => pt.propertyTypeId) || [],
@@ -203,6 +206,55 @@ export const Dashboard = () => {
     setShowDocReviewModal(false);
   };
 
+  const appointmentReviewNotification = useMemo(
+    () => notifications.find(n =>
+      (n.type === 'request_approved' || n.type === 'request_rejected') &&
+      !localStorage.getItem(`appointment_review_seen_${fileId}_${n.type}_${n.date}`)
+    ),
+    [notifications, fileId]
+  );
+
+  useEffect(() => {
+    if (appointmentReviewNotification) {
+      setShowAppointmentReviewModal(true);
+    }
+  }, [appointmentReviewNotification]);
+
+  const handleDismissAppointmentReview = () => {
+    if (fileId && appointmentReviewNotification) {
+      localStorage.setItem(`appointment_review_seen_${fileId}_${appointmentReviewNotification.type}_${appointmentReviewNotification.date}`, '1');
+    }
+    setShowAppointmentReviewModal(false);
+  };
+
+  const rebookingTimestamp = activeRequest?.rebookingRequestedAt ?? null;
+
+  useEffect(() => {
+    if (!fileId || !rebookingTimestamp || activeAppointment) return;
+    const key = `rebooking_seen_${fileId}_${rebookingTimestamp}`;
+    if (!localStorage.getItem(key)) {
+      setShowCancellationModal(true);
+    }
+  }, [fileId, rebookingTimestamp, activeAppointment]);
+
+  useEffect(() => {
+    if (activeAppointment && showCancellationModal) {
+      setShowCancellationModal(false);
+    }
+  }, [activeAppointment, showCancellationModal]);
+
+  const cancellationNotification = useMemo(
+    () => notifications.find(n => n.type === 'appointment_cancelled'),
+    [notifications]
+  );
+
+  const handleDismissCancellation = () => {
+    if (fileId && rebookingTimestamp) {
+      localStorage.setItem(`rebooking_seen_${fileId}_${rebookingTimestamp}`, '1');
+    }
+    setShowCancellationModal(false);
+  };
+
   const sectionProgress = useMemo(() => {
     const answeredKeys = new Set(responses.map((r) => surveyQuestionKey(r.questionId, r.propertyTypeId)));
     return surveySections
@@ -249,8 +301,8 @@ export const Dashboard = () => {
   const documentsCompleted = requiredDocumentCount > 0 && missingRequiredDocumentCount === 0;
 
   const bookingActionNeeded = !!(
-    activeAppointment?.type !== 'completed_draft' &&
-    (activeRequest?.rebookingRequestedAt || (activeRequest?.appointmentOfferedAt && !activeAppointment))
+    !activeAppointment &&
+    (activeRequest?.rebookingRequestedAt || activeRequest?.appointmentOfferedAt)
   );
 
   const tasks = useMemo(() => {
@@ -288,13 +340,14 @@ export const Dashboard = () => {
     };
 
     if (bookingActionNeeded) {
-      const isDraft = draftMeetingEligible && !activeRequest?.rebookingRequestedAt;
-      const inspectionTitle = activeRequest?.rebookingRequestedAt ? 'Rebook Your Inspection' : isDraft ? 'Book Your Draft Meeting' : 'Book Your Inspection';
-      const inspectionDesc = activeRequest?.rebookingRequestedAt
-        ? 'Your previous appointment was cancelled. Please choose new preferred dates.'
-        : isDraft ? 'Your inspection is complete. Select your preferred dates for the draft meeting.'
+      const isDraft = draftMeetingEligible;
+      const showRebook = !!activeRequest?.rebookingRequestedAt && !draftMeetingEligible;
+      const inspectionTitle = showRebook ? 'Rebook Your Inspection' : isDraft ? 'Book Your Draft Meeting' : 'Book Your Inspection';
+      const inspectionDesc = showRebook
+        ? `${strataLabel}'s previous appointment was cancelled. Please choose new preferred dates.`
+        : isDraft ? `${strataLabel}'s inspection is complete. Select your preferred dates for the draft meeting.`
         : 'Appointment booking is open. Select your preferred dates to continue.';
-      const inspectionLabel = activeRequest?.rebookingRequestedAt ? 'Book Inspection Date' : 'Select Dates';
+      const inspectionLabel = showRebook ? 'Book Inspection Date' : 'Select Dates';
 
       return [
         surveyTask,
@@ -404,7 +457,7 @@ export const Dashboard = () => {
             return (
               <div key="pending" className="appointment-status-card appointment-status-card--pending">
                 <p className="appointment-status-card__label">{pendingLabel} Pending</p>
-                <p className="appointment-status-card__text">Your {pendingLabel.toLowerCase()} request is awaiting confirmation from our team.</p>
+                <p className="appointment-status-card__text">{strataLabel}&apos;s {pendingLabel.toLowerCase()} request is awaiting confirmation from our team.</p>
                 <button className="btn-action btn-action--warning" onClick={() => navigate('/client/inspection-date')}>View Request</button>
               </div>
             );
@@ -422,9 +475,9 @@ export const Dashboard = () => {
               : undefined;
             const rescheduleText = isRescheduled
               ? rescheduledNotif?.previousDate && rescheduledNotif?.previousSlotTime
-                ? `Your appointment has been rescheduled from ${formatShortDate(rescheduledNotif.previousDate)} at ${formatTime12h(rescheduledNotif.previousSlotTime)} to ${formatShortDate(activeAppointment.data.appointmentDate)} at ${formatTime12h(activeAppointment.data.timeSlot.slotTime)}.`
-                : `Your appointment has been rescheduled to ${formatShortDate(activeAppointment.data.appointmentDate)} at ${formatTime12h(activeAppointment.data.timeSlot.slotTime)}.`
-              : `Your ${activeAppointment.data.appointmentType.typeName} on ${formatShortDate(activeAppointment.data.appointmentDate)} at ${formatTime12h(activeAppointment.data.timeSlot.slotTime)} has been confirmed.`;
+                ? `${strataLabel}'s appointment has been rescheduled from ${formatShortDate(rescheduledNotif.previousDate)} at ${formatTime12h(rescheduledNotif.previousSlotTime)} to ${formatShortDate(activeAppointment.data.appointmentDate)} at ${formatTime12h(activeAppointment.data.timeSlot.slotTime)}.`
+                : `${strataLabel}'s appointment has been rescheduled to ${formatShortDate(activeAppointment.data.appointmentDate)} at ${formatTime12h(activeAppointment.data.timeSlot.slotTime)}.`
+              : `${strataLabel}'s ${activeAppointment.data.appointmentType.typeName} on ${formatShortDate(activeAppointment.data.appointmentDate)} at ${formatTime12h(activeAppointment.data.timeSlot.slotTime)} has been confirmed.`;
             return (
               <div key="scheduled" className={`appointment-status-card appointment-status-card--${isRescheduled ? 'rescheduled' : 'scheduled'}`}>
                 <p className="appointment-status-card__label">{isRescheduled ? 'Appointment Rescheduled' : 'Appointment Confirmed'}</p>
@@ -617,6 +670,55 @@ export const Dashboard = () => {
             ))}
           </ul>
         </div>
+      </Modal>
+
+      <Modal
+        isOpen={showAppointmentReviewModal}
+        onClose={handleDismissAppointmentReview}
+        title={appointmentReviewNotification?.type === 'request_approved' ? 'Appointment Approved' : 'Appointment Request Not Accepted'}
+        size="medium"
+        footer={
+          <button className="btn-primary" onClick={handleDismissAppointmentReview}>
+            Got it
+          </button>
+        }
+      >
+        {appointmentReviewNotification && (
+          <div className="thank-you-content">
+            {appointmentReviewNotification.type === 'request_approved' && activeAppointment?.type === 'scheduled' ? (
+              <p>{strataLabel}&apos;s {activeAppointment.data.appointmentType.typeName} on {formatShortDate(activeAppointment.data.appointmentDate)} at {formatTime12h(activeAppointment.data.timeSlot.slotTime)} has been confirmed.</p>
+            ) : (
+              <>
+                <p>{appointmentReviewNotification.message}</p>
+                {appointmentReviewNotification.reason && (
+                  <p>{appointmentReviewNotification.reason}</p>
+                )}
+              </>
+            )}
+          </div>
+        )}
+      </Modal>
+
+      <Modal
+        isOpen={showCancellationModal}
+        onClose={handleDismissCancellation}
+        title="Appointment Cancelled"
+        size="medium"
+        footer={
+          <button className="btn-primary" onClick={() => { handleDismissCancellation(); navigate('/client/inspection-date'); }}>
+            Book New Appointment
+          </button>
+        }
+      >
+        {cancellationNotification && (
+          <div className="thank-you-content">
+            <p>{strataLabel}&apos;s appointment has been cancelled.</p>
+            {cancellationNotification.reason && (
+              <p><strong>Reason:</strong> {cancellationNotification.reason}</p>
+            )}
+            <p>Please select new preferred dates to rebook your appointment.</p>
+          </div>
+        )}
       </Modal>
     </div>
   );

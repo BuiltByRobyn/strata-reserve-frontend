@@ -92,7 +92,7 @@ export default function AppointmentsPage() {
   const [dateFrom, setDateFrom] = useState<string>(location.state?.dateFrom || '');
   const [dateTo, setDateTo] = useState<string>(location.state?.dateTo || '');
   const [showPastDates, setShowPastDates] = useState(false);
-  const [showCancelled, setShowCancelled] = useState(false);
+  const [showCancelled, setShowCancelled] = useState(!!location.state?.showCancelled);
 
   const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
   const [viewModalRows, setViewModalRows] = useState<UnifiedRow[] | null>(null);
@@ -677,11 +677,14 @@ export default function AppointmentsPage() {
                 </div>
               </div>
             )}
-            <div className="appointments-detail__actions appointments-detail__actions--centered">
-              <button className="btn btn-primary" onClick={() => handleRequestRebooking(apt)}>
-                Request Rebooking
-              </button>
-            </div>
+            {!appointments.some(a => a.fileId === apt.fileId && a.appointmentId !== apt.appointmentId && (a.status === 'Scheduled' || a.status === 'Rescheduled'))
+              && !requests.some(r => r.fileId === apt.fileId && r.status === 'Pending Review') && (
+              <div className="appointments-detail__actions appointments-detail__actions--centered">
+                <button className="btn btn-primary" onClick={() => handleRequestRebooking(apt)}>
+                  Request Rebooking
+                </button>
+              </div>
+            )}
           </>
         )}
       </div>
@@ -981,6 +984,7 @@ export default function AppointmentsPage() {
           <p>{inspectorAvailabilityWarning}</p>
           <p>Are you sure you would like to proceed?</p>
         </Modal>
+
       </div>
     );
   }

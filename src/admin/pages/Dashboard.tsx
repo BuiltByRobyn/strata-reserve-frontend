@@ -129,6 +129,7 @@ export const Dashboard = () => {
   const [reviewingRequest, setReviewingRequest] = useState<PropertyTypeRequest | null>(null);
   const [rejectionReason, setRejectionReason] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [dismissedCards, setDismissedCards] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     fetchAppointmentRequests('Pending Review');
@@ -317,19 +318,20 @@ export const Dashboard = () => {
           priority: urgency.priority + 18,
           createdAt: a.cancelledAt!,
           title: getStrataLabel(a.fileNumber?.strata),
-          description: `${a.appointmentType.typeName} on ${formatShortDate(a.appointmentDate)} was cancelled${a.cancellationReason ? `: ${a.cancellationReason}` : ''}. Action needed.`,
+          description: `${a.appointmentType.typeName} on ${formatShortDate(a.appointmentDate)} was cancelled${a.cancellationReason ? ` with message "${a.cancellationReason}"` : ''}. Action needed.`,
           appointment: a,
         };
       });
 
     return [...propertyTypeCards, ...activationCards, ...appointmentCards, ...rebookingCards, ...cancelledCards, ...finalizedCards, ...docResubmitCards]
+      .filter((card) => !dismissedCards.has(card.id))
       .sort((left, right) => {
         if (right.priority !== left.priority) return right.priority - left.priority;
         const leftTime = parseTimestamp(left.createdAt)?.getTime() || 0;
         const rightTime = parseTimestamp(right.createdAt)?.getTime() || 0;
         return rightTime - leftTime;
       });
-  }, [activeRequests, activationRequests, appointmentRequests, appointments, propertyRequests, propertyTypes, notifications]);
+  }, [activeRequests, activationRequests, appointmentRequests, appointments, propertyRequests, propertyTypes, notifications, dismissedCards]);
 
   const activityCards: ActivityCard[] = useMemo(() => {
     const hours = windowHours(activityWindow);
@@ -492,7 +494,20 @@ export const Dashboard = () => {
                 <div key={card.id} className={`action-card action-card--${card.tone}`}>
                   <div className="action-card-header">
                     <span className={`urgency-badge urgency-badge--${card.tone}`}>{card.badge}</span>
-                    <span className="action-card-meta">{formatRelativeTime(card.createdAt)}</span>
+                    <div className="action-card-header-right">
+                      <span className="action-card-meta">{formatRelativeTime(card.createdAt)}</span>
+                      <button
+                        className="action-card-dismiss"
+                        onClick={() => {
+                          if (card.kind === 'doc-resubmit') markRead(card.notificationId);
+                          setDismissedCards((prev) => new Set(prev).add(card.id));
+                        }}
+                        title="Dismiss"
+                        aria-label="Dismiss"
+                      >
+                        &times;
+                      </button>
+                    </div>
                   </div>
 
                   <h3 className="action-card-title">{card.title}</h3>
@@ -560,7 +575,7 @@ export const Dashboard = () => {
                     ) : card.kind === 'appointment-cancelled' ? (
                       <button
                         className="btn-action btn-action--primary"
-                        onClick={() => navigate('/admin/appointments')}
+                        onClick={() => navigate('/admin/appointments', { state: { showCancelled: true } })}
                       >
                         Review
                       </button>
