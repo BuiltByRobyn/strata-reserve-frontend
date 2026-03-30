@@ -2,6 +2,7 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useUsers } from '../../shared/hooks/useUsers';
+import { usePermissions } from '../../shared/hooks/usePermissions';
 import { useStrata } from '../../shared/hooks/useStrata';
 import { useLookups } from '../../shared/hooks/useLookups';
 import { DataTable, type Column } from '../../shared/components/DataTable';
@@ -26,6 +27,7 @@ const initialFormData: UserFormData = {
 
 export default function UsersPage() {
   const { users, loading, error, createUser, updateUser, deleteUser } = useUsers();
+  const { canDelete } = usePermissions();
   const { stratas } = useStrata();
   const { userTypes, propertyTypes } = useLookups();
   const location = useLocation();
@@ -443,7 +445,7 @@ export default function UsersPage() {
             >
               Cancel
             </button>
-            {editingUser && (
+            {canDelete && editingUser && (
               <button
                 className="btn-delete"
                 onClick={() => openDeleteModal(editingUser)}
@@ -674,32 +676,34 @@ export default function UsersPage() {
         )}
       </Modal>
 
-      <Modal
-        isOpen={deleteModalOpen}
-        onClose={() => { setDeleteModalOpen(false); setUserToDelete(null); setDeleteError(null); }}
-        title="Delete User"
-        size="small"
-        footer={
-          <>
-            <button className="btn-secondary" onClick={() => { setDeleteModalOpen(false); setUserToDelete(null); setDeleteError(null); }}>
-              Cancel
-            </button>
-            <button
-              className="btn-delete"
-              onClick={handleDelete}
-              disabled={deleteSubmitting}
-            >
-              {deleteSubmitting ? 'Deleting...' : 'Delete User'}
-            </button>
-          </>
-        }
-      >
-        <div className="delete-confirmation">
-          {deleteError && <div className="form-error">{deleteError}</div>}
-          <p>Are you sure you want to delete user "{userToDelete ? `${userToDelete.firstName || ''} ${userToDelete.lastName || ''}`.trim() || userToDelete.email : ''}"?</p>
-          <p className="delete-warning">This action cannot be undone.</p>
-        </div>
-      </Modal>
+      {canDelete && (
+        <Modal
+          isOpen={deleteModalOpen}
+          onClose={() => { setDeleteModalOpen(false); setUserToDelete(null); setDeleteError(null); }}
+          title="Delete User"
+          size="small"
+          footer={
+            <>
+              <button className="btn-secondary" onClick={() => { setDeleteModalOpen(false); setUserToDelete(null); setDeleteError(null); }}>
+                Cancel
+              </button>
+              <button
+                className="btn-delete"
+                onClick={handleDelete}
+                disabled={deleteSubmitting}
+              >
+                {deleteSubmitting ? 'Deleting...' : 'Delete User'}
+              </button>
+            </>
+          }
+        >
+          <div className="delete-confirmation">
+            {deleteError && <div className="form-error">{deleteError}</div>}
+            <p>Are you sure you want to delete user "{userToDelete ? `${userToDelete.firstName || ''} ${userToDelete.lastName || ''}`.trim() || userToDelete.email : ''}"?</p>
+            <p className="delete-warning">This action cannot be undone.</p>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }

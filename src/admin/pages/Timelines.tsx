@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useFileNumbers } from '../../shared/hooks/useFileNumbers';
+import { usePermissions } from '../../shared/hooks/usePermissions';
 import { useAuthFetch } from '../../shared/hooks/useAuthFetch';
 import { useMediaQuery } from '../../shared/hooks/useMediaQuery';
 import { DataTable, type Column } from '../../shared/components/DataTable';
@@ -19,6 +20,7 @@ import { getNextAnniversary, formatDateDisplay, formatYMD, getDeadlineAbbrev, da
 
 export default function TimelinesPage() {
   const { fileNumbers, loading, error, refetch } = useFileNumbers();
+  const { canDelete } = usePermissions();
   const authFetch = useAuthFetch();
   const isDesktop = useMediaQuery('(min-width: 900px)');
 
@@ -518,14 +520,19 @@ export default function TimelinesPage() {
 
   const mobileColumns: Column<DeadlineRow>[] = [
     {
+      key: 'date',
+      header: 'Date',
+      render: (row) => formatDateDisplay(row.date),
+    },
+    {
       key: 'strataPlan',
       header: 'Strata Plan',
       render: (row) => row.strataPlan,
     },
     {
-      key: 'complexName',
-      header: 'Complex Name',
-      render: (row) => row.complexName,
+      key: 'deadlineType',
+      header: 'Deadline Type',
+      render: (row) => row.deadlineType,
     },
   ];
 
@@ -665,9 +672,11 @@ export default function TimelinesPage() {
           setViewingRows([row]);
           setIsViewModalOpen(true);
         }}
-        actions={isDesktop ? (row) => (
-          <button className="btn-edit" onClick={() => openEditModal(row.fileNumber, row.deadlineType)}>Edit</button>
-        ) : undefined}
+        actions={isDesktop ? (row) => {
+          const nonEditable: DeadlineType[] = ['File Opened', 'Documents Finalized', 'Survey Answers Finalized'];
+          if (nonEditable.includes(row.deadlineType)) return <span className="text-muted">N/A</span>;
+          return <button className="btn-edit" onClick={() => openEditModal(row.fileNumber, row.deadlineType)}>Edit</button>;
+        } : undefined}
         actionsColumnHeader="Action"
       />
       </>
@@ -713,7 +722,7 @@ export default function TimelinesPage() {
             >
               Close
             </button>
-            {viewingRows && viewingRows.length === 1 && viewMode === 'list' && !isDesktop && (
+            {viewingRows && viewingRows.length === 1 && viewMode === 'list' && !isDesktop && !['File Opened', 'Documents Finalized', 'Survey Answers Finalized'].includes(viewingRows[0].deadlineType) && (
               <button
                 className="btn-primary"
                 onClick={() => {
@@ -755,7 +764,7 @@ export default function TimelinesPage() {
             <button className="btn-secondary" onClick={closeModal}>
               Cancel
             </button>
-            {!isCreating && editingRecord && (
+            {canDelete && !isCreating && editingRecord && (
               editingDeadlineType === 'Last AGM Date' ||
               editingDeadlineType === 'Last Depreciation Report Date' ||
               isTargetType
@@ -910,30 +919,32 @@ export default function TimelinesPage() {
         </form>
       </Modal>
 
-      <Modal
-        isOpen={deleteModalOpen}
-        onClose={() => { setDeleteModalOpen(false); setRecordToDelete(null); }}
-        title="Delete Timeline"
-        size="small"
-        footer={
-          <>
-            <button className="btn-secondary" onClick={() => { setDeleteModalOpen(false); setRecordToDelete(null); }}>
-              Cancel
-            </button>
-            <button
-              className="btn-delete"
-              onClick={handleDelete}
-              disabled={deleteSubmitting}
-            >
-              {deleteSubmitting ? 'Deleting...' : 'Delete Timeline'}
-            </button>
-          </>
-        }
-      >
-        <div className="delete-confirmation">
-          <p>Are you sure you want to delete this {editingDeadlineType?.toLowerCase() || 'date'} for "{recordToDelete?.strata?.complexName || recordToDelete?.strata?.strataPlan || ''}"?</p>
-        </div>
-      </Modal>
+      {canDelete && (
+        <Modal
+          isOpen={deleteModalOpen}
+          onClose={() => { setDeleteModalOpen(false); setRecordToDelete(null); }}
+          title="Delete Timeline"
+          size="small"
+          footer={
+            <>
+              <button className="btn-secondary" onClick={() => { setDeleteModalOpen(false); setRecordToDelete(null); }}>
+                Cancel
+              </button>
+              <button
+                className="btn-delete"
+                onClick={handleDelete}
+                disabled={deleteSubmitting}
+              >
+                {deleteSubmitting ? 'Deleting...' : 'Delete Timeline'}
+              </button>
+            </>
+          }
+        >
+          <div className="delete-confirmation">
+            <p>Are you sure you want to delete this {editingDeadlineType?.toLowerCase() || 'date'} for "{recordToDelete?.strata?.complexName || recordToDelete?.strata?.strataPlan || ''}"?</p>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }

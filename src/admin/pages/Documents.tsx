@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useDocuments } from '../../shared/hooks/useDocuments';
+import { usePermissions } from '../../shared/hooks/usePermissions';
 import { useStrata } from '../../shared/hooks/useStrata';
 import { useLookups } from '../../shared/hooks/useLookups';
 import { useAuth } from '../../shared/contexts/AuthContext';
@@ -12,13 +13,13 @@ import { Modal } from '../../shared/components/Modal';
 import { DocumentPreviewModal } from '../../shared/components/DocumentPreviewModal';
 import { InputField, TextareaField, FormRow } from '../../shared/components/FormField';
 import { SingleSelectDropdown } from '../../shared/components/SingleSelectDropdown';
-import type { DocumentWithDetails, DocumentUploadData } from '../../shared/types/document.types';
-import { STRATA_ID_PATTERN, formatStrataId } from '../../shared/utils/strataUtils';
+import type { DocumentWithDetails } from '../../shared/types/document.types';
 import { API_BASE } from '../../shared/lib/api';
 import { formatTypeName, formatDate, getStatusBadgeClass } from '../../shared/utils/formatters';
 
 export default function DocumentsPage() {
-  const { documents, loading, error, updateDocumentStatus, uploadDocument, uploading, deleteDocument, syncDocuments } = useDocuments();
+  const { documents, loading, error, updateDocumentStatus, uploadDocument, uploading, deleteDocument, syncDocuments, refetch } = useDocuments();
+  const { canDelete } = usePermissions();
   const { stratas } = useStrata();
   const { documentTypes, reviewStatuses } = useLookups();
   const { session, user } = useAuth();
@@ -37,17 +38,10 @@ export default function DocumentsPage() {
   const [selectedDocument, setSelectedDocument] = useState<DocumentWithDetails | null>(null);
   const [statusForm, setStatusForm] = useState({ reviewStatusId: '', notes: '' });
 
-  const [uploadForm, setUploadForm] = useState<DocumentUploadData>({
-    documentName: '',
-    file: null,
-    documentTypeId: null,
-    strataName: '',
-    strataId: '',
-    notes: '',
-    propertyTypeId: null,
-  });
+  const [uploadForm, setUploadForm] = useState({ documentName: '', file: null as File | null, documentTypeId: null as number | null, strataId: null as number | null, notes: '', propertyTypeId: null as number | null });
   const [uploadError, setUploadError] = useState<string | null>(null);
-  const [strataPropertyTypes, setStrataPropertyTypes] = useState<{ propertyTypeId: number; propertyTypeName: string }[]>([]);
+  const uploadFormRef = useRef<HTMLFormElement>(null);
+  const [activeFileError, setActiveFileError] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
   const [syncMessage, setSyncMessage] = useState<string | null>(null);
 
@@ -58,38 +52,24 @@ export default function DocumentsPage() {
 
   const isDesktop = useMediaQuery('(min-width: 900px)');
 
+  const selectedUploadStrata = stratas.find(s => s.strataId === uploadForm.strataId);
+  const uploadStrataPropertyTypes = selectedUploadStrata?.strataPropertyTypes?.map(spt => spt.propertyType) ?? [];
+
   useEffect(() => {
-    if (!uploadForm.strataId || !STRATA_ID_PATTERN.test(uploadForm.strataId)) {
-      setStrataPropertyTypes([]);
+    if (!uploadForm.strataId) {
+      setActiveFileError(null);
       return;
     }
-
-    const lookup = async () => {
+    const checkActiveFile = async () => {
       try {
-        const res = await authFetch(`${API_BASE}/admin/strata/search?q=${encodeURIComponent(uploadForm.strataId!)}`);
+        const res = await authFetch(`${API_BASE}/admin/file-numbers/active?strataId=${uploadForm.strataId}`);
         const data = await res.json();
-        if (data.success && data.data?.length > 0) {
-          const match = data.data.find((s: { strataPlan: string }) =>
-            s.strataPlan?.toUpperCase() === uploadForm.strataId!.toUpperCase()
-          );
-          if (match?.complexName) {
-            setUploadForm(prev => ({ ...prev, strataName: match.complexName }));
-          }
-          if (match?.strataPropertyTypes) {
-            setStrataPropertyTypes(
-              match.strataPropertyTypes.map((spt: { propertyType: { propertyTypeId: number; propertyTypeName: string } }) => spt.propertyType)
-            );
-          } else {
-            setStrataPropertyTypes([]);
-          }
-        } else {
-          setStrataPropertyTypes([]);
-        }
+        setActiveFileError(!data.data ? 'This strata does not have an active file number' : null);
       } catch {
-        setStrataPropertyTypes([]);
+        setActiveFileError('This strata does not have an active file number');
       }
     };
-    lookup();
+    checkActiveFile();
   }, [uploadForm.strataId, authFetch]);
 
   useEffect(() => {
@@ -137,6 +117,7 @@ export default function DocumentsPage() {
     if (!location.state?.openUpload || autoOpenedUploadRef.current) return;
     autoOpenedUploadRef.current = true;
     openUploadModal();
+    window.history.replaceState({}, '');
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.state]);
 
@@ -260,17 +241,9 @@ export default function DocumentsPage() {
   };
 
   const openUploadModal = () => {
-    setUploadForm({
-      documentName: '',
-      file: null,
-      documentTypeId: null,
-      strataName: '',
-      strataId: '',
-      notes: '',
-      propertyTypeId: null,
-    });
-    setStrataPropertyTypes([]);
+    setUploadForm({ documentName: '', file: null, documentTypeId: null, strataId: null, notes: '', propertyTypeId: null });
     setUploadError(null);
+    setActiveFileError(null);
     setIsUploadModalOpen(true);
   };
 
@@ -282,51 +255,46 @@ export default function DocumentsPage() {
   const handleUploadSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!uploadForm.file || !uploadForm.documentTypeId || !uploadForm.strataId) {
+    if (!uploadForm.file || !uploadForm.documentTypeId || !uploadForm.strataId || !selectedUploadStrata?.strataPlan) {
       setUploadError('Please fill in all required fields');
-      return;
-    }
-
-    if (!STRATA_ID_PATTERN.test(uploadForm.strataId)) {
-      setUploadError('Strata ID must be 3 letters, a space, and 5 numbers (e.g. ABC 12345)');
       return;
     }
 
     setUploadError(null);
 
-    const selectedPt = strataPropertyTypes.find(pt => pt.propertyTypeId === uploadForm.propertyTypeId);
+    const selectedPt = uploadStrataPropertyTypes.find(pt => pt.propertyTypeId === uploadForm.propertyTypeId);
 
+    const docTypeId = uploadForm.documentTypeId;
+    const propTypeId = uploadForm.propertyTypeId;
     try {
       const result = await uploadDocument(
         uploadForm.file,
-        uploadForm.documentTypeId,
-        uploadForm.strataId,
-        uploadForm.strataName || undefined,
+        docTypeId!,
+        selectedUploadStrata.strataPlan,
+        selectedUploadStrata.complexName || undefined,
         uploadForm.notes || undefined,
-        uploadForm.propertyTypeId || undefined,
+        propTypeId || undefined,
         selectedPt?.propertyTypeName || undefined
       );
 
-      // Auto-configure document requirement so it appears on the strata Documents tab
-      const srId = result?.document?.file_number_id;
-      if (srId && uploadForm.documentTypeId) {
-        try {
-          await authFetch(`${API_BASE}/admin/file-numbers/${srId}/document-requirements/add`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              documentTypeId: uploadForm.documentTypeId,
-              propertyTypeId: uploadForm.propertyTypeId || null,
-            }),
-          });
-        } catch {
-          // Non-critical — document uploaded successfully, requirement config is best-effort
-        }
+      setIsUploadModalOpen(false);
+      const srId = result?.document?.file_id;
+      const autoLinked = result?.autoLinked;
+      if (srId && docTypeId && !autoLinked) {
+        authFetch(`${API_BASE}/admin/file-numbers/${srId}/document-requirements/version`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            documentTypeId: docTypeId,
+            propertyTypeId: propTypeId || null,
+          }),
+        }).catch(() => {});
       }
 
-      setIsUploadModalOpen(false);
+      setTimeout(() => refetch(), 100);
     } catch (err) {
       setUploadError(err instanceof Error ? err.message : 'Upload failed');
+      uploadFormRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   };
 
@@ -520,13 +488,13 @@ export default function DocumentsPage() {
         footer={
           <>
             <button className="btn-secondary" onClick={() => setIsUploadModalOpen(false)}>Cancel</button>
-            <button className="btn-primary" onClick={handleUploadSubmit} disabled={uploading}>
+            <button className="btn-primary" onClick={handleUploadSubmit} disabled={uploading || !!activeFileError || !uploadForm.file || !uploadForm.documentTypeId || !uploadForm.strataId || (uploadStrataPropertyTypes.length > 0 && !uploadForm.propertyTypeId)}>
               {uploading ? 'Uploading...' : 'Upload'}
             </button>
           </>
         }
       >
-        <form onSubmit={handleUploadSubmit}>
+        <form ref={uploadFormRef} onSubmit={handleUploadSubmit}>
           {uploadError && <div className="form-error">{uploadError}</div>}
 
           <InputField
@@ -553,39 +521,43 @@ export default function DocumentsPage() {
           </div>
 
           <FormRow>
-            <InputField
-              label="Strata ID"
+            <SingleSelectDropdown
+              label="Strata Plan"
               required
-              value={uploadForm.strataId}
-              onChange={(e) => setUploadForm(prev => ({ ...prev, strataId: formatStrataId(e.target.value), propertyTypeId: null }))}
-              placeholder="e.g. ABC 12345"
+              value={uploadForm.strataId?.toString() || ''}
+              onChange={(val) => setUploadForm(prev => ({ ...prev, strataId: val ? parseInt(val) : null, propertyTypeId: null }))}
+              options={stratas.map(s => ({ value: s.strataId, label: s.strataPlan || s.complexName || `Strata ${s.strataId}` })).sort((a, b) => a.label.localeCompare(b.label))}
+              placeholder="Select Strata Plan"
+              error={activeFileError || undefined}
             />
             <InputField
               label="Strata Name"
-              value={uploadForm.strataName}
+              value={selectedUploadStrata?.complexName || ''}
               disabled
-              placeholder="Auto-populated from Strata ID"
+              placeholder="Strata name"
             />
           </FormRow>
 
-          <SingleSelectDropdown
-            label="Document Type"
-            required
-            value={uploadForm.documentTypeId?.toString() || ''}
-            onChange={(val) => setUploadForm(prev => ({ ...prev, documentTypeId: val ? parseInt(val) : null }))}
-            options={documentTypes.map(dt => ({ value: dt.documentTypeId, label: formatTypeName(dt.typeName) })).filter((opt, i, arr) => arr.findIndex(o => o.label === opt.label) === i).sort((a, b) => a.label.localeCompare(b.label))}
-            placeholder="Select document type"
-          />
-
-          {strataPropertyTypes.length > 0 && (
+          <FormRow>
             <SingleSelectDropdown
-              label="Section (Property Type)"
-              value={uploadForm.propertyTypeId?.toString() || ''}
-              onChange={(val) => setUploadForm(prev => ({ ...prev, propertyTypeId: val ? parseInt(val) : null }))}
-              options={strataPropertyTypes.map(pt => ({ value: pt.propertyTypeId, label: pt.propertyTypeName })).sort((a, b) => a.label.localeCompare(b.label))}
-              placeholder="Select section"
+              label="Document Type"
+              required
+              value={uploadForm.documentTypeId?.toString() || ''}
+              onChange={(val) => setUploadForm(prev => ({ ...prev, documentTypeId: val ? parseInt(val) : null }))}
+              options={documentTypes.map(dt => ({ value: dt.documentTypeId, label: formatTypeName(dt.typeName) })).filter((opt, i, arr) => arr.findIndex(o => o.label === opt.label) === i).sort((a, b) => a.label.localeCompare(b.label))}
+              placeholder="Select document type"
             />
-          )}
+            {uploadStrataPropertyTypes.length > 0 && (
+              <SingleSelectDropdown
+                label="Property Type"
+                required
+                value={uploadForm.propertyTypeId?.toString() || ''}
+                onChange={(val) => setUploadForm(prev => ({ ...prev, propertyTypeId: val ? parseInt(val) : null }))}
+                options={uploadStrataPropertyTypes.map(pt => ({ value: pt.propertyTypeId, label: pt.propertyTypeName })).sort((a, b) => a.label.localeCompare(b.label))}
+                placeholder="Select property type"
+              />
+            )}
+          </FormRow>
 
           <TextareaField
             label="Notes"
@@ -604,7 +576,7 @@ export default function DocumentsPage() {
         documentId={previewDocumentId}
         documentName={previewDocumentName}
         token={session!.access_token}
-        onDelete={previewDocument ? () => handleDelete(previewDocument) : undefined}
+        onDelete={canDelete && previewDocument ? () => handleDelete(previewDocument) : undefined}
       />
     </div>
   );

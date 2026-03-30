@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useCompanyHolidays } from '../../shared/hooks/useCompanyHolidays';
+import { usePermissions } from '../../shared/hooks/usePermissions';
 import { useMediaQuery } from '../../shared/hooks/useMediaQuery';
 import { DataTable, type Column } from '../../shared/components/DataTable';
 import { Modal } from '../../shared/components/Modal';
@@ -14,6 +15,7 @@ import type { DisplayHoliday } from './company-holidays-manager.type';
 // TODO: Add Holiday start time, end time in database and UI
 export const CompanyHolidaysManager = () => {
   const { holidays, loading, error, createHoliday, updateHoliday, deleteHoliday } = useCompanyHolidays();
+  const { canDelete } = usePermissions();
   const isDesktop = useMediaQuery('(min-width: 750px)');
 
   const currentYear = useMemo(() => new Date().getFullYear(), []);
@@ -275,7 +277,7 @@ export const CompanyHolidaysManager = () => {
           initialData={selectedHoliday}
           onSubmitCreate={createHoliday}
           onSubmitUpdate={updateHoliday}
-          onDeleteClick={selectedHoliday ? handleDeleteClick : undefined}
+          onDeleteClick={canDelete && selectedHoliday ? handleDeleteClick : undefined}
         />
       )}
     </div>

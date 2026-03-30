@@ -73,14 +73,13 @@ export const useDocuments = () => {
     notes?: string,
     propertyTypeId?: number,
     propertyTypeName?: string
-  ): Promise<{ document: any }> => {
+  ): Promise<{ document: any; autoLinked?: boolean }> => {
     const token = session?.access_token;
     if (!token) throw new Error('Not authenticated');
 
     setUploading(true);
     try {
       const result = await supabaseUploadDocument({ token, file, documentTypeId, strataId, strataName, notes, propertyTypeId, propertyTypeName });
-      await fetchDocuments();
       return result;
     } catch (error) {
       console.error('Upload error:', error);

@@ -54,7 +54,7 @@ export function DocumentReviewModal({
       setDenyNote('');
       setDocResultMap({});
     }
-  }, [isOpen]);
+  }, [isOpen, initialSelections]);
 
   const cleanupBlob = useCallback((url: string | null) => {
     if (url) URL.revokeObjectURL(url);
@@ -344,20 +344,7 @@ export function DocumentReviewModal({
         <p className="notes-empty">No uploaded documents to review yet.</p>
       ) : (
         <div className="document-preview-container">
-          {currentItem?.req.naStatus ? (
-            <div className="doc-na-preview">
-              <p>
-                Client stated that this document is{' '}
-                <strong>
-                  {currentItem.req.naStatus.status === 'not_available' ? 'Not Available' : 'Not Applicable'}
-                </strong>.
-              </p>
-            </div>
-          ) : !currentItem?.doc ? (
-            <div className="doc-na-preview">
-              <p>This document has <strong>Not Been Received</strong> from the client.</p>
-            </div>
-          ) : (
+          {currentItem?.doc ? (
             <>
               {loadingPreview && (
                 <div className="document-preview-loading">
@@ -373,6 +360,19 @@ export function DocumentReviewModal({
                 </div>
               )}
             </>
+          ) : currentItem?.req.naStatus ? (
+            <div className="doc-na-preview">
+              <p>
+                Client stated that this document is{' '}
+                <strong>
+                  {currentItem.req.naStatus.status === 'not_available' ? 'Not Available' : 'Not Applicable'}
+                </strong>.
+              </p>
+            </div>
+          ) : (
+            <div className="doc-na-preview">
+              <p>This document has <strong>Not Been Received</strong> from the client.</p>
+            </div>
           )}
         </div>
       )}

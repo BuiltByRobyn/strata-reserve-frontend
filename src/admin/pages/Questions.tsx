@@ -3,6 +3,7 @@ import toast from 'react-hot-toast';
 import { CreateQuestionModal } from '../components/CreateQuestionModal';
 import { useLocation } from 'react-router-dom';
 import { useQuestions } from '../../shared/hooks/useQuestions';
+import { usePermissions } from '../../shared/hooks/usePermissions';
 import { useApiClient } from '../../shared/hooks/useApiClient';
 import { useLookups } from '../../shared/hooks/useLookups';
 import { useMediaQuery } from '../../shared/hooks/useMediaQuery';
@@ -44,6 +45,7 @@ const formatTypeName = (name: string) =>
 
 export default function QuestionsPage() {
   const { questions, loading, error, deleteQuestion, refetch } = useQuestions();
+  const { canDelete } = usePermissions();
   const api = useApiClient();
   const { questionTypes, services, propertyTypes, questionCategories } = useLookups();
   const isDesktop = useMediaQuery('(min-width: 1000px)');
@@ -496,7 +498,7 @@ export default function QuestionsPage() {
               ) : (
                 <button className="btn-secondary" onClick={() => setIsModalOpen(false)}>Cancel</button>
               )}
-              <button className="btn-delete" onClick={() => openDeleteConfirm(editingQuestion!)} disabled={isSubmitting}>Delete</button>
+              {canDelete && <button className="btn-delete" onClick={() => openDeleteConfirm(editingQuestion!)} disabled={isSubmitting}>Delete</button>}
               <button className="btn-primary" onClick={handleSubmit} disabled={isSubmitting}>{isSubmitting ? 'Saving...' : 'Save'}</button>
             </>
           ) : (
@@ -505,7 +507,7 @@ export default function QuestionsPage() {
                 ? <button className="btn-secondary" onClick={() => setIsModalOpen(false)}>Cancel</button>
                 : <button className="btn-secondary" onClick={handleBack}>Back</button>
               }
-              {editingQuestion && (
+              {canDelete && editingQuestion && (
                 <button className="btn-delete" onClick={() => openDeleteConfirm(editingQuestion)} disabled={isSubmitting}>Delete</button>
               )}
               {step < 3
@@ -698,12 +700,14 @@ export default function QuestionsPage() {
             </button>
             {!isDesktop && viewingQuestion && (
               <>
-                <button
-                  className="btn-delete"
-                  onClick={() => openDeleteConfirm(viewingQuestion)}
-                >
-                  Delete
-                </button>
+                {canDelete && (
+                  <button
+                    className="btn-delete"
+                    onClick={() => openDeleteConfirm(viewingQuestion)}
+                  >
+                    Delete
+                  </button>
+                )}
                 <button
                   className="btn-primary"
                   onClick={() => {
@@ -741,23 +745,25 @@ export default function QuestionsPage() {
         parentQuestion={questions.find(q => q.questionId === createSubQuestionParentId) ?? null}
       />
 
-      <Modal
-        isOpen={deleteConfirmOpen}
-        onClose={() => { setDeleteConfirmOpen(false); setQuestionToDelete(null); }}
-        title="Delete Question"
-        size="small"
-        footer={
-          <>
-            <button className="btn-secondary" onClick={() => { setDeleteConfirmOpen(false); setQuestionToDelete(null); }}>Cancel</button>
-            <button className="btn-delete" onClick={confirmDelete} disabled={isDeleting}>{isDeleting ? 'Deleting...' : 'Delete Question'}</button>
-          </>
-        }
-      >
-        <div className="delete-confirmation">
-          <p>Are you sure you want to delete "{questionToDelete?.questionText}"?</p>
-          <p className="delete-warning">This cannot be undone.</p>
-        </div>
-      </Modal>
+      {canDelete && (
+        <Modal
+          isOpen={deleteConfirmOpen}
+          onClose={() => { setDeleteConfirmOpen(false); setQuestionToDelete(null); }}
+          title="Delete Question"
+          size="small"
+          footer={
+            <>
+              <button className="btn-secondary" onClick={() => { setDeleteConfirmOpen(false); setQuestionToDelete(null); }}>Cancel</button>
+              <button className="btn-delete" onClick={confirmDelete} disabled={isDeleting}>{isDeleting ? 'Deleting...' : 'Delete Question'}</button>
+            </>
+          }
+        >
+          <div className="delete-confirmation">
+            <p>Are you sure you want to delete "{questionToDelete?.questionText}"?</p>
+            <p className="delete-warning">This cannot be undone.</p>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }

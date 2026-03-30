@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useInspectorAvailability } from '../../shared/hooks/useInspectorAvailability';
+import { usePermissions } from '../../shared/hooks/usePermissions';
 import { useUsers } from '../../shared/hooks/useUsers';
 import { useMediaQuery } from '../../shared/hooks/useMediaQuery';
 import { DataTable, type Column } from '../../shared/components/DataTable';
@@ -33,6 +34,7 @@ const formatTime = (timeStr: string | null): string => {
 
 export const InspectorAvailabilityManager = () => {
     const { availableDates, loading, error, deleteAvailableDate, createAvailableDatesBatch, updateAvailableDate } = useInspectorAvailability();
+    const { canDelete } = usePermissions();
     const { users } = useUsers();
     const isDesktop = useMediaQuery('(min-width: 750px)');
 
@@ -325,11 +327,11 @@ export const InspectorAvailabilityManager = () => {
                     initialData={selectedBlock}
                     onSubmitBulkCreate={createAvailableDatesBatch}
                     onSubmitUpdate={updateAvailableDate}
-                    onDeleteClick={() => selectedBlock && handleOpenDelete(selectedBlock)}
+                    onDeleteClick={canDelete ? () => selectedBlock && handleOpenDelete(selectedBlock) : undefined}
                 />
             )}
 
-            {isDeleteModalOpen && selectedBlock && (
+            {canDelete && isDeleteModalOpen && selectedBlock && (
                 <DeleteAvailabilityModal
                     isOpen={isDeleteModalOpen}
                     onClose={() => {
