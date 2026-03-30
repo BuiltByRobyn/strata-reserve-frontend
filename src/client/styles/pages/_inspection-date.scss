@@ -38,6 +38,24 @@
     &--info {
       border-left: 4px solid $color-secondary;
       background: $color-secondary-pale;
+      position: relative;
+    }
+
+    &-dismiss {
+      position: absolute;
+      top: $spacing-sm;
+      right: $spacing-sm;
+      background: none;
+      border: none;
+      font-size: 1.25rem;
+      color: $color-text-secondary;
+      cursor: pointer;
+      padding: $spacing-xs;
+      line-height: 1;
+
+      &:hover {
+        color: $color-text-dark;
+      }
     }
 
     &--pending {
@@ -62,12 +80,12 @@
   &__success {
     background: $color-primary-lightest;
     color: $color-primary-dark;
-    width: 100%;
-    max-width: 970px;
+    max-width: 100%;
     padding: $spacing-md;
     border-radius: $border-radius-md;
     margin-bottom: $spacing-lg;
     border: $border-width-thin solid $color-primary;
+    box-sizing: border-box;
   }
 
   &__details {
@@ -92,7 +110,7 @@
   &__detail-label {
     font-weight: 600;
     color: $color-text-dark;
-    min-width: 160px;
+    min-width: 220px;
     flex-shrink: 0;
     margin-right: $spacing-sm;
   }
