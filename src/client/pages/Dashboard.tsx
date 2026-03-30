@@ -15,6 +15,8 @@ import { parseLocalDate, parseTimestamp } from '../../shared/utils/dateUtils';
 import { formatTime12h } from '../../shared/utils/formatters';
 import type { ActiveAppointmentResponse, AppointmentNotification } from '../../shared/types/appointment.types';
 import { useLookups } from '../../shared/hooks/useLookups';
+import { surveyQuestionKey } from '../../shared/utils/surveyUtils';
+import { isDocDenied } from '../../shared/utils/documentUtils';
 
 const formatShortDate = (value: string | null | undefined) => {
   const date = parseLocalDate(value) || parseTimestamp(value);
@@ -141,33 +143,9 @@ export const Dashboard = () => {
     setShowSectionChangeModal(false);
   };
 
-  const docsFinalized = fileId ? !!localStorage.getItem(`docs_finalized_${fileId}`) : false;
-
-  const deniedDocuments = useMemo(
-    () => requiredDocuments.filter(d => {
-      const s = d.reviewStatus?.statusName?.toLowerCase() ?? '';
-      return s.includes('deny') || s.includes('reject');
-    }),
-    [requiredDocuments]
-  );
-  const latestReviewId = requiredDocuments[0]?.reviewId ?? null;
-
-  useEffect(() => {
-    if (!fileId || !latestReviewId || deniedDocuments.length === 0) return;
-    const key = `doc_review_denied_seen_${fileId}_${latestReviewId}`;
-    if (!localStorage.getItem(key)) {
-      setShowDocReviewModal(true);
-    }
-  }, [fileId, latestReviewId, deniedDocuments.length]);
-
-  const handleDismissDocReview = () => {
-    if (fileId && latestReviewId) {
-      localStorage.setItem(`doc_review_denied_seen_${fileId}_${latestReviewId}`, '1');
-    }
-    setShowDocReviewModal(false);
-  };
-
   const welcomeName = user?.role === 'client' ? user.firstName || 'there' : 'there';
+
+  const docsFinalized = fileId ? !!localStorage.getItem(`docs_finalized_${fileId}`) : false;
   const dashboardTitle = activeRequest?.strata?.complexName || activeRequest?.strata?.strataPlan || 'Your Strata Reserve Planning - Data Collection Portal';
 
   const clientPropertyTypeIds = useMemo(
@@ -186,36 +164,55 @@ export const Dashboard = () => {
 
   const requiredDocumentCount = filteredRequiredDocuments.length;
 
-  const uploadedRequiredDocumentCount = useMemo(
-    () => filteredRequiredDocuments.filter((doc) => doc.uploadedDocument).length,
-    [filteredRequiredDocuments],
-  );
-
   const acknowledgedDocumentCount = useMemo(
     () => filteredRequiredDocuments.filter((doc) => doc.uploadedDocument || doc.naStatus).length,
     [filteredRequiredDocuments],
   );
 
-  const missingRequiredDocumentCount = Math.max(requiredDocumentCount - uploadedRequiredDocumentCount, 0);
+  const missingRequiredDocumentCount = Math.max(requiredDocumentCount - acknowledgedDocumentCount, 0);
 
-  const filteredDeniedDocuments = useMemo(
-    () => filteredRequiredDocuments.filter(d => {
-      const s = d.reviewStatus?.statusName?.toLowerCase() ?? '';
-      if (!s.includes('deny') && !s.includes('reject')) return false;
-      if (!d.uploadedDocument || !d.reviewedAt) return true;
-      return new Date(d.uploadedDocument.uploadedAt) <= new Date(d.reviewedAt);
-    }),
+  const deniedDocuments = useMemo(
+    () => filteredRequiredDocuments.filter(isDocDenied),
     [filteredRequiredDocuments]
   );
 
+  const filteredDeniedDocuments = useMemo(
+    () => filteredRequiredDocuments.filter(d => {
+      if (!isDocDenied(d)) return false;
+      if (!d.reviewedAt) return true;
+      if (d.naStatus && d.naStatusSetAt && new Date(d.naStatusSetAt) > new Date(d.reviewedAt)) return false;
+      if (d.uploadedDocument && new Date(d.uploadedDocument.uploadedAt) > new Date(d.reviewedAt)) return false;
+      return true;
+    }),
+    [filteredRequiredDocuments]
+  );
+  const latestReviewId = filteredRequiredDocuments[0]?.reviewId ?? null;
+
+  useEffect(() => {
+    if (!fileId || !latestReviewId || deniedDocuments.length === 0) return;
+    const key = `doc_review_denied_seen_${fileId}_${latestReviewId}`;
+    if (!localStorage.getItem(key)) {
+      setShowDocReviewModal(true);
+    }
+  }, [fileId, latestReviewId, deniedDocuments.length]);
+
+  const handleDismissDocReview = () => {
+    if (fileId && latestReviewId) {
+      localStorage.setItem(`doc_review_denied_seen_${fileId}_${latestReviewId}`, '1');
+    }
+    setShowDocReviewModal(false);
+  };
+
   const sectionProgress = useMemo(() => {
-    const answeredQuestionIds = new Set(responses.map((r) => r.questionId));
+    const answeredKeys = new Set(responses.map((r) => surveyQuestionKey(r.questionId, r.propertyTypeId)));
     return surveySections
       .map((section) => {
         const parentQuestions = questions.filter(
           (q) => q.questionCategory === section.label && q.parentQuestionId == null,
         );
-        const answeredCount = parentQuestions.filter((q) => answeredQuestionIds.has(q.questionId)).length;
+        const answeredCount = parentQuestions.filter((q) =>
+          answeredKeys.has(surveyQuestionKey(q.questionId, q.propertyTypeId))
+        ).length;
         return {
           ...section,
           total: parentQuestions.length,
@@ -248,7 +245,7 @@ export const Dashboard = () => {
     return Math.round(((answeredSurveyQuestions + acknowledgedDocumentCount + completedTimelines) / total) * 100);
   }, [answeredSurveyQuestions, totalSurveyQuestions, acknowledgedDocumentCount, requiredDocumentCount, completedTimelines]);
 
-  const surveyCompleted = !!activeRequest?.submittedForReviewDate;
+  const surveyCompleted = totalSurveyQuestions > 0 && answeredSurveyQuestions === totalSurveyQuestions;
   const documentsCompleted = requiredDocumentCount > 0 && missingRequiredDocumentCount === 0;
 
   const bookingActionNeeded = !!(
@@ -271,7 +268,7 @@ export const Dashboard = () => {
       finalized: surveyCompleted,
     };
 
-    const hasPendingDenials = filteredDeniedDocuments.length > 0;
+    const hasPendingDenials = docsFinalized && filteredDeniedDocuments.length > 0;
     const documentsTask = {
       id: 'documents',
       title: 'Upload Documents',
@@ -280,7 +277,7 @@ export const Dashboard = () => {
         : docsFinalized
           ? 'View submitted documents'
           : missingRequiredDocumentCount > 0
-            ? `${missingRequiredDocumentCount} required document${missingRequiredDocumentCount === 1 ? '' : 's'} still to upload`
+            ? `${missingRequiredDocumentCount} requested document${missingRequiredDocumentCount === 1 ? '' : 's'} still to upload`
             : 'Submit requested documents',
       buttonLabel: hasPendingDenials || missingRequiredDocumentCount > 0 ? 'Upload Documents' : 'View Documents',
       path: '/client/documents',
@@ -324,9 +321,7 @@ export const Dashboard = () => {
     ];
   }, [activeAppointment, activeRequest, bookingActionNeeded, draftMeetingEligible, documentsCompleted, docsFinalized, filteredDeniedDocuments, missingRequiredDocumentCount, sectionProgress, surveyCompleted, timelineTargetDate]);
 
-  const dashboardLoading = requestLoading || propertyTypeLoading || surveyLoading || documentsLoading || timelinesLoading || appointmentLoading;
-
-  if (dashboardLoading) return <LoadingSpinner />;
+  if (requestLoading || propertyTypeLoading) return <LoadingSpinner />;
 
   if (!activeRequest) {
     return (
@@ -336,9 +331,37 @@ export const Dashboard = () => {
           <p className="dashboard-subtitle">Dashboard</p>
         </div>
         <NoFileNumberState />
+        <Modal
+          isOpen={showSectionChangeModal}
+          onClose={handleDismissSectionChange}
+          title={sectionChangeRequest?.status === 'Approved' ? 'Section Change Approved' : 'Section Change Rejected'}
+          size="medium"
+          footer={
+            <button className="btn-primary" onClick={handleDismissSectionChange}>
+              Got it
+            </button>
+          }
+        >
+          <div className="thank-you-content">
+            {sectionChangeRequest?.status === 'Approved' ? (
+              <p>Your section change request has been approved.</p>
+            ) : (
+              <>
+                <p>Your section change request has been rejected.</p>
+                {sectionChangeRequest?.rejectionReason && (
+                  <p>{sectionChangeRequest.rejectionReason}</p>
+                )}
+              </>
+            )}
+          </div>
+        </Modal>
       </div>
     );
   }
+
+  const dashboardLoading = surveyLoading || documentsLoading || timelinesLoading || appointmentLoading;
+
+  if (dashboardLoading) return <LoadingSpinner />;
 
   return (
     <div className="client-dashboard">
@@ -537,7 +560,7 @@ export const Dashboard = () => {
       >
         <div className="thank-you-content">
           <p>
-            Your activation request has been approved. Your account is now active and your file number has been assigned.
+            Your strata's activation request has been approved. Your account is now active and your file number has been assigned.
           </p>
         </div>
       </Modal>

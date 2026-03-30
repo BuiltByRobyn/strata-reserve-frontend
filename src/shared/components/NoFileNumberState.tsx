@@ -79,7 +79,7 @@ export const NoFileNumberState = () => {
         }
       >
         <div className="rejection-notice-content">
-          <p>Your activation request was not approved.</p>
+          <p>Your strata's activation request was not approved.</p>
           {request?.rejectionReason && (
             <p className="rejection-notice-reason">{request.rejectionReason}</p>
           )}
@@ -100,7 +100,7 @@ export const NoFileNumberState = () => {
       >
         <div className="thank-you-content">
           <p>
-            Your activation request has been approved. Your account is now active and your file number has been assigned. Please refresh the page to continue.
+            Your strata's activation request has been approved. Your account is now active and your file number has been assigned. Please refresh the page to continue.
           </p>
         </div>
       </Modal>

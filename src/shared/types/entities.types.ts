@@ -336,6 +336,13 @@ export interface FileNumber {
   strata?: Strata;
   requestedBy?: ProfileBasic;
   clientPropertyTypes?: Array<{ propertyTypeId: number }>;
+  propertyTypeFinalizations?: Array<{
+    propertyTypeId: number;
+    finalizedAt: string | null;
+    finalizedByName: string | null;
+  }>;
+  userSectionsFinalized?: boolean;
+  userSectionsComplete?: boolean;
   latestDocumentFinalizedDate?: string | null;
   latestDocumentReviewDate?: string | null;
   docsReadyForReview?: boolean;

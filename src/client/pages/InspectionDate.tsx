@@ -254,7 +254,7 @@ const loadActiveAppointment = useCallback(async () => {
 
   // Compute timeline milestones for the calendar
   const milestones = useMemo((): CalendarMilestone[] => {
-    if (!timelines && !activeRequest?.appointmentOfferedAt) return [];
+    if (!timelines && !activeRequest?.appointmentOfferedAt && activeAppointment?.type !== 'scheduled') return [];
     const result: CalendarMilestone[] = [];
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -325,8 +325,18 @@ const loadActiveAppointment = useCallback(async () => {
       }
     }
 
+    // Scheduled appointment date as milestone
+    if (activeAppointment?.type === 'scheduled') {
+      const aptDate = typeof activeAppointment.data.appointmentDate === 'string'
+        ? activeAppointment.data.appointmentDate.split('T')[0]
+        : formatYMD(new Date(activeAppointment.data.appointmentDate));
+      if (!result.some(m => m.date === aptDate)) {
+        result.push({ date: aptDate, label: bookingDraftMeeting ? 'Draft Meeting' : 'Inspection Date' });
+      }
+    }
+
     return result;
-  }, [timelines, activeRequest?.appointmentOfferedAt]);
+  }, [timelines, activeRequest?.appointmentOfferedAt, activeAppointment, bookingDraftMeeting]);
 
   const handleDateSelect = (date: string) => {
     setSelectedDate(date);

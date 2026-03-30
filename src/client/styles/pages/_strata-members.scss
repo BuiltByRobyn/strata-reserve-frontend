@@ -207,10 +207,19 @@
   }
 }
 
+.update-details-login-row {
+  @include respond-to(md) {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+  }
+}
+
 .update-details-change-password {
   background: none;
   border: none;
   padding: 0;
+  margin: 0;
   color: $color-error;
   font-size: 0.875rem;
   font-weight: 500;

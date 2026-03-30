@@ -23,8 +23,9 @@ export function DocumentReviewModal({
   onSubmit,
 }: DocumentReviewModalProps) {
   const items = docRequirements
-    .filter(r => r.fileNumberDocuments.length > 0 || r.naStatus !== null)
     .map(r => ({ req: r, doc: r.fileNumberDocuments[0] ?? null }));
+
+  const hasNotReceived = items.some(({ doc, req }) => !doc && !req.naStatus);
 
   const approveStatus = reviewStatuses.find(rs => rs.statusName.toLowerCase().includes('approv'));
   const denyStatus = reviewStatuses.find(rs =>
@@ -148,16 +149,20 @@ export function DocumentReviewModal({
     onClose();
   };
 
-  const handleSubmit = async () => {
+  const getReviewedItems = () =>
+    items
+      .filter(({ req }) => !!statusSelections[req.fnDocRequirementId])
+      .map(({ req }) => ({
+        fnDocRequirementId: req.fnDocRequirementId,
+        reviewStatusId: statusSelections[req.fnDocRequirementId],
+        notes: notesSelections[req.fnDocRequirementId],
+      }));
+
+  const handleSubmit = async (partial = false) => {
     if (!fileId) return;
     setSubmitting(true);
-    const submitItems = items.map(({ req }) => ({
-      fnDocRequirementId: req.fnDocRequirementId,
-      reviewStatusId: statusSelections[req.fnDocRequirementId],
-      notes: notesSelections[req.fnDocRequirementId],
-    }));
     try {
-      await onSubmit(fileId, { items: submitItems });
+      await onSubmit(fileId, { items: getReviewedItems() }, partial);
       setDocResultMap(Object.fromEntries(items.map(({ req }) => [req.fnDocRequirementId, 'success'])));
     } catch {
       setDocResultMap(Object.fromEntries(items.map(({ req }) => [req.fnDocRequirementId, 'error'])));
@@ -166,7 +171,10 @@ export function DocumentReviewModal({
     }
   };
 
-  const allReviewed = items.length > 0 && items.every(({ req }) => !!statusSelections[req.fnDocRequirementId]);
+  const allReviewed = items.length > 0 && !hasNotReceived && items.every(({ req }) => !!statusSelections[req.fnDocRequirementId]);
+  const allApprovedSelections = allReviewed && approveStatus &&
+    items.every(({ req }) => statusSelections[req.fnDocRequirementId] === approveStatus.reviewStatusId);
+  const hasAnySelection = Object.keys(statusSelections).length > 0;
 
   const currentItem = items[currentIndex];
   const currentReqId = currentItem?.req.fnDocRequirementId;
@@ -221,17 +229,27 @@ export function DocumentReviewModal({
           <button className="btn-secondary" onClick={() => setCurrentIndex(i => i + 1)}>
             Next
           </button>
-        ) : (
+        ) : allApprovedSelections ? (
           <button
             className="btn-primary"
-            onClick={handleSubmit}
-            disabled={!allReviewed || submitting}
+            onClick={() => handleSubmit(false)}
+            disabled={submitting}
           >
             {submitting ? 'Submitting...' : 'Submit Review'}
           </button>
+        ) : hasAnySelection ? (
+          <button
+            className="btn-secondary"
+            onClick={() => handleSubmit(true)}
+            disabled={submitting}
+          >
+            {submitting ? 'Saving...' : 'Save Progress'}
+          </button>
+        ) : (
+          <span />
         )}
       </div>
-      {currentItem && (
+      {currentItem && (currentItem.doc || currentItem.req.naStatus) && (
         <div className="doc-review-actions__decisions">
           {approveStatus && (
             <button
@@ -326,7 +344,7 @@ export function DocumentReviewModal({
         <p className="notes-empty">No uploaded documents to review yet.</p>
       ) : (
         <div className="document-preview-container">
-          {currentItem?.doc === null && currentItem?.req.naStatus ? (
+          {currentItem?.req.naStatus ? (
             <div className="doc-na-preview">
               <p>
                 Client stated that this document is{' '}
@@ -334,6 +352,10 @@ export function DocumentReviewModal({
                   {currentItem.req.naStatus.status === 'not_available' ? 'Not Available' : 'Not Applicable'}
                 </strong>.
               </p>
+            </div>
+          ) : !currentItem?.doc ? (
+            <div className="doc-na-preview">
+              <p>This document has <strong>Not Been Received</strong> from the client.</p>
             </div>
           ) : (
             <>

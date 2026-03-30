@@ -581,3 +581,35 @@
     }
   }
 }
+
+.survey-finalized-group {
+  border: $border-width-thin solid $color-primary;
+  border-radius: $border-radius-lg;
+  padding: $spacing-md;
+  margin-bottom: $spacing-md;
+
+  .survey-finalized-summary {
+    cursor: pointer;
+    color: $color-text-muted;
+    font-size: 0.95rem;
+    list-style: none;
+
+    &::-webkit-details-marker {
+      display: none;
+    }
+
+    strong {
+      color: $color-text-primary;
+    }
+  }
+
+  .survey-finalized-questions {
+    margin-top: $spacing-md;
+  }
+}
+
+.question-answer-text {
+  color: $color-text-secondary;
+  margin: $spacing-xs 0;
+  font-weight: 500;
+}

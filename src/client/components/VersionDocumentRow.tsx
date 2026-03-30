@@ -9,29 +9,29 @@ export function VersionDocumentRow({
   onPreview,
   readOnly = false,
 }: VersionDocumentRowProps) {
-  const { versionLabel, naStatus, uploadedDocument, reviewStatus, denialNote, reviewedAt } = requirement;
+  const { versionLabel, naStatus, naStatusSetAt, uploadedDocument, reviewStatus, denialNote, reviewedAt } = requirement;
   const isUploaded = !!uploadedDocument;
   const isDenied = (() => {
     const s = reviewStatus?.statusName?.toLowerCase() ?? '';
     return s.includes('deny') || s.includes('reject');
   })();
-  const isReplacedAfterDenial = isDenied &&
-    !!uploadedDocument &&
-    !!reviewedAt &&
-    new Date(uploadedDocument.uploadedAt) > new Date(reviewedAt);
+  const isRespondedAfterDenial = isDenied && !!reviewedAt && (
+    (!!naStatus && !!naStatusSetAt && new Date(naStatusSetAt) > new Date(reviewedAt)) ||
+    (!!uploadedDocument && new Date(uploadedDocument.uploadedAt) > new Date(reviewedAt))
+  );
 
   return (
-    <div className={`version-row${isUploaded ? ' version-row--uploaded' : ''}${isDenied && !isReplacedAfterDenial ? ' version-row--denied' : ''}`}>
+    <div className={`version-row${isUploaded ? ' version-row--uploaded' : ''}${isDenied && !isRespondedAfterDenial ? ' version-row--denied' : ''}`}>
       <span className="version-row__label">{versionLabel || 'Default'}</span>
 
       <div className="version-row__status">
-        {isUploaded && <span className="uploaded-file-name">{uploadedDocument!.fileName}</span>}
-        {isReplacedAfterDenial && <span className="version-row__replaced-badge">Replaced</span>}
-        {isDenied && !isReplacedAfterDenial && <span className="version-row__denied-badge">Denied</span>}
-        {isDenied && !isReplacedAfterDenial && denialNote && (
+        {isUploaded && !naStatus && <span className="uploaded-file-name">{uploadedDocument!.fileName}</span>}
+        {isRespondedAfterDenial && !naStatus && <span className="version-row__replaced-badge">Replaced</span>}
+        {isDenied && !isRespondedAfterDenial && <span className="version-row__denied-badge">Denied</span>}
+        {isDenied && !isRespondedAfterDenial && denialNote && (
           <span className="version-row__denial-note">{denialNote}</span>
         )}
-        {!isUploaded && naStatus && (
+        {naStatus && (
           <span className="na-status-indicator">
             {formatNaStatus(naStatus)}
           </span>
@@ -39,7 +39,7 @@ export function VersionDocumentRow({
       </div>
 
       <div className="version-row__actions">
-        {isUploaded && (
+        {isUploaded && !naStatus && (
           <button className="btn-view" onClick={() => onPreview(requirement)}>
             View
           </button>

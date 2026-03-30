@@ -1,4 +1,4 @@
-import type { ActivationRequest, AppointmentRequest, FileNumber, PropertyTypeRequest } from './entities.types';
+import type { ActivationRequest, AppointmentRequest, AppointmentWithDetails, FileNumber, PropertyTypeRequest } from './entities.types';
 
 // ─── Admin Dashboard Types ────────────────────────────────────────────────────
 
@@ -69,6 +69,17 @@ export type UrgentCard =
       description: string;
       notificationId: number;
       strataId: number;
+    }
+  | {
+      id: string;
+      kind: 'appointment-cancelled';
+      tone: 'overdue' | 'due-today' | 'upcoming';
+      badge: string;
+      priority: number;
+      createdAt: string;
+      title: string;
+      description: string;
+      appointment: AppointmentWithDetails;
     };
 
 export interface ActivityCard {

@@ -141,6 +141,8 @@ export default function StrataDetailPage() {
       autoOpenedCreateRef.current = true;
       resetCreateModal();
       setCreateModalOpen(true);
+      // Clear the state so it doesn't re-trigger on remount
+      window.history.replaceState({}, '');
     }
   }, [location.state?.openCreateSR]);
   const [srFormData, setSrFormData] = useState<CreateSRFormData>(INITIAL_SR_FORM);
@@ -779,7 +781,7 @@ export default function StrataDetailPage() {
       return resp.responseDate ? (parseLocalDate(resp.responseDate)?.toLocaleDateString("en-GB", { day: "2-digit", month: "long", year: "numeric" }) ?? "No answer") : "No answer";
     }
     if (resp.responseText === 'NOT_APPLICABLE') return 'Not Applicable';
-    if (resp.responseText === 'UNKNOWN') return 'Unknown';
+    if (resp.responseText === 'NOT_AVAILABLE') return 'Not Available';
     return resp.responseText || "No answer";
   };
 
@@ -835,7 +837,7 @@ export default function StrataDetailPage() {
     }
 
     if (resp.responseText === 'NOT_APPLICABLE') return <span className="answer-value">Not Applicable</span>;
-    if (resp.responseText === 'UNKNOWN') return <span className="answer-value">Unknown</span>;
+    if (resp.responseText === 'NOT_AVAILABLE') return <span className="answer-value">Not Available</span>;
 
     if (resp.responseText) {
       return <span className="answer-value">{resp.responseText}</span>;
@@ -945,7 +947,7 @@ export default function StrataDetailPage() {
     if (activeTab === "archived") {
       const map: Record<string, boolean> = {};
       for (const s of surveySections) {
-        const hasResponses = activeSurvey.archivedResponses.some(r => r.question?.questionCategory === s.label);
+        const hasResponses = activeSurvey.archivedResponses.some(r => r.question?.questionCategory?.label === s.label);
         map[s.key] = hasResponses;
       }
       return map;
@@ -979,7 +981,7 @@ export default function StrataDetailPage() {
     } else if (activeTab === "archived") {
       for (const r of activeSurvey.archivedResponses) {
         if (r.question && validPropertyTypes.includes(r.propertyTypeId)) {
-          availableSectionLabels.add(r.question.questionCategory);
+          availableSectionLabels.add(r.question.questionCategory.label);
         }
       }
     }
@@ -1242,7 +1244,7 @@ export default function StrataDetailPage() {
                         // Filter responses to this section and property type
                         const ptResponses = activeSurvey.archivedResponses.filter(r => 
                           r.propertyTypeId === ptId && 
-                          r.question?.questionCategory === sectionConfig?.label
+                          r.question?.questionCategory?.label === sectionConfig?.label
                         );
 
                         if (ptResponses.length === 0) return null;
@@ -1347,46 +1349,48 @@ export default function StrataDetailPage() {
                                     return (
                                       <div key={r.fnDocRequirementId} className="doc-req-item">
                                         <span className="doc-req-version-label">{r.versionLabel || 'Default'}</span>
-                                        {latestDoc ? (
-                                          <div className="doc-req-item-header">
-                                            <button
-                                              className="btn-link doc-file-link"
-                                              onClick={() => handleDocPreview(latestDoc)}
-                                              title="Preview document"
-                                            >
-                                              {latestDoc.fileName}
-                                            </button>
-                                            {(() => {
-                                              const reviewItem = docReview?.items?.find(i => i.fnDocRequirementId === r.fnDocRequirementId);
-                                              const isDenied = reviewItem && (
-                                                reviewItem.reviewStatus.statusName.toLowerCase().includes('deny') ||
-                                                reviewItem.reviewStatus.statusName.toLowerCase().includes('reject')
-                                              );
-                                              const reuploadedAfterReview = isDenied &&
-                                                docReview?.reviewedAt &&
-                                                new Date(latestDoc.uploadedAt) > new Date(docReview.reviewedAt);
-                                              if (!reviewItem || reuploadedAfterReview) {
-                                                return <span className="status-badge pending">Pending Review</span>;
+                                        {(() => {
+                                          const reviewItem = docReview?.items?.find(i => i.fnDocRequirementId === r.fnDocRequirementId);
+                                          const reviewedAt = docReview?.reviewedAt;
+                                          const naSetAfterReview = naStatus && r.naStatus?.setAt && reviewedAt
+                                            && new Date(r.naStatus.setAt) > new Date(reviewedAt);
+                                          if (naStatus && (!reviewItem || naSetAfterReview)) {
+                                            return (
+                                              <div className="doc-req-item-header">
+                                                <span />
+                                                <span className="status-badge na-status">{formatNaStatus(naStatus)}</span>
+                                              </div>
+                                            );
+                                          }
+                                          if (latestDoc) {
+                                            const uploadedAfterReview = reviewedAt &&
+                                              new Date(latestDoc.uploadedAt) > new Date(reviewedAt);
+                                            return (
+                                              <div className="doc-req-item-header">
+                                                <button
+                                                  className="btn-link doc-file-link"
+                                                  onClick={() => handleDocPreview(latestDoc)}
+                                                  title="Preview document"
+                                                >
+                                                  {latestDoc.fileName}
+                                                </button>
+                                                {(!reviewItem || uploadedAfterReview)
+                                                  ? <span className="status-badge pending">Pending Review</span>
+                                                  : <span className={`status-badge ${reviewItem.reviewStatus.statusName.toLowerCase().replace(/\s+/g, '-')}`}>{reviewItem.reviewStatus.statusName}</span>
+                                                }
+                                              </div>
+                                            );
+                                          }
+                                          return (
+                                            <div className="doc-req-item-header">
+                                              <span />
+                                              {reviewItem
+                                                ? <span className={`status-badge ${reviewItem.reviewStatus.statusName.toLowerCase().replace(/\s+/g, '-')}`}>{reviewItem.reviewStatus.statusName}</span>
+                                                : <span className="status-badge not-received">Not Received</span>
                                               }
-                                              return (
-                                                <span className={`status-badge ${reviewItem.reviewStatus.statusName.toLowerCase().replace(/\s+/g, '-')}`}>
-                                                  {reviewItem.reviewStatus.statusName}
-                                                </span>
-                                              );
-                                            })()}
-                                          </div>
-                                        ) : (
-                                          <div className="doc-req-item-header">
-                                            <span />
-                                            {naStatus ? (
-                                              <span className="status-badge na-status">
-                                                {formatNaStatus(naStatus)}
-                                              </span>
-                                            ) : (
-                                              <span className="status-badge not-received">Not Received</span>
-                                            )}
-                                          </div>
-                                        )}
+                                            </div>
+                                          );
+                                        })()}
                                       </div>
                                     );
                                   })}
@@ -1963,13 +1967,16 @@ export default function StrataDetailPage() {
         review={(() => {
           const hasPending = reviewRequirements.some(r => {
             const latestDoc = r.fileNumberDocuments[0];
-            if (!latestDoc && !r.naStatus) return false;
+            // Not received = still pending (no doc uploaded, no N/A status)
+            if (!latestDoc && !r.naStatus) return true;
             const reviewItem = docReview?.items?.find(i => i.fnDocRequirementId === r.fnDocRequirementId);
             if (!reviewItem) return true;
             const isDenied =
               reviewItem.reviewStatus.statusName.toLowerCase().includes('deny') ||
               reviewItem.reviewStatus.statusName.toLowerCase().includes('reject');
-            return isDenied && !!latestDoc && !!docReview?.reviewedAt &&
+            if (!isDenied) return false;
+            if (r.naStatus) return true;
+            return !!latestDoc && !!docReview?.reviewedAt &&
               new Date(latestDoc.uploadedAt) > new Date(docReview.reviewedAt);
           });
           return hasPending ? null : docReview;
@@ -1984,9 +1991,11 @@ export default function StrataDetailPage() {
             const isDenied =
               item.reviewStatus.statusName.toLowerCase().includes('deny') ||
               item.reviewStatus.statusName.toLowerCase().includes('reject');
-            const reuploadedAfterReview = isDenied && latestDoc && docReview.reviewedAt &&
-              new Date(latestDoc.uploadedAt) > new Date(docReview.reviewedAt);
-            if (!reuploadedAfterReview) {
+            const respondedAfterDenial = isDenied && (
+              !!req?.naStatus ||
+              (latestDoc && docReview.reviewedAt && new Date(latestDoc.uploadedAt) > new Date(docReview.reviewedAt))
+            );
+            if (!respondedAfterDenial) {
               result[item.fnDocRequirementId] = item.reviewStatus.reviewStatusId;
             }
           }
@@ -1994,18 +2003,22 @@ export default function StrataDetailPage() {
         })()}
         loading={reviewLoading}
         token={session?.access_token || ''}
-        onSubmit={async (fileId, input) => {
+        onSubmit={async (fileId, input, partial) => {
           const ok = await submitReview(fileId, input);
           if (ok) {
             setDocReviewModalOpen(false);
             if (activeRequest) {
               fetchDocRequirements(activeRequest.fileId);
-              fetchReview(activeRequest.fileId);
-            }
-            const approveStatus = reviewStatuses.find(rs => rs.statusName.toLowerCase().includes('approv'));
-            const allApproved = approveStatus && input.items.every(item => item.reviewStatusId === approveStatus.reviewStatusId);
-            if (allApproved) {
-              setOfferModalOpen(true);
+              const updatedReview = await fetchReview(activeRequest.fileId);
+              if (!partial && updatedReview) {
+                const allApproved = updatedReview.items.length > 0 &&
+                  updatedReview.items.every(item =>
+                    item.reviewStatus.statusName.toLowerCase().includes('approv')
+                  );
+                if (allApproved) {
+                  setOfferModalOpen(true);
+                }
+              }
             }
           }
         }}

@@ -10,7 +10,7 @@ import { Modal } from '../../shared/components/Modal';
 import { PropertyTypeSelector } from '../components/PropertyTypeSelector';
 import { VersionDocumentRow } from '../components/VersionDocumentRow';
 import { validateFileType, validateFileSize } from '../../shared/utils/validation';
-import { groupByDocumentType } from '../../shared/utils/documentUtils';
+import { groupByDocumentType, isDocDenied, areAllDocsAddressed } from '../../shared/utils/documentUtils';
 import type { RequiredDocumentChecklist, NaStatusValue } from '../../shared/types/document.types';
 
 export default function ClientDocumentsPage() {
@@ -56,31 +56,18 @@ export default function ClientDocumentsPage() {
   }, [requiredDocuments, clientPropertyTypeIds]);
 
   const allAnswered = useMemo(
-    () => filteredRequirements.length > 0 &&
-      filteredRequirements.every(d => {
-        const isDenied = (() => {
-          const s = d.reviewStatus?.statusName?.toLowerCase() ?? '';
-          return s.includes('deny') || s.includes('reject');
-        })();
-        if (isDenied) {
-          if (!d.uploadedDocument || !d.reviewedAt) return false;
-          return new Date(d.uploadedDocument.uploadedAt) > new Date(d.reviewedAt);
-        }
-        return !!d.uploadedDocument || !!d.naStatus;
-      }),
+    () => areAllDocsAddressed(filteredRequirements),
     [filteredRequirements]
   );
 
   const deniedRequirements = useMemo(
-    () => filteredRequirements.filter(r => {
-      const s = r.reviewStatus?.statusName?.toLowerCase() ?? '';
-      return s.includes('deny') || s.includes('reject');
-    }),
+    () => filteredRequirements.filter(isDocDenied),
     [filteredRequirements]
   );
 
   const hasReview = useMemo(
-    () => filteredRequirements.some(r => r.reviewId !== null),
+    () => filteredRequirements.length > 0 &&
+      filteredRequirements.every(r => r.reviewId !== null),
     [filteredRequirements]
   );
 
@@ -120,7 +107,7 @@ export default function ClientDocumentsPage() {
 
     if (deniedRequirements.length > 0) {
       const reviewId = deniedRequirements[0].reviewId;
-      const seenKey = reviewId ? `denial_notified_${fileId}_${reviewId}` : null;
+      const seenKey = reviewId ? `doc_review_denied_seen_${fileId}_${reviewId}` : null;
       if (seenKey && !localStorage.getItem(seenKey) && !denialShownRef.current.has(seenKey)) {
         denialShownRef.current.add(seenKey);
         localStorage.setItem(seenKey, 'true');
@@ -269,10 +256,6 @@ export default function ClientDocumentsPage() {
                         {isExpanded && (
                           <div className="version-list">
                             {versions.map(req => {
-                              const isDenied = (() => {
-                                const s = req.reviewStatus?.statusName?.toLowerCase() ?? '';
-                                return s.includes('deny') || s.includes('reject');
-                              })();
                               return (
                                 <VersionDocumentRow
                                   key={req.fnDocRequirementId}
@@ -281,7 +264,7 @@ export default function ClientDocumentsPage() {
                                   onUpload={handleUploadClick}
                                   onSetNaStatus={handleSetNaStatus}
                                   onPreview={handlePreview}
-                                  readOnly={(hasReview && !isDenied) || docsFinalized}
+                                  readOnly={docsFinalized && !isDocDenied(req)}
                                 />
                               );
                             })}

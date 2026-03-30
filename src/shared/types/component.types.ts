@@ -251,7 +251,7 @@ export interface DocumentReviewModalProps {
   initialSelections?: Record<number, number>;
   loading: boolean;
   token: string;
-  onSubmit: (fileId: number, input: BatchDocumentReviewInput) => Promise<void>;
+  onSubmit: (fileId: number, input: BatchDocumentReviewInput, partial?: boolean) => Promise<void>;
 }
 
 export interface VersionDocumentRowProps {
