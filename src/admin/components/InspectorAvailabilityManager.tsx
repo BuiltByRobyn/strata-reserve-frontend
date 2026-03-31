@@ -1,6 +1,5 @@
 import { useState, useMemo } from 'react';
 import { useInspectorAvailability } from '../../shared/hooks/useInspectorAvailability';
-import { usePermissions } from '../../shared/hooks/usePermissions';
 import { useUsers } from '../../shared/hooks/useUsers';
 import { useMediaQuery } from '../../shared/hooks/useMediaQuery';
 import { DataTable, type Column } from '../../shared/components/DataTable';
@@ -38,7 +37,6 @@ interface InspectorAvailabilityManagerProps {
 
 export const InspectorAvailabilityManager = ({ inspectorProfileId }: InspectorAvailabilityManagerProps) => {
     const { availableDates, loading, error, deleteAvailableDate, createAvailableDatesBatch, updateAvailableDate } = useInspectorAvailability();
-    const { canDelete, isInspector } = usePermissions();
     const canDeleteAvailability = true;
     const { users } = useUsers();
     const isDesktop = useMediaQuery('(min-width: 750px)');
