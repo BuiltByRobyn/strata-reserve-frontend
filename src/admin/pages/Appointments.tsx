@@ -23,6 +23,7 @@ import { getSlotTimeRange } from '../../shared/utils/dateUtils';
 import { getAppointmentTypeTimeSlotViolationMessage } from '../../shared/utils/appointmentRules';
 import { LOCATION_DISPLAY_ORDER } from '../../shared/utils/constants';
 import { formatYMD } from '../../shared/utils/timelineUtils';
+import { usePermissions } from '../../shared/hooks/usePermissions';
 
 const getStatusClass = (status: string): string => {
   switch (status.toLowerCase()) {
@@ -61,6 +62,7 @@ export default function AppointmentsPage() {
   const { users, loading: usersLoading } = useUsers();
   const { locations, loading: lookupsLoading } = useLookups();
   const { fileNumbers, refetch: fetchFileNumbers } = useFileNumbers();
+  const { canCreateAppointment, canEditAppointment, isInspector } = usePermissions();
 
   const [selectedItem, setSelectedItem] = useState<SelectedItem | null>(null);
   const [rescheduleApt, setRescheduleApt] = useState<AppointmentWithDetails | null>(null);
@@ -447,7 +449,7 @@ export default function AppointmentsPage() {
       key: 'status', header: 'Status',
       render: (r) => {
         const statusLower = r.status.toLowerCase();
-        if (r.type === 'appointment' && (statusLower === 'scheduled' || statusLower === 'rescheduled')) {
+        if (canEditAppointment && r.type === 'appointment' && (statusLower === 'scheduled' || statusLower === 'rescheduled')) {
           return (
             <select
               className={`status-badge status-dropdown ${getStatusClass(r.status)}`}
@@ -656,7 +658,7 @@ export default function AppointmentsPage() {
           </div>
         </div>
 
-        {(status === 'scheduled' || status === 'rescheduled') && (
+        {canEditAppointment && (status === 'scheduled' || status === 'rescheduled') && (
           <div className="appointments-detail__actions">
             <button className="btn btn-secondary" onClick={() => setRescheduleApt(apt)}>
               Reschedule Appointment
@@ -667,7 +669,7 @@ export default function AppointmentsPage() {
           </div>
         )}
 
-        {status === 'cancelled' && (
+        {canEditAppointment && status === 'cancelled' && (
           <>
             {apt.cancellationReason && (
               <div className="appointments-detail__section">
@@ -788,56 +790,60 @@ export default function AppointmentsPage() {
             </div>
           )}
 
-          <div className="appointments-detail__inspector">
-            <div className="appointments-detail__inspector-row">
-              <SingleSelectDropdown
-                label="Assign Inspector"
-                required
-                options={inspectorOptions}
-                value={inspectorId}
-                onChange={(val) => {
-                  handleInspectorChange(val);
-                  if (val === secondInspectorIdReview) setSecondInspectorIdReview('');
-                }}
-                placeholder="Select an inspector..."
-              />
-              {addSecondInspectorReview && (
-                <SingleSelectDropdown
-                  label="Additional Inspector"
-                  options={inspectorOptions.filter(o => o.value !== inspectorId)}
-                  value={secondInspectorIdReview}
-                  onChange={setSecondInspectorIdReview}
-                  placeholder="Select additional inspector..."
-                />
-              )}
-            </div>
-            <div className="offer-modal__field">
-              <label className="offer-modal__checkbox-label">
-                <input
-                  type="checkbox"
-                  checked={addSecondInspectorReview}
-                  onChange={(e) => {
-                    setAddSecondInspectorReview(e.target.checked);
-                    if (!e.target.checked) setSecondInspectorIdReview('');
-                  }}
-                />
-                Add additional inspector
-              </label>
-            </div>
-          </div>
+          {canEditAppointment && (
+            <>
+              <div className="appointments-detail__inspector">
+                <div className="appointments-detail__inspector-row">
+                  <SingleSelectDropdown
+                    label="Assign Inspector"
+                    required
+                    options={inspectorOptions}
+                    value={inspectorId}
+                    onChange={(val) => {
+                      handleInspectorChange(val);
+                      if (val === secondInspectorIdReview) setSecondInspectorIdReview('');
+                    }}
+                    placeholder="Select an inspector..."
+                  />
+                  {addSecondInspectorReview && (
+                    <SingleSelectDropdown
+                      label="Additional Inspector"
+                      options={inspectorOptions.filter(o => o.value !== inspectorId)}
+                      value={secondInspectorIdReview}
+                      onChange={setSecondInspectorIdReview}
+                      placeholder="Select additional inspector..."
+                    />
+                  )}
+                </div>
+                <div className="offer-modal__field">
+                  <label className="offer-modal__checkbox-label">
+                    <input
+                      type="checkbox"
+                      checked={addSecondInspectorReview}
+                      onChange={(e) => {
+                        setAddSecondInspectorReview(e.target.checked);
+                        if (!e.target.checked) setSecondInspectorIdReview('');
+                      }}
+                    />
+                    Add additional inspector
+                  </label>
+                </div>
+              </div>
 
-          <div className="appointments-detail__comments">
-            <label htmlFor="review-comments">Comments (Optional)</label>
-            <textarea
-              id="review-comments"
-              className="appointments-detail__textarea"
-              value={comments}
-              onChange={(e) => setComments(e.target.value)}
-              rows={2}
-            />
-          </div>
+              <div className="appointments-detail__comments">
+                <label htmlFor="review-comments">Comments (Optional)</label>
+                <textarea
+                  id="review-comments"
+                  className="appointments-detail__textarea"
+                  value={comments}
+                  onChange={(e) => setComments(e.target.value)}
+                  rows={2}
+                />
+              </div>
+            </>
+          )}
 
-          {req.status === 'Pending Review' && (
+          {canEditAppointment && req.status === 'Pending Review' && (
             <>
               <div className="appointments-detail__actions">
                 <button
@@ -1012,9 +1018,11 @@ export default function AppointmentsPage() {
           >
             Calendar View
           </button>
-          <button className="btn-primary" onClick={openCreateModal}>
-            + Add New Appointment
-          </button>
+          {canCreateAppointment && (
+            <button className="btn-primary" onClick={openCreateModal}>
+              + Add New Appointment
+            </button>
+          )}
         </div>
       </div>
 
@@ -1064,13 +1072,15 @@ export default function AppointmentsPage() {
           options={strataPlanOptions}
           placeholder="All Plans"
         />
-        <SingleSelectDropdown
-          label="Inspector"
-          value={filterInspector}
-          onChange={setFilterInspector}
-          options={inspectorOptions}
-          placeholder="All Inspectors"
-        />
+        {!isInspector && (
+          <SingleSelectDropdown
+            label="Inspector"
+            value={filterInspector}
+            onChange={setFilterInspector}
+            options={inspectorOptions}
+            placeholder="All Inspectors"
+          />
+        )}
         <div className="date-range-filter">
           <InputField
             label="From"
@@ -1085,28 +1095,53 @@ export default function AppointmentsPage() {
             onChange={(e) => setDateTo(e.target.value)}
           />
         </div>
-        <div className="appointments-filters__toggles">
-          <div className="form-field archived-toggle">
-            <label>
-              <input
-                type="checkbox"
-                checked={showPastDates}
-                onChange={() => setShowPastDates(prev => !prev)}
-              />
-              Show Past Dates
-            </label>
+        {isInspector ? (
+          <>
+            <div className="form-field archived-toggle">
+              <label>
+                <input
+                  type="checkbox"
+                  checked={showPastDates}
+                  onChange={() => setShowPastDates(prev => !prev)}
+                />
+                Show Past Dates
+              </label>
+            </div>
+            <div className="form-field archived-toggle">
+              <label>
+                <input
+                  type="checkbox"
+                  checked={showCancelled}
+                  onChange={() => setShowCancelled(prev => !prev)}
+                />
+                Show Cancelled
+              </label>
+            </div>
+          </>
+        ) : (
+          <div className="appointments-filters__toggles">
+            <div className="form-field archived-toggle">
+              <label>
+                <input
+                  type="checkbox"
+                  checked={showPastDates}
+                  onChange={() => setShowPastDates(prev => !prev)}
+                />
+                Show Past Dates
+              </label>
+            </div>
+            <div className="form-field archived-toggle">
+              <label>
+                <input
+                  type="checkbox"
+                  checked={showCancelled}
+                  onChange={() => setShowCancelled(prev => !prev)}
+                />
+                Show Cancelled
+              </label>
+            </div>
           </div>
-          <div className="form-field archived-toggle">
-            <label>
-              <input
-                type="checkbox"
-                checked={showCancelled}
-                onChange={() => setShowCancelled(prev => !prev)}
-              />
-              Show Cancelled
-            </label>
-          </div>
-        </div>
+        )}
       </div>
 
       <div className="appointments-page__desktop">

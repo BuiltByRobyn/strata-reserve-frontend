@@ -32,9 +32,14 @@ const formatTime = (timeStr: string | null): string => {
     return timeStr;
 };
 
-export const InspectorAvailabilityManager = () => {
+interface InspectorAvailabilityManagerProps {
+    inspectorProfileId?: string;
+}
+
+export const InspectorAvailabilityManager = ({ inspectorProfileId }: InspectorAvailabilityManagerProps) => {
     const { availableDates, loading, error, deleteAvailableDate, createAvailableDatesBatch, updateAvailableDate } = useInspectorAvailability();
-    const { canDelete } = usePermissions();
+    const { canDelete, isInspector } = usePermissions();
+    const canDeleteAvailability = true;
     const { users } = useUsers();
     const isDesktop = useMediaQuery('(min-width: 750px)');
 
@@ -47,7 +52,9 @@ export const InspectorAvailabilityManager = () => {
     const inspectorOptions = useMemo(() => getInspectorOptions(users), [users]);
 
     const filteredDates = useMemo(() => {
-        let result = availableDates;
+        let result = inspectorProfileId
+            ? availableDates.filter(d => d.inspectorProfileId === inspectorProfileId)
+            : availableDates;
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
@@ -181,13 +188,15 @@ export const InspectorAvailabilityManager = () => {
             </div>
 
             <div className="filters-row">
-                <SingleSelectDropdown
-                    label="Inspector"
-                    value={filterInspector}
-                    onChange={setFilterInspector}
-                    options={inspectorOptions}
-                    placeholder="All Inspectors"
-                />
+                {!inspectorProfileId && (
+                    <SingleSelectDropdown
+                        label="Inspector"
+                        value={filterInspector}
+                        onChange={setFilterInspector}
+                        options={inspectorOptions}
+                        placeholder="All Inspectors"
+                    />
+                )}
                 <div className="date-range-filter">
                     <InputField
                         label="From"
@@ -327,11 +336,12 @@ export const InspectorAvailabilityManager = () => {
                     initialData={selectedBlock}
                     onSubmitBulkCreate={createAvailableDatesBatch}
                     onSubmitUpdate={updateAvailableDate}
-                    onDeleteClick={canDelete ? () => selectedBlock && handleOpenDelete(selectedBlock) : undefined}
+                    onDeleteClick={canDeleteAvailability ? () => selectedBlock && handleOpenDelete(selectedBlock) : undefined}
+                    lockedInspectorProfileId={inspectorProfileId}
                 />
             )}
 
-            {canDelete && isDeleteModalOpen && selectedBlock && (
+            {canDeleteAvailability && isDeleteModalOpen && selectedBlock && (
                 <DeleteAvailabilityModal
                     isOpen={isDeleteModalOpen}
                     onClose={() => {

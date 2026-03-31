@@ -3,6 +3,7 @@ import type { SurveySection, AdminQuestion } from './survey.types';
 import type { StrataPropertyType, InspectorAvailableDate, CreateInspectorAvailableDateInput, UpdateInspectorAvailableDateInput, AppointmentRequest, AppointmentWithDetails, AppointmentTimeSlot, Profile, ReviewStatus } from './entities.types';
 import type { SRDocRequirement } from './document.types';
 import type { BatchDocumentReviewInput, DocumentReviewResult, RequiredDocumentChecklist, NaStatusValue } from './document.types';
+import type { AdminProfileFormData } from './entities.types';
 
 export interface Column<T> {
   key: string;
@@ -54,6 +55,7 @@ export interface ProtectedRouteProps {
   children: ReactNode;
   requireAdmin?: boolean;
   requireClient?: boolean;
+  allowedRoles?: Array<'admin' | 'inspector' | 'assistant' | 'client'>;
 }
 
 export interface ModalProps {
@@ -133,12 +135,14 @@ export interface InspectorAvailabilityModalProps {
   onSubmitBulkCreate: (inputs: CreateInspectorAvailableDateInput[], onProgress: (current: number, total: number) => void) => Promise<void>;
   onSubmitUpdate: (id: number, data: UpdateInspectorAvailableDateInput) => Promise<any>;
   onDeleteClick?: () => void;
+  lockedInspectorProfileId?: string;
 }
 
 export interface NavItem {
   to: string;
   label: string;
   end?: boolean;
+  hideForRoles?: string[];
 }
 
 export interface UserInfo {
@@ -267,4 +271,15 @@ export interface ClientCancelAppointmentModalProps {
   onConfirm: (reason?: string) => void;
   onClose: () => void;
   loading: boolean;
+}
+
+export interface ProfileFieldProps {
+  label: string;
+  field: keyof AdminProfileFormData;
+  value: string;
+  placeholder?: string;
+  readOnly?: boolean;
+  error?: string | null;
+  type?: string;
+  onChange: (field: keyof AdminProfileFormData, value: string) => void;
 }

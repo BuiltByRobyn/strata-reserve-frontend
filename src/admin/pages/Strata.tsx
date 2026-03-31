@@ -27,7 +27,7 @@ import { LOCATION_DISPLAY_ORDER } from "../../shared/utils/constants";
 export default function StrataPage() {
   const { stratas, loading, error, createStrata, updateStrata, deleteStrata } =
     useStrata();
-  const { canDelete } = usePermissions();
+  const { canDelete, canCreateStrata, canEditStrata } = usePermissions();
   const { legalTypes, propertyTypes, locations } = useLookups();
   const navigate = useNavigate();
   const location = useLocation();
@@ -233,11 +233,13 @@ export default function StrataPage() {
     <div className="strata-page">
       <div className="page-header">
         <h1>Strata List</h1>
-        <div className="add-strata-button-desktop">
-          <button className="btn-primary" onClick={openCreateModal}>
-            + Create New Strata
-          </button>
-        </div>
+        {canCreateStrata && (
+          <div className="add-strata-button-desktop">
+            <button className="btn-primary" onClick={openCreateModal}>
+              + Create New Strata
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="page-content">
@@ -286,11 +288,13 @@ export default function StrataPage() {
         </div>
       </div>
 
-      <div className="add-strata-button">
-        <button className="btn-primary" onClick={openCreateModal}>
-          + Create New Strata
-        </button>
-      </div>
+      {canCreateStrata && (
+        <div className="add-strata-button">
+          <button className="btn-primary" onClick={openCreateModal}>
+            + Create New Strata
+          </button>
+        </div>
+      )}
 
       {error && <div className="error-banner">{error}</div>}
 
@@ -309,7 +313,7 @@ export default function StrataPage() {
             setIsViewStrataModalOpen(true);
           }
         }}
-        actions={isDesktop ? (strata) => (
+        actions={isDesktop && canEditStrata ? (strata) => (
           <button
             className="btn-edit"
             onClick={(e) => {
@@ -545,16 +549,18 @@ export default function StrataPage() {
             >
               Close
             </button>
-            <button
-              className="btn-secondary"
-              onClick={() => {
-                setIsViewStrataModalOpen(false);
-                openEditModal(viewingStrata!);
-                setViewingStrata(null);
-              }}
-            >
-              Edit
-            </button>
+            {canEditStrata && (
+              <button
+                className="btn-secondary"
+                onClick={() => {
+                  setIsViewStrataModalOpen(false);
+                  openEditModal(viewingStrata!);
+                  setViewingStrata(null);
+                }}
+              >
+                Edit
+              </button>
+            )}
             <button
               className="btn-primary"
               onClick={() => navigate(`/admin/strata/${viewingStrata!.strataId}`)}

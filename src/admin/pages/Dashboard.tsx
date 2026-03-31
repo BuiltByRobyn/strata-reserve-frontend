@@ -89,7 +89,8 @@ const getUrgencyMeta = (value: string | null | undefined) => {
 };
 
 export const Dashboard = () => {
-  const { user } = useAuth();
+  const { user, isInspector } = useAuth();
+  const isAdminOrAssistant = !isInspector;
   const navigate = useNavigate();
   const {
     requests: propertyRequests,
@@ -431,15 +432,17 @@ export const Dashboard = () => {
       </div>
 
       <div className="dashboard-overview">
-        <div className="stats-row">
-          <div className="stat-card stat-card--info">
-            <span className="stat-number">{activeRequests.length}</span>
-            <span className="stat-label">Active Requests</span>
-          </div>
+        <div className={`stats-row${isInspector ? ' stats-row--inspector' : ''}`}>
+          {isAdminOrAssistant && (
+            <div className="stat-card stat-card--info">
+              <span className="stat-number">{activeRequests.length}</span>
+              <span className="stat-label">Active Requests</span>
+            </div>
+          )}
 
           <div className="stat-card stat-card--warning">
-            <span className="stat-number">{propertyRequests.length}</span>
-            <span className="stat-label">Pending Approvals</span>
+            <span className="stat-number">{isInspector ? appointmentRequests.length : propertyRequests.length}</span>
+            <span className="stat-label">{isInspector ? 'Pending Appointment Requests' : 'Pending Approvals'}</span>
           </div>
 
           <div className="stat-card stat-card--accent">
@@ -447,30 +450,38 @@ export const Dashboard = () => {
             <span className="stat-label">Appointments This Week</span>
           </div>
 
-          <div className="stat-card stat-card--success">
-            <span className="stat-number">{activeStrataCount}</span>
-            <span className="stat-label">Total Active Strata</span>
-          </div>
+          {isAdminOrAssistant && (
+            <div className="stat-card stat-card--success">
+              <span className="stat-number">{activeStrataCount}</span>
+              <span className="stat-label">Total Active Strata</span>
+            </div>
+          )}
 
-          <div className="quick-actions-card">
+          <div className={`quick-actions-card${isInspector ? ' quick-actions-card--inspector' : ''}`}>
             <h3>Shortcuts</h3>
             <div className="quick-action-links">
-              <button className="btn-action btn-action--primary" onClick={() => setStrataModalOpen(true)}>
-                Create New Strata
-              </button>
-              <button className="btn-action btn-action--primary" onClick={() => setUserModalOpen(true)}>
-                Create New User
-              </button>
+              {isAdminOrAssistant && (
+                <button className="btn-action btn-action--primary" onClick={() => setStrataModalOpen(true)}>
+                  Create New Strata
+                </button>
+              )}
+              {isAdminOrAssistant && (
+                <button className="btn-action btn-action--primary" onClick={() => setUserModalOpen(true)}>
+                  Create New User
+                </button>
+              )}
               <button className="btn-action btn-action--primary" onClick={() => setAppointmentModalOpen(true)}>
                 New Appointment
               </button>
-              <button className="btn-action btn-action--primary shortcuts-desktop-only" onClick={() => setUploadDocumentModalOpen(true)}>
+              <button className={`btn-action btn-action--primary${isAdminOrAssistant ? ' shortcuts-desktop-only' : ''}`} onClick={() => setUploadDocumentModalOpen(true)}>
                 Upload Document
               </button>
-              <button className="btn-action btn-action--primary shortcuts-desktop-only" onClick={() => setQuestionModalOpen(true)}>
-                Add Question
-              </button>
-              <button className="btn-action btn-action--primary shortcuts-desktop-only" onClick={() => setAvailabilityModalOpen(true)}>
+              {isAdminOrAssistant && (
+                <button className="btn-action btn-action--primary shortcuts-desktop-only" onClick={() => setQuestionModalOpen(true)}>
+                  Add Question
+                </button>
+              )}
+              <button className={`btn-action btn-action--primary${isAdminOrAssistant ? ' shortcuts-desktop-only' : ''}`} onClick={() => setAvailabilityModalOpen(true)}>
                 Add Inspector Availability
               </button>
             </div>
@@ -479,6 +490,7 @@ export const Dashboard = () => {
       </div>
 
       <div className="dashboard-surface">
+        {isAdminOrAssistant && (
         <section className="dashboard-section">
           <div className="dashboard-section__header">
             <h2>Urgent Actions</h2>
@@ -601,6 +613,7 @@ export const Dashboard = () => {
             </div>
           )}
         </section>
+        )}
 
         <section className="dashboard-section">
           <div className="dashboard-section__header">
@@ -732,6 +745,7 @@ export const Dashboard = () => {
         onSubmitBulkCreate={async (inputs) => { for (const input of inputs) { await createAvailableDate(input); } }}
         onSubmitUpdate={() => Promise.resolve()}
         onDeleteClick={() => {}}
+        lockedInspectorProfileId={isInspector ? user?.id : undefined}
       />
       <CreateStrataModal isOpen={strataModalOpen} onClose={() => { setStrataModalOpen(false); fetchStratas(); }} />
       <CreateUserModal isOpen={userModalOpen} onClose={() => setUserModalOpen(false)} />

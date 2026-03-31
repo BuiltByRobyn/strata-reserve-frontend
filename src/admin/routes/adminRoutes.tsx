@@ -48,7 +48,7 @@ export const adminRoutes = [
     </ProtectedRoute>
   } />,
   <Route key="admin-questions" path="/admin/questions" element={
-    <ProtectedRoute requireAdmin>
+    <ProtectedRoute requireAdmin allowedRoles={['admin', 'assistant']}>
       <AdminLayout><QuestionsPage /></AdminLayout>
     </ProtectedRoute>
   } />,
