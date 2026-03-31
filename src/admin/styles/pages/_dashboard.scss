@@ -134,6 +134,25 @@
   }
 }
 
+.stats-row--inspector {
+  @include respond-to(lg) {
+    grid-template-rows: auto;
+  }
+}
+
+.quick-actions-card--inspector {
+  @include respond-to(lg) {
+    justify-content: flex-end;
+    align-self: flex-start;
+    margin: 0;
+    max-width: 25rem;
+
+    .quick-action-links {
+      grid-template-columns: 1fr;
+    }
+  }
+}
+
 .shortcuts-desktop-only {
   @include respond-below(lg) {
     display: none;

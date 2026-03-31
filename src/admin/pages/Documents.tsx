@@ -19,7 +19,7 @@ import { formatTypeName, formatDate, getStatusBadgeClass } from '../../shared/ut
 
 export default function DocumentsPage() {
   const { documents, loading, error, updateDocumentStatus, uploadDocument, uploading, deleteDocument, syncDocuments, refetch } = useDocuments();
-  const { canDelete } = usePermissions();
+  const { canDelete, isInspector } = usePermissions();
   const { stratas } = useStrata();
   const { documentTypes, reviewStatuses } = useLookups();
   const { session, user } = useAuth();
@@ -31,8 +31,6 @@ export default function DocumentsPage() {
   const [filterDocType, setFilterDocType] = useState('');
   const [filterStrataName, setFilterStrataName] = useState<string>(location.state?.strataId || '');
   const [filterStrataPlan, setFilterStrataPlan] = useState('');
-  const [showArchived, setShowArchived] = useState(false);
-
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
   const [selectedDocument, setSelectedDocument] = useState<DocumentWithDetails | null>(null);
@@ -75,10 +73,6 @@ export default function DocumentsPage() {
   useEffect(() => {
     let result = documents;
 
-    if (!showArchived) {
-      result = result.filter(d => !d.fileName.includes('- Archived'));
-    }
-
     if (searchQuery.trim()) {
       const search = searchQuery.toLowerCase().trim();
       result = result.filter(d => {
@@ -110,7 +104,7 @@ export default function DocumentsPage() {
     }
 
     setFilteredDocuments(result);
-  }, [documents, searchQuery, filterDocType, filterStrataName, filterStrataPlan, showArchived]);
+  }, [documents, searchQuery, filterDocType, filterStrataName, filterStrataPlan]);
 
   const autoOpenedUploadRef = useRef(false);
   useEffect(() => {
@@ -307,9 +301,11 @@ export default function DocumentsPage() {
         <div className="page-header">
           <h1>Documents</h1>
           <div className="add-document-button-desktop">
-            <button className="btn-secondary" onClick={handleSync} disabled={syncing}>
-              {syncing ? 'Syncing...' : 'Sync with Dropbox'}
-            </button>
+            {!isInspector && (
+              <button className="btn-secondary" onClick={handleSync} disabled={syncing}>
+                {syncing ? 'Syncing...' : 'Sync with Dropbox'}
+              </button>
+            )}
             <button className="btn-primary" onClick={openUploadModal}>
               + Add New Document
             </button>
@@ -347,24 +343,16 @@ export default function DocumentsPage() {
             options={stratas.filter(s => s.strataPlan).map(s => ({ value: s.strataId, label: s.strataPlan! })).sort((a, b) => a.label.localeCompare(b.label))}
             placeholder="All Plans"
           />
-          <div className="form-field archived-toggle">
-            <label>
-              <input
-                type="checkbox"
-                checked={showArchived}
-                onChange={() => setShowArchived(prev => !prev)}
-              />
-              Show Archived
-            </label>
-          </div>
         </div>
 
       </div>
 
       <div className="add-document-button">
-        <button className="btn-secondary" onClick={handleSync} disabled={syncing}>
-          {syncing ? 'Syncing...' : 'Sync with Dropbox'}
-        </button>
+        {!isInspector && (
+          <button className="btn-secondary" onClick={handleSync} disabled={syncing}>
+            {syncing ? 'Syncing...' : 'Sync with Dropbox'}
+          </button>
+        )}
         <button className="btn-primary" onClick={openUploadModal}>
           + Add New Document
         </button>

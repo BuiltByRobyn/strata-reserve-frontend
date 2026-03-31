@@ -52,14 +52,6 @@ export function resolveDocumentStatus(input: DocStatusInput): DocStatusResult {
     };
   }
 
-  // No document
-  if (reviewItem) {
-    return {
-      statusName: reviewItem.reviewStatus.statusName,
-      badgeClass: `status-badge ${reviewItem.reviewStatus.statusName.toLowerCase().replace(/\s+/g, '-')}`,
-      type: 'review',
-    };
-  }
   return { statusName: 'Not Received', badgeClass: 'status-badge not-received', type: 'default' };
 }
 

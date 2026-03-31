@@ -12,7 +12,28 @@ import { InspectorAvailabilityManager } from '../components/InspectorAvailabilit
 import { CompanyHolidaysManager } from '../components/CompanyHolidaysManager';
 import { MobileDropdown } from '../../shared/components/MobileDropdown';
 import { ChangePasswordModal } from '../../shared/components/ChangePasswordModal';
+import type { ProfileFieldProps } from '../../shared/types/component.types';
 import '../../admin/styles/pages/_profile.scss';
+
+function ProfileField({ label, field, value, placeholder = '', readOnly = false, error, type = 'text', onChange }: ProfileFieldProps) {
+  return (
+    <div className={`profile-field${readOnly ? ' read-only' : ''}${error ? ' has-error' : ''}`}>
+      <div className="field-label">{label}</div>
+      {readOnly ? (
+        <div className="field-value">{value}</div>
+      ) : (
+        <input
+          type={type}
+          value={value}
+          onChange={(e) => onChange(field, e.target.value)}
+          placeholder={placeholder}
+          className="field-input"
+        />
+      )}
+      {error && <div className="field-error">{error}</div>}
+    </div>
+  );
+}
 
 export default function ProfilePage() {
   const { user, isAdmin, isAssistant, isInspector } = useAuth();
@@ -33,7 +54,12 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState(() => sessionStorage.getItem('system-settings-tab') || location.state?.tab || 'holidays');
+  const defaultTab = isInspector ? 'availability' : 'holidays';
+  const [activeTab, setActiveTab] = useState(() => {
+    const stored = sessionStorage.getItem('system-settings-tab');
+    if (stored && !(isInspector && stored === 'holidays')) return stored;
+    return location.state?.tab || defaultTab;
+  });
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
   const [phoneError, setPhoneError] = useState<string | null>(null);
   const isDesktop = useMediaQuery('(min-width: 750px)');
@@ -130,41 +156,6 @@ export default function ProfilePage() {
     }
   };
 
-  // Profile Field Component - editable fields render as inputs, read-only as plain text
-  const ProfileField = ({
-    label,
-    field,
-    value,
-    placeholder = '',
-    readOnly = false,
-    error,
-    type = 'text'
-  }: {
-    label: string;
-    field: keyof ProfileData;
-    value: string;
-    placeholder?: string;
-    readOnly?: boolean;
-    error?: string | null;
-    type?: string;
-  }) => (
-    <div className={`profile-field${readOnly ? ' read-only' : ''}${error ? ' has-error' : ''}`}>
-      <div className="field-label">{label}</div>
-      {readOnly ? (
-        <div className="field-value">{value}</div>
-      ) : (
-        <input
-          type={type}
-          value={value}
-          onChange={(e) => handleFieldChange(field, e.target.value)}
-          placeholder={placeholder}
-          className="field-input"
-        />
-      )}
-      {error && <div className="field-error">{error}</div>}
-    </div>
-  );
-
   if (loading) {
     return (
       <div className="page-container profile-container">
@@ -193,12 +184,14 @@ export default function ProfilePage() {
       {/* Tabs - desktop tabs, mobile dropdown */}
       {isDesktop ? (
         <div className="profile-tabs">
-          <button
-            className={`tab ${activeTab === 'holidays' ? 'active' : ''}`}
-            onClick={() => { setActiveTab('holidays'); sessionStorage.setItem('system-settings-tab', 'holidays'); }}
-          >
-            Company Holidays
-          </button>
+          {!isInspector && (
+            <button
+              className={`tab ${activeTab === 'holidays' ? 'active' : ''}`}
+              onClick={() => { setActiveTab('holidays'); sessionStorage.setItem('system-settings-tab', 'holidays'); }}
+            >
+              Company Holidays
+            </button>
+          )}
           <button
             className={`tab ${activeTab === 'availability' ? 'active' : ''}`}
             onClick={() => { setActiveTab('availability'); sessionStorage.setItem('system-settings-tab', 'availability'); }}
@@ -217,7 +210,7 @@ export default function ProfilePage() {
           label="Categories"
           value={activeTab}
           options={[
-            { key: 'holidays', label: 'Company Holidays' },
+            ...(!isInspector ? [{ key: 'holidays', label: 'Company Holidays' }] : []),
             { key: 'availability', label: 'Inspector Availability' },
             { key: 'profile', label: 'Profile' },
           ]}
@@ -238,7 +231,7 @@ export default function ProfilePage() {
       {activeTab === 'availability' && (
         <div className="profile-content">
           <section className="profile-section">
-            <InspectorAvailabilityManager />
+            <InspectorAvailabilityManager inspectorProfileId={isInspector ? user?.id : undefined} />
           </section>
         </div>
       )}
@@ -280,18 +273,21 @@ export default function ProfilePage() {
                 field="companyName"
                 value={profileData.companyName}
                 placeholder="Enter company name"
+                onChange={handleFieldChange}
               />
               <ProfileField
                 label="Contact Name"
                 field="contactName"
                 value={profileData.contactName}
                 placeholder="Enter contact name"
+                onChange={handleFieldChange}
               />
               <ProfileField
                 label="Role"
                 field="role"
                 value={profileData.role}
                 readOnly
+                onChange={handleFieldChange}
               />
             </div>
 
@@ -303,6 +299,7 @@ export default function ProfilePage() {
                 placeholder="604 123 4567"
                 type="tel"
                 error={phoneError}
+                onChange={handleFieldChange}
               />
             </div>
           </section>
@@ -316,6 +313,7 @@ export default function ProfilePage() {
                 field="email"
                 value={profileData.email}
                 readOnly
+                onChange={handleFieldChange}
               />
               <button
                 type="button"

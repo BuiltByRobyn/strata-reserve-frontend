@@ -249,37 +249,39 @@ export function DocumentReviewModal({
           <span />
         )}
       </div>
-      {currentItem && (currentItem.doc || currentItem.req.naStatus) && (
-        <div className="doc-review-actions__decisions">
-          {approveStatus && (
-            <button
-              className={`btn-approve${currentSelection === approveStatus.reviewStatusId ? ' btn-approve--active' : ''}`}
-              onClick={() => {
-                handleStatusToggle(currentReqId!, approveStatus.reviewStatusId);
-                if (currentSelection !== approveStatus.reviewStatusId && currentIndex < items.length - 1) {
-                  setCurrentIndex(i => i + 1);
-                }
-              }}
-            >
-              Approve
-            </button>
-          )}
-          {denyStatus && (
-            <button
-              className={`btn-deny${currentSelection === denyStatus.reviewStatusId ? ' btn-deny--active' : ''}`}
-              onClick={() => {
-                if (currentSelection === denyStatus.reviewStatusId) {
-                  handleStatusToggle(currentReqId!, denyStatus.reviewStatusId);
-                } else {
-                  setDenyModalOpen(true);
-                }
-              }}
-            >
-              Deny
-            </button>
-          )}
-        </div>
-      )}
+      <div className="doc-review-actions__decisions">
+        {currentItem && (currentItem.doc || currentItem.req.naStatus) && (
+          <>
+            {approveStatus && (
+              <button
+                className={`btn-approve${currentSelection === approveStatus.reviewStatusId ? ' btn-approve--active' : ''}`}
+                onClick={() => {
+                  handleStatusToggle(currentReqId!, approveStatus.reviewStatusId);
+                  if (currentSelection !== approveStatus.reviewStatusId && currentIndex < items.length - 1) {
+                    setCurrentIndex(i => i + 1);
+                  }
+                }}
+              >
+                Approve
+              </button>
+            )}
+            {denyStatus && (
+              <button
+                className={`btn-deny${currentSelection === denyStatus.reviewStatusId ? ' btn-deny--active' : ''}`}
+                onClick={() => {
+                  if (currentSelection === denyStatus.reviewStatusId) {
+                    handleStatusToggle(currentReqId!, denyStatus.reviewStatusId);
+                  } else {
+                    setDenyModalOpen(true);
+                  }
+                }}
+              >
+                Deny
+              </button>
+            )}
+          </>
+        )}
+      </div>
     </div>
   );
 

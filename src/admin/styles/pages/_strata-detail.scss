@@ -1345,25 +1345,36 @@
 }
 
 .doc-review-actions {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  justify-content: space-between;
-  gap: $spacing-md;
   width: 100%;
+
+  > .btn-secondary:first-child {
+    justify-self: start;
+  }
 
   &__nav {
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: $spacing-sm;
   }
 
   &__decisions {
     display: flex;
+    justify-content: flex-end;
     gap: $spacing-sm;
+    min-height: 2.5rem;
   }
 
   @include respond-below(lg) {
+    display: flex;
     flex-wrap: wrap;
+
+    > .btn-secondary:first-child {
+      justify-self: unset;
+    }
 
     &__nav {
       flex: 1;

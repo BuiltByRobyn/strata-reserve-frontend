@@ -27,7 +27,7 @@ const initialFormData: UserFormData = {
 
 export default function UsersPage() {
   const { users, loading, error, createUser, updateUser, deleteUser } = useUsers();
-  const { canDelete } = usePermissions();
+  const { canDelete, canCreateUser, canEditUser, isInspector } = usePermissions();
   const { stratas } = useStrata();
   const { userTypes, propertyTypes } = useLookups();
   const location = useLocation();
@@ -57,12 +57,16 @@ export default function UsersPage() {
   // Filtered users
   const filteredUsers = useMemo(() => {
     return users.filter(user => {
-      // Search filter
+      if (isInspector && user.userTypeId !== 3) return false;
+
       if (searchTerm) {
         const search = searchTerm.toLowerCase();
         const name = `${user.firstName || ''} ${user.lastName || ''}`.toLowerCase();
         const email = (user.email || '').toLowerCase();
-        if (!name.includes(search) && !email.includes(search)) {
+        const stripPhone = (val: string) => val.replace(/[\s()\-]/g, '');
+        const phone = stripPhone(user.phoneNumber || '');
+        const searchPhone = stripPhone(search);
+        if (!name.includes(search) && !email.includes(search) && !phone.includes(searchPhone)) {
           return false;
         }
       }
@@ -358,11 +362,13 @@ export default function UsersPage() {
     <div className="users-page">
       <div className="page-header">
         <h1>Users</h1>
-        <div className="create-user-button-desktop">
-          <button className="btn-primary" onClick={openCreateModal}>
-            + Create New Users
-          </button>
-        </div>
+        {canCreateUser && (
+          <div className="create-user-button-desktop">
+            <button className="btn-primary" onClick={openCreateModal}>
+              + Create New Users
+            </button>
+          </div>
+        )}
       </div>
 
       {error && <div className="error-banner">{error}</div>}
@@ -373,7 +379,7 @@ export default function UsersPage() {
             label="Search"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search name or email..."
+            placeholder="Search name, email, or phone..."
           />
           <SingleSelectDropdown
             label="Strata Name"
@@ -389,13 +395,15 @@ export default function UsersPage() {
             options={stratas.filter(s => s.strataPlan).map(s => ({ value: s.strataId, label: s.strataPlan! })).sort((a, b) => a.label.localeCompare(b.label))}
             placeholder="All Plans"
           />
-          <SingleSelectDropdown
-            label="Role"
-            value={filterUserTypeId}
-            onChange={(val) => setFilterUserTypeId(val)}
-            options={userTypes.map(ut => ({ value: ut.userTypeId, label: ut.userTypeName.replace(/-/g, ' ') })).sort((a, b) => a.label.localeCompare(b.label))}
-            placeholder="All Roles"
-          />
+          {!isInspector && (
+            <SingleSelectDropdown
+              label="Role"
+              value={filterUserTypeId}
+              onChange={(val) => setFilterUserTypeId(val)}
+              options={userTypes.map(ut => ({ value: ut.userTypeId, label: ut.userTypeName.replace(/-/g, ' ') })).sort((a, b) => a.label.localeCompare(b.label))}
+              placeholder="All Roles"
+            />
+          )}
           <MultiSelectDropdown
             label="Property Types"
             options={propertyTypes.map(pt => ({ value: pt.propertyTypeId, label: pt.propertyTypeName })).sort((a, b) => a.label.localeCompare(b.label))}
@@ -406,11 +414,13 @@ export default function UsersPage() {
         </div>
       </div>
 
-      <div className="create-user-button">
-        <button className="btn-primary" onClick={openCreateModal}>
-          + Create New Users
-        </button>
-      </div>
+      {canCreateUser && (
+        <div className="create-user-button">
+          <button className="btn-primary" onClick={openCreateModal}>
+            + Create New Users
+          </button>
+        </div>
+      )}
 
       <DataTable
         title={isDesktop ? undefined : 'Users'}
@@ -423,7 +433,7 @@ export default function UsersPage() {
         }}
         loading={loading}
         emptyMessage="No users found. Click 'Create New Users' to add one."
-        actions={isDesktop ? (user) => (
+        actions={isDesktop && canEditUser ? (user) => (
           <button className="btn-edit" onClick={(e) => { e.stopPropagation(); openEditModal(user); }}>
             Edit
           </button>
@@ -647,7 +657,7 @@ export default function UsersPage() {
             >
               Close
             </button>
-            {!isDesktop && viewingUser && (
+            {!isDesktop && viewingUser && canEditUser && (
               <button
                 className="btn-primary"
                 onClick={() => {

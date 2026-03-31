@@ -18,7 +18,8 @@ export const InspectorAvailabilityModal = ({
     initialData,
     onSubmitBulkCreate,
     onSubmitUpdate,
-    onDeleteClick
+    onDeleteClick,
+    lockedInspectorProfileId
 }: InspectorAvailabilityModalProps) => {
     const { users, loading: usersLoading } = useUsers();
     const { checkIsHoliday } = useCompanyHolidays();
@@ -49,7 +50,7 @@ export const InspectorAvailabilityModal = ({
             });
         } else if (isOpen) {
             setFormData({
-                inspectorProfileId: '',
+                inspectorProfileId: lockedInspectorProfileId || '',
                 availableStartDate: '',
                 availableEndDate: '',
                 availableStartTime: '09:00',
@@ -207,16 +208,18 @@ export const InspectorAvailabilityModal = ({
                     </div>
                 ) : (
                     <div className="modal-form">
-                        <div className="form-row">
-                            <SingleSelectDropdown
-                                label="Staff Member"
-                                required
-                                options={userOptions}
-                                value={formData.inspectorProfileId}
-                                onChange={(val) => setFormData(prev => ({ ...prev, inspectorProfileId: String(val) }))}
-                                disabled={!!initialData}
-                            />
-                        </div>
+                        {!lockedInspectorProfileId && (
+                            <div className="form-row">
+                                <SingleSelectDropdown
+                                    label="Staff Member"
+                                    required
+                                    options={userOptions}
+                                    value={formData.inspectorProfileId}
+                                    onChange={(val) => setFormData(prev => ({ ...prev, inspectorProfileId: String(val) }))}
+                                    disabled={!!initialData}
+                                />
+                            </div>
+                        )}
 
                         {initialData ? (
                             <div className="form-row">

@@ -279,8 +279,9 @@ export default function StrataDetailPage() {
   useEffect(() => {
     if (activeTab === 'documents' && activeRequest) {
       fetchDocRequirements(activeRequest.fileId);
+      fetchReview(activeRequest.fileId);
     }
-  }, [activeTab, activeRequest?.fileId, fetchDocRequirements]);
+  }, [activeTab, activeRequest?.fileId, fetchDocRequirements, fetchReview]);
 
   const handleOpenCreateModal = () => {
     resetCreateModal();
@@ -532,6 +533,7 @@ export default function StrataDetailPage() {
 
   const openDocReviewModal = () => {
     if (activeRequest) {
+      fetchDocRequirements(activeRequest.fileId);
       fetchReview(activeRequest.fileId);
       setDocReviewModalOpen(true);
     }
