@@ -8,6 +8,7 @@ import { InputField } from '../../shared/components/FormField';
 import { ChangePasswordModal } from '../../shared/components/ChangePasswordModal';
 import type { StrataMemberInfo, StrataProfileResult, PropertyType } from '../../shared/types/entities.types';
 import { API_BASE } from '../../shared/lib/api';
+import { formatPhoneNumber, validatePhoneNumber } from '../../shared/utils/strataUtils';
 
 const STRATA_ROLES = ['Property Manager', 'Councillor'];
 
@@ -39,6 +40,7 @@ const StrataMembers = () => {
   });
   const [role, setRole] = useState('');
   const [roleTouched, setRoleTouched] = useState(false);
+  const [phoneError, setPhoneError] = useState<string | null>(null);
 
   const fetchMembers = async () => {
     if (!user || user.role !== 'client') return;
@@ -355,9 +357,17 @@ const StrataMembers = () => {
             label="Phone Number"
             required
             value={formData.phoneNumber}
-            onChange={(e) =>
-              setFormData((prev) => ({ ...prev, phoneNumber: e.target.value }))
-            }
+            onChange={(e) => {
+              const raw = e.target.value;
+              setFormData((prev) => ({ ...prev, phoneNumber: formatPhoneNumber(raw) }));
+              setPhoneError(/[^0-9\s]/.test(raw) ? 'Format: 778 123 4567' : null);
+            }}
+            onBlur={() => {
+              if (formData.phoneNumber && !validatePhoneNumber(formData.phoneNumber)) {
+                setPhoneError('Format: 778 123 4567');
+              }
+            }}
+            error={phoneError || undefined}
           />
           <InputField
             label="Associated Company"

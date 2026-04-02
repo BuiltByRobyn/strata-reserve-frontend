@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useClientDocuments } from '../../shared/hooks/useClientDocuments';
 import { useClientFileNumber } from '../../shared/hooks/useClientFileNumber';
 import { useAuth } from '../../shared/contexts/AuthContext';
+import { useApiClient } from '../../shared/hooks/useApiClient';
 import { LoadingSpinner } from '../../shared/components/LoadingSpinner';
 import { NoFileNumberState } from '../../shared/components/NoFileNumberState';
 import { DocumentPreviewModal } from '../../shared/components/DocumentPreviewModal';
@@ -16,6 +17,7 @@ import type { RequiredDocumentChecklist, NaStatusValue } from '../../shared/type
 export default function ClientDocumentsPage() {
   const navigate = useNavigate();
   const { session } = useAuth();
+  const api = useApiClient();
   const { activeRequest, fileId, loading: srLoading } = useClientFileNumber();
   const {
     requiredDocuments,
@@ -173,8 +175,12 @@ export default function ClientDocumentsPage() {
     ? localStorage.getItem(`docs_finalized_${fileId}`) === String(currentReviewId)
     : false;
 
-  const handleFinalize = () => {
-    if (fileId) localStorage.setItem(`docs_finalized_${fileId}`, String(currentReviewId));
+  const handleFinalize = async () => {
+    if (!fileId) return;
+    localStorage.setItem(`docs_finalized_${fileId}`, String(currentReviewId));
+    api.post(`/client/file-numbers/${fileId}/finalize-documents`, {}).catch((err) =>
+      console.error('Failed to send finalize notification:', err)
+    );
     navigate('/client/dashboard', { state: { justFinalizedDocs: true } });
   };
 

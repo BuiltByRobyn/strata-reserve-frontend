@@ -51,14 +51,4 @@ export const clientRoutes = [
       <ClientLayout><InspectionDate /></ClientLayout>
     </ProtectedRoute>
   } />,
-  <Route key="client-reports" path="/client/reports" element={
-    <ProtectedRoute requireClient>
-      <ClientLayout>
-        <div className="page-container">
-          <h1>My Reports</h1>
-          <p>View your depreciation reports (Coming Soon)</p>
-        </div>
-      </ClientLayout>
-    </ProtectedRoute>
-  } />,
 ];
