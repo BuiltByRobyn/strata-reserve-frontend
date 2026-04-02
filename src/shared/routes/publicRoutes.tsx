@@ -4,6 +4,7 @@ import { SetPassword } from '../pages/SetPassword';
 import { ResetPassword } from '../pages/ResetPassword';
 import { PrivacyPolicy } from '../pages/PrivacyPolicy';
 import { TermsOfUse } from '../pages/TermsOfUse';
+import { Help } from '../pages/Help';
 import { AuthCallback } from '../pages/AuthCallback';
 import { AcceptInvite } from '../pages/AcceptInvite';
 import { DashboardRouter } from './DashboardRouter';
@@ -31,6 +32,7 @@ export const publicRoutes = [
   <Route key="login" path="/login" element={<Login />} />,
   <Route key="privacy" path="/privacy" element={<PrivacyPolicy />} />,
   <Route key="terms" path="/terms" element={<TermsOfUse />} />,
+  <Route key="help" path="/help" element={<Help />} />,
   <Route key="set-password" path="/set-password" element={<SetPassword />} />,
   <Route key="reset-password" path="/reset-password" element={<ResetPassword />} />,
   <Route key="admin-login" path="/admin/login" element={<Navigate to="/login" replace />} />,

@@ -10,20 +10,26 @@
 
 /* Wrapper for protected pages with navbar */
 .app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+
   @include respond-to(lg) {
-    display: flex;
-    min-height: 100vh;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-content: flex-start;
   }
 }
 
 /* Main content area - sits beside the navbar in flex layout (desktop) */
 .app-main {
+  flex: 1;
+
   @include respond-between(md, lg) {
     margin-top: 3.5rem;
   }
 
   @include respond-to(lg) {
-    flex: 1;
     min-width: 0;
   }
 }

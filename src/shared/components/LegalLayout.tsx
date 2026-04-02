@@ -1,16 +1,21 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { LegalLayoutProps } from '../types/component.types';
+import { Footer } from './Footer';
 
 export const LegalLayout: React.FC<LegalLayoutProps> = ({ title, children }) => {
     const navigate = useNavigate();
+
+    useEffect(() => {
+        window.scrollTo(0, 0);
+    }, [title]);
 
     return (
         <div className="legal-page">
             <header className="legal-header">
                 <div className="legal-header-content">
-                    <button className="btn-link" onClick={() => navigate('/login')}>
-                        &larr; Back to Login
+                    <button className="btn-link" onClick={() => navigate(-1)}>
+                        Back
                     </button>
                     <div className="legal-logo" onClick={() => navigate('/login')}>
                         <img src="/logonobg.png" alt="Strata Reserve Planning Logo" />
@@ -31,9 +36,7 @@ export const LegalLayout: React.FC<LegalLayoutProps> = ({ title, children }) => 
                 </article>
             </main>
 
-            <footer className="legal-footer">
-                <p>&copy; {new Date().getFullYear()} Strata Reserve Planning. All rights reserved.</p>
-            </footer>
+            <Footer />
         </div>
     );
 };

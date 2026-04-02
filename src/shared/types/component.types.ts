@@ -273,6 +273,10 @@ export interface ClientCancelAppointmentModalProps {
   loading: boolean;
 }
 
+export interface InspectorAvailabilityManagerProps {
+  inspectorProfileId?: string;
+}
+
 export interface ProfileFieldProps {
   label: string;
   field: keyof AdminProfileFormData;

@@ -167,3 +167,20 @@ export interface DocumentReviewResponse {
   requirements: SRDocRequirement[];
   review: DocumentReviewResult | null;
 }
+
+export interface DocStatusInput {
+  latestDoc?: {
+    uploadedAt: string;
+    reviewStatus?: { reviewStatusId: number; statusName: string } | null;
+    uploadedBy?: { userTypeId: number } | null;
+  } | null;
+  naStatus?: { status: NaStatusValue; setAt: string } | null;
+  reviewItem?: { reviewStatus: { reviewStatusId: number; statusName: string } } | null;
+  reviewedAt?: string | null;
+}
+
+export interface DocStatusResult {
+  statusName: string;
+  badgeClass: string;
+  type: 'na' | 'document' | 'review' | 'default';
+}
