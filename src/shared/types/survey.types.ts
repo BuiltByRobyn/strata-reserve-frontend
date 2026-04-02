@@ -71,14 +71,16 @@ export interface SurveySection {
 }
 
 export const SURVEY_SECTIONS: SurveySection[] = [
-  { key: 'exterior', label: 'Exterior', description: 'Information relating to the public facing areas of your property' },
-  { key: 'interior', label: 'Interior', description: 'Information relating to the private areas of your property' },
-  { key: 'services', label: 'Services', description: 'Information relating to the services available within your property' },
-  { key: 'clubhouse', label: 'Clubhouse', description: 'Information relating to the public facing areas of your property' },
-  { key: 'amenity', label: 'Amenity Room', description: 'Information relating to additional amenities within your property' },
-  { key: 'legal', label: 'Legal', description: 'Information relating to the legal standing of your property' },
-  { key: 'council', label: 'Council Concerns', description: 'Information relating to specific concerns regarding your property' },
-  { key: 'septic-fields', label: 'Septic Fields', description: 'Information relating to the septic field and wastewater systems within your property' },
+  { key: 'structural-architectural', label: 'Structural & Architectural', description: 'Information relating to the structural and architectural elements of your property' },
+  { key: 'roofing', label: 'Roofing', description: 'Information relating to the roofing systems of your property' },
+  { key: 'interiors', label: 'Interiors', description: 'Information relating to the private areas of your property' },
+  { key: 'conveyance-system', label: 'Conveyance System', description: 'Information relating to the conveyance systems within your property' },
+  { key: 'electrical-systems', label: 'Electrical Systems', description: 'Information relating to the electrical systems within your property' },
+  { key: 'mechanical-systems', label: 'Mechanical Systems', description: 'Information relating to the mechanical systems within your property' },
+  { key: 'amenities', label: 'Amenities', description: 'Information relating to additional amenities within your property' },
+  { key: 'site-improvements', label: 'Site Improvements', description: 'Information relating to the site of your property' },
+  { key: 'one-time-expenses', label: 'One Time Expenses / Financials', description: 'Information relating to one-time expenses and financials for your property' },
+  { key: 'consultant-reports', label: 'Consultant Reports', description: 'Information relating to consultant reports for your property' },
 ];
 
 

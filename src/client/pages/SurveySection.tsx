@@ -68,7 +68,9 @@ export default function SurveySectionPage() {
     ? allQuestions.filter(q => q.questionCategory === sectionConfig.label)
     : [];
 
-  const sectionQuestions = allSectionQuestions.filter(q => q.parentQuestionId == null);
+  const sectionQuestions = allSectionQuestions
+    .filter(q => q.parentQuestionId == null)
+    .sort((a, b) => a.propertyTypeId - b.propertyTypeId || a.sortOrder - b.sortOrder);
 
   // Map: parentQuestionId -> sub-questions (in order)
   const subQuestionsMap = new Map<string, SurveyQuestion[]>();
@@ -621,7 +623,7 @@ export default function SurveySectionPage() {
             }
           }
           let globalIndex = page * QUESTIONS_PER_PAGE;
-          return groups.map(group => {
+          return groups.map((group, groupIdx) => {
             const typeName = propertyTypeNameMap.get(group.propertyTypeId) ?? `Property Type ${group.propertyTypeId}`;
             const typeFinalized = finalizationMap.get(group.propertyTypeId);
 
@@ -632,7 +634,7 @@ export default function SurveySectionPage() {
                 return el;
               });
               return (
-                <details key={group.propertyTypeId} className="survey-finalized-group">
+                <details key={`${group.propertyTypeId}-${groupIdx}`} className="survey-finalized-group">
                   <summary className="survey-finalized-summary">
                     <strong>{typeName}</strong>
                     {' \u2014 '}
@@ -646,7 +648,7 @@ export default function SurveySectionPage() {
             }
 
             return (
-              <div key={group.propertyTypeId} className="survey-property-type-group">
+              <div key={`${group.propertyTypeId}-${groupIdx}`} className="survey-property-type-group">
                 <h3 className="survey-property-type-heading">{typeName}</h3>
                 {group.questions.map((q) => {
                   const el = renderQuestion(q, globalIndex - page * QUESTIONS_PER_PAGE);

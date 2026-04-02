@@ -27,13 +27,13 @@
   width: 100%;
 
   @media (min-width: 1250px) {
-    grid-template-columns: repeat(8, 1fr);
+    grid-template-columns: repeat(5, 1fr);
   }
 
   .category-btn {
     padding: $spacing-sm $spacing-xs;
     width: 100%;
-    min-height: 3.5rem;
+    // min-height: 3.5rem;
     background: $color-white;
     border: 1px solid $color-border-light;
     border-radius: $border-radius-sm;
