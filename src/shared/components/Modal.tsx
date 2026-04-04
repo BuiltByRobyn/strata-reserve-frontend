@@ -1,7 +1,7 @@
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import type { ModalProps } from '../types/component.types';
 
-export const Modal = ({ isOpen, onClose, title, size = 'medium', className, footer, children }: ModalProps) => {
+export const Modal = ({ isOpen, onClose, onBack, title, size = 'medium', className, footer, children }: ModalProps) => {
   const isDesktop = useMediaQuery('(min-width: 750px)');
 
   if (!isOpen) return null;
@@ -10,7 +10,12 @@ export const Modal = ({ isOpen, onClose, title, size = 'medium', className, foot
     <div className="modal-overlay" onClick={isDesktop ? undefined : onClose}>
       <div className={`modal-content modal-${size}${className ? ` ${className}` : ''}`} onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h2>{title}</h2>
+          <div className="modal-header__title">
+            {onBack && (
+              <button className="modal-back" onClick={onBack}>&larr;</button>
+            )}
+            <h2>{title}</h2>
+          </div>
           <button className="modal-close" onClick={onClose}>&times;</button>
         </div>
         <div className="modal-body">

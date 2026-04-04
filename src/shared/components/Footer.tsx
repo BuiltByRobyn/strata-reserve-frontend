@@ -28,12 +28,12 @@ export const Footer = () => {
     return '';
   };
 
+  const handleBack = () => {
+    setActiveVideo(null);
+    setHelpKey((k) => k + 1);
+  };
+
   const handleClose = () => {
-    if (activeModal === 'help' && activeVideo) {
-      setActiveVideo(null);
-      setHelpKey((k) => k + 1);
-      return;
-    }
     setActiveModal(null);
     setActiveVideo(null);
   };
@@ -63,6 +63,7 @@ export const Footer = () => {
         <Modal
           isOpen={activeModal !== null}
           onClose={handleClose}
+          onBack={activeVideo ? handleBack : undefined}
           title={getModalTitle()}
           size="large"
         >

@@ -16,14 +16,12 @@ import { DashboardRouter } from './DashboardRouter';
 const RootRedirect = () => {
   const hash = window.location.hash;
   const search = window.location.search;
-  console.log('[RootRedirect] Triggered. hash:', hash, 'search:', search);
   if (
     hash.includes('access_token=') ||
     hash.includes('error_description=') ||
     search.includes('code=') ||
     search.includes('error=')
   ) {
-    console.log('[RootRedirect] Auth tokens detected → forwarding to /auth/callback');
     return <Navigate to={`/auth/callback${search}${hash}`} replace />;
   }
   return <Navigate to="/dashboard" replace />;

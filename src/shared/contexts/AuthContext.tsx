@@ -17,8 +17,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const fetchUserProfile = async (supabaseUser: User): Promise<AppUser | null> => {
     try {
-      // console.log('Fetching profile from Supabase for user ID:', supabaseUser.id);
-      
       const { data: profile, error } = await supabase
         .from('profiles')
         .select('*')
@@ -26,19 +24,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         .single();
 
       if (error) {
-        console.error('Error fetching profile from Supabase:', error);
         throw error;
       }
 
       if (!profile) {
-        console.error('No profile found for user ID:', supabaseUser.id);
         throw new Error('Profile not found');
       }
 
-      // console.log('Profile data retrieved:', profile);
-
       if (profile.user_type_id === 1) {
-        console.log('User is ADMIN');
         const adminUser: AdminUser = {
           id: supabaseUser.id,
           email: supabaseUser.email!,
@@ -51,7 +44,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         };
         return adminUser;
       } else if (profile.user_type_id === 2) {
-        console.log('User is INSPECTOR');
         const inspectorUser: InspectorUser = {
           id: supabaseUser.id,
           email: supabaseUser.email!,
@@ -63,7 +55,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         };
         return inspectorUser;
       } else if (profile.user_type_id === 4) {
-        console.log('User is ASSISTANT');
         const assistantUser: AssistantUser = {
           id: supabaseUser.id,
           email: supabaseUser.email!,
@@ -76,8 +67,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return assistantUser;
       } else {
         // user_type_id === 3 (Client) or any unrecognized type
-        // console.log('User is CLIENT');
-
         let strataId: number | null = null;
         let strataPlan: string | null = null;
         try {
@@ -93,8 +82,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             const strata = strataProfile.strata as unknown as { strata_plan: string | null };
             strataPlan = strata?.strata_plan ?? null;
           }
-        } catch (err) {
-          console.warn('Could not fetch strata plan for client:', err);
+        } catch {
+          // Non-critical: strata plan fetch may fail for new clients
         }
 
         const clientUser: ClientUser = {
@@ -110,8 +99,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         };
         return clientUser;
       }
-    } catch (error) {
-      console.error('Exception in fetchUserProfile:', error);
+    } catch {
       return null;
     }
   };
@@ -130,7 +118,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setSession(session);
 
       if (session?.user) {
-        // console.log('User authenticated, fetching profile for:', session.user.email);
         const generationAtStart = signOutGenerationRef.current;
         try {
           const appUser = await fetchUserProfile(session.user);
@@ -142,14 +129,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             // Do NOT sign out here — calling signOut() destroys the session for
             // newly invited users who are mid-way through the /auth/callback →
             // /set-password flow. Just leave user as null so routing handles it.
-            console.error('Profile not found for user:', session.user.id);
             setUser(null);
           } else {
-            // console.log('Profile loaded:', appUser);
             setUser(appUser);
           }
-        } catch (error) {
-          console.error('Error fetching profile:', error);
+        } catch {
           if (isMounted && signOutGenerationRef.current === generationAtStart) {
             setUser(null);
           }
@@ -169,8 +153,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // CRITICAL: Do NOT await inside this callback - it causes Navigator.locks deadlock!
     // Use setTimeout(0) to defer execution outside the auth lock context
     const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
-      // console.log('Auth state change:', event, session ? 'has session' : 'no session');
-      
       // Defer to next tick to break out of Navigator.locks context
       // This prevents deadlock when making Supabase database queries
       setTimeout(() => {
@@ -181,7 +163,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // Also manually get session on mount as a fallback
     // (in case onAuthStateChange doesn't fire in time)
     supabase.auth.getSession().then(({ data: { session } }) => {
-      // console.log('Initial session check:', session ? 'has session' : 'no session');
       // Only handle if not already initialized by onAuthStateChange
       if (!isInitialized && isMounted) {
         // Use setTimeout here too for consistency and to avoid potential lock issues

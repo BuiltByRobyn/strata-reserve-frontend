@@ -67,7 +67,7 @@ export const Login = () => {
       <div className="login-card">
         {!isSupabaseConfigured && (
           <div className="dev-warning">
-            <strong>⚠️ Development Mode</strong>
+            <strong>Development Mode</strong>
             <p>Supabase is not configured. Authentication will not work.</p>
             <p>
               See <code>SUPABASE_SETUP.md</code> for setup instructions.

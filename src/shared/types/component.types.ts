@@ -61,6 +61,7 @@ export interface ProtectedRouteProps {
 export interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onBack?: () => void;
   title: string;
   size?: 'small' | 'medium' | 'large' | 'preview';
   className?: string;

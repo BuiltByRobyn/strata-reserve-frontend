@@ -12,6 +12,10 @@
 
   &__content {
     max-width: none;
+
+    .legal-page & {
+      max-width: 780px;
+    }
     margin: 0 auto;
     display: flex;
     justify-content: space-between;

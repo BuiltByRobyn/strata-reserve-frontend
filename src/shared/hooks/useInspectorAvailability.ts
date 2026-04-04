@@ -28,7 +28,6 @@ export const useInspectorAvailability = (inspectorProfileId?: string) => {
       );
       setState({ availableDates: availableDates || [], loading: false, error: null });
     } catch (error) {
-      console.error('Error fetching available dates:', error);
       const errorMessage = error instanceof Error
         ? (error.name === 'AbortError'
           ? 'Request timed out. Is the backend running?'
@@ -41,8 +40,7 @@ export const useInspectorAvailability = (inspectorProfileId?: string) => {
   const getAvailableDateById = useCallback(async (id: number): Promise<InspectorAvailableDate | null> => {
     try {
       return await api.get<InspectorAvailableDate>(`/admin/inspector-availability/${id}`);
-    } catch (error) {
-      console.error('Error fetching available date:', error);
+    } catch {
       return null;
     }
   }, [api]);
@@ -53,7 +51,6 @@ export const useInspectorAvailability = (inspectorProfileId?: string) => {
       await fetchAvailableDates();
       return result;
     } catch (error) {
-      console.error('Error creating available date:', error);
       throw error;
     }
   }, [api, fetchAvailableDates]);
@@ -75,7 +72,6 @@ export const useInspectorAvailability = (inspectorProfileId?: string) => {
       await fetchAvailableDates();
       return result;
     } catch (error) {
-      console.error('Error updating available date:', error);
       throw error;
     }
   }, [api, fetchAvailableDates]);
@@ -86,7 +82,6 @@ export const useInspectorAvailability = (inspectorProfileId?: string) => {
       await fetchAvailableDates();
       return true;
     } catch (error) {
-      console.error('Error deleting available date:', error);
       throw error;
     }
   }, [api, fetchAvailableDates]);
@@ -109,8 +104,7 @@ export const useInspectorAvailability = (inspectorProfileId?: string) => {
         '/admin/inspector-availability/range',
         { params }
       );
-    } catch (error) {
-      console.error('Error fetching available dates by range:', error);
+    } catch {
       return [];
     }
   }, [api]);

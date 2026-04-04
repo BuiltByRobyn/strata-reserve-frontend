@@ -96,8 +96,7 @@ export default function ProfilePage() {
       } else {
         throw new Error(data.error || 'Failed to fetch profile');
       }
-    } catch (err) {
-      console.error('Error fetching profile:', err);
+    } catch {
       setProfileData(prev => ({
         ...prev,
         contactName: '',
@@ -148,8 +147,7 @@ export default function ProfilePage() {
       } else {
         throw new Error(data.error || 'Failed to update profile');
       }
-    } catch (err) {
-      console.error('Error updating profile:', err);
+    } catch {
       setError('Failed to update profile. Please try again.');
     } finally {
       setSaving(false);

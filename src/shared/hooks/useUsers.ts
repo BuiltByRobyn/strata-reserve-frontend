@@ -27,7 +27,6 @@ export const useUsers = () => {
       });
       setState({ users: users || [], loading: false, error: null });
     } catch (error) {
-      console.error('Error fetching users:', error);
       setState(prev => ({
         ...prev,
         loading: false,
@@ -39,8 +38,7 @@ export const useUsers = () => {
   const getUserById = useCallback(async (id: string): Promise<UserWithStratas | null> => {
     try {
       return await api.get<UserWithStratas>(`/admin/users/${id}`);
-    } catch (error) {
-      console.error('Error fetching user:', error);
+    } catch {
       return null;
     }
   }, [api]);
@@ -51,7 +49,6 @@ export const useUsers = () => {
       await fetchUsers();
       return result;
     } catch (error) {
-      console.error('Error creating user:', error);
       throw error;
     }
   }, [api, fetchUsers]);
@@ -62,7 +59,6 @@ export const useUsers = () => {
       await fetchUsers();
       return result;
     } catch (error) {
-      console.error('Error updating user:', error);
       throw error;
     }
   }, [api, fetchUsers]);
@@ -73,7 +69,6 @@ export const useUsers = () => {
       await fetchUsers();
       return true;
     } catch (error) {
-      console.error('Error deleting user:', error);
       throw error;
     }
   }, [api, fetchUsers]);

@@ -22,7 +22,6 @@ export const useDocuments = () => {
       const documents = await api.get<DocumentWithDetails[]>('/admin/documents');
       setState({ documents: documents || [], loading: false, error: null });
     } catch (error) {
-      console.error('Error fetching documents:', error);
       setState(prev => ({
         ...prev,
         loading: false,
@@ -34,8 +33,7 @@ export const useDocuments = () => {
   const getDocumentById = useCallback(async (id: number): Promise<DocumentWithDetails | null> => {
     try {
       return await api.get<DocumentWithDetails>(`/admin/documents/${id}`);
-    } catch (error) {
-      console.error('Error fetching document:', error);
+    } catch {
       return null;
     }
   }, [api]);
@@ -46,7 +44,6 @@ export const useDocuments = () => {
       await fetchDocuments();
       return true;
     } catch (error) {
-      console.error('Error updating document status:', error);
       throw error;
     }
   }, [api, fetchDocuments]);
@@ -60,7 +57,6 @@ export const useDocuments = () => {
       await fetchDocuments();
       return true;
     } catch (error) {
-      console.error('Error deleting document:', error);
       throw error;
     }
   }, [session, fetchDocuments]);
@@ -82,7 +78,6 @@ export const useDocuments = () => {
       const result = await supabaseUploadDocument({ token, file, documentTypeId, strataId, strataName, notes, propertyTypeId, propertyTypeName });
       return result;
     } catch (error) {
-      console.error('Upload error:', error);
       throw error;
     } finally {
       setUploading(false);
@@ -112,7 +107,6 @@ export const useDocuments = () => {
       await fetchDocuments();
       return { total: data.total, removed: data.removed, added: data.added ?? 0 };
     } catch (error) {
-      console.error('Error syncing documents:', error);
       throw error;
     }
   }, [session, fetchDocuments]);
@@ -122,8 +116,7 @@ export const useDocuments = () => {
       return await api.get<DocumentWithDetails[]>('/admin/documents/search', {
         params: { q: query },
       });
-    } catch (error) {
-      console.error('Error searching documents:', error);
+    } catch {
       return [];
     }
   }, [api]);

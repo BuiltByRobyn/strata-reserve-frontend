@@ -23,7 +23,6 @@ export const useClientDocuments = () => {
       const documents = await api.get<DocumentWithDetails[]>('/client/documents');
       setState({ documents: documents || [], loading: false, error: null });
     } catch (err) {
-      console.error('Error fetching documents:', err);
       setState(prev => ({
         ...prev,
         loading: false,
@@ -35,8 +34,7 @@ export const useClientDocuments = () => {
   const getDocumentById = useCallback(async (id: number): Promise<DocumentWithDetails | null> => {
     try {
       return await api.get<DocumentWithDetails>(`/client/documents/${id}`);
-    } catch (error) {
-      console.error('Error fetching document:', error);
+    } catch {
       return null;
     }
   }, [api]);
@@ -46,8 +44,7 @@ export const useClientDocuments = () => {
       return await api.get<DocumentWithDetails[]>('/client/documents/search', {
         params: { q: query },
       });
-    } catch (error) {
-      console.error('Error searching documents:', error);
+    } catch {
       return [];
     }
   }, [api]);
@@ -60,7 +57,6 @@ export const useClientDocuments = () => {
       );
       setRequiredDocuments(data || []);
     } catch (err) {
-      console.error('Error fetching requested documents:', err);
       setState(prev => ({
         ...prev,
         error: err instanceof Error ? err.message : 'Failed to load requested documents'
@@ -97,7 +93,6 @@ export const useClientDocuments = () => {
       await fetchRequiredDocuments(params.fileId);
       return true;
     } catch (err) {
-      console.error('Upload error:', err);
       setState(prev => ({
         ...prev,
         error: err instanceof Error ? err.message : 'Upload failed'
@@ -113,8 +108,7 @@ export const useClientDocuments = () => {
       await api.post(`/client/file-numbers/${fileId}/requirements/${reqId}/na-status`, { status });
       await fetchRequiredDocuments(fileId);
       return true;
-    } catch (err) {
-      console.error('Error setting N/A status:', err);
+    } catch {
       return false;
     }
   }, [api, fetchRequiredDocuments]);
@@ -124,8 +118,7 @@ export const useClientDocuments = () => {
       return await api.get<DocumentWithDetails[]>(
         `/client/file-numbers/${fileId}/documents`
       );
-    } catch (err) {
-      console.error('Error fetching file number documents:', err);
+    } catch {
       return [];
     }
   }, [api]);
@@ -139,7 +132,6 @@ export const useClientDocuments = () => {
       await fetchMyDocuments();
       return true;
     } catch (error) {
-      console.error('Error deleting document:', error);
       throw error;
     }
   }, [session, fetchMyDocuments]);
