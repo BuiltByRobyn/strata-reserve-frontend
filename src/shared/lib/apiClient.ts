@@ -5,7 +5,7 @@ export const REQUEST_TIMEOUT_MS = 10_000;
 
 const JSON_HEADERS = { 'Content-Type': 'application/json' } as const;
 
-async function parseResponse<T>(response: Response): Promise<T> {
+export async function parseResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
     let errorMsg = `Server error: ${response.status}`;
     try {
@@ -104,3 +104,10 @@ export function createApiClient(authFetch: AuthFetchFn) {
 }
 
 export type ApiClient = ReturnType<typeof createApiClient>;
+
+export const publicClient = {
+  async get<T>(path: string): Promise<T> {
+    const response = await fetch(`${API_BASE}${path}`);
+    return parseResponse<T>(response);
+  },
+};

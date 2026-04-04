@@ -11,7 +11,7 @@
   }
 
   &__content {
-    max-width: $max-width-root;
+    max-width: none;
     margin: 0 auto;
     display: flex;
     justify-content: space-between;
@@ -31,7 +31,7 @@
 
   &__links {
     display: flex;
-    gap: $spacing-md;
+    gap: $spacing-sm;
     flex-wrap: wrap;
     justify-content: center;
 
