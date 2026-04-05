@@ -88,8 +88,8 @@ export const ClientLayout = ({ children }: { children: React.ReactNode }) => {
             </p>
             <p>
               If you have any questions, please contact us at{' '}
-              <a href="mailto:clientcare@stratareserveplanning.com">
-                clientcare@stratareserveplanning.com
+              <a href="mailto:contact@builtbyrobyn.com">
+                contact@builtbyrobyn.com
               </a>
             </p>
           </>

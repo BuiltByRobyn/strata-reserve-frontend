@@ -49,10 +49,10 @@ export const Footer = () => {
     <footer className="site-footer">
       <div className="site-footer__content">
         <span className="site-footer__copyright">
-          &copy; {new Date().getFullYear()} Strata Reserve Planning. All rights reserved.
+          &copy; {new Date().getFullYear()} BuiltByRobyn. All rights reserved.
         </span>
         <nav className="site-footer__links">
-          <a href="mailto:clientcare@stratareserveplanning.com">Contact Us</a>
+          <a href="mailto:contact@builtbyrobyn.com">Contact Us</a>
           <Link to="/help" onClick={handleLinkClick('help')}>Help</Link>
           <Link to="/privacy" onClick={handleLinkClick('privacy')}>Privacy Policy</Link>
           <Link to="/terms" onClick={handleLinkClick('terms')}>Terms of Use</Link>

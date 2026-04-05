@@ -352,7 +352,7 @@ export default function ProfilePage() {
 
       {/* Footer */}
       <footer className="profile-footer">
-        <p>© 2026 Strata Reserve Planning. All rights reserved.</p>
+        <p>© 2026 BuiltByRobyn. All rights reserved.</p>
       </footer>
     </div>
   );
