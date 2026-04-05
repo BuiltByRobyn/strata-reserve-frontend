@@ -27,7 +27,8 @@ export const BackendWarmup = ({ children }: { children: ReactNode }) => {
     <div className="warmup-overlay">
       <div className="warmup-content">
         <div className="loading-spinner" />
-        <p>Loading application...</p>
+        <p>Starting application...</p>
+        <p className="warmup-subtitle">This may take a moment on first load</p>
       </div>
     </div>
   );
