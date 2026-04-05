@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useInspectorAvailability } from '../../shared/hooks/useInspectorAvailability';
 import { useUsers } from '../../shared/hooks/useUsers';
 import { useMediaQuery } from '../../shared/hooks/useMediaQuery';
@@ -95,7 +95,7 @@ export const InspectorAvailabilityManager = ({ inspectorProfileId }: InspectorAv
         return result;
     }, [availableDates, filterInspector, dateFrom, dateTo, showPastDates]);
 
-    useMemo(() => setVisibleCount(10), [filterInspector, dateFrom, dateTo, showPastDates]);
+    useEffect(() => setVisibleCount(10), [filterInspector, dateFrom, dateTo, showPastDates]);
 
     const [visibleCount, setVisibleCount] = useState(10);
     const visibleDates = useMemo(() => filteredDates.slice(0, visibleCount), [filteredDates, visibleCount]);
@@ -247,9 +247,9 @@ export const InspectorAvailabilityManager = ({ inspectorProfileId }: InspectorAv
                         emptyMessage={filterInspector ? 'This inspector currently has no availability' : 'No availability found.'}
                     />
                     {visibleCount < filteredDates.length && (
-                        <div className="view-more-container">
-                            <button className="btn-secondary" onClick={() => setVisibleCount(prev => prev + 10)}>
-                                View More ({filteredDates.length - visibleCount} remaining)
+                        <div className="load-more-container">
+                            <button className="btn-link" onClick={() => setVisibleCount(prev => prev + 10)}>
+                                Load More ({filteredDates.length - visibleCount} remaining)
                             </button>
                         </div>
                     )}
@@ -288,9 +288,9 @@ export const InspectorAvailabilityManager = ({ inspectorProfileId }: InspectorAv
                         </div>
                     )}
                     {!loading && visibleCount < filteredDates.length && (
-                        <div className="view-more-container">
-                            <button className="btn-secondary" onClick={() => setVisibleCount(prev => prev + 10)}>
-                                View More ({filteredDates.length - visibleCount} remaining)
+                        <div className="load-more-container">
+                            <button className="btn-link" onClick={() => setVisibleCount(prev => prev + 10)}>
+                                Load More ({filteredDates.length - visibleCount} remaining)
                             </button>
                         </div>
                     )}
