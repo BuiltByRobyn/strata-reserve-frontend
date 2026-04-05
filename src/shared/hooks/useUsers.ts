@@ -63,6 +63,10 @@ export const useUsers = () => {
     }
   }, [api, fetchUsers]);
 
+  const resendInvite = useCallback(async (id: string): Promise<void> => {
+    await api.post(`/admin/users/${id}/resend-invite`, {});
+  }, [api]);
+
   const deleteUser = useCallback(async (id: string): Promise<boolean> => {
     try {
       await api.del(`/admin/users/${id}`);
@@ -84,6 +88,7 @@ export const useUsers = () => {
     getUserById,
     createUser,
     updateUser,
-    deleteUser
+    deleteUser,
+    resendInvite
   };
 };

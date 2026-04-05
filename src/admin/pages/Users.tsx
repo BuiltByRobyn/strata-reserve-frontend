@@ -26,7 +26,7 @@ const initialFormData: UserFormData = {
 };
 
 export default function UsersPage() {
-  const { users, loading, error, createUser, updateUser, deleteUser } = useUsers();
+  const { users, loading, error, createUser, updateUser, deleteUser, resendInvite } = useUsers();
   const { canDelete, canCreateUser, canEditUser, isInspector } = usePermissions();
   const { stratas } = useStrata();
   const { userTypes, propertyTypes } = useLookups();
@@ -39,6 +39,8 @@ export default function UsersPage() {
   const [userToDelete, setUserToDelete] = useState<UserWithStratas | null>(null);
   const [deleteSubmitting, setDeleteSubmitting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [resendingInvite, setResendingInvite] = useState(false);
+  const [resendSuccess, setResendSuccess] = useState(false);
   const [formData, setFormData] = useState<UserFormData>(initialFormData);
   const [formError, setFormError] = useState<string | null>(null);
   const [emailError, setEmailError] = useState<string | null>(null);
@@ -253,6 +255,7 @@ export default function UsersPage() {
     setFormError(null);
     setEmailError(null);
     setPhoneError(null);
+    setResendSuccess(false);
     setIsModalOpen(true);
   };
 
@@ -358,6 +361,20 @@ export default function UsersPage() {
     }
   };
 
+  const handleResendInvite = async (user: UserWithStratas) => {
+    setResendingInvite(true);
+    setResendSuccess(false);
+    setFormError(null);
+    try {
+      await resendInvite(user.id);
+      setResendSuccess(true);
+    } catch (err) {
+      setFormError(err instanceof Error ? err.message : 'Failed to resend invite');
+    } finally {
+      setResendingInvite(false);
+    }
+  };
+
   return (
     <div className="users-page">
       <div className="page-header">
@@ -455,6 +472,15 @@ export default function UsersPage() {
             >
               Cancel
             </button>
+            {editingUser?.mustChangePassword && (
+              <button
+                className="btn-secondary"
+                onClick={() => handleResendInvite(editingUser)}
+                disabled={resendingInvite || isSubmitting}
+              >
+                {resendingInvite ? 'Sending...' : resendSuccess ? 'Invite Sent!' : 'Resend Invite'}
+              </button>
+            )}
             {canDelete && editingUser && (
               <button
                 className="btn-delete"
