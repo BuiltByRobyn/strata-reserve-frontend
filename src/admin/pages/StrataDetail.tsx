@@ -143,10 +143,17 @@ export default function StrataDetailPage() {
       autoOpenedCreateRef.current = true;
       resetCreateModal();
       setCreateModalOpen(true);
-      // Clear the state so it doesn't re-trigger on remount
       window.history.replaceState({}, '');
     }
-  }, [location.state?.openCreateSR]);
+    if (location.state?.activeTab) {
+      setActiveTab(location.state.activeTab);
+      sessionStorage.setItem(`strata-detail-tab-${id}`, location.state.activeTab);
+    }
+    if (location.state?.openDocumentReview) {
+      setDocReviewModalOpen(true);
+      window.history.replaceState({}, '');
+    }
+  }, [location.state?.openCreateSR, location.state?.activeTab, location.state?.openDocumentReview]);
   const [srFormData, setSrFormData] = useState<CreateSRFormData>(INITIAL_SR_FORM);
   const [srFormError, setSrFormError] = useState<string | null>(null);
   const [srSubmitting, setSrSubmitting] = useState(false);
