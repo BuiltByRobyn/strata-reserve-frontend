@@ -1,7 +1,7 @@
 import type { ApiResponse, AuthFetchFn } from '../types/entities.types';
 import { API_BASE } from './api';
 
-export const REQUEST_TIMEOUT_MS = 10_000;
+export const REQUEST_TIMEOUT_MS = 30_000;
 
 const JSON_HEADERS = { 'Content-Type': 'application/json' } as const;
 

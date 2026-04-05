@@ -234,3 +234,13 @@
         line-height: 1.5;
     }
 }
+
+.inspector-availability-manager .load-more-container {
+    text-align: center;
+    margin-top: $spacing-md;
+
+    .btn-link {
+        font-size: $font-size-sm;
+        color: $color-primary;
+    }
+}

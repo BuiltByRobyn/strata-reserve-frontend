@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useInspectorAvailability } from '../../shared/hooks/useInspectorAvailability';
 import { useUsers } from '../../shared/hooks/useUsers';
 import { useMediaQuery } from '../../shared/hooks/useMediaQuery';
@@ -94,6 +94,11 @@ export const InspectorAvailabilityManager = ({ inspectorProfileId }: InspectorAv
 
         return result;
     }, [availableDates, filterInspector, dateFrom, dateTo, showPastDates]);
+
+    useEffect(() => setVisibleCount(10), [filterInspector, dateFrom, dateTo, showPastDates]);
+
+    const [visibleCount, setVisibleCount] = useState(10);
+    const visibleDates = useMemo(() => filteredDates.slice(0, visibleCount), [filteredDates, visibleCount]);
 
     // Modal state
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -227,19 +232,28 @@ export const InspectorAvailabilityManager = ({ inspectorProfileId }: InspectorAv
             )}
 
             {isDesktop ? (
-                <DataTable
-                    columns={columns}
-                    data={filteredDates}
-                    keyExtractor={(item) => item.inspectorAvailableDateId}
-                    loading={loading}
-                    onRowClick={(block) => {
-                        setViewingBlock(block);
-                        setIsViewModalOpen(true);
-                    }}
-                    actions={renderActions}
-                    actionsColumnHeader="ACTIONS"
-                    emptyMessage={filterInspector ? 'This inspector currently has no availability' : 'No availability found.'}
-                />
+                <>
+                    <DataTable
+                        columns={columns}
+                        data={visibleDates}
+                        keyExtractor={(item) => item.inspectorAvailableDateId}
+                        loading={loading}
+                        onRowClick={(block) => {
+                            setViewingBlock(block);
+                            setIsViewModalOpen(true);
+                        }}
+                        actions={renderActions}
+                        actionsColumnHeader="ACTIONS"
+                        emptyMessage={filterInspector ? 'This inspector currently has no availability' : 'No availability found.'}
+                    />
+                    {visibleCount < filteredDates.length && (
+                        <div className="load-more-container">
+                            <button className="btn-link" onClick={() => setVisibleCount(prev => prev + 10)}>
+                                Load More ({filteredDates.length - visibleCount} remaining)
+                            </button>
+                        </div>
+                    )}
+                </>
             ) : (
                 <>
                     {loading && <LoadingSpinner />}
@@ -250,7 +264,7 @@ export const InspectorAvailabilityManager = ({ inspectorProfileId }: InspectorAv
                     )}
                     {!loading && filteredDates.length > 0 && (
                         <div className="availability-mobile-list">
-                            {filteredDates.map((item) => (
+                            {visibleDates.map((item) => (
                                 <div
                                     key={item.inspectorAvailableDateId}
                                     className="availability-mobile-card clickable"
@@ -271,6 +285,13 @@ export const InspectorAvailabilityManager = ({ inspectorProfileId }: InspectorAv
                                     </table>
                                 </div>
                             ))}
+                        </div>
+                    )}
+                    {!loading && visibleCount < filteredDates.length && (
+                        <div className="load-more-container">
+                            <button className="btn-link" onClick={() => setVisibleCount(prev => prev + 10)}>
+                                Load More ({filteredDates.length - visibleCount} remaining)
+                            </button>
                         </div>
                     )}
                 </>

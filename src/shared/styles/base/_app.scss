@@ -160,3 +160,32 @@ h3 {
     }
   }
 }
+
+.warmup-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: $color-background;
+  z-index: 9999;
+}
+
+.warmup-content {
+  text-align: center;
+
+  .loading-spinner {
+    width: 48px;
+    height: 48px;
+    border: 4px solid rgba($color-primary, 0.2);
+    border-top-color: $color-primary;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto $spacing-lg;
+  }
+
+  p {
+    color: $color-text-muted;
+    font-size: $font-size-md;
+  }
+}
