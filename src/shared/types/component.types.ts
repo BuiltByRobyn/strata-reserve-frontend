@@ -1,6 +1,6 @@
 import type { ReactNode, InputHTMLAttributes, SelectHTMLAttributes, TextareaHTMLAttributes } from 'react';
 import type { SurveySection, AdminQuestion } from './survey.types';
-import type { StrataPropertyType, InspectorAvailableDate, CreateInspectorAvailableDateInput, UpdateInspectorAvailableDateInput, AppointmentRequest, AppointmentWithDetails, AppointmentTimeSlot, Profile, ReviewStatus } from './entities.types';
+import type { Strata, StrataPropertyType, InspectorAvailableDate, CreateInspectorAvailableDateInput, UpdateInspectorAvailableDateInput, AppointmentRequest, AppointmentWithDetails, AppointmentTimeSlot, Profile, ReviewStatus } from './entities.types';
 import type { SRDocRequirement } from './document.types';
 import type { BatchDocumentReviewInput, DocumentReviewResult, RequiredDocumentChecklist, NaStatusValue } from './document.types';
 import type { AdminProfileFormData } from './entities.types';
@@ -156,6 +156,13 @@ export interface NavbarProps {
   navItems: NavItem[];
   userInfoRows: UserInfo[];
   loading?: boolean;
+}
+
+export interface DeleteStrataModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  strata: Strata;
+  onDelete: (id: number) => Promise<any>;
 }
 
 export interface DeleteAvailabilityModalProps {
