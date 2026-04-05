@@ -5,6 +5,7 @@ import { useClientAppointments } from '../../shared/hooks/useClientAppointments'
 import { LoadingSpinner } from '../../shared/components/LoadingSpinner';
 import { ClientNavbar } from './ClientNavbar';
 import { Modal } from '../../shared/components/Modal';
+import { Footer } from '../../shared/components/Footer';
 
 export const ClientLayout = ({ children }: { children: React.ReactNode }) => {
   const navigate = useNavigate();
@@ -94,6 +95,7 @@ export const ClientLayout = ({ children }: { children: React.ReactNode }) => {
           </>
         )}
       </Modal>
+      <Footer />
     </div>
   );
 };

@@ -181,8 +181,7 @@ export default function DocumentsPage() {
       );
       setIsStatusModalOpen(false);
       setSelectedDocument(null);
-    } catch (err) {
-      console.error('Error updating status:', err);
+    } catch {
     }
   };
 

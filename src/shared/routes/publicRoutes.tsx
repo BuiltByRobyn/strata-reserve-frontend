@@ -4,6 +4,8 @@ import { SetPassword } from '../pages/SetPassword';
 import { ResetPassword } from '../pages/ResetPassword';
 import { PrivacyPolicy } from '../pages/PrivacyPolicy';
 import { TermsOfUse } from '../pages/TermsOfUse';
+import { Help } from '../pages/Help';
+import { VideoPlayer } from '../pages/VideoPlayer';
 import { AuthCallback } from '../pages/AuthCallback';
 import { AcceptInvite } from '../pages/AcceptInvite';
 import { DashboardRouter } from './DashboardRouter';
@@ -14,14 +16,12 @@ import { DashboardRouter } from './DashboardRouter';
 const RootRedirect = () => {
   const hash = window.location.hash;
   const search = window.location.search;
-  console.log('[RootRedirect] Triggered. hash:', hash, 'search:', search);
   if (
     hash.includes('access_token=') ||
     hash.includes('error_description=') ||
     search.includes('code=') ||
     search.includes('error=')
   ) {
-    console.log('[RootRedirect] Auth tokens detected → forwarding to /auth/callback');
     return <Navigate to={`/auth/callback${search}${hash}`} replace />;
   }
   return <Navigate to="/dashboard" replace />;
@@ -31,6 +31,8 @@ export const publicRoutes = [
   <Route key="login" path="/login" element={<Login />} />,
   <Route key="privacy" path="/privacy" element={<PrivacyPolicy />} />,
   <Route key="terms" path="/terms" element={<TermsOfUse />} />,
+  <Route key="help" path="/help" element={<Help />} />,
+  <Route key="video" path="/video/:id" element={<VideoPlayer />} />,
   <Route key="set-password" path="/set-password" element={<SetPassword />} />,
   <Route key="reset-password" path="/reset-password" element={<ResetPassword />} />,
   <Route key="admin-login" path="/admin/login" element={<Navigate to="/login" replace />} />,

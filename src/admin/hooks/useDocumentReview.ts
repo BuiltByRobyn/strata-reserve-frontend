@@ -16,8 +16,7 @@ export const useDocumentReview = () => {
       setReview(result);
       setRequirements(data.requirements ?? []);
       return result;
-    } catch (err) {
-      console.error('Error fetching document review:', err);
+    } catch {
       return null;
     } finally {
       setLoading(false);
@@ -28,8 +27,7 @@ export const useDocumentReview = () => {
     try {
       await api.post<DocumentReviewResult>(`/admin/file-numbers/${fileId}/document-review`, input);
       return true;
-    } catch (err) {
-      console.error('Error submitting document review:', err);
+    } catch {
       return false;
     }
   }, [api]);

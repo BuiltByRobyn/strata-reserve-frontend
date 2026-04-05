@@ -84,7 +84,6 @@ export const ChangePasswordModal = ({ isOpen, onClose }: BaseModalProps) => {
       }, 3000);
       
     } catch (err: any) {
-      console.error('Password change error:', err);
       setError(err?.message || 'Failed to update password. Please try again.');
     } finally {
       setSaving(false);

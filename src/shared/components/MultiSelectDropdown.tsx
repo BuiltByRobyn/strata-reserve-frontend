@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useLayoutEffect } from 'react';
 import type { MultiSelectDropdownProps } from '../types/component.types';
 import { useClickOutside } from '../hooks/useClickOutside';
 
@@ -17,11 +17,23 @@ export function MultiSelectDropdown({
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState('');
   const containerRef = useRef<HTMLDivElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const savedScrollTop = useRef<number | null>(null);
   const fieldId = `field-${label.toLowerCase().replace(/\s+/g, '-')}`;
 
   useClickOutside(containerRef, useCallback(() => { setIsOpen(false); setSearch(''); }, []));
 
+  useLayoutEffect(() => {
+    if (savedScrollTop.current != null && dropdownRef.current) {
+      dropdownRef.current.scrollTop = savedScrollTop.current;
+      savedScrollTop.current = null;
+    }
+  });
+
   const toggleOption = (value: number) => {
+    if (dropdownRef.current) {
+      savedScrollTop.current = dropdownRef.current.scrollTop;
+    }
     if (selectedValues.includes(value)) {
       onChange(selectedValues.filter(v => v !== value));
     } else {
@@ -54,7 +66,7 @@ export function MultiSelectDropdown({
           {displayText}
         </button>
         {isOpen && (
-          <div className="multiselect__dropdown">
+          <div className="multiselect__dropdown" ref={dropdownRef}>
             {searchable && (
               <input
                 type="text"

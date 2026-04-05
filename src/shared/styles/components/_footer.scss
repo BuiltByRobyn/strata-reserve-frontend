@@ -1,0 +1,54 @@
+@use '../variables' as *;
+
+.site-footer {
+  background-color: $color-primary;
+  padding: $spacing-md $spacing-xl;
+  margin-top: auto;
+  box-sizing: border-box;
+
+  @include respond-to(lg) {
+    grid-column: 1 / -1;
+  }
+
+  &__content {
+    max-width: none;
+
+    .legal-page & {
+      max-width: 780px;
+    }
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    @include respond-below(md) {
+      flex-direction: column-reverse;
+      gap: $spacing-md;
+      text-align: center;
+    }
+  }
+
+  &__copyright {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: $font-size-sm;
+  }
+
+  &__links {
+    display: flex;
+    gap: $spacing-sm;
+    flex-wrap: wrap;
+    justify-content: center;
+
+    a {
+      color: rgba(255, 255, 255, 0.7);
+      text-decoration: none;
+      font-size: $font-size-sm;
+      transition: color 0.2s ease;
+
+      &:hover {
+        color: $color-white;
+        text-decoration: underline;
+      }
+    }
+  }
+}

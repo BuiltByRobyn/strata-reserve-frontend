@@ -17,7 +17,6 @@ export const useQuestions = () => {
       const questions = await api.get<AdminQuestion[]>('/admin/questions');
       setState({ questions: questions || [], loading: false, error: null });
     } catch (error) {
-      console.error('Error fetching questions:', error);
       setState(prev => ({
         ...prev,
         loading: false,

@@ -2,10 +2,9 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { LegalLayout } from '../components/LegalLayout';
 
-export const TermsOfUse: React.FC = () => {
-    return (
-        <LegalLayout title="Terms of Use">
-            <p className="update-date">Last Updated: February 26, 2026</p>
+export const TermsOfUseContent: React.FC = () => (
+    <>
+        <p className="update-date">Last Updated: February 26, 2026</p>
 
             <section>
                 <p>
@@ -514,6 +513,11 @@ export const TermsOfUse: React.FC = () => {
                     <strong>Email:</strong> clientcare@stratareserveplanning.com
                 </p>
             </section>
-        </LegalLayout>
-    );
-};
+    </>
+);
+
+export const TermsOfUse: React.FC = () => (
+    <LegalLayout title="Terms of Use">
+        <TermsOfUseContent />
+    </LegalLayout>
+);

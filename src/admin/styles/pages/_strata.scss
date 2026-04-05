@@ -192,3 +192,44 @@
     color: $color-text-primary;
   }
 }
+
+.delete-strata-body {
+  padding: 0 $spacing-lg;
+}
+
+.delete-strata-info {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: $spacing-2xl;
+  padding-bottom: $spacing-lg;
+  border-bottom: 1px solid $color-border-light;
+}
+
+.delete-strata-label {
+  font-weight: $font-weight-bold;
+  color: $color-text-muted;
+  font-size: 0.8125rem;
+  margin-bottom: $spacing-xs;
+}
+
+.delete-strata-value {
+  font-size: 0.9375rem;
+  color: $color-text-dark;
+}
+
+.delete-strata-confirm {
+  text-align: center;
+  margin: $spacing-2xl 0;
+
+  h3 {
+    color: $color-text-dark;
+    font-size: 1.25rem;
+    margin-bottom: $spacing-md;
+    font-weight: $font-weight-bold;
+  }
+
+  p {
+    color: $color-text-muted;
+    line-height: 1.5;
+  }
+}

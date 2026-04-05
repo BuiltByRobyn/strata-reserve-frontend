@@ -13,6 +13,7 @@ import type { InspectorAvailableDate } from '../../shared/types/entities.types';
 import { getInspectorOptions } from '../../shared/utils/userUtils';
 import { InspectorAvailabilityModal } from './InspectorAvailabilityModal.tsx';
 import { DeleteAvailabilityModal } from './DeleteAvailabilityModal.tsx';
+import type { InspectorAvailabilityManagerProps } from '../../shared/types/component.types';
 
 const formatTime = (timeStr: string | null): string => {
     if (!timeStr) return '-';
@@ -30,10 +31,6 @@ const formatTime = (timeStr: string | null): string => {
 
     return timeStr;
 };
-
-interface InspectorAvailabilityManagerProps {
-    inspectorProfileId?: string;
-}
 
 export const InspectorAvailabilityManager = ({ inspectorProfileId }: InspectorAvailabilityManagerProps) => {
     const { availableDates, loading, error, deleteAvailableDate, createAvailableDatesBatch, updateAvailableDate } = useInspectorAvailability();

@@ -178,9 +178,7 @@ export default function ClientDocumentsPage() {
   const handleFinalize = async () => {
     if (!fileId) return;
     localStorage.setItem(`docs_finalized_${fileId}`, String(currentReviewId));
-    api.post(`/client/file-numbers/${fileId}/finalize-documents`, {}).catch((err) =>
-      console.error('Failed to send finalize notification:', err)
-    );
+    api.post(`/client/file-numbers/${fileId}/finalize-documents`, {}).catch(() => {});
     navigate('/client/dashboard', { state: { justFinalizedDocs: true } });
   };
 

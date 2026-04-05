@@ -590,8 +590,7 @@ export default function StrataDetailPage() {
     try {
       await authFetch(`${API_BASE}/admin/documents/${docId}`, { method: 'DELETE' });
       await loadData();
-    } catch (err) {
-      console.error('Failed to delete document', err);
+    } catch {
     }
   };
 

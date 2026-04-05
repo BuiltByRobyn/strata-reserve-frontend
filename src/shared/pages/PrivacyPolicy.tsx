@@ -2,10 +2,9 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { LegalLayout } from '../components/LegalLayout';
 
-export const PrivacyPolicy: React.FC = () => {
-    return (
-        <LegalLayout title="Privacy Policy">
-            <p className="update-date">Last Updated: February 26, 2026</p>
+export const PrivacyPolicyContent: React.FC = () => (
+    <>
+        <p className="update-date">Last Updated: February 26, 2026</p>
 
             <section>
                 <p>
@@ -431,6 +430,11 @@ export const PrivacyPolicy: React.FC = () => {
                     </li>
                 </ul>
             </section>
-        </LegalLayout>
-    );
-};
+    </>
+);
+
+export const PrivacyPolicy: React.FC = () => (
+    <LegalLayout title="Privacy Policy">
+        <PrivacyPolicyContent />
+    </LegalLayout>
+);

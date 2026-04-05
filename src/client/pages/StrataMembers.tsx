@@ -97,8 +97,7 @@ const StrataMembers = () => {
 
       setCurrentUser(mapped.find((m) => m.profileId === user.id) || null);
       setOtherMembers(mapped.filter((m) => m.profileId !== user.id));
-    } catch (err) {
-      console.error(err);
+    } catch {
       setError('Failed to load strata members.');
     } finally {
       setLoading(false);
@@ -116,8 +115,7 @@ const StrataMembers = () => {
         setStrataPropertyTypes(available);
         return { propertyTypes: types, strataPropertyTypes: available };
       }
-    } catch (err) {
-      console.error('Failed to fetch client profile:', err);
+    } catch {
     }
     return { propertyTypes: [], strataPropertyTypes: [] };
   };
@@ -205,8 +203,7 @@ const StrataMembers = () => {
       setIsModalOpen(false);
       setSuccessMessage('Profile updated successfully!');
       setTimeout(() => setSuccessMessage(null), 3000);
-    } catch (err) {
-      console.error(err);
+    } catch {
       alert('Failed to save changes.');
     } finally {
       setSaving(false);

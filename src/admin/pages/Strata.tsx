@@ -16,6 +16,7 @@ import {
 } from "../../shared/components/FormField";
 import { SingleSelectDropdown } from "../../shared/components/SingleSelectDropdown";
 import { MultiSelectDropdown } from "../../shared/components/MultiSelectDropdown";
+import { DeleteStrataModal } from "../components/DeleteStrataModal";
 import type {
   Strata,
   CreateStrataInput,
@@ -47,6 +48,7 @@ export default function StrataPage() {
   const [filterPropertyTypeIds, setFilterPropertyTypeIds] = useState<number[]>([]);
   const [filterCity, setFilterCity] = useState("");
   const [showArchived, setShowArchived] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<Strata | null>(null);
 
   const isDesktop = useMediaQuery("(min-width: 750px)");
 
@@ -192,20 +194,9 @@ export default function StrataPage() {
     }
   };
 
-  const handleDelete = async (strata: Strata) => {
-    if (
-      !confirm(
-        `Are you sure you want to delete "${strata.strataPlan || strata.complexName}"?`,
-      )
-    ) {
-      return;
-    }
-
-    try {
-      await deleteStrata(strata.strataId);
-    } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to delete strata");
-    }
+  const handleDelete = (strata: Strata) => {
+    setDeleteTarget(strata);
+    setIsModalOpen(false);
   };
 
   const updateField = (
@@ -583,6 +574,15 @@ export default function StrataPage() {
           </table>
         )}
       </Modal>
+
+      {deleteTarget && (
+        <DeleteStrataModal
+          isOpen={!!deleteTarget}
+          onClose={() => setDeleteTarget(null)}
+          strata={deleteTarget}
+          onDelete={deleteStrata}
+        />
+      )}
     </div>
   );
 }

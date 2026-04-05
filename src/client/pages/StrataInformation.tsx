@@ -45,8 +45,7 @@ const StrataInformation = () => {
           setStrata(data.strata as unknown as StrataInfo);
           // had to cast to unknown first because of the nested select structure, but it should match our StrataInfo type
         }
-      } catch (err) {
-        console.error('Error fetching strata information:', err);
+      } catch {
         setError('Failed to load strata information.');
       } finally {
         setLoading(false);

@@ -24,7 +24,6 @@ export const useCompanyHolidays = () => {
       });
       setState({ holidays: holidays || [], loading: false, error: null });
     } catch (error) {
-      console.error('Error fetching company holidays:', error);
       const errorMessage = error instanceof Error
         ? (error.name === 'AbortError'
           ? 'Request timed out. Is the backend running?'
@@ -37,8 +36,7 @@ export const useCompanyHolidays = () => {
   const getHolidayById = useCallback(async (id: number): Promise<CompanyHoliday | null> => {
     try {
       return await api.get<CompanyHoliday>(`/admin/company-holidays/${id}`);
-    } catch (error) {
-      console.error('Error fetching company holiday:', error);
+    } catch {
       return null;
     }
   }, [api]);
@@ -49,7 +47,6 @@ export const useCompanyHolidays = () => {
       await fetchHolidays();
       return result;
     } catch (error) {
-      console.error('Error creating company holiday:', error);
       throw error;
     }
   }, [api, fetchHolidays]);
@@ -60,7 +57,6 @@ export const useCompanyHolidays = () => {
       await fetchHolidays();
       return result;
     } catch (error) {
-      console.error('Error updating company holiday:', error);
       throw error;
     }
   }, [api, fetchHolidays]);
@@ -71,7 +67,6 @@ export const useCompanyHolidays = () => {
       await fetchHolidays();
       return true;
     } catch (error) {
-      console.error('Error deleting company holiday:', error);
       throw error;
     }
   }, [api, fetchHolidays]);
@@ -81,8 +76,7 @@ export const useCompanyHolidays = () => {
       return await api.get<CompanyHoliday[]>('/admin/company-holidays/by-year', {
         params: { year },
       });
-    } catch (error) {
-      console.error('Error fetching holidays by year:', error);
+    } catch {
       return [];
     }
   }, [api]);
@@ -93,8 +87,7 @@ export const useCompanyHolidays = () => {
         params: { date },
       });
       return result?.isHoliday ?? false;
-    } catch (error) {
-      console.error('Error checking if date is holiday:', error);
+    } catch {
       return false;
     }
   }, [api]);

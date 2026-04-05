@@ -26,7 +26,6 @@ export const useStrata = () => {
       const stratas = await api.get<Strata[]>('/admin/strata');
       setState({ stratas: stratas || [], loading: false, error: null });
     } catch (error) {
-      console.error('Error fetching stratas:', error);
       setState(prev => ({
         ...prev,
         loading: false,
@@ -38,8 +37,7 @@ export const useStrata = () => {
   const getStrataById = useCallback(async (id: number): Promise<StrataWithDetails | null> => {
     try {
       return await api.get<StrataWithDetails>(`/admin/strata/${id}`);
-    } catch (error) {
-      console.error('Error fetching strata:', error);
+    } catch {
       return null;
     }
   }, [api]);
@@ -50,7 +48,6 @@ export const useStrata = () => {
       await fetchStratas();
       return result;
     } catch (error) {
-      console.error('Error creating strata:', error);
       throw error;
     }
   }, [api, fetchStratas]);
@@ -61,7 +58,6 @@ export const useStrata = () => {
       await fetchStratas();
       return result;
     } catch (error) {
-      console.error('Error updating strata:', error);
       throw error;
     }
   }, [api, fetchStratas]);
@@ -72,7 +68,6 @@ export const useStrata = () => {
       await fetchStratas();
       return true;
     } catch (error) {
-      console.error('Error deleting strata:', error);
       throw error;
     }
   }, [api, fetchStratas]);
@@ -82,8 +77,7 @@ export const useStrata = () => {
       return await api.get<Strata[]>('/admin/strata/search', {
         params: { q: query },
       });
-    } catch (error) {
-      console.error('Error searching stratas:', error);
+    } catch {
       return [];
     }
   }, [api]);
@@ -95,7 +89,6 @@ export const useStrata = () => {
     try {
       return await api.post<StrataNoteBasic>(`/admin/strata/${strataId}/notes`, input);
     } catch (error) {
-      console.error('Error adding note:', error);
       throw error;
     }
   }, [api]);
@@ -105,7 +98,6 @@ export const useStrata = () => {
       await api.del(`/admin/strata/${strataId}/notes/${noteId}`);
       return true;
     } catch (error) {
-      console.error('Error deleting note:', error);
       throw error;
     }
   }, [api]);
@@ -117,7 +109,6 @@ export const useStrata = () => {
     try {
       return await api.post<StrataEmployee>(`/admin/strata/${strataId}/employees`, input);
     } catch (error) {
-      console.error('Error assigning employee:', error);
       throw error;
     }
   }, [api]);
@@ -127,7 +118,6 @@ export const useStrata = () => {
       await api.put(`/admin/strata/${strataId}/employees/${employeeId}`, { strataPosition: position });
       return true;
     } catch (error) {
-      console.error('Error updating employee position:', error);
       throw error;
     }
   }, [api]);
@@ -137,7 +127,6 @@ export const useStrata = () => {
       await api.del(`/admin/strata/${strataId}/employees/${employeeId}`);
       return true;
     } catch (error) {
-      console.error('Error removing employee:', error);
       throw error;
     }
   }, [api]);

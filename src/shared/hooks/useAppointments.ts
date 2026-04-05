@@ -19,7 +19,6 @@ export const useAppointments = () => {
       const appointments = await api.get<AppointmentWithDetails[]>('/admin/appointments');
       setState({ appointments: appointments || [], loading: false, error: null });
     } catch (error) {
-      console.error('Error fetching appointments:', error);
       setState(prev => ({
         ...prev,
         loading: false,
@@ -31,8 +30,7 @@ export const useAppointments = () => {
   const getAppointmentById = useCallback(async (id: number): Promise<AppointmentWithDetails | null> => {
     try {
       return await api.get<AppointmentWithDetails>(`/admin/appointments/${id}`);
-    } catch (error) {
-      console.error('Error fetching appointment:', error);
+    } catch {
       return null;
     }
   }, [api]);
@@ -43,7 +41,6 @@ export const useAppointments = () => {
       await fetchAppointments();
       return true;
     } catch (error) {
-      console.error('Error updating appointment status:', error);
       throw error;
     }
   }, [api, fetchAppointments]);
@@ -54,7 +51,6 @@ export const useAppointments = () => {
       await fetchAppointments();
       return true;
     } catch (error) {
-      console.error('Error cancelling appointment:', error);
       throw error;
     }
   }, [api, fetchAppointments]);
@@ -74,7 +70,6 @@ export const useAppointments = () => {
       await fetchAppointments();
       return true;
     } catch (error) {
-      console.error('Error rescheduling appointment:', error);
       throw error;
     }
   }, [api, fetchAppointments]);
@@ -86,8 +81,7 @@ export const useAppointments = () => {
       if (status) params.status = status;
       const data = await api.get<AppointmentRequest[]>('/admin/appointments/requests', { params });
       setRequests(data || []);
-    } catch (err) {
-      console.error('Error fetching requests:', err);
+    } catch {
     } finally {
       setRequestsLoading(false);
     }
@@ -153,7 +147,6 @@ export const useAppointments = () => {
       await fetchAppointments();
       return true;
     } catch (error) {
-      console.error('Error creating appointment:', error);
       throw error;
     }
   }, [api, fetchAppointments]);
@@ -180,7 +173,6 @@ export const useAppointments = () => {
       await fetchAppointments();
       return true;
     } catch (error) {
-      console.error('Error requesting rebooking:', error);
       throw error;
     }
   }, [api, fetchAppointments]);

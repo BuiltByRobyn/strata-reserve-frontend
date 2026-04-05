@@ -77,8 +77,7 @@ export const useLookups = () => {
         loading: false,
         error: null
       });
-    } catch (error) {
-      console.error('Error fetching lookups:', error);
+    } catch {
       setState(prev => ({
         ...prev,
         loading: false,
