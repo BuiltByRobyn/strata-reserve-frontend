@@ -95,6 +95,11 @@ export const InspectorAvailabilityManager = ({ inspectorProfileId }: InspectorAv
         return result;
     }, [availableDates, filterInspector, dateFrom, dateTo, showPastDates]);
 
+    useMemo(() => setVisibleCount(10), [filterInspector, dateFrom, dateTo, showPastDates]);
+
+    const [visibleCount, setVisibleCount] = useState(10);
+    const visibleDates = useMemo(() => filteredDates.slice(0, visibleCount), [filteredDates, visibleCount]);
+
     // Modal state
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -227,19 +232,28 @@ export const InspectorAvailabilityManager = ({ inspectorProfileId }: InspectorAv
             )}
 
             {isDesktop ? (
-                <DataTable
-                    columns={columns}
-                    data={filteredDates}
-                    keyExtractor={(item) => item.inspectorAvailableDateId}
-                    loading={loading}
-                    onRowClick={(block) => {
-                        setViewingBlock(block);
-                        setIsViewModalOpen(true);
-                    }}
-                    actions={renderActions}
-                    actionsColumnHeader="ACTIONS"
-                    emptyMessage={filterInspector ? 'This inspector currently has no availability' : 'No availability found.'}
-                />
+                <>
+                    <DataTable
+                        columns={columns}
+                        data={visibleDates}
+                        keyExtractor={(item) => item.inspectorAvailableDateId}
+                        loading={loading}
+                        onRowClick={(block) => {
+                            setViewingBlock(block);
+                            setIsViewModalOpen(true);
+                        }}
+                        actions={renderActions}
+                        actionsColumnHeader="ACTIONS"
+                        emptyMessage={filterInspector ? 'This inspector currently has no availability' : 'No availability found.'}
+                    />
+                    {visibleCount < filteredDates.length && (
+                        <div className="view-more-container">
+                            <button className="btn-secondary" onClick={() => setVisibleCount(prev => prev + 10)}>
+                                View More ({filteredDates.length - visibleCount} remaining)
+                            </button>
+                        </div>
+                    )}
+                </>
             ) : (
                 <>
                     {loading && <LoadingSpinner />}
@@ -250,7 +264,7 @@ export const InspectorAvailabilityManager = ({ inspectorProfileId }: InspectorAv
                     )}
                     {!loading && filteredDates.length > 0 && (
                         <div className="availability-mobile-list">
-                            {filteredDates.map((item) => (
+                            {visibleDates.map((item) => (
                                 <div
                                     key={item.inspectorAvailableDateId}
                                     className="availability-mobile-card clickable"
@@ -271,6 +285,13 @@ export const InspectorAvailabilityManager = ({ inspectorProfileId }: InspectorAv
                                     </table>
                                 </div>
                             ))}
+                        </div>
+                    )}
+                    {!loading && visibleCount < filteredDates.length && (
+                        <div className="view-more-container">
+                            <button className="btn-secondary" onClick={() => setVisibleCount(prev => prev + 10)}>
+                                View More ({filteredDates.length - visibleCount} remaining)
+                            </button>
                         </div>
                     )}
                 </>
