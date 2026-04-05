@@ -234,3 +234,9 @@
         line-height: 1.5;
     }
 }
+
+.view-more-container {
+    display: flex;
+    justify-content: center;
+    padding: $spacing-lg 0;
+}
