@@ -24,6 +24,9 @@ export const CompanyHolidaysManager = () => {
   const [selectedHoliday, setSelectedHoliday] = useState<CompanyHoliday | null>(null);
   const [viewingHoliday, setViewingHoliday] = useState<DisplayHoliday | null>(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<CompanyHoliday | null>(null);
+  const [deleteSubmitting, setDeleteSubmitting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   // Filter state
   const [dateFrom, setDateFrom] = useState('');
@@ -81,8 +84,22 @@ export const CompanyHolidaysManager = () => {
 
   const handleDeleteClick = () => {
     if (!selectedHoliday) return;
-    if (window.confirm(`Remove holiday "${selectedHoliday.holidayName}"?`)) {
-      deleteHoliday(selectedHoliday.companyHolidayId).then(() => handleCloseModal()).catch(() => {});
+    setDeleteTarget(selectedHoliday);
+    setDeleteError(null);
+    setIsModalOpen(false);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleteSubmitting(true);
+    setDeleteError(null);
+    try {
+      await deleteHoliday(deleteTarget.companyHolidayId);
+      setDeleteTarget(null);
+    } catch (err) {
+      setDeleteError(err instanceof Error ? err.message : 'Failed to delete holiday');
+    } finally {
+      setDeleteSubmitting(false);
     }
   };
 
@@ -279,6 +296,31 @@ export const CompanyHolidaysManager = () => {
           onSubmitUpdate={updateHoliday}
           onDeleteClick={canDelete && selectedHoliday ? handleDeleteClick : undefined}
         />
+      )}
+
+      {deleteTarget && (
+        <Modal
+          isOpen={!!deleteTarget}
+          onClose={() => { setDeleteTarget(null); setDeleteError(null); }}
+          title="Remove Holiday"
+          size="small"
+          footer={
+            <>
+              <button className="btn-secondary" onClick={() => { setDeleteTarget(null); setDeleteError(null); }} disabled={deleteSubmitting}>
+                Cancel
+              </button>
+              <button className="btn-delete" onClick={handleConfirmDelete} disabled={deleteSubmitting}>
+                {deleteSubmitting ? 'Removing...' : 'Remove Holiday'}
+              </button>
+            </>
+          }
+        >
+          {deleteError && <div className="form-error">{deleteError}</div>}
+          <div className="delete-confirmation">
+            <p>Are you sure you want to remove "{deleteTarget.holidayName}"?</p>
+            <p className="delete-warning">This action cannot be undone.</p>
+          </div>
+        </Modal>
       )}
     </div>
   );
