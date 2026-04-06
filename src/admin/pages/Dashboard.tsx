@@ -130,7 +130,14 @@ export const Dashboard = () => {
   const [reviewingRequest, setReviewingRequest] = useState<PropertyTypeRequest | null>(null);
   const [rejectionReason, setRejectionReason] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [dismissedCards, setDismissedCards] = useState<Set<string>>(new Set());
+  const [dismissedCards, setDismissedCards] = useState<Set<string>>(() => {
+    try {
+      const saved = localStorage.getItem('dismissedUrgentCards');
+      return saved ? new Set(JSON.parse(saved)) : new Set();
+    } catch {
+      return new Set();
+    }
+  });
 
   useEffect(() => {
     fetchAppointmentRequests('Pending Review');
@@ -256,12 +263,7 @@ export const Dashboard = () => {
     const finalizedCards: UrgentCard[] = activeRequests
       .filter((request) =>
         !!request.submittedForReviewDate &&
-        !request.appointmentOfferedAt &&
-        (
-          (!request.latestDocumentReviewDate && !!request.docsReadyForReview) ||
-          (!!request.latestDocumentFinalizedDate &&
-            request.latestDocumentFinalizedDate >= (request.latestDocumentReviewDate ?? ''))
-        )
+        !request.appointmentOfferedAt
       )
       .map((request) => {
         const urgency = getUrgencyMeta(request.submittedForReviewDate);
@@ -512,7 +514,11 @@ export const Dashboard = () => {
                         className="action-card-dismiss"
                         onClick={() => {
                           if (card.kind === 'doc-resubmit') markRead(card.notificationId);
-                          setDismissedCards((prev) => new Set(prev).add(card.id));
+                          setDismissedCards((prev) => {
+                            const next = new Set(prev).add(card.id);
+                            localStorage.setItem('dismissedUrgentCards', JSON.stringify([...next]));
+                            return next;
+                          });
                         }}
                         title="Dismiss"
                         aria-label="Dismiss"
@@ -570,9 +576,9 @@ export const Dashboard = () => {
                     ) : card.kind === 'finalized' ? (
                       <button
                         className="btn-action btn-action--primary"
-                        onClick={() => navigate(`/admin/strata/${card.strataId}`, { state: { promptOfferAppointment: true } })}
+                        onClick={() => navigate(`/admin/strata/${card.strataId}`, { state: { activeTab: 'documents', openDocumentReview: true } })}
                       >
-                        Review
+                        Review Documents
                       </button>
                     ) : card.kind === 'doc-resubmit' ? (
                       <button

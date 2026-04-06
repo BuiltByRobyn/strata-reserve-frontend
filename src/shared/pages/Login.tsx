@@ -170,8 +170,8 @@ export const Login = () => {
         <div className="login-footer">
           <p className="help-text">
             Need help? Contact our support team at{" "}
-            <a href="mailto:clientcare@stratareserveplanning.com">
-              clientcare@stratareserveplanning.com
+            <a href="mailto:contact@builtbyrobyn.com">
+              contact@builtbyrobyn.com
             </a>
           </p>
           <div className="footer-links">
@@ -182,7 +182,7 @@ export const Login = () => {
         </div>
 
         <p className="copyright">
-          © 2026 Strata Reserve Planning. All rights reserved.
+          © 2026 BuiltByRobyn. All rights reserved.
         </p>
       </div>
     </div>

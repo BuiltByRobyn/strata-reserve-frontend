@@ -87,8 +87,8 @@ export const HelpContent: React.FC<HelpContentProps> = ({ audience = 'client', a
           <h2>Need Further Assistance?</h2>
           <p>
             If you need additional help, please contact our support team at{' '}
-            <a href="mailto:clientcare@stratareserveplanning.com">
-              clientcare@stratareserveplanning.com
+            <a href="mailto:contact@builtbyrobyn.com">
+              contact@builtbyrobyn.com
             </a>
           </p>
         </section>

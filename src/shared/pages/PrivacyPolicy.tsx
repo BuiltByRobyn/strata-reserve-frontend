@@ -414,7 +414,7 @@ export const PrivacyPolicyContent: React.FC = () => (
                     British Columbia, Canada
                 </p>
                 <p>
-                    <strong>Email:</strong> clientcare@stratareserveplanning.com
+                    <strong>Email:</strong> contact@builtbyrobyn.com
                 </p>
                 <p>
                     You may also contact the following regulatory bodies:

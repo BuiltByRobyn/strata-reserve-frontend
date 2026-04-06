@@ -91,6 +91,7 @@
   justify-content: space-between;
   padding: $spacing-md $spacing-lg;
   border-bottom: 1px solid $color-border-light;
+  flex-shrink: 0;
 
   &__title {
     display: flex;
@@ -183,6 +184,7 @@
   border-top: 1px solid $color-border-light;
   display: flex;
   justify-content: center;
+  flex-shrink: 0;
   gap: $spacing-sm;
 
   button {

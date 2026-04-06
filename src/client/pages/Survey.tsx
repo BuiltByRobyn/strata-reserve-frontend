@@ -266,7 +266,7 @@ if (q.questionType === 'multiple_choice') {
           {finalizerPrefix}
           {isLockedPartial
             ? 'All required survey answers have been submitted for your property sections. Your submissions will be reviewed once all strata sections have been finalized.'
-            : 'If you need to change your answers, please email clientcare@stratareserveplanning.com'}
+            : 'If you need to change your answers, please email contact@builtbyrobyn.com'}
         </p>
       )}
 

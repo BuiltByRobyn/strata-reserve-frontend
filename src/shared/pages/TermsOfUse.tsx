@@ -80,7 +80,7 @@ export const TermsOfUseContent: React.FC = () => (
                 <ul>
                     <li>Maintaining the confidentiality of your account credentials, including your email address and password.</li>
                     <li>All activities that occur under your account, whether or not authorized by you.</li>
-                    <li>Notifying SRP immediately at clientcare@stratareserveplanning.com if you become aware of any unauthorized access to or use of your account.</li>
+                    <li>Notifying SRP immediately at contact@builtbyrobyn.com if you become aware of any unauthorized access to or use of your account.</li>
                     <li>Not sharing your account credentials with any other individual under any circumstances.</li>
                 </ul>
                 <p>
@@ -331,7 +331,7 @@ export const TermsOfUseContent: React.FC = () => (
                 </ul>
                 <p>
                     You may request account termination at any time by contacting SRP at
-                    clientcare@stratareserveplanning.com. Upon termination:
+                    contact@builtbyrobyn.com. Upon termination:
                 </p>
                 <ul>
                     <li>Your access to the Portal will cease immediately.</li>
@@ -357,7 +357,7 @@ export const TermsOfUseContent: React.FC = () => (
                 <ol>
                     <li>
                         <strong>Informal Resolution:</strong> You agree to first attempt to resolve
-                        any Dispute informally by contacting SRP at clientcare@stratareserveplanning.com.
+                        any Dispute informally by contacting SRP at contact@builtbyrobyn.com.
                         The parties shall negotiate in good faith for a period of thirty (30) days
                         from the date of the initial written notice of the Dispute.
                     </li>
@@ -484,7 +484,7 @@ export const TermsOfUseContent: React.FC = () => (
 
                 <h3>19.6 Notices</h3>
                 <p>
-                    All notices to SRP should be sent to clientcare@stratareserveplanning.com.
+                    All notices to SRP should be sent to contact@builtbyrobyn.com.
                     SRP may deliver notices to you via the email address associated with your
                     account. Notices are deemed received upon transmission by email, provided no
                     delivery failure notification is received by the sender.
@@ -510,7 +510,7 @@ export const TermsOfUseContent: React.FC = () => (
                     British Columbia, Canada
                 </p>
                 <p>
-                    <strong>Email:</strong> clientcare@stratareserveplanning.com
+                    <strong>Email:</strong> contact@builtbyrobyn.com
                 </p>
             </section>
     </>
