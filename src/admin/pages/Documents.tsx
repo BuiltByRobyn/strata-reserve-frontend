@@ -46,6 +46,9 @@ export default function DocumentsPage() {
   const [previewModalOpen, setPreviewModalOpen] = useState(false);
   const [previewDocumentId, setPreviewDocumentId] = useState<number | null>(null);
   const [previewDocumentName, setPreviewDocumentName] = useState('');
+  const [deleteTarget, setDeleteTarget] = useState<DocumentWithDetails | null>(null);
+  const [deleteSubmitting, setDeleteSubmitting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [previewDocument, setPreviewDocument] = useState<DocumentWithDetails | null>(null);
 
   const isDesktop = useMediaQuery('(min-width: 900px)');
@@ -185,13 +188,22 @@ export default function DocumentsPage() {
     }
   };
 
-  const handleDelete = async (doc: DocumentWithDetails) => {
-    if (!confirm(`Are you sure you want to delete "${doc.fileName}"?`)) return;
+  const handleDelete = (doc: DocumentWithDetails) => {
+    setDeleteTarget(doc);
+    setDeleteError(null);
+  };
 
+  const handleConfirmDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleteSubmitting(true);
+    setDeleteError(null);
     try {
-      await deleteDocument(doc.fileNumberDocumentId);
+      await deleteDocument(deleteTarget.fileNumberDocumentId);
+      setDeleteTarget(null);
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to delete document');
+      setDeleteError(err instanceof Error ? err.message : 'Failed to delete document');
+    } finally {
+      setDeleteSubmitting(false);
     }
   };
 
@@ -565,6 +577,31 @@ export default function DocumentsPage() {
         token={session!.access_token}
         onDelete={canDelete && previewDocument ? () => handleDelete(previewDocument) : undefined}
       />
+
+      {deleteTarget && (
+        <Modal
+          isOpen={!!deleteTarget}
+          onClose={() => { setDeleteTarget(null); setDeleteError(null); }}
+          title="Delete Document"
+          size="small"
+          footer={
+            <>
+              <button className="btn-secondary" onClick={() => { setDeleteTarget(null); setDeleteError(null); }} disabled={deleteSubmitting}>
+                Cancel
+              </button>
+              <button className="btn-delete" onClick={handleConfirmDelete} disabled={deleteSubmitting}>
+                {deleteSubmitting ? 'Deleting...' : 'Delete Document'}
+              </button>
+            </>
+          }
+        >
+          {deleteError && <div className="form-error">{deleteError}</div>}
+          <div className="delete-confirmation">
+            <p>Are you sure you want to delete "{deleteTarget.fileName}"?</p>
+            <p className="delete-warning">This action cannot be undone.</p>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }
