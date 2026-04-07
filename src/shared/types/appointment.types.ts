@@ -126,6 +126,7 @@ export interface AppointmentNotification {
   message: string;
   reason: string | null;
   date: string;
+  isDraftMeeting?: boolean;
   previousDate?: string;
   previousSlotTime?: string;
   previousSlotName?: string;
