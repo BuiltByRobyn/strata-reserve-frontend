@@ -30,9 +30,11 @@ const StrataInformation = () => {
                 legalTypeId:legal_type_id,
                 legalTypeName:legal_type_name
               ),
-              propertyType:property_type_id (
-                propertyTypeId:property_type_id,
-                propertyTypeName:property_type_name
+              strataPropertyTypes:strata_property_type (
+                propertyType:property_type_id (
+                  propertyTypeId:property_type_id,
+                  propertyTypeName:property_type_name
+                )
               )
             )
           `)
@@ -108,11 +110,15 @@ const StrataInformation = () => {
           <span className="strata-info__value">{strata.postalCode || 'N/A'}</span>
         </div>
 
-        <h2 className="strata-info__section-title strata-info__section-title--spaced">Property Type</h2>
+        <h2 className="strata-info__section-title strata-info__section-title--spaced">Property Details</h2>
 
         <div className="strata-info__field">
-          <span className="strata-info__label">Property Type</span>
-          <span className="strata-info__value">{strata.propertyType?.propertyTypeName || 'N/A'}</span>
+          <span className="strata-info__label">Property Types</span>
+          <span className="strata-info__value">
+            {strata.strataPropertyTypes?.length
+              ? strata.strataPropertyTypes.map((spt: any) => spt.propertyType.propertyTypeName).join(', ')
+              : 'N/A'}
+          </span>
         </div>
         <div className="strata-info__field strata-info__field--last">
           <span className="strata-info__label">Legal Type</span>
