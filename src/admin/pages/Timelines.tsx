@@ -789,15 +789,29 @@ export default function TimelinesPage() {
           {isCreating && (
             <>
               <SingleSelectDropdown
-                label="File Number"
+                label="Strata"
                 required
                 value={selectedCreateSrId}
-                onChange={setSelectedCreateSrId}
-                options={unconfirmedList.map(sr => ({
+                onChange={(val) => {
+                  setSelectedCreateSrId(val);
+                  const sr = fileNumbers.find(f => f.fileId === parseInt(val));
+                  if (sr) {
+                    setFormData(prev => ({
+                      ...prev,
+                      fiscalYearEnd: sr.fiscalYearEnd ? formatYMD(parseLocalDate(sr.fiscalYearEnd)!) : prev.fiscalYearEnd,
+                      lastAgmDate: sr.lastAgmDate ? formatYMD(parseLocalDate(sr.lastAgmDate)!) : prev.lastAgmDate,
+                      noAgmToDate: sr.noAgmToDate ?? prev.noAgmToDate,
+                      lastDepreciationReportDate: sr.lastDepreciationReportDate ? formatYMD(parseLocalDate(sr.lastDepreciationReportDate)!) : prev.lastDepreciationReportDate,
+                      noReportToDate: sr.noReportToDate ?? prev.noReportToDate,
+                      targetDate: sr.targetDate ? formatYMD(parseLocalDate(sr.targetDate)!) : prev.targetDate,
+                    }));
+                  }
+                }}
+                options={fileNumbers.filter(sr => !sr.archived).map(sr => ({
                   value: sr.fileId,
-                  label: `${sr.strata?.strataPlan || sr.strata?.complexName || `SR #${sr.fileId}`} — ${sr.strata?.complexName || ''}`.trim(),
-                }))}
-                placeholder="Select a file number"
+                  label: `${sr.strata?.strataPlan || ''} — ${sr.strata?.complexName || ''}`.trim().replace(/^— /, '').replace(/ —$/, ''),
+                })).sort((a, b) => a.label.localeCompare(b.label))}
+                placeholder="Select a strata"
               />
               <InputField
                 label="Fiscal year start date"

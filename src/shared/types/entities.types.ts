@@ -118,8 +118,10 @@ export interface StrataWithDetails extends Strata {
 
 export type StrataInfo = Pick<
   Strata,
-  'strataId' | 'strataPlan' | 'complexName' | 'streetName' | 'town' | 'province' | 'postalCode' | 'legalType' | 'propertyType'
->;
+  'strataId' | 'strataPlan' | 'complexName' | 'streetName' | 'town' | 'province' | 'postalCode' | 'legalType'
+> & {
+  strataPropertyTypes?: StrataPropertyType[];
+};
 
 export interface StrataProfileResult {
   id: string;
