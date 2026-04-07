@@ -69,9 +69,7 @@ export default function TimelinesPage() {
     return fileNumbers.filter(hasConfirmedTimelines);
   }, [fileNumbers]);
 
-  const unconfirmedList = useMemo(() => {
-    return fileNumbers.filter(sr => !hasConfirmedTimelines(sr) && !sr.archived);
-  }, [fileNumbers]);
+
 
   const today = useMemo(() => {
     const d = new Date();
