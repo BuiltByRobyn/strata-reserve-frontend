@@ -494,11 +494,15 @@ export const Dashboard = () => {
             );
           }
           const rejectionNotification = (task.id === 'timelines' || task.id === 'inspection')
-            ? notifications.find(n => n.type === 'request_rejected' && !dismissed.has(`${n.type}__${n.date}`))
+            ? notifications.find(n =>
+                n.type === 'request_rejected'
+                && !dismissed.has(`${n.type}__${n.date}`)
+                && (n.isDraftMeeting ?? false) === draftMeetingEligible
+              )
             : undefined;
           if (rejectionNotification) {
-            const rejTypeLabel = draftMeetingEligible ? 'draft meeting' : 'inspection';
-            const rejCardLabel = draftMeetingEligible ? 'Draft Meeting Not Accepted' : 'Inspection Not Accepted';
+            const rejTypeLabel = rejectionNotification.isDraftMeeting ? 'draft meeting' : 'inspection';
+            const rejCardLabel = rejectionNotification.isDraftMeeting ? 'Draft Meeting Not Accepted' : 'Inspection Not Accepted';
             const rejText = rejectionNotification.message
               .replace('appointment request', `${rejTypeLabel} request`)
               .replace('was rejected', 'was not accepted');
